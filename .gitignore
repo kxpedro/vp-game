@@ -1,0 +1,15 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# .NET build artifacts
+.mono/
+bin/
+obj/
+
+# IDE and operating system files
+.vs/
+.vscode/
+*.user
+.DS_Store
+Thumbs.db

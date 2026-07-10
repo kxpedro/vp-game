@@ -1,0 +1,49 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/player/PlayerCombat.cs" id="2"]
+[ext_resource type="Script" path="res://scripts/combat/Health.cs" id="3"]
+[ext_resource type="Script" path="res://scripts/player/PlayerSkillController.cs" id="4"]
+[ext_resource type="PackedScene" path="res://3d/character.glb" id="5"]
+[ext_resource type="Script" path="res://scripts/player/PlayerAnimator.cs" id="6"]
+[ext_resource type="Script" path="res://scripts/player/PlayerArtifactController.cs" id="7"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.35
+height = 1.55
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_attack"]
+size = Vector3(1.75, 1.1, 1.55)
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.775, 0)
+shape = SubResource("CapsuleShape3D_player")
+
+[node name="CharacterModel" parent="." instance=ExtResource("5")]
+
+[node name="AttackArea" type="Area3D" parent="."]
+position = Vector3(0, 0.75, -1.18)
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="AttackArea"]
+shape = SubResource("BoxShape3D_attack")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3")
+MaxHealth = 120.0
+
+[node name="PlayerCombat" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="PlayerSkillController" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="PlayerArtifactController" type="Node" parent="."]
+script = ExtResource("7")
+
+[node name="PlayerAnimator" type="Node" parent="."]
+script = ExtResource("6")

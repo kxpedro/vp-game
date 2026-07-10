@@ -1,0 +1,1700 @@
+﻿Game Design Document:
+VAMPIRE’S PREY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Versão do Documento: 1.0
+Autor: Pedro Henrique Rech Sarmento
+Data: 2022
+
+
+Sumário
+Módulo 1 - Projeto e Visão geral do Jogo        5
+High Concept (Conceito geral)        5
+Game Overview (Visão Geral do jogo)        5
+Título do jogo        7
+O que faz dele único?        7
+Principais Gameplay Features (Recursos de Jogabilidade)        7
+Módulo 2 - Público-alvo e Plataformas        10
+Público alvo        10
+Plataforma        10
+Gênero do jogo        10
+Modelo de negócios        11
+Módulo 3 - Produção        12
+Pré-alpha        12
+Protótipo        12
+Versão Alpha        12
+Versão Beta        12
+Versão Closed Beta        12
+Versão Release Candidate        12
+Versão Gold        12
+Módulo 4 - Jogabilidade I: OCR e 3Cs        13
+OCR        13
+Objetivo        13
+Desafio        13
+Recompensas        14
+3Cs        15
+Câmera        14
+Personagem        14
+Controle        14
+Módulo 5 - Jogabilidade II: Regras e Estrutura do Jogo        17
+Quais as principais habilidades exigidas no jogo?        17
+Que tipo de experiência você quer passar com o seu jogo?        17
+Quais motivações você vai apresentar para os seus jogadores?        18
+Módulo 6 - Jogabilidade III: Fluxo        20
+Para garantir a variedade e ritmo do jogo, quais são as suas mecânicas auxiliares e modificadores no jogo?        20
+Quais são as recompensas no jogo?        20
+Quais são os seus inimigos e desafios no jogo?        21
+Qual o tipo de fluxo do seu jogo?        21
+Módulo 7 - Jogabilidade IV: Sistema e Protótipo        22
+Faça uma lista com o mínimo de 3 Signs (sinais) e 3 Feedbacks (retornos) do seu jogo
+        22
+Se você fosse criar o protótipo do seu jogo, quais as 3 mecânicas que você gostaria de validar?        22
+Módulo 8 - Mecânicas        24
+Descreva a mecânica principal do seu jogo        24
+Liste 3 regras do seu jogo        24
+Liste 3 parâmetros que você vai utilizar na sua mecânica principal        25
+Módulo 9 - Level Design I: Tutorial e Progressão        26
+Qual tipo de tutorial você vai utilizar e porquê?        26
+Liste 3 tipos de Power-ups que você irá utilizar no seu jogo        26
+Módulo 10 - Level Design II: Níveis de Dificuldade        27
+Liste 3 exemplos de “Nível de poder” que você irá utilizar no seu jogo        27
+Liste 1 habilidade de “Nível de habilidade” que o seu jogo irá exigir dos jogadores        27
+Módulo 11 - Level Design III: Comportamento dos Inimigos        28
+Liste 1 exemplo de “Máquina de estado finita” com 3 um comportamento dentro do seu jogo        28
+Módulo 12 - Level Design IV: Balanceamento        29
+Liste 3 sistemas de mecânicas que poderão ser balanceados no seu jogo        29
+Módulo 13 - História e Narrativa        31
+Em até 2 parágrafos, resuma como será a história de seu jogo        31
+Módulo 14 - Arte        32
+Descreva em 1 parágrafo como será o estilo visual do seu jogo e quais as suas referências        32
+Módulo 15 - UI/UX        33
+Descreva quais são as principais informações (HUD) que serão apresentadas para os jogadores na tela principal do jogo        33
+Módulo 16 - Programação        34
+Liste em ordem de importância, quais são os principais elementos que você irá considerar ao utilizar uma engine e por quê?        34
+Módulo 17 - Música e Efeitos Sonoros        35
+Descreva em 1 parágrafo como será o estilo musical do seu jogo e quais as suas referências        35
+Módulo 18 - QA (Testes)        36
+Liste os 3 principais itens do seu jogo que você quer testar e por quê?        36
+Módulo 19 - Atividades Interpessoais        37
+Liste 3 atividades interpessoais que você acredita serem vitais para o trabalho em equipe e por quê?        37
+Módulo 20 - Criando seu próprio GDD        38
+Revisar todos os exercícios passados e faça atualizações e ajustes caso seja necessário        38        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Módulo 1 - Projeto e Visão geral do Jogo
+
+
+   1. High Concept (Conceito geral)
+
+
+Vampire's Prey é um jogo roguelike de RPG de ação que combina aspectos de combate fluido e imersão em um ambiente sombrio e cruel, com uma perspectiva de câmera isométrica, com personagens carismáticos e pitorescos. 
+
+
+Explore ambientes sinistros e espetaculares pintados a mão acompanhado de uma trilha sonora pesada e agressiva, dando vida a desafiadora jornada de Virgil, o caçador de recompensas mais famoso da região, em sua busca para acabar com sua maldição e escapar do castelo do vampiro lendário Armand.
+
+
+   2. Game Overview (Visão Geral do jogo)
+
+
+Resumo geral com mais detalhes
+
+
+Jogando na pele de um caçador de monstros habilidoso chamado Virgil, seu alvo agora é um lendário vampiro temido na região, este que possui uma legião de monstros e adoradores em seu castelo. Quando Virgil finalmente adentra o castelo, é facilmente derrotado pelo vampiro, este que é um antigo rei amaldiçoado que está vivo há mais de 1000 anos, chamado de Armand. 
+
+
+Armand enxerga em Virgil um brilho que o faz sentir vontade de matar novamente e o amaldiçoa da mesma forma, transformando-o em um vampiro para lhe entreter. Após sua transformação, Virgil se torna imortal e um prisioneiro no castelo.
+
+
+Virgil se torna um morto-vivo, seu corpo pode morrer, mas é renascido depois de um tempo. Sempre que morre é enviado para uma sala especial onde consegue abastecer recursos, interagir com outros personagens, trocar estilo de combate e adquirir novas habilidades, chamada de Ninho do Corvo.
+
+
+Durante sua jornada, enfrente inimigos como Draugrs são mortos vivos trazidos de volta à vida, cultistas e criaturas demoníacas que servem a vontade de Armand, e magos que utilizam do sangue para realizar magias poderosas, entre outros.
+
+
+Influências e referências para o jogo, em diversas áreas
+
+
+A ideia que formulou esse jogo surgiu da união de outras três séries de jogos já existentes: Hades, Castlevania e Doom. 
+
+
+As referências de gameplay são muito claras, a experiência que Hades fornece é inspiradora. Cada run é uma experiência completamente nova, indo desde se tornar um deus no nível máximo, explorar as combinações insanas de poderes que os deuses lhe fornecem e combinar isso com as armas e seus aspectos. O jogo combina os melhores aspectos dos títulos da Supergiant aclamados pela crítica, dessa forma se reinventando e inovando no gênero de roguelikes junto de uma apresentação rica e atmosférica com uma combinação única de jogabilidade e narrativa. 
+
+
+O clássico jogo da série Castlevania, Symphony of the Night apresenta uma narrativa envolvente ao apresentar um personagem poderoso que desde o início parte em uma jornada para recuperar seus poderes e impedir o grande vampiro Drácula. Seu valor de repetição é alto, misturando elementos dos clássicos de plataforma com centenas de armas e itens, um sistema completo de nível de RPG.
+
+
+Matar monstros bizarros enquanto se movimenta freneticamente ao som de um belo heavy metal é definitivamente a fórmula para o sucesso de Doom (2016) e Doom Eternal, e essa combinação definitivamente é uma inspiração para o desenvolvimento deste jogo. A violência e adrenalina desse jogo são tão extremas que perpassam a se tornar arte e esse é o objetivo, transformar um jogo em uma obra de arte.
+
+
+Outro jogo que também serviu como referência foi Curse Of The Dead Gods e seu método de escolha de salas, fornecendo um mapa com múltiplos caminhos diferentes a serem tomados, podendo eles se conectar conforme o jogador avança nas salas.
+
+
+Estrutura geral do jogo
+
+
+Para iniciar sua fuga, o jogador tem de escolher em um mapa do castelo qual sala deseja começar sua jornada, sendo possível três escolhas iniciais, cada sala levando a um caminho diferente, podendo se cruzar no decorrer da fuga. Cada sala será gerada de forma aleatória, sempre tendo um aspecto diferente da outra. 
+
+
+O castelo é separado por setores e cada setor possui um conjunto de caminhos a serem percorridos pelo jogador. Para concluir o setor o jogador tem de enfrentar um chefe final para poder prosseguir no castelo. Esse processo se repete até chegar no último setor onde está o último chefe.
+
+
+Sempre que o jogador é derrotado as salas do castelos se embaralham e isso fica nítido pro jogador enquanto na tela de carregamento após morte. Isso seria um efeito visual para demonstrar que toda vez que for derrotado as salas são geradas randomicamente e o progresso de exploração do castelo será perdido, dessa forma o jogador pode ter uma experiência diferente toda vez que tentar escapar do castelo.
+
+
+Sugestões de mecânicas e elementos
+
+
+O jogador será desafiado constantemente durante seu caminho pelas salas do castelo, enfrentando diversos inimigos (dentre eles inimigos comuns, subchefes e chefes de sala) e algumas armadilhas posicionadas aleatoriamente nas salas.
+
+
+Conforme avança nas salas, irá encontrar personagens com quem pode interagir através de diálogos, podendo assim criar um relacionamento com eles. Dependendo de como for a interação, esses personagens podem vir a ajudar Virgil em sua jornada.
+
+
+As decisões que Virgil tomar em seu caminho irão definir o final da história. Ao derrotar os chefes de cada setor do castelo será desbloqueada uma nova pista de como Virgil pode atingir seus objetivos, estes que são encontrar uma cura para a maldição e escapar do castelo, derrotando ou não Armand no final de tudo.
+
+
+   3. Título do jogo
+
+
+Vampire's Prey
+
+
+   4. O que faz dele único?
+
+
+Os diferenciais do jogo se resumem em trazer ao jogador uma experiência imersiva de ação frenética com uma gameplay desafiadora e ambientação densa. Uma das formas para adquirir esse diferencial na ambientação do jogo é fazer com que a gameplay não dê descanso ao jogador enquanto ele não concluir as salas que entrar, fazendo assim com que o personagem não pare de se movimentar um segundo sequer, sempre desviando dos inimigos e desferindo ataques de volta, isso por que quando for atingido irá sofrer muito dano. 
+
+
+Outro recurso a ser explorado na ambientação é através de uma trilha sonora que possuirá elementos de subgêneros musicais do heavy metal, tais como: thrash metal, doom metal e groove metal; e o uso de um estilo de arte referenciado nas obras da artista e ilustradora Ayami Kojima.
+
+
+   5. Principais Gameplay Features (Recursos de Jogabilidade)
+
+
+Essenciais:
+* Combate: Virgil é um combatente habilidoso, possuindo perícia com diversas armas, porém estando limitado a somente quatro armas dentro do castelo: espada longa, espadas curtas duplas, besta repetidora e chicote. Sendo que pode levar somente uma delas consigo durante sua fuga. Com cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
+   * Espada longa: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
+   * Espadas curtas duplas: Conjunto de duas pequenas espadas, possibilitando um ataque rápido e movimentação rápida, porém dando menos dano do que o normal.
+   * Besta repetidora: Uma besta com munição limitada a quatro disparos por vez, possibilitando ataque a longas e curtas distâncias, a velocidade de disparo e dano são razoáveis.
+   * Chicote: Um chicote com um grande nível de poder, sua velocidade de ataque é razoável, causando muito dano em área e uma grande sequência de golpes combinados.
+* Recompensas das salas: Sempre que concluir uma sala do castelo, Virgil poderá escolher levar consigo um item como recompensa por concluir o desafio remanescente da sala, estes que são disponibilizados de forma randômica entre artefatos roubados, moedas de sangue e melhorias de atributos.
+   * Artefatos Roubados: Cada artefato possui um conjunto de atributos e, dependendo do nível de raridade, efeitos especiais que se aplicam aos ataques de Virgil, tais efeitos utilizando de elementos como fogo, veneno, gelo e sangue.
+   * Moedas de Sangue: O recurso utilizado para realizar trocas por novas habilidades, armas e itens, é chamada de Moeda de Sangue, sendo adquirida ao eliminar inimigos presentes nas salas. Quanto mais desafiador for o inimigo, mais moedas ele solta para Virgil. 
+   * Melhorias de atributos: O atributo a ser disponibilizado para ser melhorado será aleatório, podendo ser entre dano, saúde ou energia.
+Básicos:
+* Perspectiva de câmera: O jogo possui uma perspectiva isométrica, simulando o estilo dos clássicos jogos de RPG, onde a câmera é fixa no personagem que fica bem no meio da tela.
+* Movimentação: O personagem pode se movimentar em todos os lados das três dimensões de um mundo 3D. Nele pode caminhar, correr e desviar de golpes para qualquer direção. Correr e desviar porém utilizam de uma barra de energia, limitando o número de ações que o jogador pode ter.
+Especial:
+* Modo Fúria: Habilidade especial que o permite entrar em modo de fúria, assumindo uma aparência bestial. Quando em fúria, o visual do jogo fica em preto e branco, e a única cor que permanece é a vermelha de sangue, a trilha sonora muda de forma dinâmica quando isso ocorre também. O personagem fica mais forte e mais rápido, ganhando também maiores quantias de moedas de sangue quando elimina seus inimigos.
+* Habilidades da Fonte de Sangue: Ao gastar moedas de sangue na fonte de sangue, o jogador pode adquirir novas habilidades tanto passivas quanto ativas, ficando assim cada vez mais forte. Tais habilidades podem ser como utilizar de magias ou aumento de atributos como vida, energia e dano, tanto como aumento da quantidade de recursos ganhos, como as próprias moedas ou artefatos nas salas.
+Extras:
+* Ninho do Corvo: Salão principal e ponto de reencontro de Virgil com os personagens que encontra em seu caminho, estes que ficam espalhados por entre o salão. Neste grande salão estão localizados alguns pontos de interesse onde Virgil pode se preparar para sua exploração do castelo, tais como a fonte de sangue, bancada de armas e seu caixão. 
+   * Fonte de Sangue: Uma grande fonte de sangue localizada no centro da sala principal, nela Virgil pode trocar suas moedas de sangue para adquirir novas habilidades, fazendo o papel de uma árvore de habilidades. Essas habilidades lhe permitem adquirir novos poderes e vantagens que ficam habilitadas durante todo o progresso de Virgil no processo de fugir do castelo.
+   * Bancada de Armas: Local onde o equipamento de Virgil está exposto, suas armas principalmente. Nela é possível visualizar suas armas, aprimorá-las e selecionar qual delas vai ser utilizada na fuga do castelo. 
+   * Caixão: Local onde Virgil descansa e onde retorna quando morre. Graças a sua maldição, seu caixão virou seu lar, está vinculado e preso a ele.
+* Inventário de Artefatos Roubados: Listagem dos artefatos roubados por Virgil, neste inventário é possível visualizar todas as vantagens e desvantagens que cada item oferece.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2. Módulo 2 - Público-alvo e Plataformas
+
+
+   6. Público alvo
+
+
+O público alvo desse jogo tende a ser nichado, isso por causa do seu estilo visual e musical, e do seu gênero, que tende a um público mais focado em jogos difíceis e não tão casuais. Sendo assim, a idade alvo desse jogo está entre 20 a 26 anos de jovens adultos, idependente do sexo ou orientação sexual, esse intervalo de idade tende a ser mais aberto a jogos dificeis e desafiadores, estando dispostos a propostas diferentes do convencional.
+
+
+        Muitos jogos ainda hoje representam gênero e sexualidade baseado em clichês, preconceitos e estereótipos. A ideia é que o jogador tenha contato com diversidade de gênero através do relacionamento com os personagens NPCs. Por mais que o personagem principal seja um homem, sua orientação sexual é ambígua, possibilitando ao jogador interpretar o personagem como quiser.
+
+
+        Esse jogo é para aqueles que se gostam de ter um conhecimento único do ecossistema de um jogo através da interação com os personagens NPCs e nas descrições dos objetos encontrados, de surpresas e recursos secretos, sendo estes menos propensos a investir dinheiro real no jogo, preferindo descobrir as coisas conta própria e satisfação pessoal; e do desafio de derrotar inimigos poderosos e desvendar puzzles para concluir os objetivos do jogo.
+   7. Plataforma
+
+
+Por mais que a tendência do mercado de jogos esteja direcionada para a plataforma mobile, com muitos jogos já consolidados em consoles e PC's lançando suas versões mobile, acredito que este a plataforma ideal para este jogo seja consoles e PC’s, com prioridade no PC.
+
+
+   8. Gênero do jogo
+
+
+Os gêneros escolhidos para esse jogo são: roguelike e elementos de ação com RPG. Roguelike originalmente pode ser classificado como um subgênero do gênero RPG, isso porque jogos roguelike são baseadas no jogo eletrônico Rogue, este que foi vagamente baseado no clássico Dungeons & Dragons. Fazendo com que o jogador se aventurasse em um calabouço de vários níveis gerados proceduralmente, lutando contra criaturas e adquirindo equipamentos e tesouros.
+
+
+   9. Modelo de negócios
+
+
+Por ser um jogo que vá atender a um nicho específico de jogadores, o melhor modelo de negócio seria o Premium, pagando uma vez e tendo acesso ao conteúdo completo do jogo, sendo uma das principais vantagens desse modelo ter o desenvolvimento do jogo em si pouco afetado. Isso porque não há necessidade de convencer o jogador de comprar algo dentro do jogo, nem de visualizar anúncios, você se sente livre para desenvolver seu jogo de acordo com sua criatividade.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. Módulo 3 - Produção
+
+
+   10. Pré-alpha
+
+
+Levantamento dos recursos necessários para começar o desenvolvimento do projeto.
+
+
+   11. Protótipo
+
+
+Período de experimentação dos principais recursos e mecânicas a serem implementados.
+
+
+   12. Versão Alpha
+
+
+Primeiros testes, analisar possíveis problemas mecânicos e visuais, registro de bugs.
+
+
+   13. Versão Beta
+
+
+Período de testes intensos e balanceamentos nos principais elementos do jogo.
+
+
+   14. Versão Closed Beta
+
+
+Testes do jogo feitos pelo público, feedback da percepção do público alvo perante ao jogo.
+
+
+   15. Versão Release Candidate
+
+
+Versão pronta para ser lançada depois de pequenos ajustes e validação final da equipe.
+
+
+   16. Versão Gold
+
+
+Versão 1.0, atenção a possíveis problemas após o jogo ser lançado oficialmente.
+
+
+4. Módulo 4 - Jogabilidade I: OCR e 3Cs
+
+
+   17. OCR
+
+
+      1. Objetivo
+
+
+O objetivo principal do jogo permanece em concluir a história principal, está que acompanha a jornada de Virgil em sua busca para acabar com sua maldição e escapar do castelo do vampiro lendário Armand. No percorrer deste caminho, o jogador terá como opção interagir com diversos personagens secundários, liberando assim histórias secundárias que podem influenciar na conclusão da história principal.
+
+
+O jogador irá se deparar com diversos itens, chamados de artefatos, que vão impactar na jogabilidade, sendo assim, um dos objetivos pessoais para o jogador é coletar todos estes artefatos, que podem ser visualizados nos menus do jogo. Assim como todas as melhorias de armas de Virgil, que podem ser desbloqueadas no decorrer do jogo. Outro objetivo pessoal é a conclusão da história de todos os personagens coadjuvantes que podem ser encontrados no caminho.
+
+
+      2. Desafio
+
+
+O jogador será desafiado constantemente durante seu caminho pelas salas do castelo, principalmente nos reflexos e estratégias dos jogadores, onde estes têm de ser rápidos o suficiente para derrotar os inimigos, assim como montar a melhor combinação de itens e habilidades, construindo assim um personagem forte o suficiente para concluir o jogo. 
+
+
+O jogador também enfrentará diversos inimigos, dentre eles inimigos comuns, subchefes e chefes, e algumas armadilhas posicionadas aleatoriamente nas salas e quebra-cabeças, estes que por sua vez vão ficando cada vez mais difíceis e complexos no decorrer da história. 
+
+
+Exemplos de Inimigos:
+
+
+* Nosferatus, vampiros monstruosos criados por Armand;
+* Gárgulas, estátua de pedras;
+* Esqueletos e Mortos-vivos, criaturas reanimadas por Armand em seus experimentos;
+* Criaturas demoníacas;
+* Magos de sangue, cultistas que usam do sangue para realizar feitiços;
+
+
+
+
+Exemplos de Armadilhas: 
+
+
+* Chão falso: quando o jogador passar por cima, pressiona um dispositivo que vai lançar algum objeto para infligir dano no jogador, estes podendo ser flechas saindo das paredes, espetos caindo do teto, etc. 
+* Baú falso, jogador pensa que irá abrir um baú e este será falso, quando aberto irá dar alguma desvantagem para o jogador, seja dano a sua vida ou redução de algum atributo;
+
+
+Exemplos de Quebra-Cabeças:
+
+
+* Fechadura de sangue, porta que só é aberta devido a uma sequência de opções em que o jogador terá de acertar a ordem;
+* Arena de sacrifício, o jogador é preso em uma sala, onde as portas só vão ser liberadas quando o jogador derrotar uma horda de inimigos;
+* Chave da Gárgula, uma porta só é liberada atraves de uma chave que ficará escondida em uma gárgula pelo mapa, o jogador terá de descobrir qual é a gárgula e derrotá-la para adquirir a chave.
+* 3x3: um quebra-cabeça que desafia o jogador a deslizar as peças para formar uma imagem específica que é composta por 8 peças e um espaço vazio.
+      1. Recompensas
+
+
+Cada vez que o jogador concluir uma sala do castelo, poderá escolher levar consigo um item como recompensa por concluir o desafio remanescente da sala, estes que são disponibilizados de forma randômica entre artefatos roubados, moedas de sangue e melhorias de atributos, estes podendo ser utilizado para melhorar as habilidades do personagem, tanto suas habilidades quantos seus equipamentos e armas.
+
+
+Sempre que o jogador derrotar os chefes de cada setor do castelo será desbloqueada uma nova pista de como Virgil pode atingir seus objetivos da história principal, recompensando assim o jogador de forma narrativa, mostrando que suas ações impactam diretamente no decorrer da história do jogo.
+
+
+Será disponibilizado no perfil da plataforma do jogador diversos troféus de recompensa quando certos desafios forem completados, como por exemplo adquirir todos os artefatos, concluir a história de todos os personagem, concluir a história principal, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   18. 3Cs
+
+
+      2. Câmera
+
+
+A câmera acompanhará o personagem em um tipo de visão isométrico, fornecendo um ambiente imersivo em três dimensões para que o jogador possa explorar o cenário com um ângulo maior e mais liberdade.
+
+
+      3. Personagem
+
+
+O personagem a ser controlado será Virgil, um caçador de recompensas e recém transformado vampiro, este que irá evoluir com o decorrer da história, adquirindo novas habilidades e itens. 
+
+
+É uma personagem muito mal-humorada e sarcástica em diversas situações, sendo muito recluso aos demais personagens. No decorrer do jogo, esses traços vão ser explorados e a personagem principal passará por experiências durante o decorrer do jogo que irão moldar seu caráter.
+
+
+      4. Controle
+
+
+O controle do personagem pelo jogador será baseado nas mecânicas de jogabilidade da personagem. As atividades mais executadas do jogador serão baseadas na movimentação pelo cenário e no combate do personagem. Sendo essas duas podendo mudar de acordo com a evolução do personagem durante o jogo, adquirindo habilidades especiais e itens. A ideia é disponibilizar uma diversidade de opções para o jogador realizar ações como preferir, através de controle joystick e teclado.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Inputs no controle (modelo de xbox):
+
+
+  
+
+
+
+Inputs no teclado:
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5. Módulo 5 - Jogabilidade II: Regras e Estrutura do Jogo
+
+
+   19. Quais as principais habilidades exigidas no jogo?
+
+
+Habilidades exigidas: Reflexos, Timing e Gerenciamento.
+
+
+Uma das principais habilidades exigidas seria a capacidade de reflexos dos jogadores, a ideia é fazer com que o jogador tenha breves períodos de descanso enquanto não concluir as salas que entrar, sendo assim, o jogador deve se movimentar muito para não ser atingido por inimigos e ter certa capacidade de timing para devolver ataques na hora certa.
+
+
+Outra habilidades exigida, porém sem a mesma ênfase que a anterior, seria a capacidade de gerenciamento do jogador com os recursos adquiridos durante o jogo. Isso porque com esses recursos é possível adquirir novas habilidades e montar combinações de habilidades diferentes, o jogo pode acabar sendo mais fácil para aqueles que conseguirem organizar seus recursos de forma mais eficiente.
+
+
+   20. Que tipo de experiência você quer passar com o seu jogo?
+
+
+Tipo de Experiência
+
+
+Desafiadora, contemplativa e empolgante.
+
+
+Gameplay
+
+
+Através da mecânica de combate, sendo a principal do jogo, os jogadores sentirão uma facilidade de executar os comandos, estes que vão possibilitar diversos tipos de jogabilidade, muito por causa do uso de habilidades especiais, onde o jogador vai possuir uma grande variedade de opções. Muitas dessas habilidades vão dar ao jogador uma grande empolgação devido ao grande poder que irá ter em relação aos inimigos, que vão ficando cada vez mais difíceis com o decorrer do jogo.
+
+
+Arte 
+
+
+A identidade visual vai usar como referência jogos que possuem a mesma temática densa e soturna para a construção de cenários, como por exemplo Castlevania, que usa uma arquitetura gótica, e na caracterização dos personagens.
+
+
+Os efeitos especiais vão ser simples o suficientes para não tirar a atenção do jogador enquanto estiver envolvido no combate e exploração do cenário.
+
+
+Som 
+
+
+Através da trilha sonora, o jogador se sentirá imerso nos ambientes onde irá passar, sendo cada música tematizada com o ambiente. Outro elemento que vai possibilitar essa imersão são os diálogos dublados que o jogador vai ter com os personagens durante o jogo.
+
+
+Narrativa
+
+
+O jogo vai possuir uma história principal onde o jogador vai interagir com diversos personagens e passar por várias reviravoltas na história. O objetivo é fazer com que o jogador sinta afeto pelo enredo e se importe com suas ações no jogo.
+   21. Quais motivações você vai apresentar para os seus jogadores?
+
+
+Ações satisfatórias
+
+
+Adquirir novas habilidades, derrotar inimigos difíceis, descobrir artefatos espalhados pelos mapas, concluir missões da história e dos personagens secundários.
+
+
+Perspectiva do sucesso
+
+
+Ao decorrer do jogo, o jogador vai perceber com o tempo que possuirá muito mais armas e habilidades do que possuía no início, com mais possibilidades de estilos de jogo. Além de ir concluindo as etapas da história e derrotando chefes importantes para o objetivo do jogo.
+
+
+Socialização
+
+
+No decorrer do jogo, o jogador vai encontrar diversos personagens secundários com quem pode interagir, estes que vão se reunindo na “base” do jogador, onde alguns podem lhe vender itens e habilidades novas e outros lhe passam missões secundárias com recompensas em itens e habilidades.
+
+
+Significado
+
+
+Ao concluir as missões principais, vai desbloqueando novas habilidades, novas armas e novos personagens secundários para interagir, estes que podem disponibilizar novas missões para o jogador.
+
+
+
+
+
+
+
+
+Motivação a Curto Prazo
+
+
+No início do jogo, o jogador vai aprender como evoluir seu personagem, e como concluir os objetivos no jogo, sejam estes adquirir novos itens, habilidades e missões principais e secundárias.
+
+
+Motivação a Médio Prazo
+
+
+Durante o jogo, o jogador deverá ter aprendido a ter certa paciência para atingir seus objetivos, estes que estão relacionados à evolução do personagem: adquirindo novos itens e habilidades, progredindo no desenvolvimento da história que vai justificar, através do aumento de dificuldade, a necessidade de evoluir o personagem.
+
+
+Motivação a Longo Prazo
+
+
+O jogador encontrará certa dificuldade para conseguir adquirir todas habilidades e artefatos disponíveis no jogo com facilidade, estes sendo desbloqueados aos poucos durante o jogo, assim como a conclusão de missões, que vão sendo concluídas com o tempo até o final do jogo.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6. Módulo 6 - Jogabilidade III: Fluxo
+
+
+   22. Para garantir a variedade e ritmo do jogo, quais são as suas mecânicas auxiliares e modificadores no jogo?
+
+
+Mecânicas Auxiliares
+
+
+* Chave especial que pode ser utilizada durante a exploração das salas para encontrar artefatos escondidos, estes que possuem um nível de raridade aumentado, possibilitando vantagens nos atributos e habilidades do personagem.
+* O jogador pode adquirir novas habilidades tanto passivas quanto ativas ao trocar suas moedas de sangue, ficando assim cada vez mais forte. Tais habilidades podem ser como utilizar de magias ou aumento de atributos como vida, energia e dano, tanto como aumento da quantidade de recursos ganhos, como as próprias moedas ou artefatos nas salas.
+* Cada uma das armas do personagem possuem níveis de modificadores a serem desbloqueados, possibilitando assim novas combinações de habilidades durante o decorrer do jogo.
+
+
+Modificadores
+
+
+* Habilidade especial que o permite o personagem entrar em modo de fúria, assumindo uma aparência bestial. Os gráficos ficam em preto e branco, e a única cor que permanece é a vermelha de sangue e a trilha sonora muda de forma dinâmica. O personagem fica mais forte e mais rápido, ganhando também maiores quantias de moedas de sangue quando elimina seus inimigos.
+
+
+   23. Quais são as recompensas no jogo?
+
+
+Cada vez que o jogador concluir uma sala do castelo, poderá escolher levar consigo um item como recompensa por concluir o desafio remanescente da sala, estes que são disponibilizados de forma randômica entre artefatos roubados, moedas de sangue e melhorias de atributos, estes podendo ser utilizado para melhorar as habilidades do personagem, tanto suas habilidades quantos seus equipamentos e armas.
+        
+Sempre que o jogador derrotar os chefes de cada setor do castelo será desbloqueada uma nova pista de como Virgil pode atingir seus objetivos da história principal, recompensando assim o jogador de forma narrativa, mostrando que suas ações impactam diretamente no decorrer da história do jogo.
+
+
+Será disponibilizado no perfil da plataforma do jogador diversos troféus de recompensa quando certos desafios forem completados, como por exemplo adquirir todos os artefatos, concluir a história de todos os personagem, concluir a história principal, etc.
+
+
+   24. Quais são os seus inimigos e desafios no jogo?
+
+
+Durante sua jornada pelo castelo, o jogador irá enfrentar diversos inimigos e desafios com objetivo de impedir seu progresso, possuindo assim diversos tipos de inimigos e armadilhas nas salas.
+
+
+Inimigos reativos
+
+
+* Draugrs, mortos vivos trazidos de volta à vida por Armand para atormentar os residentes do castelo.
+* Cultistas, convidados por Armand para o servir em seu castelo.
+* Criaturas demoníacas que servem a vontade de Armand.
+* Magos que utilizam do sangue para realizar magias poderosas.
+* Chefes de salas, possuindo relevância na conclusão da história, inimigos com movimentação e habilidades diferentes dos demais encontrados nas salas.
+
+
+Inimigos passivos
+
+
+* Armadilhas posicionadas aleatoriamente nas salas.
+* Quebra-cabeças simples, onde o jogador tem de posicionar peças e itens da forma solicitada para desbloquear novas habilidades.
+
+
+   25. Qual o tipo de fluxo do seu jogo?
+
+
+Macro fluxo
+
+
+* Os inimigos possuem um nível de dificuldade dinâmico e adaptativo, sendo aumentada cada vez que o jogador chega mais próximo do final do jogo.
+* O jogador possui diversas maneiras de evoluir seu personagem, através da história, dos itens e habilidades disponíveis.
+* Conforme avança nas salas, o jogador irá encontrar personagens com quem pode interagir através de diálogos, podendo assim criar um relacionamento com eles. 
+* Ao derrotar os chefes de cada setor do castelo será desbloqueada uma nova pista de como o personagem pode atingir seus objetivos.
+
+
+
+
+
+
+7. Módulo 7 - Jogabilidade IV: Sistema e Protótipo
+
+
+   26. Faça uma lista com o mínimo de 3 Signs (sinais) e 3 Feedbacks (retornos) do seu jogo
+
+
+Signs
+
+
+* Habilidades do Personagem: Sinalizar na HUD do jogador quando suas habilidades estiverem prontas para uso, estes que entram em um tempo de recarga após uso, sinalizando também quanto tempo falta para ficar ativa.
+* Ataque dos inimigos: Exibir em cima dos personagens inimigos um sinal de que está prestes a atacar o jogador. Assim como a área de alcance das habilidades dos inimigos, que podem atacar em área.
+* Modo Fúria: Sinalizar na HUD do jogador quando sua habilidade especial de modo fúria estiver pronta para uso, através de efeitos visuais e sonoros.
+
+
+Feedbacks
+
+
+* Dano em combate: Exibir em cima dos personagem a quantidade de dano recebido é causado, tanto no personagem do jogador quanto dos inimigos.
+* Moedas dos inimigos: Ao derrotar um inimigo, mostrar um efeito visual de moedas de sangue caindo no chão, essas que vão automaticamente para o inventário do jogador.
+* Artefatos: Quando o jogador estiver chegando perto de um artefato, este vai emanar um som, que vai aumentando de acordo com a aproximação do jogador. Ao resgatar o artefato, aparece um curta cutscene que exibe o personagem recolhendo e armazenando o item no inventário.
+
+
+   27. Se você fosse criar o protótipo do seu jogo, quais as 3 mecânicas que você gostaria de validar?
+
+
+Mecânicas
+
+
+* Movimentação Isométrica: O personagem pode se movimentar em todos os lados das três dimensões de um mundo 3D com uma perspectiva de câmera fixa em um ponto isométrico, podendo caminhar, correr e desviar de golpes para qualquer direção. Correr e desviar utilizam de uma barra de energia, limitando o número de ações que o jogador pode ter.
+* Combate: Validar o uso das armas do personagem: espada longa, espadas curtas duplas, besta repetidora e chicote. Cada uma possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
+* Inimigos: Experimentar a movimentação e reação dos inimigos de acordo com o personagem, de que maneira eles vão perseguir o personagem e quando vão iniciar o combate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+8. Módulo 8 - Mecânicas
+
+
+   28. Descreva a mecânica principal do seu jogo
+
+
+Mecânica de Combate
+
+
+O jogador vai usar o combate na maior parte do tempo dentro do jogo, tendo a possibilidade de interagir com diferentes equipamentos, cada um com estilo diferente de combate. Com cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais. Pode também utilizar de diversos tipos de habilidades especiais em conjunto das suas armas, uma delas em específico, o modo fúria, muda completamente a movimentação, dano e tempo de resposta de seus ataques.
+
+
+   29. Liste 3 regras do seu jogo
+
+
+Limite de Equipamento
+
+
+O limite de equipamento é uma regra que o jogador terá de aprender como lidar e utilizar da melhor forma possível durante sua jornada. Sendo limitado a somente quatro (espada longa, espadas curtas duplas, besta repetidora e chicote) opções de armas e tendo que escolher somente entre uma delas para levar consigo em cada tentativa.
+
+
+Outro limitador é a quantidade de artefatos que pode levar consigo, estes sendo adquiridos, ou não, toda vez que finaliza uma fase, cada um fornecendo diferentes vantagens para o jogador, que por causa do limite, vai ter de escolher com cuidado quais for levar consigo.
+
+
+Condição de Vitória
+
+
+Vencer nesse jogo significa concluir as fases derrotando todos os inimigos encontrados. Cada capítulo do jogo possui um conjunto de fases, para concluir o capítulo o jogador deve vencer um chefe na última fase.
+
+
+Condição de Derrota
+
+
+        Sempre que for derrotado pelos inimigos, o jogador perde todo seu progresso nas fases, voltando para o ponto inicial do jogo. Mantendo consigo somente moedas de troca que forem adquiridas.
+
+
+   30. Liste 3 parâmetros que você vai utilizar na sua mecânica principal
+
+
+Mecânica de combate
+
+
+        Jogo onde o personagem possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais e uso de habilidades especiais.
+
+
+Mecânica de Ataque
+	Tempo de Execução
+	Área de ataque
+	Dano
+	Ataque leve
+	1,0 segundos
+	1 unidade
+	50
+	Ataque pesado
+	2,0 segundos
+	1 unidade
+	70
+	Habilidade especial
+	1,5 segundos
+	(Depende da habilidade)
+	(Depende da habilidade)
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+9. Módulo 9 - Level Design I: Tutorial e Progressão
+
+
+   31. Qual tipo de tutorial você vai utilizar e porquê?
+
+
+Imersivo
+        
+        A ideia é apresentar para o jogador as principais mecânicas do jogo de forma interativa no tutorial com as armas, equipamentos e habilidades maximizados do personagem, entregando ao jogador uma expectativa do que o personagem pode se tornar durante sua jornada. No final do tutorial, o personagem volta à estaca zero, onde o jogador tem de tornar o personagem forte novamente.
+
+
+   32. Liste 3 tipos de Power-ups que você irá utilizar no seu jogo
+
+
+Poção de cura
+
+
+Adquirida por sorte de baús e inimigos, recupera uma porcentagem dos pontos de vida do jogador.
+
+
+Poção de fúria
+
+
+Adquirida por sorte de alguns inimigos, aumenta a quantidade de fúria acumulada para utilizar habilidade especial.
+
+
+Relógio de bolso
+
+
+Quando adquirido, reduz o tempo de recarga das habilidades especiais.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+10. Módulo 10 - Level Design II: Níveis de Dificuldade
+
+
+   33. Liste 3 exemplos de “Nível de poder” que você irá utilizar no seu jogo
+
+
+Níveis de poder do jogador
+
+
+        Habilidade especial que o permite o personagem entrar em modo de fúria, assumindo uma aparência bestial.
+
+
+        O jogador pode adquirir novas habilidades tanto passivas quanto ativas ao trocar suas moedas de sangue, ficando assim cada vez mais forte.
+
+
+   34. Liste 1 habilidade de “Nível de habilidade” que o seu jogo irá exigir dos jogadores
+
+
+Habilidade Motora
+        
+        Exigindo um nível de coordenação motora para desempenhar ações no jogo. O jogador vai usar o combate na maior parte do jogo, tendo a possibilidade de interagir com diferentes equipamentos e armamentos. Enfrentando diferentes tipos de inimigos com diferentes tipos de ataques e habilidades.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+11. Módulo 11 - Level Design III: Comportamento dos Inimigos
+
+
+   35. Liste 1 exemplo de “Máquina de estado finita” com 3 um comportamento dentro do seu jogo
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+12. Módulo 12 - Level Design IV: Balanceamento
+
+
+   36. Liste 3 sistemas de mecânicas que poderão ser balanceados no seu jogo
+
+
+Combate
+
+
+O jogador vai usar o combate na maior parte do tempo dentro do jogo, tendo a possibilidade de interagir com diferentes equipamentos. Cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
+Exemplo de armas:
+Espada longa: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
+Espadas curtas duplas: Conjunto de duas pequenas espadas, possibilitando um ataque rápido e movimentação rápida, porém dando menos dano do que o normal.
+Besta repetidora: Uma besta com munição limitada a quatro disparos por vez, possibilitando ataque a longas e curtas distâncias, a velocidade de disparo e dano são razoáveis.
+Chicote: Um chicote com um grande nível de poder, sua velocidade de ataque é razoável, causando muito dano em área e uma grande sequência de golpes combinados.
+Habilidades Especiais
+O jogador pode trocar suas moedas do jogo para adquirir novas habilidades a partir de uma árvore de habilidades. Essas habilidades lhe permitem adquirir vantagens que ficam habilitadas durante todo o progresso do jogo, sendo ativas ou passivas. Cada habilidade pode ser aprimorada em até cinco vezes.
+Exemplo de habilidades:
+Transformação Bestial: Permite o jogador entrar em modo de fúria, onde o personagem fica mais forte e mais rápido que o normal, ganhando também maiores quantias de moedas quando elimina seus inimigos.
+Presas de Vampiro: Permite o jogador regenerar uma porcentagem de sua vida a cada abate de inimigos.
+Instinto de Sobrevivência: Quando o jogador estiver com seus pontos de vida abaixo de 10%, consegue se movimentar de forma mais rápida pelo mapa. Aumentando em 5% para cada aprimoramento da habilidade
+Recompensas das salas
+        Sempre que concluir uma sala do castelo, o jogador poderá escolher levar consigo um item como recompensa por concluir o desafio remanescente da sala.
+Exemplos:
+Artefatos Roubados: Cada artefato possui um conjunto de atributos e, dependendo do nível de raridade, efeitos especiais que se aplicam aos ataques do jogador.
+Moedas de Sangue: O recurso utilizado para realizar trocas por novas habilidades, armas e itens. Quanto mais desafiador for o inimigo, mais moedas ele solta para o jogador. 
+Melhorias de atributos: O atributo a ser disponibilizado para ser melhorado será aleatório, podendo ser entre dano, saúde ou energia.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+13. Módulo 13 - História e Narrativa
+
+
+   37. Em até 2 parágrafos, resuma como será a história de seu jogo
+
+
+Jogando na pele de um caçador de monstros chamado Virgil, seu alvo agora é um vampiro lendário, este que possui uma legião de monstros e adoradores em seu castelo. Quando Virgil finalmente adentra o castelo, é facilmente derrotado pelo vampiro, este que é um antigo rei amaldiçoado que está vivo há mais de 1000 anos, chamado de Armand. 
+
+
+Entediado, Armand enxerga em Virgil um brilho que o faz sentir vontade de matar novamente e o amaldiçoa da mesma forma, transformando-o em um vampiro para lhe entreter. Após sua transformação, Virgil se torna imortal e um prisioneiro no castelo, seu objetivo agora é se vingar de Armand e encontrar uma cura para sua maldição.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14. Módulo 14 - Arte
+
+
+   38. Descreva em 1 parágrafo como será o estilo visual do seu jogo e quais as suas referências
+
+
+Na ambientação do jogo, a ideia é utilizar de um estilo visual com cores mais escuras, utilizando bastante das cores preto e branco, dando contraste na cor vermelha nos personagens, inimigos e na ambientação do jogo, parecido com que o jogo Nongunz utiliza; 
+
+
+  
+
+
+
+Já para os personagens, a ideia é utilizar de um estilo de arte baseado nas obras da artista Ayami Kojima, conhecida pelo seu trabalho na série de jogos Castlevania.
+
+
+  
+
+
+
+
+
+15. Módulo 15 - UI/UX
+
+
+   39. Descreva quais são as principais informações (HUD) que serão apresentadas para os jogadores na tela principal do jogo
+
+
+Mockup:
+
+
+  
+
+
+
+Vida do Personagem: Barra de vida do jogador, exibida no canto inferior direito.
+
+
+Vida do Inimigo: Barra de vida do inimigo, exibida no centro do topo.
+
+
+Artefatos: Listagem de artefatos coletados pelo jogador durante o progresso do jogo.
+
+
+Moeda de Sangue: Totalizador de moedas de sangue coletado dos inimigos pelo jogador, exibido no canto inferior direito.
+
+
+Mapa: Mapa do jogo exibido no canto superior direito.
+
+
+Opção: Botão para abrir o menu de opções, localizado no superior direito, logo acima do mapa.
+
+
+16. Módulo 16 - Programação
+
+
+   40. Liste em ordem de importância, quais são os principais elementos que você irá considerar ao utilizar uma engine e por quê?
+
+
+Interface simples e fácil, devido a inexperiência de desenvolvimento de jogos.
+
+
+Uso da linguagem de programação C#, devido a facilidade de adaptação do programador que já possui experiência com a linguagem.. 
+
+
+Multiplataforma, para ter a possibilidade de adaptar o jogo às diversas plataformas disponíveis no mercado.
+
+
+Marketplace, para ter acesso a conteúdos disponibilizados na própria comunidade.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+17. Módulo 17 - Música e Efeitos Sonoros
+
+
+   41. Descreva em 1 parágrafo como será o estilo musical do seu jogo e quais as suas referências
+
+
+O estilo musical possuirá elementos de subgêneros musicais do heavy metal, tais como: thrash metal, doom metal e groove metal; Tendo como referência e inspiração direta em jogos como Hades, Doom (2016) e Doom Eternal e Castlevania: Symphony of the Night. Construindo uma Soundtrack única para jogo, distribuindo suas músicas nas telas de menu, durante o combate, diálogos, cinemáticas e etc. 
+
+
+As músicas de combate devem ter como foco um ritmo acelerado e pesado, fazendo com que o jogador seja imerso na ambientação do jogo. Sendo elas diferentes para nível do jogo, e pela dificuldade dos inimigos. As músicas nos menus e diálogos, devem ter um ritmo mais lento e denso, ficando de fundo para que o jogador possa se concentrar nos textos e conteúdo da história.
+
+
+Os efeitos sonoros vão ser baseados em referências dos jogos como Doom 1 & 2, que possui uma vasta coleção de sons para monstros; e Castlevania: Symphony of the Night que possui uma grande lista de efeitos de magias e itens.
+Referências musicais:
+
+
+Hades: Original Soundtrack - Full Album
+DOOM - Original Game Soundtrack - Mick Gordon & id Software
+Castlevania SOTN + Songs Saturn [COMPLETE OST ~ HIGH QUALITY]
+
+
+Referências de efeitos sonoros:
+
+
+Doom 1 & 2 Monster Sound effects
+Castlevania SOTN (iOS) Shield Rod + Shields Effects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+18. Módulo 18 - QA (Testes)
+
+
+   42. Liste os 3 principais itens do seu jogo que você quer testar e por quê?
+
+
+Jogabilidade: Através dos testes de jogabilidade serão observados vários elementos do jogo: balanceamento, a forma como os jogadores abordam o jogo, estratégias desenvolvidas, engajamento e se o jogo está divertido.
+
+
+Gráficos: Ideal para evitar problemas em telas de alta resolução e filtragem de texturas, com objetivo de aumentar a velocidade de renderização.
+
+
+Sistema: Para evitar as surpresas desagradáveis, como “crashs” e problemas de salvamento. Deve-se recorrer a diferentes tipos de testes para certificar que o sistema está funcionando conforme o planejado.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+19. Módulo 19 - Atividades Interpessoais
+
+
+   43. Liste 3 atividades interpessoais que você acredita serem vitais para o trabalho em equipe e por quê?
+
+
+Trabalho em equipe: O trabalho em equipe agrupa várias pessoas com qualidades, experiências e conhecimentos diferentes para se alcançar uma mesma meta.Sendo primordial para a conclusão de um projeto.
+
+
+Saber ouvir críticas: Se fechar para opiniões contrárias pode atrasar o desenvolvimento profissional, é interessante que quem foi criticado tente entender os motivos da crítica, o que levou a pessoa que fez as críticas a ter essa percepção ou esse sentimento a seu respeito.
+
+
+Habilidade de se adaptar quando necessário: O profissional que desenvolve esse tipo de habilidade consegue viver sem prejuízos emocionais e sob condições distintas daquelas às quais sempre esteve acostumada.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+20. Módulo 20 - Criando seu próprio GDD
+
+
+   44. Revisar todos os exercícios passados e faça atualizações e ajustes caso seja necessário
+
+
+Versão 1.0 - 03/11/2022: Primeira versão do documento.
+
+
+Versão 1.1 - --/11/2022: Segunda versão do documento, módulos 2, 4, 5 e 8 revisados;
+
+
+* Módulo 2: Melhor descrição das características e das motivações do público alvo.
+
+
+* Módulo 4: Descrição detalhada dos desafios e definição dos inputs no controle joystick e teclado.
+
+
+* Módulo 5: Melhor definição das experiências e motivações do jogador.
+
+
+* Módulo 8: Inclusão de uma tabela com alguns exemplos de parâmetros.
