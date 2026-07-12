@@ -7,19 +7,22 @@ public partial class IsoCamera : Camera3D
     [Export] public float CameraPitchDegrees { get; set; } = 60.0f;
     [Export] public float StartZoomDistance { get; set; } = 15.0f;
     [Export] public float FollowSpeed { get; set; } = 18.0f;
-    [Export] public float MinZoomDistance { get; set; } = 10.0f;
-    [Export] public float MaxZoomDistance { get; set; } = 24.0f;
-    [Export] public float ZoomStep { get; set; } = 1.2f;
+    [Export] public float ShakeFrequency { get; set; } = 32.0f;
 
     private Node3D _target;
     private Vector3 _offsetDirection;
     private Vector3 _fixedRotation;
     private float _zoomDistance;
+    private float _shakeStrength;
+    private float _shakeDuration;
+    private float _shakeRemaining;
+    private float _shakePhase;
 
     public override void _Ready()
     {
+        AddToGroup("combat_camera");
         _target = GetNodeOrNull<Node3D>(TargetPath);
-        _zoomDistance = Mathf.Clamp(StartZoomDistance, MinZoomDistance, MaxZoomDistance);
+        _zoomDistance = StartZoomDistance;
         _offsetDirection = BuildOffsetDirection();
         GlobalRotation = BuildCameraRotation();
 
@@ -33,18 +36,6 @@ public partial class IsoCamera : Camera3D
         Current = true;
     }
 
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        if (@event is not InputEventMouseButton mouseButton || !mouseButton.Pressed)
-            return;
-
-        if (mouseButton.ButtonIndex == MouseButton.WheelUp)
-            SetZoomDistance(_zoomDistance - ZoomStep);
-
-        if (mouseButton.ButtonIndex == MouseButton.WheelDown)
-            SetZoomDistance(_zoomDistance + ZoomStep);
-    }
-
     public override void _Process(double delta)
     {
         if (_target == null)
@@ -52,12 +43,37 @@ public partial class IsoCamera : Camera3D
 
         var desiredPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance;
         GlobalPosition = GlobalPosition.Lerp(desiredPosition, 1.0f - Mathf.Exp(-FollowSpeed * (float)delta));
+        ApplyShake((float)delta);
         GlobalRotation = _fixedRotation;
     }
 
-    private void SetZoomDistance(float value)
+    public void Shake(float strength, float duration)
     {
-        _zoomDistance = Mathf.Clamp(value, MinZoomDistance, MaxZoomDistance);
+        _shakeStrength = Mathf.Max(_shakeStrength, strength);
+        _shakeDuration = Mathf.Max(_shakeDuration, duration);
+        _shakeRemaining = Mathf.Max(_shakeRemaining, duration);
+    }
+
+    private void ApplyShake(float delta)
+    {
+        if (_shakeRemaining <= 0.0f)
+            return;
+
+        _shakeRemaining = Mathf.Max(_shakeRemaining - delta, 0.0f);
+        _shakePhase += delta * ShakeFrequency;
+        var falloff = _shakeDuration > 0.0f ? _shakeRemaining / _shakeDuration : 0.0f;
+        var offset = new Vector3(
+            Mathf.Sin(_shakePhase * 1.37f),
+            Mathf.Cos(_shakePhase * 1.91f) * 0.55f,
+            Mathf.Sin(_shakePhase * 2.23f)
+        ) * _shakeStrength * falloff;
+        GlobalPosition += offset;
+
+        if (_shakeRemaining <= 0.0f)
+        {
+            _shakeStrength = 0.0f;
+            _shakeDuration = 0.0f;
+        }
     }
 
     private Vector3 BuildOffsetDirection()

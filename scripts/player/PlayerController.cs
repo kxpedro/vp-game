@@ -28,12 +28,14 @@ public partial class PlayerController : CharacterBody3D
 	private PlayerSkillController _skillController;
 	private PlayerCombat _combat;
 	private PlayerAnimator _animator;
+	private BloodBlessingRuntime _blessings;
 	private float _baseWalkSpeed;
 	private float _baseSprintSpeed;
 	private float _baseDodgeSpeed;
 	private float _baseDodgeDuration;
 	private float _baseDodgeCooldown;
 	private float _baseMaxHealth;
+	private float _baseMaxStamina;
 	private Vector3 _lastMoveDirection = Vector3.Forward;
 	private Vector3 _dodgeDirection = Vector3.Zero;
 	private float _dodgeTimeRemaining;
@@ -49,14 +51,17 @@ public partial class PlayerController : CharacterBody3D
 		_baseDodgeDuration = DodgeDuration;
 		_baseDodgeCooldown = DodgeCooldown;
 		CurrentStamina = MaxStamina;
+		_baseMaxStamina = MaxStamina;
 		_health = GetNode<Health>(HealthPath);
 		_skillController = GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
 		_combat = GetNodeOrNull<PlayerCombat>("PlayerCombat");
 		_animator = GetNodeOrNull<PlayerAnimator>("PlayerAnimator");
+		_blessings = GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
 		_baseMaxHealth = _health.MaxHealth;
 
 		GameTuning.Changed += ApplyRuntimeTuning;
 		ApplyRuntimeTuning();
+		CurrentStamina = MaxStamina;
 		RestoreSavedHealth();
 
 		_health.HealthChanged += OnHealthChanged;
@@ -80,6 +85,7 @@ public partial class PlayerController : CharacterBody3D
 		}
 
 		var deltaF = (float)delta;
+		RunState.Tick(deltaF);
 		if (_dodgeCooldownTimeRemaining > 0.0f)
 			_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - deltaF, 0.0f);
 
@@ -121,6 +127,7 @@ public partial class PlayerController : CharacterBody3D
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_dodgeCooldownTimeRemaining = DodgeCooldown;
 			_health?.SetInvincible(true);
+			_blessings?.OnDodged();
 			Velocity = _dodgeDirection * DodgeSpeed;
 			_animator?.SetMovementState(true, true, DodgeSpeed);
 			MoveAndSlide();
@@ -130,6 +137,9 @@ public partial class PlayerController : CharacterBody3D
 		var isWalking = IsWalkPressed() && moveDirection.LengthSquared() > 0.001f;
 
 		var speed = isWalking ? WalkSpeed : SprintSpeed;
+		var missingHealth = _health.MaxHealth > 0 ? 1.0f - _health.CurrentHealth / _health.MaxHealth : 0;
+		speed *= 1.0f + RunState.GetEffectTotal("MoveSpeedMissingHealth.Multiplier") * missingHealth + RunState.ContextMoveSpeed;
+		speed *= _blessings?.MovementMultiplier() ?? 1.0f;
 		if (HasSurvivalInstinctBonus())
 			speed *= 1.05f;
 
@@ -161,16 +171,18 @@ public partial class PlayerController : CharacterBody3D
 
 	public void ApplyRuntimeTuning()
 	{
-		var moveMultiplier = CharacterSheet.GetMoveSpeedMultiplier();
+		var moveMultiplier = CharacterSheet.GetMoveSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("MoveSpeed.Multiplier"));
 		WalkSpeed = _baseWalkSpeed * moveMultiplier * GameTuning.GetWalkSpeedMultiplier();
 		SprintSpeed = _baseSprintSpeed * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
 		DodgeSpeed = _baseDodgeSpeed * GameTuning.GetDashSpeedMultiplier();
 		DodgeDuration = _baseDodgeDuration * GameTuning.GetDashDistanceMultiplier();
 		DodgeCooldown = _baseDodgeCooldown * GameTuning.GetDashCooldownMultiplier();
+		MaxStamina = _baseMaxStamina + CharacterSheet.GetMaxStaminaBonus();
+		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
 		var maxHealthBonus = RunState.MaxHealthBonus + CharacterSheet.GetMaxHealthBonus();
-		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus) * GameTuning.GetHealthMultiplier();
-		_health?.SetMaxHealthPreservingRatio(tunedMaxHealth);
+		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus) * RunState.MaxHealthMultiplier * GameTuning.GetHealthMultiplier();
+		_health?.SetMaxHealth(tunedMaxHealth, false);
 	}
 
 	public void ConsumeDashAttackGrace()

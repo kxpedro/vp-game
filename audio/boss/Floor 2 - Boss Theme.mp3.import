@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://dr4lb6l2xboiu"
+path="res://.godot/imported/Floor 2 - Boss Theme.mp3-8d844df485bb1f3a603a21c941ad1181.mp3str"
+
+[deps]
+
+source_file="res://audio/boss/Floor 2 - Boss Theme.mp3"
+dest_files=["res://.godot/imported/Floor 2 - Boss Theme.mp3-8d844df485bb1f3a603a21c941ad1181.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

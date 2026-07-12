@@ -4,8 +4,12 @@ This document describes the current room generation structure for Vampire's Prey
 
 ## Current Run Structure
 
-- Rooms 1-5 are common dungeon rooms.
-- Room 6 is the final boss room.
+- Map 1 has 3 common rooms and a boss.
+- Map 2 has 25 common rooms and a boss.
+- Map 3 has 35 common rooms and a boss.
+- Map 4 contains only the final boss.
+- Boss victories continue directly into the next map.
+- `CampaignCatalog` owns map count, room count, boss id, special rule, and difficulty multiplier.
 - Common rooms generate 10 enemy blocks.
 - Each enemy block currently spawns 5 enemies.
 - Artifacts spawn near the treasure point when a room rolls an artifact.
@@ -38,7 +42,9 @@ Defines the high-level room layout family:
 
 Defines run progression:
 
-- `RoomsBeforeBoss = 6`
+- current map and room
+- dynamic boss-room calculation from the current `MapDefinition`
+- continuous transitions between maps
 - `CurrentRoom`
 - `IsBossRoom`
 - temporary run stats such as damage and max health bonuses

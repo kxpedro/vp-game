@@ -4,17 +4,22 @@ using System.Collections.Generic;
 public partial class RoomGenerator : Node3D
 {
     [Export] public PackedScene EnemyScene { get; set; }
-    [Export] public int EnemyBlocksPerRoom { get; set; } = 10;
+    [Export] public int EnemyBlocksPerRoom { get; set; } = 2;
     [Export] public int EnemiesPerBlock { get; set; } = 5;
     [Export] public float EnemyBlockRadius { get; set; } = 1.05f;
     [Export] public float SpawnClearRadius { get; set; } = 3.0f;
     [Export] public int EnemySpawnWallPaddingCells { get; set; } = 2;
     [Export] public bool ShowLayoutDebugLabels { get; set; } = true;
+    [Export] public float EnemySpawnDelaySeconds { get; set; } = 5.0f;
+    [Export] public int EnemiesPerWave { get; set; } = 10;
+    [Export] public int WaveCount { get; set; } = 3;
 
     public Vector3 PlayerSpawnPosition { get; private set; }
     public Vector3 ExitPortalPosition { get; private set; }
+    public IReadOnlyCollection<Vector2I> WalkableCells => _walkableCells;
+    public float MapCellSize => CellSize;
 
-    private const float CellSize = 2.05f;
+    private const float CellSize = 1.64f;
     private const float FloorHeight = 0.22f;
     private const float WallHeight = 2.35f;
     private const int MainRoomScale = 2;
@@ -44,10 +49,18 @@ public partial class RoomGenerator : Node3D
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
     private StandardMaterial3D _markerMaterial;
+    private int _layoutQuarterTurns;
+    private bool _layoutMirror;
+    private readonly List<(Vector3 Position, EnemyRarity Rarity, EnemyArchetype Archetype, string Name)> _pendingEnemyWaves = new();
+    private int _nextWaveEnemyIndex;
+    private bool _isSpawningWave;
 
     public override void _Ready()
     {
+        AddToGroup("room_generator");
         _rng.Seed = BuildRoomSeed();
+        _layoutQuarterTurns = _rng.RandiRange(0, 3);
+        _layoutMirror = _rng.Randf() < 0.5f;
         BuildMaterials();
         RemoveStaticArenaShell();
         BuildMap();
@@ -56,6 +69,12 @@ public partial class RoomGenerator : Node3D
         GeneratePointsOfInterest();
         BuildEnemySpawnCells();
         GenerateEnemies();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!_isSpawningWave && _nextWaveEnemyIndex < _pendingEnemyWaves.Count && GetTree().GetNodeCountInGroup("enemies") == 0)
+            SpawnNextWave();
     }
 
     public Vector3 GetArtifactSpawnPosition()
@@ -86,6 +105,7 @@ public partial class RoomGenerator : Node3D
         else
             BuildWindingCrypt();
 
+        AddProceduralSideRooms();
         RepairDisconnectedMapPieces();
     }
 
@@ -102,7 +122,6 @@ public partial class RoomGenerator : Node3D
         AddMainRoom(R(-8, 2), 4, 3, "Ala oeste");
         AddMainRoom(R(8, -5), 4, 3, "Ala inferior leste");
         AddMainRoom(R(-8, -5), 4, 3, "Ala inferior oeste");
-        AddRoom(R(5, -2), 3, 3, "Tesouro");
         AddRoom(R(-5, -2), 3, 3, "Beco sem saida");
         AddRoom(R(0, -5), 3, 2, "Saida");
         ConnectCells(_entranceCell, R(0, 2), "Corredor entrada");
@@ -113,7 +132,6 @@ public partial class RoomGenerator : Node3D
         ConnectCells(R(-2, -2), R(-8, -5), "Corredor diagonal");
         ConnectCells(R(8, 1), R(8, -5), "Corredor vertical");
         ConnectCells(R(-8, 1), R(-8, -5), "Corredor vertical");
-        ConnectCells(R(2, -2), _treasureCell, "Corredor tesouro");
         ConnectCells(R(-2, -2), _deadEndCell, "Corredor beco");
         ConnectCells(R(0, -3), _exitCell, "Corredor saida");
     }
@@ -131,16 +149,13 @@ public partial class RoomGenerator : Node3D
         AddMainRoom(R(-9, 0), 4, 3, "Ala oeste");
         AddMainRoom(R(9, 2), 4, 3, "Ala leste");
         AddMainRoom(R(0, -7), 5, 3, "Ala inferior");
-        AddRoom(R(-5, -4), 3, 3, "Tesouro");
         AddRoom(R(5, 3), 3, 2, "Beco sem saida");
         ConnectCells(_entranceCell, R(-1, 2), "Corredor entrada");
         ConnectCells(R(1, 0), R(4, -2), "Corredor principal");
         ConnectCells(R(-3, 1), R(-9, 0), "Corredor oeste");
         ConnectCells(R(4, 1), R(9, 2), "Corredor leste");
         ConnectCells(R(4, -3), R(0, -7), "Corredor inferior");
-        ConnectCells(R(-9, -1), R(-5, -4), "Corredor tesouro");
         ConnectCells(R(4, -3), _exitCell, "Corredor saida");
-        ConnectCells(R(-2, 0), _treasureCell, "Corredor tesouro");
         ConnectCells(R(2, 2), _deadEndCell, "Corredor beco");
     }
 
@@ -158,7 +173,6 @@ public partial class RoomGenerator : Node3D
         AddMainRoom(R(-9, 0), 4, 4, "Ala oeste");
         AddRoom(R(0, 5), 3, 2, "Entrada");
         AddRoom(R(0, -5), 3, 2, "Saida");
-        AddRoom(_treasureCell, 3, 3, "Tesouro");
         AddRoom(_deadEndCell, 3, 3, "Beco sem saida");
         ConnectCells(_entranceCell, R(0, 2), "Corredor entrada");
         ConnectCells(R(0, -2), _exitCell, "Corredor saida");
@@ -168,7 +182,6 @@ public partial class RoomGenerator : Node3D
         ConnectCells(R(-3, 0), R(-9, 0), "Corredor oeste");
         ConnectCells(R(9, -2), R(0, -9), "Corredor lateral");
         ConnectCells(R(-9, 2), R(0, 9), "Corredor lateral");
-        ConnectCells(R(2, 0), _treasureCell, "Corredor tesouro");
         ConnectCells(R(-2, 0), _deadEndCell, "Corredor beco");
     }
 
@@ -187,7 +200,6 @@ public partial class RoomGenerator : Node3D
         AddMainRoom(R(10, 0), 4, 4, "Comodo leste");
         AddMainRoom(R(-5, -8), 4, 3, "Ala inferior oeste");
         AddMainRoom(R(5, -8), 4, 3, "Ala inferior leste");
-        AddRoom(_treasureCell, 3, 2, "Tesouro");
         AddRoom(_deadEndCell, 3, 2, "Beco sem saida");
         ConnectCells(_entranceCell, R(-4, 2), "Corredor bifurcado");
         ConnectCells(_entranceCell, R(4, 2), "Corredor bifurcado");
@@ -199,7 +211,6 @@ public partial class RoomGenerator : Node3D
         ConnectCells(R(4, -4), R(5, -8), "Corredor inferior");
         ConnectCells(R(-5, -8), R(5, -8), "Corredor baixo");
         ConnectCells(R(0, -4), _exitCell, "Corredor saida");
-        ConnectCells(R(-4, -2), _treasureCell, "Corredor tesouro");
         ConnectCells(R(4, -2), _deadEndCell, "Corredor beco");
     }
 
@@ -219,7 +230,6 @@ public partial class RoomGenerator : Node3D
         AddMainRoom(R(-4, -8), 4, 3, "Cripta inferior");
         AddMainRoom(R(7, -7), 4, 3, "Galeria final");
         AddRoom(R(5, -5), 3, 2, "Saida");
-        AddRoom(_treasureCell, 3, 3, "Tesouro");
         AddRoom(_deadEndCell, 3, 2, "Beco sem saida");
         ConnectCells(_entranceCell, R(-2, 2), "Corredor entrada");
         ConnectCells(R(0, 2), R(3, 1), "Corredor sinuoso");
@@ -230,7 +240,6 @@ public partial class RoomGenerator : Node3D
         ConnectCells(R(3, -4), R(7, -7), "Corredor final");
         ConnectCells(R(-4, -8), R(7, -7), "Corredor baixo");
         ConnectCells(R(2, -3), _exitCell, "Corredor saida");
-        ConnectCells(R(-2, -3), _treasureCell, "Corredor tesouro");
         ConnectCells(R(3, 1), _deadEndCell, "Corredor beco");
     }
 
@@ -268,7 +277,6 @@ public partial class RoomGenerator : Node3D
 
         if (!RunState.IsBossRoom)
         {
-            CreatePointOfInterest("Tesouro", CellToWorld(_treasureCell), new Color(0.85f, 0.62f, 0.12f));
             CreatePointOfInterest("Beco sem saida", CellToWorld(_deadEndCell), new Color(0.28f, 0.28f, 0.32f));
         }
         else
@@ -282,27 +290,121 @@ public partial class RoomGenerator : Node3D
         if (EnemyScene == null)
             return;
 
+        _pendingEnemyWaves.Clear();
+        EnemyVisualCatalog.BeginWarmup(RunState.IsBossRoom, RunState.CurrentMapIndex);
+
         if (RunState.IsBossRoom)
         {
-            var boss = EnemyScene.Instantiate<EnemyBasic>();
-            boss.Name = "BloodMageBoss";
-            boss.Position = Vector3.Zero;
-            AddChild(boss);
-            return;
+            _pendingEnemyWaves.Add((Vector3.Zero, EnemyRarity.Legendary, EnemyArchetype.Ranged, "BloodMageBoss"));
         }
-
-        for (var blockIndex = 0; blockIndex < EnemyBlocksPerRoom; blockIndex++)
+        else for (var blockIndex = 0; blockIndex < EnemyBlocksPerRoom; blockIndex++)
         {
             var blockCenter = PickEnemyBlockCenter();
 
             for (var enemyIndex = 0; enemyIndex < EnemiesPerBlock; enemyIndex++)
             {
-                var enemy = EnemyScene.Instantiate<EnemyBasic>();
-                enemy.Name = $"EnemyBlock{blockIndex + 1}_{enemyIndex + 1}";
-                enemy.Position = PickPositionNearBlock(blockCenter);
-                AddChild(enemy);
+                var progress = RunState.CurrentMap.CommonRoomCount > 1 ? (RunState.CurrentRoom - 1.0f) / (RunState.CurrentMap.CommonRoomCount - 1.0f) : 1.0f;
+                var rarity = EnemyTuningCatalog.Roll(_rng, progress);
+                var archetype = (EnemyArchetype)_rng.RandiRange(0, 2);
+                _pendingEnemyWaves.Add((PickPositionNearBlock(blockCenter), rarity, archetype, $"EnemyBlock{blockIndex + 1}_{enemyIndex + 1}"));
             }
         }
+
+        if (!RunState.IsBossRoom && WaveCount > 1)
+        {
+            var firstWave = new List<(Vector3 Position, EnemyRarity Rarity, EnemyArchetype Archetype, string Name)>(_pendingEnemyWaves);
+            var progress = RunState.CurrentMap.CommonRoomCount > 1 ? (RunState.CurrentRoom - 1.0f) / (RunState.CurrentMap.CommonRoomCount - 1.0f) : 1.0f;
+            for (var waveIndex = 1; waveIndex < WaveCount; waveIndex++)
+            {
+                for (var i = 0; i < firstWave.Count; i++)
+                {
+                    var source = firstWave[i];
+                    _pendingEnemyWaves.Add((PickRandomWavePosition(), EnemyTuningCatalog.Roll(_rng, progress), (EnemyArchetype)_rng.RandiRange(0, 2), $"Wave{waveIndex + 1}_{source.Name}"));
+                }
+            }
+        }
+
+        _nextWaveEnemyIndex = 0;
+        AddToGroup("enemy_waves_remaining");
+        SpawnNextWave();
+    }
+
+    private Vector3 PickRandomWavePosition()
+    {
+        if (_enemySpawnCells.Count == 0)
+            return Vector3.Zero;
+        var cell = _enemySpawnCells[_rng.RandiRange(0, _enemySpawnCells.Count - 1)];
+        return CellToWorld(cell) + new Vector3(_rng.RandfRange(-0.7f, 0.7f), 0, _rng.RandfRange(-0.7f, 0.7f));
+    }
+
+    private async void SpawnNextWave()
+    {
+        if (_isSpawningWave || _nextWaveEnemyIndex >= _pendingEnemyWaves.Count) return;
+        _isSpawningWave = true;
+        AddToGroup("enemy_spawn_pending");
+        var wave = _pendingEnemyWaves.GetRange(_nextWaveEnemyIndex, Mathf.Min(EnemiesPerWave, _pendingEnemyWaves.Count - _nextWaveEnemyIndex));
+        _nextWaveEnemyIndex += wave.Count;
+        var markers = new List<Node3D>();
+        foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position));
+        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {EnemySpawnDelaySeconds:0} segundos.");
+        GetTree().CallGroup("hud", "NotifyWaveIncoming", wave.Count, EnemySpawnDelaySeconds);
+        await ToSignal(GetTree().CreateTimer(EnemySpawnDelaySeconds), SceneTreeTimer.SignalName.Timeout);
+
+        if (RunState.IsBossRoom)
+        {
+            var bossVisual = EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex);
+            var framesWaited = 0;
+            while (ResourceLoader.LoadThreadedGetStatus(bossVisual.ScenePath) == ResourceLoader.ThreadLoadStatus.InProgress && framesWaited < 600)
+            {
+                framesWaited++;
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+        }
+
+        foreach (var marker in markers) if (IsInstanceValid(marker)) marker.QueueFree();
+        var spawnedEnemies = new List<EnemyBasic>();
+        var spawnedThisFrame = 0;
+        foreach (var spawn in wave)
+        {
+            var enemy = EnemyScene.Instantiate<EnemyBasic>();
+            enemy.Name = spawn.Name;
+            enemy.Position = spawn.Position;
+            AddChild(enemy);
+            enemy.ConfigureVariant(spawn.Rarity, spawn.Archetype);
+            var visual = RunState.IsBossRoom
+                ? EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex)
+                : EnemyVisualCatalog.GetRegular(spawn.Name.GetHashCode());
+            enemy.ApplyPlaceholderVisual(visual);
+            enemy.SetSpawnActive(false);
+            spawnedEnemies.Add(enemy);
+            spawnedThisFrame++;
+            if (spawnedThisFrame >= 5)
+            {
+                spawnedThisFrame = 0;
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+        }
+        foreach (var enemy in spawnedEnemies) if (IsInstanceValid(enemy)) enemy.SetSpawnActive(true);
+        RemoveFromGroup("enemy_spawn_pending");
+        if (_nextWaveEnemyIndex >= _pendingEnemyWaves.Count) RemoveFromGroup("enemy_waves_remaining");
+        _isSpawningWave = false;
+        GetTree().CallGroup("run_manager", "NotifyWaveSpawned", wave.Count, _pendingEnemyWaves.Count);
+    }
+
+    private Node3D CreateSpawnMarker(Vector3 position)
+    {
+        var marker = new MeshInstance3D
+        {
+            Position = position + Vector3.Up * 0.04f,
+            Mesh = new CylinderMesh { TopRadius = 0.48f, BottomRadius = 0.48f, Height = 0.05f },
+            MaterialOverride = _markerMaterial,
+            Scale = Vector3.One * 0.35f
+        };
+        AddChild(marker);
+        var tween = marker.CreateTween().SetLoops();
+        tween.TweenProperty(marker, "scale", Vector3.One * 1.15f, 0.55f);
+        tween.TweenProperty(marker, "scale", Vector3.One * 0.35f, 0.55f);
+        return marker;
     }
 
     private Vector3 PickEnemyBlockCenter()
@@ -426,7 +528,7 @@ public partial class RoomGenerator : Node3D
 
     private bool IsValidEnemySpawnCell(Vector2I cell, int wallPaddingCells, bool roomCellsOnly)
     {
-        if (cell == _entranceCell || cell == _exitCell || cell == _treasureCell || cell == _deadEndCell)
+        if (cell == _entranceCell || cell == _exitCell || cell == _deadEndCell)
             return false;
 
         if (roomCellsOnly && !_roomCells.Contains(cell))
@@ -805,13 +907,30 @@ public partial class RoomGenerator : Node3D
         return _roomCells.Contains(cell)
             || cell == _entranceCell
             || cell == _exitCell
-            || cell == _treasureCell
             || cell == _deadEndCell;
     }
 
     private Vector2I R(int x, int y)
     {
-        return new Vector2I(x * RegionSpacing, y * RegionSpacing);
+        var point = new Vector2I((_layoutMirror ? -x : x) * RegionSpacing, y * RegionSpacing);
+        for (var i = 0; i < _layoutQuarterTurns; i++) point = new Vector2I(-point.Y, point.X);
+        return point;
+    }
+
+    private void AddProceduralSideRooms()
+    {
+        if (_roomCells.Count == 0) return;
+        var anchors = new List<Vector2I>(_roomCells);
+        var additions = _rng.RandiRange(2, 5);
+        var directions = new[] { Vector2I.Left, Vector2I.Right, Vector2I.Up, Vector2I.Down };
+        for (var i = 0; i < additions; i++)
+        {
+            var anchor = anchors[_rng.RandiRange(0, anchors.Count - 1)];
+            var direction = directions[_rng.RandiRange(0, directions.Length - 1)];
+            var center = anchor + direction * _rng.RandiRange(4, 8);
+            AddRoom(center, _rng.RandiRange(2, 4), _rng.RandiRange(2, 4), "Comodo procedural");
+            ConnectCells(anchor, center, "Passagem procedural");
+        }
     }
 
     private Vector3 CellToWorld(Vector2I cell)

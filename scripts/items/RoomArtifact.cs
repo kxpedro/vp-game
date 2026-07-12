@@ -32,6 +32,7 @@ public partial class RoomArtifact : Area3D
 
     public void Consume()
     {
+        GetTree().CallGroup("audio_manager", "PlayEffect", "treasure");
         QueueFree();
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public enum CharacterAttribute
 {
@@ -51,6 +52,7 @@ public static class CharacterSheet
     public static void SetAttribute(CharacterAttribute attribute, int value)
     {
         Attributes[attribute] = System.Math.Max(value, 0);
+        SaveGameManager.RequestAutosave();
     }
 
     public static void AddAttribute(CharacterAttribute attribute, int amount)
@@ -61,6 +63,7 @@ public static class CharacterSheet
     public static void AddBloodCoins(int amount)
     {
         BloodCoins = System.Math.Max(BloodCoins + amount, 0);
+        SaveGameManager.RequestAutosave();
     }
 
     public static bool SpendBloodCoins(int amount)
@@ -72,6 +75,7 @@ public static class CharacterSheet
             return false;
 
         BloodCoins -= amount;
+        SaveGameManager.RequestAutosave();
         return true;
     }
 
@@ -92,6 +96,7 @@ public static class CharacterSheet
             return false;
 
         SkillRanks[skillId] = currentRank + 1;
+        SaveGameManager.RequestAutosave();
         return true;
     }
 
@@ -125,6 +130,7 @@ public static class CharacterSheet
             return false;
 
         ActiveSkillSlots[slotIndex] = skillId;
+        SaveGameManager.RequestAutosave();
         return true;
     }
 
@@ -147,6 +153,7 @@ public static class CharacterSheet
             return;
 
         ActiveSkillSlots[slotIndex] = "";
+        SaveGameManager.RequestAutosave();
     }
 
     public static void AddArtifact(string artifactName, string effect, float amount)
@@ -163,6 +170,7 @@ public static class CharacterSheet
             return;
 
         Artifacts.Add(artifact);
+        SaveGameManager.RequestAutosave();
     }
 
     public static void CommitArtifacts(IEnumerable<ArtifactRecord> artifacts)
@@ -201,6 +209,7 @@ public static class CharacterSheet
             return false;
 
         EquippedArtifactSlots[slotIndex] = artifactName;
+        SaveGameManager.RequestAutosave();
         return true;
     }
 
@@ -210,6 +219,7 @@ public static class CharacterSheet
             return;
 
         EquippedArtifactSlots[slotIndex] = "";
+        SaveGameManager.RequestAutosave();
     }
 
     public static IEnumerable<ArtifactRecord> GetEquippedArtifacts()
@@ -248,6 +258,44 @@ public static class CharacterSheet
     public static float GetFuryMultiplier()
     {
         return 1.0f + AttributeDelta(CharacterAttribute.Resolve) * 0.03f;
+    }
+
+    public static float GetBloodcraftMultiplier() => 1.0f + AttributeDelta(CharacterAttribute.Bloodcraft) * 0.03f;
+
+    public static GameSaveData CreateSaveData()
+    {
+        var data = new GameSaveData
+        {
+            BloodCoins = BloodCoins,
+            SkillRanks = new Dictionary<string, int>(SkillRanks),
+            ActiveSkills = (string[])ActiveSkillSlots.Clone(),
+            Artifacts = new List<ArtifactRecord>(Artifacts),
+            EquippedArtifacts = (string[])EquippedArtifactSlots.Clone(),
+            EquippedWeaponId = WeaponLoadout.EquippedWeaponId
+        };
+        foreach (var pair in Attributes) data.Attributes[pair.Key.ToString()] = pair.Value;
+        return data;
+    }
+
+    public static void LoadSaveData(GameSaveData data)
+    {
+        ResetPermanentProgress();
+        BloodCoins = System.Math.Max(data.BloodCoins, 0);
+        foreach (var pair in data.Attributes)
+            if (System.Enum.TryParse<CharacterAttribute>(pair.Key, out var attribute)) Attributes[attribute] = pair.Value;
+        foreach (var pair in data.SkillRanks) SkillRanks[pair.Key] = pair.Value;
+        for (var i = 0; i < ActiveSkillSlots.Length && i < data.ActiveSkills.Length; i++) ActiveSkillSlots[i] = data.ActiveSkills[i] ?? "";
+        Artifacts.AddRange(data.Artifacts ?? new List<ArtifactRecord>());
+        for (var i = 0; i < EquippedArtifactSlots.Length && i < data.EquippedArtifacts.Length; i++) EquippedArtifactSlots[i] = data.EquippedArtifacts[i] ?? "";
+        WeaponLoadout.Equip(data.EquippedWeaponId);
+    }
+
+    public static void ResetPermanentProgress()
+    {
+        foreach (var attribute in Attributes.Keys.ToList()) Attributes[attribute] = StartingAttributeValue;
+        BloodCoins = 0; SkillRanks.Clear(); Artifacts.Clear();
+        System.Array.Fill(ActiveSkillSlots, ""); System.Array.Fill(EquippedArtifactSlots, "");
+        WeaponLoadout.Equip("longsword");
     }
 
     private static int AttributeDelta(CharacterAttribute attribute)

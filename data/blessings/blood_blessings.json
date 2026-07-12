@@ -1,0 +1,1279 @@
+{
+  "version": 4,
+  "rarityScaling": {
+    "common": { "powerMultiplier": 1.0, "weight": 50 },
+    "uncommon": { "powerMultiplier": 2.0, "weight": 28 },
+    "rare": { "powerMultiplier": 3.0, "weight": 14 },
+    "epic": { "powerMultiplier": 4.5, "weight": 6 },
+    "legendary": { "powerMultiplier": 6.5, "weight": 2 }
+  },
+  "notes": "Cada sala oferece 3 bencaos unicas de uma familia aleatoria. Os values representam a base Common e sao multiplicados por rarityScaling. Booleanos e parametros como duration e threshold nao escalam. Todas as bencaos podem aparecer como Common, Uncommon, Rare, Epic ou Legendary.",
+  "blessings": [
+    {
+      "id": "predatory_thirst",
+      "name": "Sede Predatória",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 8,
+      "description": "Aumenta o dano de todos os ataques em 12% por nível.",
+      "flavorText": "Dracul ensina que toda criatura é apenas uma taça ainda fechada.",
+      "tags": [
+        "dracul",
+        "damage",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "Damage",
+          "operation": "AddMultiplier",
+          "value": 0.12
+        }
+      ],
+      "family": "Dracul"
+    },
+    {
+      "id": "quickened_pulse",
+      "name": "Pulso Sedutor",
+      "rarity": "Common",
+      "weight": 95,
+      "maxStacks": 8,
+      "description": "Aumenta a velocidade de ataque em 10% por nível.",
+      "flavorText": "O coração acelera antes mesmo de perceber o perigo.",
+      "tags": [
+        "karnstein",
+        "attack_speed",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "AttackSpeed",
+          "operation": "AddMultiplier",
+          "value": 0.1
+        }
+      ],
+      "family": "Karnstein"
+    },
+    {
+      "id": "thick_blood",
+      "name": "Sangue Espesso",
+      "rarity": "Common",
+      "weight": 90,
+      "maxStacks": 8,
+      "description": "Aumenta a vida máxima em 18 por nível.",
+      "flavorText": "Bathory preserva em suas veias aquilo que a morte tenta levar.",
+      "tags": [
+        "bathory",
+        "health",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "MaxHealth",
+          "operation": "AddFlat",
+          "value": 18.0
+        }
+      ],
+      "family": "Bathory"
+    },
+    {
+      "id": "crimson_stride",
+      "name": "Passo Carmesim",
+      "rarity": "Common",
+      "weight": 82,
+      "maxStacks": 8,
+      "description": "Aumenta a velocidade de movimento em 8% por nível.",
+      "flavorText": "Karnstein nunca persegue; suas presas simplesmente se aproximam.",
+      "tags": [
+        "karnstein",
+        "movement",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeed",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ],
+      "family": "Karnstein"
+    },
+    {
+      "id": "hunters_eye",
+      "name": "Olhar Irresistível",
+      "rarity": "Uncommon",
+      "weight": 62,
+      "maxStacks": 6,
+      "description": "Adiciona 8% de chance de acerto crítico por nível.",
+      "flavorText": "Um olhar preciso encontra tanto a artéria quanto o desejo.",
+      "tags": [
+        "karnstein",
+        "critical",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "CriticalChance",
+          "operation": "AddFlat",
+          "value": 0.08
+        }
+      ],
+      "family": "Karnstein"
+    },
+    {
+      "id": "ruptured_vein",
+      "name": "Veia Corrompida",
+      "rarity": "Uncommon",
+      "weight": 58,
+      "maxStacks": 6,
+      "description": "Aumenta o dano crítico em 25% por nível.",
+      "flavorText": "Orlok conhece os pontos onde carne e doença se encontram.",
+      "tags": [
+        "orlok",
+        "critical",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "CriticalDamage",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ],
+      "family": "Orlok"
+    },
+    {
+      "id": "elite_hunger",
+      "name": "Fome por Sangue Nobre",
+      "rarity": "Uncommon",
+      "weight": 54,
+      "maxStacks": 6,
+      "description": "Causa 18% mais dano contra inimigos especiais por nível.",
+      "flavorText": "O sangue dos poderosos possui um sabor digno do conde.",
+      "tags": [
+        "dracul",
+        "elite",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsElite",
+          "operation": "AddMultiplier",
+          "value": 0.18
+        }
+      ],
+      "family": "Dracul"
+    },
+    {
+      "id": "giant_slayer",
+      "name": "Direito de Conquista",
+      "rarity": "Rare",
+      "weight": 38,
+      "maxStacks": 4,
+      "description": "Causa 25% mais dano contra chefes por nível.",
+      "flavorText": "Nenhum senhor reconhece outro acima de si.",
+      "tags": [
+        "dracul",
+        "boss",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsBoss",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ],
+      "family": "Dracul"
+    },
+    {
+      "id": "last_breath",
+      "name": "Último Fôlego",
+      "rarity": "Rare",
+      "weight": 32,
+      "maxStacks": 4,
+      "description": "Quanto menor sua vida, maior sua velocidade de ataque: até 22% por nível.",
+      "flavorText": "Quanto mais perto da cripta, mais frenética se torna a fome.",
+      "tags": [
+        "orlok",
+        "risk",
+        "attack_speed"
+      ],
+      "effects": [
+        {
+          "type": "AttackSpeedMissingHealth",
+          "operation": "AddMultiplier",
+          "value": 0.22
+        }
+      ],
+      "family": "Orlok"
+    },
+    {
+      "id": "merciless_cut",
+      "name": "Corte Necrótico",
+      "rarity": "Rare",
+      "weight": 30,
+      "maxStacks": 4,
+      "description": "Executa inimigos abaixo de 8% de vida por nível.",
+      "flavorText": "A carne apodrecida precisa apenas de um último toque.",
+      "tags": [
+        "orlok",
+        "execute",
+        "damage",
+        "decay"
+      ],
+      "effects": [
+        {
+          "type": "ExecuteThreshold",
+          "operation": "AddFlat",
+          "value": 0.08
+        }
+      ],
+      "family": "Orlok"
+    },
+    {
+      "id": "scarlet_recovery",
+      "name": "Recuperação Escarlate",
+      "rarity": "Rare",
+      "weight": 28,
+      "maxStacks": 4,
+      "description": "Acertos críticos curam 4% do dano causado por nível.",
+      "flavorText": "A ferida do inimigo restaura a beleza da condessa.",
+      "tags": [
+        "bathory",
+        "critical",
+        "healing"
+      ],
+      "effects": [
+        {
+          "type": "CriticalLifeSteal",
+          "operation": "AddMultiplier",
+          "value": 0.04
+        }
+      ],
+      "family": "Bathory"
+    },
+    {
+      "id": "unbroken_vessel",
+      "name": "Vaso Inquebrável",
+      "rarity": "Epic",
+      "weight": 15,
+      "maxStacks": 2,
+      "description": "Aumenta a vida máxima em 25%.",
+      "flavorText": "Um corpo aperfeiçoado pelo sangue não aceita limites mortais.",
+      "tags": [
+        "bathory",
+        "health",
+        "defense",
+        "epic"
+      ],
+      "effects": [
+        {
+          "type": "MaxHealth",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ],
+      "family": "Bathory"
+    },
+    {
+      "id": "dracul_crimson_tax",
+      "name": "Tributo Carmesim",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 6,
+      "description": "Inimigos derrotados têm 18% de chance por nível de gerar uma Gota de Sangue que cura 2% da vida máxima.",
+      "flavorText": "Todo súdito paga ao soberano, mesmo após a morte.",
+      "tags": [
+        "dracul",
+        "healing",
+        "blood_orb"
+      ],
+      "effects": [
+        {
+          "type": "BloodOrbDropChance",
+          "operation": "AddFlat",
+          "value": 0.18
+        },
+        {
+          "type": "BloodOrbHealMaxHealth",
+          "operation": "AddFlat",
+          "value": 0.02
+        }
+      ]
+    },
+    {
+      "id": "dracul_lords_appetite",
+      "name": "Apetite do Lorde",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 95,
+      "maxStacks": 6,
+      "description": "Causa 10% mais dano por nível enquanto estiver acima de 80% da vida.",
+      "flavorText": "Um verdadeiro senhor caça sem aparentar fraqueza.",
+      "tags": [
+        "dracul",
+        "damage",
+        "high_health"
+      ],
+      "effects": [
+        {
+          "type": "DamageAboveHealth",
+          "operation": "AddMultiplier",
+          "value": 0.1,
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "dracul_blood_tithe",
+      "name": "Dízimo de Sangue",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 90,
+      "maxStacks": 6,
+      "description": "Rouba vida equivalente a 1,5% do dano causado por nível.",
+      "flavorText": "O castelo sempre recolhe sua parte.",
+      "tags": [
+        "dracul",
+        "lifesteal",
+        "healing"
+      ],
+      "effects": [
+        {
+          "type": "LifeSteal",
+          "operation": "AddMultiplier",
+          "value": 0.015
+        }
+      ]
+    },
+    {
+      "id": "dracul_commanding_presence",
+      "name": "Presença Dominante",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 86,
+      "maxStacks": 6,
+      "description": "Inimigos próximos causam 6% menos dano por nível.",
+      "flavorText": "Até monstros recordam quem governa a noite.",
+      "tags": [
+        "dracul",
+        "aura",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "NearbyEnemyDamage",
+          "operation": "AddMultiplier",
+          "value": -0.06
+        }
+      ]
+    },
+    {
+      "id": "dracul_noble_blood",
+      "name": "Sangue Nobre",
+      "family": "Dracul",
+      "rarity": "Uncommon",
+      "weight": 62,
+      "maxStacks": 4,
+      "description": "Ao curar-se, ganha 12% de dano por nível durante 5 segundos.",
+      "flavorText": "Cada gota devolvida desperta séculos de poder.",
+      "tags": [
+        "dracul",
+        "healing",
+        "damage",
+        "buff"
+      ],
+      "effects": [
+        {
+          "type": "DamageAfterHealing",
+          "operation": "AddMultiplier",
+          "value": 0.12,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "dracul_imperial_reserve",
+      "name": "Reserva Imperial",
+      "family": "Dracul",
+      "rarity": "Uncommon",
+      "weight": 58,
+      "maxStacks": 4,
+      "description": "20% do excesso de cura por nível é convertido em barreira, limitada a 15% da vida máxima.",
+      "flavorText": "Nada oferecido ao conde é desperdiçado.",
+      "tags": [
+        "dracul",
+        "overheal",
+        "barrier",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "OverhealToBarrier",
+          "operation": "AddMultiplier",
+          "value": 0.2,
+          "maxHealthCap": 0.15
+        }
+      ]
+    },
+    {
+      "id": "dracul_blood_decree",
+      "name": "Decreto de Sangue",
+      "family": "Dracul",
+      "rarity": "Uncommon",
+      "weight": 54,
+      "maxStacks": 4,
+      "description": "Ao eliminar um inimigo de elite, aumenta o dano em 8% por nível até o fim da sala.",
+      "flavorText": "A queda dos fortes confirma a autoridade do soberano.",
+      "tags": [
+        "dracul",
+        "elite",
+        "damage",
+        "room_scaling"
+      ],
+      "effects": [
+        {
+          "type": "DamageOnEliteKill",
+          "operation": "AddMultiplier",
+          "value": 0.08,
+          "duration": "Room"
+        }
+      ]
+    },
+    {
+      "id": "dracul_eternal_banquet",
+      "name": "Banquete Eterno",
+      "family": "Dracul",
+      "rarity": "Rare",
+      "weight": 36,
+      "maxStacks": 2,
+      "description": "Ao atingir um inimigo com menos de 25% de vida, seus ataques ganham 8% de roubo de vida por nível.",
+      "flavorText": "A última taça é sempre a mais doce.",
+      "tags": [
+        "dracul",
+        "lifesteal",
+        "execute",
+        "low_enemy_health"
+      ],
+      "effects": [
+        {
+          "type": "LifeStealVsLowHealthEnemy",
+          "operation": "AddMultiplier",
+          "value": 0.08,
+          "threshold": 0.25
+        }
+      ]
+    },
+    {
+      "id": "dracul_throne_of_blood",
+      "name": "Trono de Sangue",
+      "family": "Dracul",
+      "rarity": "Rare",
+      "weight": 32,
+      "maxStacks": 2,
+      "description": "Enquanto possuir barreira, causa 20% mais dano por nível e não pode ser interrompido.",
+      "flavorText": "O trono não se curva diante de lâminas menores.",
+      "tags": [
+        "dracul",
+        "barrier",
+        "damage",
+        "super_armor"
+      ],
+      "effects": [
+        {
+          "type": "DamageWhileBarrier",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        },
+        {
+          "type": "UnstoppableWhileBarrier",
+          "operation": "SetBool",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "dracul_first_vampire_blood",
+      "name": "Sangue do Primeiro Vampiro",
+      "family": "Dracul",
+      "rarity": "Epic",
+      "weight": 12,
+      "maxStacks": 1,
+      "description": "Todo excesso de cura aumenta permanentemente o dano em 0,20% para cada 1% da vida máxima curada em excesso durante a partida.",
+      "flavorText": "O sangue mais antigo não conhece limites.",
+      "tags": [
+        "dracul",
+        "legendary",
+        "overheal",
+        "permanent_damage"
+      ],
+      "effects": [
+        {
+          "type": "PermanentDamageFromOverheal",
+          "operation": "AddMultiplier",
+          "value": 0.002,
+          "perOverhealMaxHealthPercent": 0.01
+        }
+      ]
+    },
+    {
+      "id": "bathory_fresh_spill",
+      "name": "Derramamento Fresco",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 6,
+      "description": "Inimigos derrotados deixam uma poça de sangue por 4 segundos. Permanecer nela recupera 0,6% da vida máxima por segundo e por nível.",
+      "flavorText": "A juventude começa onde a vida termina.",
+      "tags": [
+        "bathory",
+        "blood_pool",
+        "healing"
+      ],
+      "effects": [
+        {
+          "type": "BloodPoolOnKill",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 4.0
+        },
+        {
+          "type": "BloodPoolHealPerSecond",
+          "operation": "AddFlat",
+          "value": 0.006
+        }
+      ]
+    },
+    {
+      "id": "bathory_scarlet_steps",
+      "name": "Passos Escarlates",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 95,
+      "maxStacks": 6,
+      "description": "Enquanto estiver sobre sangue, ganha 8% de velocidade de movimento por nível.",
+      "flavorText": "Ela dança onde outros apenas sangram.",
+      "tags": [
+        "bathory",
+        "blood_pool",
+        "movement"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeedOnBlood",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ]
+    },
+    {
+      "id": "bathory_vanity",
+      "name": "Vaidade Carmesim",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 90,
+      "maxStacks": 6,
+      "description": "Enquanto estiver com a vida cheia, ganha 5% de chance crítica por nível.",
+      "flavorText": "A perfeição exige uma pele sem marcas.",
+      "tags": [
+        "bathory",
+        "critical",
+        "full_health"
+      ],
+      "effects": [
+        {
+          "type": "CriticalChanceAtFullHealth",
+          "operation": "AddFlat",
+          "value": 0.05
+        }
+      ]
+    },
+    {
+      "id": "bathory_red_silk",
+      "name": "Seda Rubra",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 86,
+      "maxStacks": 6,
+      "description": "Receber cura concede 5% de redução de dano por nível durante 4 segundos.",
+      "flavorText": "O sangue veste melhor do que qualquer armadura.",
+      "tags": [
+        "bathory",
+        "healing",
+        "defense",
+        "buff"
+      ],
+      "effects": [
+        {
+          "type": "DamageReductionAfterHealing",
+          "operation": "AddMultiplier",
+          "value": 0.05,
+          "duration": 4.0
+        }
+      ]
+    },
+    {
+      "id": "bathory_crimson_bath",
+      "name": "Banho Carmesim",
+      "family": "Bathory",
+      "rarity": "Uncommon",
+      "weight": 62,
+      "maxStacks": 4,
+      "description": "Poças de sangue ficam 40% maiores por nível e duram 2 segundos adicionais.",
+      "flavorText": "Nenhuma gota deve escapar da banheira.",
+      "tags": [
+        "bathory",
+        "blood_pool",
+        "area",
+        "duration"
+      ],
+      "effects": [
+        {
+          "type": "BloodPoolArea",
+          "operation": "AddMultiplier",
+          "value": 0.4
+        },
+        {
+          "type": "BloodPoolDuration",
+          "operation": "AddFlat",
+          "value": 2.0
+        }
+      ]
+    },
+    {
+      "id": "bathory_youthful_cruelty",
+      "name": "Crueldade Juvenil",
+      "family": "Bathory",
+      "rarity": "Uncommon",
+      "weight": 58,
+      "maxStacks": 4,
+      "description": "Curar-se acima de 90% da vida concede 15% de velocidade de ataque por nível durante 5 segundos.",
+      "flavorText": "A juventude eterna não aprendeu paciência.",
+      "tags": [
+        "bathory",
+        "healing",
+        "attack_speed"
+      ],
+      "effects": [
+        {
+          "type": "AttackSpeedAfterHighHealthHeal",
+          "operation": "AddMultiplier",
+          "value": 0.15,
+          "healthThreshold": 0.9,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "bathory_blood_servants",
+      "name": "Servas do Banquete",
+      "family": "Bathory",
+      "rarity": "Uncommon",
+      "weight": 54,
+      "maxStacks": 4,
+      "description": "Inimigos que morrem sobre sangue têm 25% de chance por nível de estender a poça e restaurar 3% da sua vida máxima.",
+      "flavorText": "Uma serva termina o trabalho da anterior.",
+      "tags": [
+        "bathory",
+        "blood_pool",
+        "healing",
+        "chain"
+      ],
+      "effects": [
+        {
+          "type": "BloodPoolRefreshOnKillChance",
+          "operation": "AddFlat",
+          "value": 0.25
+        },
+        {
+          "type": "HealOnBloodPoolKill",
+          "operation": "AddFlat",
+          "value": 0.03
+        }
+      ]
+    },
+    {
+      "id": "bathory_immortal_beauty",
+      "name": "Beleza Imortal",
+      "family": "Bathory",
+      "rarity": "Rare",
+      "weight": 36,
+      "maxStacks": 2,
+      "description": "30% do dano recebido por nível é convertido em uma ferida recuperável, restaurada gradualmente durante 6 segundos se não sofrer novo dano.",
+      "flavorText": "A carne recorda a forma perfeita que deveria possuir.",
+      "tags": [
+        "bathory",
+        "recoverable_health",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "DamageToRecoverableHealth",
+          "operation": "AddMultiplier",
+          "value": 0.3,
+          "recoveryDelay": 2.0,
+          "duration": 6.0
+        }
+      ]
+    },
+    {
+      "id": "bathory_palace_of_gore",
+      "name": "Palácio de Sangue",
+      "family": "Bathory",
+      "rarity": "Rare",
+      "weight": 32,
+      "maxStacks": 2,
+      "description": "Enquanto estiver sobre sangue, ganha 18% de dano e 12% de redução de dano por nível.",
+      "flavorText": "Seu verdadeiro palácio é construído sob os pés.",
+      "tags": [
+        "bathory",
+        "blood_pool",
+        "damage",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "DamageOnBlood",
+          "operation": "AddMultiplier",
+          "value": 0.18
+        },
+        {
+          "type": "DamageReductionOnBlood",
+          "operation": "AddMultiplier",
+          "value": 0.12
+        }
+      ]
+    },
+    {
+      "id": "bathory_bath_of_immortality",
+      "name": "Banho da Imortalidade",
+      "family": "Bathory",
+      "rarity": "Epic",
+      "weight": 12,
+      "maxStacks": 1,
+      "description": "Enquanto permanecer sobre uma poça de sangue, sua vida não pode cair abaixo de 1. O efeito termina imediatamente ao deixar a poça.",
+      "flavorText": "A morte não atravessa um banho digno da condessa.",
+      "tags": [
+        "bathory",
+        "legendary",
+        "blood_pool",
+        "death_prevention"
+      ],
+      "effects": [
+        {
+          "type": "MinimumHealthOnBlood",
+          "operation": "SetFlat",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "id": "orlok_rotten_bite",
+      "name": "Mordida Pútrida",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 6,
+      "description": "Ataques têm 15% de chance por nível de aplicar Pestilência por 5 segundos.",
+      "flavorText": "A fome antiga não distingue alimento de doença.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "dot"
+      ],
+      "effects": [
+        {
+          "type": "PestilenceChance",
+          "operation": "AddFlat",
+          "value": 0.15,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "orlok_grave_fever",
+      "name": "Febre da Cripta",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 95,
+      "maxStacks": 6,
+      "description": "Pestilência causa 8% mais dano por nível.",
+      "flavorText": "A febre continua mesmo depois do último suspiro.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "PestilenceDamage",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ]
+    },
+    {
+      "id": "orlok_rats_blessing",
+      "name": "Bênção dos Ratos",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 90,
+      "maxStacks": 6,
+      "description": "Inimigos pestilentos derrotados têm 12% de chance por nível de invocar um rato por 8 segundos.",
+      "flavorText": "Os menores servos recebem as maiores sobras.",
+      "tags": [
+        "orlok",
+        "summon",
+        "rat",
+        "pestilence"
+      ],
+      "effects": [
+        {
+          "type": "RatSummonOnInfectedKillChance",
+          "operation": "AddFlat",
+          "value": 0.12,
+          "duration": 8.0
+        }
+      ]
+    },
+    {
+      "id": "orlok_wasting_touch",
+      "name": "Toque Definhante",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 86,
+      "maxStacks": 6,
+      "description": "Inimigos com Pestilência causam 5% menos dano por nível.",
+      "flavorText": "A doença enfraquece antes de matar.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "weaken",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "InfectedEnemyDamage",
+          "operation": "AddMultiplier",
+          "value": -0.05
+        }
+      ]
+    },
+    {
+      "id": "orlok_contagious_demise",
+      "name": "Morte Contagiosa",
+      "family": "Orlok",
+      "rarity": "Uncommon",
+      "weight": 62,
+      "maxStacks": 4,
+      "description": "Quando um inimigo pestilento morre, transmite Pestilência a até 2 inimigos próximos por nível.",
+      "flavorText": "Nenhum cadáver guarda a doença só para si.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "spread"
+      ],
+      "effects": [
+        {
+          "type": "PestilenceSpreadTargetsOnDeath",
+          "operation": "AddFlat",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "orlok_black_lung",
+      "name": "Pulmão Negro",
+      "family": "Orlok",
+      "rarity": "Uncommon",
+      "weight": 58,
+      "maxStacks": 4,
+      "description": "Após 3 acúmulos de Pestilência, o inimigo libera uma nuvem que causa 35% do seu dano base por segundo e por nível durante 3 segundos.",
+      "flavorText": "Respirar perto dele é aceitar o túmulo.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "area",
+        "dot"
+      ],
+      "effects": [
+        {
+          "type": "PestilenceCloudAtStacks",
+          "operation": "AddMultiplier",
+          "value": 0.35,
+          "requiredStacks": 3,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "orlok_corpse_bloom",
+      "name": "Florescer do Cadáver",
+      "family": "Orlok",
+      "rarity": "Uncommon",
+      "weight": 54,
+      "maxStacks": 4,
+      "description": "Cadáveres de inimigos pestilentos explodem após 1 segundo, causando 45% do dano base por nível em área.",
+      "flavorText": "A podridão também sabe florescer.",
+      "tags": [
+        "orlok",
+        "corpse",
+        "explosion",
+        "pestilence"
+      ],
+      "effects": [
+        {
+          "type": "InfectedCorpseExplosion",
+          "operation": "AddMultiplier",
+          "value": 0.45,
+          "delay": 1.0
+        }
+      ]
+    },
+    {
+      "id": "orlok_plague_host",
+      "name": "Hospedeiro da Praga",
+      "family": "Orlok",
+      "rarity": "Rare",
+      "weight": 36,
+      "maxStacks": 2,
+      "description": "Inimigos com 5 acúmulos de Pestilência tornam-se Hospedeiros: recebem 20% mais dano por nível e espalham um acúmulo ao serem atingidos.",
+      "flavorText": "O doente deixa de ser vítima e torna-se altar.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "vulnerability",
+        "spread"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsPlagueHost",
+          "operation": "AddMultiplier",
+          "value": 0.2,
+          "requiredStacks": 5
+        },
+        {
+          "type": "PestilenceSpreadOnHostHit",
+          "operation": "AddFlat",
+          "value": 1,
+          "requiredStacks": 5
+        }
+      ]
+    },
+    {
+      "id": "orlok_undying_plague",
+      "name": "Praga que Não Morre",
+      "family": "Orlok",
+      "rarity": "Rare",
+      "weight": 32,
+      "maxStacks": 2,
+      "description": "Pestilência não perde duração enquanto houver outro inimigo pestilento em um raio próximo. Aumenta o raio em 30% por nível.",
+      "flavorText": "Uma doença acompanhada jamais se sente obrigada a partir.",
+      "tags": [
+        "orlok",
+        "pestilence",
+        "duration",
+        "aura"
+      ],
+      "effects": [
+        {
+          "type": "PestilenceDurationLink",
+          "operation": "AddMultiplier",
+          "value": 0.3
+        }
+      ]
+    },
+    {
+      "id": "orlok_infinite_pestilent_blood",
+      "name": "Sangue Pestilento Infinito",
+      "family": "Orlok",
+      "rarity": "Epic",
+      "weight": 12,
+      "maxStacks": 1,
+      "description": "Sempre que Pestilência causa dano, ela procura um inimigo não infectado próximo e se espalha. O contágio continua enquanto houver alvos válidos.",
+      "flavorText": "A última criatura viva será apenas a próxima hospedeira.",
+      "tags": [
+        "orlok",
+        "legendary",
+        "pestilence",
+        "infinite_spread"
+      ],
+      "effects": [
+        {
+          "type": "InfinitePestilenceSpread",
+          "operation": "SetBool",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "karnstein_beguiling_glance",
+      "name": "Olhar Sedutor",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 6,
+      "description": "Acertos críticos têm 12% de chance por nível de Encantar o inimigo por 3 segundos.",
+      "flavorText": "Um instante de contato vale mais que uma corrente.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "critical"
+      ],
+      "effects": [
+        {
+          "type": "CharmOnCriticalChance",
+          "operation": "AddFlat",
+          "value": 0.12,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "karnstein_sweet_whisper",
+      "name": "Sussurro Doce",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 95,
+      "maxStacks": 6,
+      "description": "Inimigos encantados causam 15% mais dano por nível aos próprios aliados.",
+      "flavorText": "A ordem mais cruel pode soar como uma carícia.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "ally_damage"
+      ],
+      "effects": [
+        {
+          "type": "CharmedEnemyDamage",
+          "operation": "AddMultiplier",
+          "value": 0.15
+        }
+      ]
+    },
+    {
+      "id": "karnstein_velvet_step",
+      "name": "Passo de Veludo",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 90,
+      "maxStacks": 6,
+      "description": "Após esquivar, o próximo ataque em até 2 segundos tem 8% de chance crítica adicional por nível.",
+      "flavorText": "A elegância apenas esconde a aproximação da presa.",
+      "tags": [
+        "karnstein",
+        "dash",
+        "critical"
+      ],
+      "effects": [
+        {
+          "type": "CriticalChanceAfterDash",
+          "operation": "AddFlat",
+          "value": 0.08,
+          "duration": 2.0
+        }
+      ]
+    },
+    {
+      "id": "karnstein_shared_desire",
+      "name": "Desejo Compartilhado",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 86,
+      "maxStacks": 6,
+      "description": "Você recupera vida equivalente a 1% do dano causado por inimigos encantados por nível.",
+      "flavorText": "Toda devoção deve alimentar sua senhora.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "healing"
+      ],
+      "effects": [
+        {
+          "type": "HealFromCharmedDamage",
+          "operation": "AddMultiplier",
+          "value": 0.01
+        }
+      ]
+    },
+    {
+      "id": "karnstein_jealous_heart",
+      "name": "Coração Ciumento",
+      "family": "Karnstein",
+      "rarity": "Uncommon",
+      "weight": 62,
+      "maxStacks": 4,
+      "description": "Inimigos encantados priorizam elites e causam 20% mais dano contra elas por nível.",
+      "flavorText": "Os favoritos sempre atacam os rivais primeiro.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "elite",
+        "ai"
+      ],
+      "effects": [
+        {
+          "type": "CharmedDamageVsElite",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "karnstein_crimson_court",
+      "name": "Corte Carmesim",
+      "family": "Karnstein",
+      "rarity": "Uncommon",
+      "weight": 58,
+      "maxStacks": 4,
+      "description": "Para cada inimigo encantado vivo, ganha 4% de dano e 3% de velocidade de movimento por nível, até 5 aliados.",
+      "flavorText": "Uma corte numerosa torna qualquer soberana mais perigosa.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "scaling",
+        "damage",
+        "movement"
+      ],
+      "effects": [
+        {
+          "type": "DamagePerCharmedEnemy",
+          "operation": "AddMultiplier",
+          "value": 0.04,
+          "maxTargets": 5
+        },
+        {
+          "type": "MoveSpeedPerCharmedEnemy",
+          "operation": "AddMultiplier",
+          "value": 0.03,
+          "maxTargets": 5
+        }
+      ]
+    },
+    {
+      "id": "karnstein_lovers_quarrel",
+      "name": "Briga de Amantes",
+      "family": "Karnstein",
+      "rarity": "Uncommon",
+      "weight": 54,
+      "maxStacks": 4,
+      "description": "Quando um inimigo encantado morre, explode e causa 55% do dano base por nível aos inimigos próximos.",
+      "flavorText": "Toda paixão termina fazendo vítimas.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "explosion"
+      ],
+      "effects": [
+        {
+          "type": "CharmedDeathExplosion",
+          "operation": "AddMultiplier",
+          "value": 0.55
+        }
+      ]
+    },
+    {
+      "id": "karnstein_blood_bond",
+      "name": "Laço de Sangue",
+      "family": "Karnstein",
+      "rarity": "Rare",
+      "weight": 36,
+      "maxStacks": 2,
+      "description": "Ao encantar um inimigo, vincula-o ao alvo mais próximo. 25% do dano sofrido por um é transferido ao outro por nível.",
+      "flavorText": "Dois corações unidos sangram como um só.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "link",
+        "shared_damage"
+      ],
+      "effects": [
+        {
+          "type": "CharmDamageLink",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ]
+    },
+    {
+      "id": "karnstein_fatal_devotion",
+      "name": "Devoção Fatal",
+      "family": "Karnstein",
+      "rarity": "Rare",
+      "weight": 32,
+      "maxStacks": 2,
+      "description": "Ao receber dano fatal, sacrifica o inimigo encantado com mais vida e restaura 20% da sua vida máxima por nível. Uma vez por sala.",
+      "flavorText": "Amar é morrer quando sua senhora ordenar.",
+      "tags": [
+        "karnstein",
+        "charm",
+        "death_prevention",
+        "healing"
+      ],
+      "effects": [
+        {
+          "type": "SacrificeCharmedOnFatalDamage",
+          "operation": "AddFlat",
+          "value": 0.2,
+          "cooldown": "Room"
+        }
+      ]
+    },
+    {
+      "id": "karnstein_eternal_courtship",
+      "name": "Cortejo Eterno",
+      "family": "Karnstein",
+      "rarity": "Epic",
+      "weight": 12,
+      "maxStacks": 1,
+      "description": "Inimigos encantados tornam-se aliados permanentes até morrerem. Chefes e inimigos imunes recebem Fascínio, sofrendo 25% mais dano.",
+      "flavorText": "Alguns juramentos só terminam com a morte.",
+      "tags": [
+        "karnstein",
+        "legendary",
+        "charm",
+        "permanent_ally"
+      ],
+      "effects": [
+        {
+          "type": "PermanentCharm",
+          "operation": "SetBool",
+          "value": true
+        },
+        {
+          "type": "FascinationDamageTaken",
+          "operation": "AddMultiplier",
+          "value": 0.25,
+          "immuneTargetsOnly": true
+        }
+      ]
+    }
+  ],
+  "families": [
+    {
+      "id": "dracul",
+      "name": "Dracul",
+      "theme": "Domínio, roubo de vida, excesso de cura e poder permanente.",
+      "statusEffect": "Blood Dominion"
+    },
+    {
+      "id": "bathory",
+      "name": "Bathory",
+      "theme": "Poças de sangue, regeneração, sacrifício e sobrevivência.",
+      "statusEffect": "Blood Pool"
+    },
+    {
+      "id": "orlok",
+      "name": "Orlok",
+      "theme": "Pestilência, contágio, cadáveres e deterioração.",
+      "statusEffect": "Pestilence"
+    },
+    {
+      "id": "karnstein",
+      "name": "Karnstein",
+      "theme": "Encanto, aliados temporários, mobilidade e manipulação.",
+      "statusEffect": "Charm"
+    }
+  ]
+}

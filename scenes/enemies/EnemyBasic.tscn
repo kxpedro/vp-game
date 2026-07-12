@@ -41,4 +41,4 @@ material_override = SubResource("StandardMaterial3D_eye")
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("2")
-MaxHealth = 80.0
+MaxHealth = 110.0

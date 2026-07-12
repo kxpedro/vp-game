@@ -16,7 +16,7 @@ public partial class RunManager : Node3D
 
     [Export] public NodePath ExitPortalPath { get; set; } = new("ExitPortal");
     [Export] public NodePath RoomGeneratorPath { get; set; } = new("RoomGenerator");
-    [Export] public float ArtifactSpawnChance { get; set; } = 0.45f;
+    [Export] public float ArtifactSpawnChance { get; set; } = 1.0f;
 
     public int BloodCoins { get; private set; }
     public int LastBloodCoinsReward { get; private set; }
@@ -30,7 +30,10 @@ public partial class RunManager : Node3D
     private StandardMaterial3D _lockedPortalMaterial;
     private StandardMaterial3D _openPortalMaterial;
     private float _roomCheckTimer;
+    private int _pendingDefeats;
+    private int _pendingBloodCoins;
     private readonly RandomNumberGenerator _rng = new();
+    private bool _roomConfigured;
 
     public override void _Ready()
     {
@@ -41,8 +44,16 @@ public partial class RunManager : Node3D
         _roomGenerator = GetNodeOrNull<RoomGenerator>(RoomGeneratorPath);
         BuildPortalMaterials();
         SetPortalOpen(false);
-        ConfigureRoom();
+        if (GetTree().GetNodeCountInGroup("enemy_spawn_pending") == 0)
+            ConfigureRoom();
         BloodCoins = CharacterSheet.BloodCoins;
+
+        var roomHealthCost = RunState.GetEffectTotal("CurrentHealthCostOnRoomEnter.Multiplier");
+        if (roomHealthCost > 0)
+        {
+            var playerHealth = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<Health>("Health");
+            if (playerHealth != null) playerHealth.ApplyDamage(playerHealth.CurrentHealth * roomHealthCost);
+        }
 
         EmitSignal(SignalName.BloodCoinsChanged, BloodCoins);
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
@@ -52,6 +63,11 @@ public partial class RunManager : Node3D
 
     public override void _Process(double delta)
     {
+        FlushDefeatBatch();
+        if (GetTree().GetNodeCountInGroup("enemy_spawn_pending") > 0)
+            return;
+        if (GetTree().GetNodeCountInGroup("enemy_waves_remaining") > 0)
+            return;
         if (IsRoomCleared)
             return;
 
@@ -63,6 +79,41 @@ public partial class RunManager : Node3D
 
         if (GetTree().GetNodeCountInGroup("enemies") == 0)
             CompleteRoom();
+    }
+
+    public void NotifyWaveSpawned(int waveCount, int totalPlanned)
+    {
+        IsRoomCleared = false;
+        if (!_roomConfigured)
+        {
+            ConfigureRoom();
+            _roomConfigured = true;
+        }
+        else if (!RunState.IsBossRoom)
+        {
+            ApplyCommonEnemyTuning(GetTree().GetNodesInGroup("enemies"));
+        }
+        TotalEnemies = totalPlanned;
+        EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
+        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {waveCount} inimigos surgiu ({DefeatedEnemies}/{TotalEnemies}).");
+    }
+
+    public void QueueEnemyDefeat(int bloodCoins)
+    {
+        _pendingDefeats++;
+        _pendingBloodCoins += bloodCoins;
+    }
+
+    private void FlushDefeatBatch()
+    {
+        if (_pendingDefeats == 0) return;
+        var defeats = _pendingDefeats; var coins = _pendingBloodCoins;
+        _pendingDefeats = 0; _pendingBloodCoins = 0;
+        AddBloodCoins(coins);
+        DefeatedEnemies = Mathf.Min(DefeatedEnemies + defeats, TotalEnemies);
+        EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
+        GetTree().CallGroup("hud", "NotifyEnemyDefeated", DefeatedEnemies, TotalEnemies, coins);
+        if (TotalEnemies > 0 && DefeatedEnemies >= TotalEnemies) CompleteRoom();
     }
 
     public void AddBloodCoins(int amount)
@@ -91,6 +142,13 @@ public partial class RunManager : Node3D
     private void CompleteRoom()
     {
         IsRoomCleared = true;
+        if (RunState.IsBossRoom)
+        {
+            GetTree().CallGroup("audio_manager", "StopBossMusic");
+            GetTree().CallGroup("audio_manager", "PlayEffect", "boss_defeated");
+        }
+        foreach (var projectile in GetTree().GetNodesInGroup("enemy_projectiles"))
+            projectile.QueueFree();
 
         if (_exitPortal != null)
         {
@@ -104,6 +162,10 @@ public partial class RunManager : Node3D
 
         EmitSignal(SignalName.RoomCleared);
         GetTree().CallGroup("hud", "NotifyRoomCleared");
+        if (RunState.IsBossRoom)
+            SpawnArtifact();
+        else
+            GetTree().CallGroup("hud", "OpenBloodBlessingOffer");
     }
 
     private void ConfigureRoom()
@@ -116,10 +178,20 @@ public partial class RunManager : Node3D
 
     private void ConfigureCommonRoom()
     {
-        var difficultyBonus = Mathf.Max(RunState.CurrentRoom - 1, 0);
         var enemies = GetTree().GetNodesInGroup("enemies");
         TotalEnemies = enemies.Count;
         DefeatedEnemies = 0;
+
+        ApplyCommonEnemyTuning(enemies);
+
+        CreateRoomLabel($"{RunState.CurrentMap.Name} - Sala {RunState.CurrentRoom}/{RunState.CurrentMap.CommonRoomCount}");
+    }
+
+    private void ApplyCommonEnemyTuning(Godot.Collections.Array<Node> enemies)
+    {
+        var globalRoom = GetGlobalRoomNumber();
+        var difficultyBonus = Mathf.Max(globalRoom - 1, 0);
+        var mapDifficulty = RunState.CurrentMap.DifficultyMultiplier;
 
         for (var i = 0; i < enemies.Count; i++)
         {
@@ -127,18 +199,15 @@ public partial class RunManager : Node3D
                 continue;
 
             enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
-            enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.basic.damage", enemy.AttackDamage) + difficultyBonus * 2.0f;
+            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", enemy.AttackDamage) + difficultyBonus * 2.0f) * mapDifficulty;
             enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.min_blood_coins", enemy.MinBloodCoinsReward);
             enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.max_blood_coins", enemy.MaxBloodCoinsReward);
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
 
             var health = enemy.GetNodeOrNull<Health>("Health");
-            health?.SetMaxHealth(CompendiumTuning.GetFloat("enemy.basic.health", 80.0f) + difficultyBonus * 18.0f, true);
+            health?.SetMaxHealth((CompendiumTuning.GetFloat("enemy.basic.health", 110.0f) + difficultyBonus * 18.0f) * mapDifficulty, true);
         }
 
-        SpawnArtifact();
-
-        CreateRoomLabel($"Sala {RunState.CurrentRoom}/{RunState.RoomsBeforeBoss - 1}");
     }
 
     private void ConfigureBossRoom()
@@ -154,16 +223,22 @@ public partial class RunManager : Node3D
 
             if (i == 0)
             {
-                enemy.Name = "BloodMageBoss";
-                enemy.Scale = Vector3.One * 1.55f;
+                var bossDefinition = BossCatalog.Get(RunState.CurrentMapIndex);
+                enemy.Name = $"Boss_{bossDefinition.Id}";
+                if (enemy.GetNodeOrNull<Node3D>("Visual") is { } bossVisual)
+                    bossVisual.Scale = Vector3.One * 1.55f;
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
+                if (RunState.CurrentMapIndex == 0) enemy.MoveSpeed *= 1.4f;
                 enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f);
+                if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.55f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
                 enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.min_blood_coins", 8);
                 enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.max_blood_coins", 10);
 
-                var health = enemy.GetNodeOrNull<Health>("Health");
-                health?.SetMaxHealth(CompendiumTuning.GetFloat("enemy.blood_mage.health", 260.0f), true);
+                var controller = new BossController { Name = "BossController" };
+                enemy.AddChild(controller);
+                controller.Configure(enemy, bossDefinition);
+                GetTree().CallGroup("hud", "BindBoss", enemy, bossDefinition.DisplayName);
             }
             else
             {
@@ -171,7 +246,7 @@ public partial class RunManager : Node3D
             }
         }
 
-        CreateRoomLabel("Sala do Chefe - Mago de Sangue");
+        CreateRoomLabel($"Chefe de {RunState.CurrentMap.Name} - {RunState.CurrentMap.BossId}");
     }
 
     private void ConfigureExitPortal()
@@ -181,9 +256,15 @@ public partial class RunManager : Node3D
 
         if (RunState.IsBossRoom)
         {
+            var destination = RunState.IsFinalMap
+                ? "res://scenes/game/CrowsNest.tscn"
+                : "res://scenes/game/TestArena.tscn";
+            var prompt = RunState.IsFinalMap
+                ? "E - concluir a campanha"
+                : "E - seguir para o proximo mapa";
             _scenePortal.ConfigureDestination(
-                "res://scenes/game/CrowsNest.tscn",
-                "E - retornar ao Ninho",
+                destination,
+                prompt,
                 ScenePortal.RunPortalAction.CompleteBoss
             );
             return;
@@ -196,13 +277,24 @@ public partial class RunManager : Node3D
         );
     }
 
+    private static int GetGlobalRoomNumber()
+    {
+        var total = RunState.CurrentRoom;
+        for (var i = 0; i < RunState.CurrentMapIndex; i++)
+            total += CampaignCatalog.Get(i).CommonRoomCount + 1;
+        return total;
+    }
+
     private void SpawnArtifact()
     {
+        var adjustedChance = Mathf.Clamp(ArtifactSpawnChance * (1.0f + RunState.GetEffectTotal("RareDropChance.Multiplier")), 0.0f, 1.0f);
+        if (_rng.Randf() > adjustedChance)
+            return;
         var artifact = new RoomArtifact
         {
             Name = "RoomArtifact",
             Position = _roomGenerator?.GetArtifactSpawnPosition() ?? new Vector3(_rng.RandfRange(-5.0f, 5.0f), 0.35f, _rng.RandfRange(-5.0f, 5.0f)),
-            ArtifactName = "Tesouro de Artefatos"
+            ArtifactName = "Artefato do Chefe"
         };
         AddChild(artifact);
 
