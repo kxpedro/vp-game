@@ -92,9 +92,30 @@ public partial class PlayerSkillController : Node
             return;
         }
 
+        SpawnActivationIndicator();
+
         var cooldown = CompendiumTuning.GetFloat($"{definition.Id}.cooldown", definition.CooldownSeconds);
         _slotCooldowns[slotIndex] = cooldown;
         EmitSignal(SignalName.ActiveSkillUsed, slotIndex, skillId, cooldown);
+    }
+
+    private async void SpawnActivationIndicator()
+    {
+        var player = GetParent<Node3D>(); if (player == null) return;
+        var indicator = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = 1.35f, BottomRadius = 1.35f, Height = 0.05f },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.8f, 0.02f, 0.04f, 0.3f), EmissionEnabled = true,
+                Emission = new Color(1, 0, 0), EmissionEnergyMultiplier = 1.5f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            }, Position = Vector3.Up * 0.04f
+        };
+        player.AddChild(indicator);
+        var tween = indicator.CreateTween(); tween.TweenProperty(indicator, "scale", Vector3.One * 1.35f, 0.25f);
+        tween.TweenProperty(indicator, "transparency", 1.0f, 0.2f);
+        await ToSignal(tween, Tween.SignalName.Finished); indicator.QueueFree();
     }
 
     private bool ApplyActiveSkill(SkillDefinition definition)

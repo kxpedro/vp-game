@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://cgslhnum1ob2l" path="res://scripts/systems/ScenePortal.cs" id="4"]
 [ext_resource type="Script" uid="uid://cl0dn6digvuif" path="res://scripts/systems/BloodFountain.cs" id="5"]
 [ext_resource type="Script" uid="uid://c38fkac7sd5h0" path="res://scripts/systems/ArtifactChest.cs" id="6"]
+[ext_resource type="Script" path="res://scripts/systems/WeaponBench.cs" id="7"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(30, 0.3, 22)
@@ -163,6 +164,13 @@ modulate = Color(1, 0.08, 0.04, 1)
 text = "Bancada de Armas"
 font_size = 34
 outline_size = 8
+
+[node name="WeaponBenchArea" type="Area3D" parent="WeaponBench"]
+script = ExtResource("7")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WeaponBench/WeaponBenchArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+shape = SubResource("BoxShape3D_artifact_chest_area")
 
 [node name="Coffin" type="MeshInstance3D" parent="." unique_id=2068723220]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.45, -3.8)

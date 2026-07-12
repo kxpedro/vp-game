@@ -9,6 +9,7 @@ public static class ArtifactCatalog
     private static readonly List<ArtifactDefinition> Definitions = new();
     private static readonly Dictionary<string, ArtifactDefinition> DefinitionsById = new();
     private static bool _loaded;
+    public static float BossDropPowerMultiplier { get; private set; } = 1.75f;
 
     public static IReadOnlyList<ArtifactDefinition> All
     {
@@ -64,6 +65,7 @@ public static class ArtifactCatalog
     public static void Reload()
     {
         _loaded = false;
+        BossDropPowerMultiplier = 1.75f;
         Definitions.Clear();
         DefinitionsById.Clear();
         EnsureLoaded();
@@ -86,6 +88,8 @@ public static class ArtifactCatalog
         {
             var json = FileAccess.GetFileAsString(CatalogPath);
             using var document = JsonDocument.Parse(json);
+            if (document.RootElement.TryGetProperty("bossDropPowerMultiplier", out var power) && power.TryGetSingle(out var multiplier))
+                BossDropPowerMultiplier = Mathf.Max(multiplier, 0.0f);
 
             if (!document.RootElement.TryGetProperty("artifacts", out var artifacts) || artifacts.ValueKind != JsonValueKind.Array)
             {

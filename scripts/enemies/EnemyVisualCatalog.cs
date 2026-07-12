@@ -1,0 +1,34 @@
+public sealed record EnemyVisualDefinition(string ScenePath, float Scale, string IdleAnimation, float CombatRadius, bool MatchPlayerHeight = false, float PlayerHeightMultiplier = 1.0f);
+
+public static class EnemyVisualCatalog
+{
+    public static void BeginWarmup(bool isBoss, int mapIndex)
+    {
+        if (isBoss)
+        {
+            Godot.ResourceLoader.LoadThreadedRequest(GetBoss(mapIndex).ScenePath);
+            return;
+        }
+        Godot.ResourceLoader.LoadThreadedRequest(GetRegular(0).ScenePath);
+        Godot.ResourceLoader.LoadThreadedRequest(GetRegular(1).ScenePath);
+    }
+
+    public static Godot.PackedScene LoadScene(EnemyVisualDefinition definition)
+    {
+        var status = Godot.ResourceLoader.LoadThreadedGetStatus(definition.ScenePath);
+        if (status == Godot.ResourceLoader.ThreadLoadStatus.Loaded)
+            return Godot.ResourceLoader.LoadThreadedGet(definition.ScenePath) as Godot.PackedScene;
+        return Godot.ResourceLoader.Load<Godot.PackedScene>(definition.ScenePath);
+    }
+
+    public static EnemyVisualDefinition GetRegular(int variant) => variant % 2 == 0
+        ? new("res://3d/zombie_commoner.glb", 0.01f, "Take 001", 0.7f)
+        : new("res://3d/zombie_snapper.glb", 0.01f, "Take 001", 0.75f);
+
+    public static EnemyVisualDefinition GetBoss(int mapIndex) => mapIndex switch
+    {
+        0 => new("res://3d/silver_dragonkin_mir4.glb", 1.0f, "Mon_BlackDragon31_Btl_Std01", 1.2f, true, 2.0f),
+        1 => new("res://3d/invisible_women__marvel_rivals.glb", 1.25f, "Idle_C", 0.75f),
+        _ => GetRegular(mapIndex)
+    };
+}

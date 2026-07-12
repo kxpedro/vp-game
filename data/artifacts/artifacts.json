@@ -1,5 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
+  "bossDropPowerMultiplier": 1.75,
+  "notes": "Artefatos agora sao recompensas exclusivas de bosses. Este multiplicador fortalece todos os efeitos numericos.",
   "artifacts": [
     {
       "id": "serrated_fang",
@@ -15,7 +17,7 @@
         {
           "type": "Damage",
           "operation": "AddMultiplier",
-          "value": 2.50
+          "value": 0.25
         }
       ]
     },
@@ -110,7 +112,7 @@
         {
           "type": "Damage",
           "operation": "AddMultiplier",
-          "value": 3.00
+          "value": 0.30
         }
       ]
     },

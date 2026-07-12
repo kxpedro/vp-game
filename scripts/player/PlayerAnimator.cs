@@ -14,9 +14,9 @@ public partial class PlayerAnimator : Node
     [Export] public float WalkAnimationSpeed { get; set; } = 1.0f;
     [Export] public float RunAnimationSpeed { get; set; } = 1.0f;
     [Export] public float DodgeAnimationSpeed { get; set; } = 1.0f;
-    [Export] public float LightAttackAnimationSpeed { get; set; } = 0.9f;
-    [Export] public float HeavyAttackAnimationSpeed { get; set; } = 0.86f;
-    [Export] public float DashAttackAnimationSpeed { get; set; } = 1.35f;
+    [Export] public float LightAttackAnimationSpeed { get; set; } = 1.65f;
+    [Export] public float HeavyAttackAnimationSpeed { get; set; } = 1.48f;
+    [Export] public float DashAttackAnimationSpeed { get; set; } = 1.9f;
     [Export] public bool StripRootMotion { get; set; } = true;
     [Export] public float LoopBlendSeconds { get; set; } = 0.03f;
     [Export] public float OneShotBlendSeconds { get; set; } = 0.02f;
