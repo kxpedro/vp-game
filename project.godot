@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Localization="*res://scripts/systems/Localization.cs"
 GlobalSettings="*res://scripts/systems/GlobalSettings.cs"
 AudioManager="*res://scripts/systems/AudioManager.cs"
 SaveGameManager="*res://scripts/systems/SaveGameManager.cs"

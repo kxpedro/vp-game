@@ -1,36 +1,39 @@
 # Vampire's Prey
 
-Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientação dark fantasy e progressão entre partidas. O jogador controla Virgil, um caçador de monstros transformado em vampiro, que precisa atravessar as salas do castelo, derrotar criaturas e reunir recursos para escapar da maldição de Armand.
+Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientação dark fantasy e progressão entre partidas. O jogador controla Virgil, um caçador transformado em vampiro, atravessa salas procedurais, enfrenta criaturas e escolhe poderes de famílias vampíricas para escapar da maldição de Armand.
 
-> Projeto em desenvolvimento. A versão atual é um protótipo jogável e pode conter recursos incompletos ou sujeitos a alterações.
+> Projeto em desenvolvimento. A branch atual representa a primeira versão jogável e ainda usa modelos e conteúdos provisórios.
 
 ## Funcionalidades atuais
 
-- movimentação isométrica, corrida, esquiva e câmera com zoom;
-- combate com ataques leves e pesados;
-- Bênçãos de Sangue oferecidas em três opções após cada sala comum;
-- ofertas de bênçãos por família, sem repetir bênçãos já escolhidas;
-- cinco qualidades possíveis para cada bênção, com poder escalado pelo JSON;
-- artefatos raros e poderosos obtidos exclusivamente ao derrotar bosses;
-- campanha configurável com quatro mapas, salas procedurais e chefes;
-- inimigos com patrulha, detecção, perseguição e ataque;
-- inimigos corpo a corpo, de longo alcance e tanks, com raridades e modificadores;
-- moedas de sangue persistentes entre salas;
-- árvores de habilidades Bestialis e Humanitas;
-- artefatos temporários por partida e coleção permanente;
-- bancada de armas expansível e arma equipada visível na HUD;
-- HUD, pausa, ficha do personagem e painéis de progressão;
-- menu de opções com resolução, tela cheia e volumes separados;
-- minimapa com névoa de guerra, mapa expandido, FPS e feedback visual de dano;
-- painel de eventos no canto inferior direito e indicadores de spawn inimigo;
-- três waves de 10 inimigos por sala comum;
-- ajustes de gameplay em tempo de execução.
+- movimentação isométrica, corrida, caminhada, esquiva e câmera fixa com feedback de impacto;
+- ataques leves, pesados e ataque rápido ao combinar esquiva com ataque;
+- quatro famílias de Bênçãos de Sangue: Dracul, Bathory, Orlok e Karnstein;
+- bênçãos com cinco qualidades, pesos configuráveis e efeitos data-driven;
+- ataques básicos exclusivos com roubo de vida, Sangramento, Pestilência ou Encanto;
+- Sangramento com dano periódico, Pestilência que se espalha na morte e Encanto que faz inimigos atacarem entre si;
+- poças de sangue, barreiras, roubo de vida e demais sinergias das famílias;
+- três waves temporizadas de 8 inimigos por sala comum;
+- inimigos melee, ranged e tank, com raridades progressivas, nomes lendários e recompensas escaladas;
+- campanha configurável com quatro mapas, salas procedurais e arenas de chefe;
+- bosses com controlador, fases, movesets, animações do rig e barra de vida exclusiva no HUD;
+- Bênçãos de Sangue após salas comuns e artefatos como recompensas especiais;
+- saída da sala bloqueada até a escolha da recompensa;
+- três slots de save para progressão permanente;
+- vida atual preservada entre salas e mapas durante a run;
+- árvores de habilidades Bestialis e Humanitas, quatro slots ativos e artefatos em `Q`/`R`;
+- Ninho do Corvo com fonte de sangue, baú de artefatos e bancada de armas;
+- HUD com ficha do personagem, minimapa, log de combate, pausa e compêndio;
+- áudio persistente por contexto e configurações globais de vídeo e volume;
+- localização centralizada com `pt-BR` padrão e estrutura pronta para inglês e espanhol;
+- exportação Windows self-contained para Godot .NET.
 
 ## Tecnologias
 
-- [Godot Engine](https://godotengine.org/) 4.7 com suporte a C#;
+- Godot Engine 4.7 Stable Mono;
 - .NET 8;
-- física 3D com Jolt Physics.
+- C#;
+- assets e configurações de gameplay carregados por catálogos.
 
 ## Como executar
 
@@ -42,54 +45,77 @@ Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientaç�
    cd vp-game
    ```
 
-3. Abra o arquivo `project.godot` no editor.
-4. Aguarde a importação dos assets e a compilação dos scripts C#.
-5. Execute o projeto com `F6`/`F5` pelo editor.
+3. Abra `project.godot` no editor e aguarde a importação dos assets.
+4. Execute o projeto com `F6`/`F5`.
 
-Para verificar os scripts pelo terminal:
+Para validar o código:
 
 ```bash
-dotnet build VP0.1.csproj
+dotnet build VP0.1.sln
 ```
 
-No Windows, `jogar.bat` inicia o jogo diretamente usando a instalação local do Godot,
-sem abrir o editor. `exportar_windows.bat` gera `builds/VampiresPrey.exe` quando os
-templates de exportação do Godot 4.7 estiverem instalados.
+No Windows, `jogar.bat` inicia o projeto pelo Godot sem abrir o editor.
+
+## Exportação Windows
+
+Instale pelo editor os templates de exportação correspondentes a `4.7.stable.mono` e execute:
+
+```bat
+exportar_windows.bat
+```
+
+O script restaura os runtimes `win-x64`, compila a solução, executa o preset `Windows Desktop` e rejeita exports que contenham erros internos. A distribuição deve manter juntos:
+
+```text
+builds/VampiresPrey.exe
+builds/data_VP0.1_windows_x86_64/
+```
+
+Mais detalhes em [`docs/build_and_export.md`](docs/build_and_export.md).
 
 ## Controles
 
 | Ação | Tecla/botão |
 | --- | --- |
 | Movimentar | `W`, `A`, `S`, `D` |
-| Correr | `Shift` |
+| Caminhar | `Caps Lock` |
 | Esquivar | `Espaço` |
 | Ataque leve | Botão esquerdo do mouse |
 | Ataque pesado | Botão direito do mouse |
+| Ataque rápido | Esquiva + ataque leve |
 | Habilidades | `1`, `2`, `3`, `4` |
 | Artefatos ativos | `Q`, `R` |
 | Interagir | `E` |
 | Ficha do personagem | `C` |
-| Pausar | `Esc` |
 | Expandir minimapa | `Tab` |
+| Pausar | `Esc` |
 
 ## Estrutura do projeto
 
 ```text
-3d/          modelos 3D
+.codex/      skills locais para manutenção dos catálogos
+3d/          modelos e rigs 3D
 audio/       músicas, ambientes e efeitos sonoros
-data/        dados de artefatos e progressão
-docs/        documentação técnica do protótipo
-images/      elementos visuais e interface
+data/        bênçãos, artefatos e localização
+docs/        documentação técnica
+images/      interface, ícones e efeitos
 references/  referências conceituais e artísticas
 scenes/      cenas do Godot
 scripts/     código C# de gameplay e sistemas
 ```
 
-As principais cenas são `scenes/game/CrowsNest.tscn`, `scenes/game/TestArena.tscn` e `scenes/player/Player.tscn`. Mais detalhes sobre o estado do protótipo estão em [`docs/initialization.md`](docs/initialization.md), e o documento de design está em [`GDD.txt`](GDD.txt).
+As cenas principais são `scenes/ui/MainMenu.tscn`, `scenes/game/CrowsNest.tscn`, `scenes/game/TestArena.tscn` e `scenes/player/Player.tscn`.
 
-## Estado do desenvolvimento
+## Estrutura da campanha
 
-O fluxo começa no menu inicial e permite escolher entre três slots de progressão. No Ninho do Corvo, a arma da run é escolhida. A campanha segue por três mapas procedurais com 3, 25 e 35 salas comuns, cada um encerrado por um chefe, e termina em um quarto mapa dedicado ao chefe final. Ao morrer, o jogador retorna ao Ninho mantendo as moedas de sangue adquiridas e perdendo os recursos temporários da run. Mapas, contagens, chefes e armas são definidos em catálogos expansíveis.
+O fluxo começa no menu, com escolha de idioma e de um dos três slots. O Ninho do Corvo funciona como hub permanente. A campanha é definida em `CampaignCatalog` e atualmente possui mapas com 3, 4 e 5 salas comuns, seguidos por um quarto mapa dedicado ao chefe final. Ao morrer, a run temporária é encerrada; a progressão permanente do slot é preservada.
+
+Consulte também:
+
+- [`docs/initialization.md`](docs/initialization.md): snapshot técnico e contexto para novas sessões;
+- [`docs/room_generation.md`](docs/room_generation.md): geração procedural e waves;
+- [`docs/character_asset.md`](docs/character_asset.md): animações importadas de Virgil;
+- [`GDD.txt`](GDD.txt): documento de design.
 
 ## Autoria
 

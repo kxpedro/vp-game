@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 public partial class HUD : CanvasLayer
 {
@@ -57,6 +58,7 @@ public partial class HUD : CanvasLayer
 	private VBoxContainer _bloodBlessingList;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
+	private VBoxContainer _blessingHudList;
 	private Control _pauseOverlay;
 	private VBoxContainer _pauseMainMenu;
 	private VBoxContainer _pauseTuningPage;
@@ -232,6 +234,17 @@ public partial class HUD : CanvasLayer
 		_healthBar.AddChild(_healthPointsLabel);
 		leftStatus.AddChild(_furyBar);
 
+		_blessingHudList = new VBoxContainer
+		{
+			Name = "BlessingHudList",
+			AnchorLeft = 0.0f, AnchorTop = 0.5f, AnchorRight = 0.0f, AnchorBottom = 0.5f,
+			OffsetLeft = 18.0f, OffsetTop = -190.0f, OffsetRight = 78.0f, OffsetBottom = 190.0f,
+			Alignment = BoxContainer.AlignmentMode.Center,
+			MouseFilter = Control.MouseFilterEnum.Pass
+		};
+		root.AddChild(_blessingHudList);
+		RefreshBlessingHud();
+
 		_minimap = new MinimapControl { Name = "Minimap" };
 		root.AddChild(_minimap);
 		_minimap.SetExpanded(false);
@@ -271,7 +284,7 @@ public partial class HUD : CanvasLayer
 		_coinsLabel = new Label
 		{
 			Name = "BloodCoinsLabel",
-			Text = "Moedas de Sangue: 0",
+			Text = Localization.TextFormat("hud.blood_coins", 0),
 			HorizontalAlignment = HorizontalAlignment.Right
 		};
 		resourcePanel.AddChild(_coinsLabel);
@@ -302,7 +315,7 @@ public partial class HUD : CanvasLayer
 		_enemyProgressLabel = new Label
 		{
 			Name = "EnemyProgressLabel",
-			Text = "Inimigos: 0/0",
+			Text = Localization.TextFormat("hud.enemies", 0, 0),
 			HorizontalAlignment = HorizontalAlignment.Right
 		};
 		resourcePanel.AddChild(_enemyProgressLabel);
@@ -350,7 +363,7 @@ public partial class HUD : CanvasLayer
 			OffsetBottom = 78, Visible = false
 		};
 		root.AddChild(_bossHealthPanel);
-		_bossHealthLabel = new Label { Text = "BOSS", HorizontalAlignment = HorizontalAlignment.Center };
+		_bossHealthLabel = new Label { Text = Localization.Text("hud.boss"), HorizontalAlignment = HorizontalAlignment.Center };
 		_bossHealthLabel.AddThemeFontSizeOverride("font_size", 24);
 		_bossHealthPanel.AddChild(_bossHealthLabel);
 		_bossHealthBar = new ProgressBar { ShowPercentage = false, CustomMinimumSize = new Vector2(0, 28) };
@@ -433,7 +446,7 @@ public partial class HUD : CanvasLayer
 			list.AddChild(button);
 		}
 
-		var close = new Button { Text = "Fechar" };
+		var close = new Button { Text = Localization.Text("hud.close") };
 		close.Pressed += () => _weaponBenchOverlay.Visible = false;
 		list.AddChild(close);
 	}
@@ -520,6 +533,7 @@ public partial class HUD : CanvasLayer
 			_runtimeHealth = health;
 			_healthBar.MaxValue = health.MaxHealth;
 			_healthBar.Value = health.CurrentHealth;
+			OnHealthChanged(health.CurrentHealth, health.MaxHealth);
 			health.HealthChanged += OnHealthChanged;
 			health.Damaged += OnPlayerDamaged;
 			health.Died += OnPlayerDied;
@@ -558,15 +572,15 @@ public partial class HUD : CanvasLayer
 
 	private void OnPlayerDamaged(float amount)
 	{
-		if (_damageFlash == null) return;
-		_damageFlash.Color = new Color(0.9f, 0, 0, 0.28f);
-		var tween = _damageFlash.CreateTween();
-		tween.TweenProperty(_damageFlash, "color:a", 0.0f, 0.16f);
 		if (amount > 0)
 		{
 			AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(amount)} de dano.");
 			ShowReceivedDamageNumber(amount);
 		}
+		if (_damageFlash == null) return;
+		_damageFlash.Color = new Color(0.9f, 0, 0, 0.28f);
+		var tween = _damageFlash.CreateTween();
+		tween.TweenProperty(_damageFlash, "color:a", 0.0f, 0.16f);
 	}
 
 	public void AppendGameLog(string message)
@@ -597,7 +611,7 @@ public partial class HUD : CanvasLayer
 
 	public void SyncEnemyProgress(int defeatedEnemies, int totalEnemies)
 	{
-		_enemyProgressLabel.Text = $"Inimigos: {defeatedEnemies}/{totalEnemies}";
+		_enemyProgressLabel.Text = Localization.TextFormat("hud.enemies", defeatedEnemies, totalEnemies);
 	}
 
 	public void NotifyEnemyDefeated(int defeatedEnemies, int totalEnemies, int bloodCoinsReward)
@@ -692,7 +706,7 @@ public partial class HUD : CanvasLayer
 		_healthBar.MaxValue = max;
 		_healthBar.Value = current;
 		if (_healthPointsLabel != null)
-			_healthPointsLabel.Text = $"{Mathf.CeilToInt(current)}/{Mathf.CeilToInt(max)}";
+			_healthPointsLabel.Text = $"{Mathf.RoundToInt(current)}/{Mathf.RoundToInt(max)}";
 	}
 
 	private void OnFuryChanged(float current, float max, bool isActive)
@@ -759,7 +773,7 @@ public partial class HUD : CanvasLayer
 
 	private void OnBloodCoinsChanged(int amount)
 	{
-		_coinsLabel.Text = $"Moedas de Sangue: {amount}";
+		_coinsLabel.Text = Localization.TextFormat("hud.blood_coins", amount);
 		RefreshCharacterSheet();
 		RefreshBloodFountain();
 	}
@@ -1803,24 +1817,34 @@ public partial class HUD : CanvasLayer
 	public async void OpenBloodBlessingOffer()
 	{
 		if (_bloodBlessingOverlay == null) return;
-		GetTree().Paused = true;
+		GetTree().Paused = false;
 		_bloodAbsorptionOverlay.Visible = true;
-		_bloodAbsorptionOverlay.Modulate = Colors.Transparent;
-		_bloodAbsorptionLabel.Text = "ABSORVENDO SANGUE ESPECIAL...";
+		_bloodAbsorptionOverlay.Modulate = Colors.White;
+		_bloodAbsorptionLabel.Text = "SANGUIS PURGATUS";
+		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
+		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
 		foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
 		{
 			if (node is not Node3D essence) continue;
-			var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
-			if (player == null) continue;
 			var tween = essence.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-			tween.TweenProperty(essence, "global_position", player.GlobalPosition + Vector3.Up, 5.05f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
-			tween.Parallel().TweenProperty(essence, "scale", Vector3.One * 0.08f, 5.05f);
+			tween.TweenProperty(essence, "scale", Vector3.One * 0.08f, 5.05f);
 		}
-		var screenTween = _bloodAbsorptionOverlay.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-		screenTween.TweenProperty(_bloodAbsorptionOverlay, "modulate", Colors.White, 0.65f);
+		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.65f);
 		screenTween.TweenInterval(4.15f);
-		screenTween.TweenProperty(_bloodAbsorptionOverlay, "modulate", Colors.Transparent, 0.65f);
-		await ToSignal(GetTree().CreateTimer(5.55f, true), SceneTreeTimer.SignalName.Timeout);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.65f);
+		var elapsed = 0.0f;
+		while (elapsed < 5.05f && player != null && IsInstanceValid(player))
+		{
+			var delta = Mathf.Max((float)GetProcessDeltaTime(), 0.001f);
+			var destination = player.GlobalPosition + Vector3.Up;
+			var followWeight = 1.0f - Mathf.Exp(-3.8f * delta);
+			foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
+				if (node is Node3D essence) essence.GlobalPosition = essence.GlobalPosition.Lerp(destination, followWeight);
+			elapsed += delta;
+			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		}
+		await ToSignal(GetTree().CreateTimer(0.5f, true), SceneTreeTimer.SignalName.Timeout);
 		foreach (var node in GetTree().GetNodesInGroup("blood_essences")) node.QueueFree();
 		_bloodAbsorptionOverlay.Visible = false;
 		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bencao de Sangue.");
@@ -1839,22 +1863,23 @@ public partial class HUD : CanvasLayer
 		root.AddChild(_bloodBlessingOverlay);
 		_bloodAbsorptionOverlay = new ColorRect
 		{
-			Name = "BloodAbsorptionOverlay", Color = new Color(0.35f, 0.0f, 0.015f, 0.88f),
+			Name = "BloodAbsorptionOverlay", Color = Colors.Transparent,
 			AnchorRight = 1, AnchorBottom = 1, Visible = false, ProcessMode = ProcessModeEnum.Always
 		};
 		root.AddChild(_bloodAbsorptionOverlay);
 		_bloodAbsorptionLabel = new Label
 		{
 			AnchorLeft = 0.2f, AnchorTop = 0.43f, AnchorRight = 0.8f, AnchorBottom = 0.57f,
-			Text = "ABSORVENDO SANGUE ESPECIAL...", HorizontalAlignment = HorizontalAlignment.Center,
+			Text = "SANGUIS PURGATUS", HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center
 		};
 		_bloodAbsorptionLabel.AddThemeFontSizeOverride("font_size", 32);
+		_bloodAbsorptionLabel.AddThemeColorOverride("font_color", new Color(0.95f, 0.02f, 0.05f));
 		_bloodAbsorptionOverlay.AddChild(_bloodAbsorptionLabel);
 
 		var title = new Label
 		{
-			Text = "SANGUE ESPECIAL ABSORVIDO", AnchorRight = 1, OffsetTop = 18, OffsetBottom = 58,
+			Text = "Hereditas Sanguinis", AnchorRight = 1, OffsetTop = 18, OffsetBottom = 58,
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
 		title.AddThemeFontSizeOverride("font_size", 27);
@@ -1862,7 +1887,7 @@ public partial class HUD : CanvasLayer
 
 		_bloodBlessingStatusLabel = new Label
 		{
-			Text = "Escolha uma entre tres Bencaos de Sangue.", AnchorRight = 1, OffsetTop = 62, OffsetBottom = 100,
+			Text = Localization.Text("hud.blessing_choice"), AnchorRight = 1, OffsetTop = 62, OffsetBottom = 100,
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
 		_bloodBlessingOverlay.AddChild(_bloodBlessingStatusLabel);
@@ -1882,31 +1907,58 @@ public partial class HUD : CanvasLayer
 		if (choices.Count == 0)
 		{
 			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
-			AppendGameLog("Todas as bencaos unicas foram encontradas. Sangue especial convertido em 25 moedas.");
+			AppendGameLog("Todas as bencaos unicas foram encontradas. Sangue convertido em 25 moedas.");
 			_bloodBlessingOverlay.Visible = false;
 			GetTree().Paused = false;
+			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 			return;
 		}
 
 		_bloodBlessingOverlay.Visible = true;
-		_bloodBlessingStatusLabel.Text = $"O sangue especial revelou a familia {family}. Escolha uma bencao unica:";
+		GetTree().Paused = true;
+		_bloodBlessingStatusLabel.Text = $"O sangue revelou a familia {family}. Escolha uma bencao unica:";
 		foreach (var offer in choices)
 		{
 			var blessing = offer.Definition;
-			var button = new Button
+			var replaced = RunState.GetBlessingInExclusiveGroup(blessing.ExclusiveGroup);
+			var replacementWarning = replaced != null ? $"\n[color=#ffb347]SUBSTITUI: {replaced.Name}[/color]" : "";
+			var card = new PanelContainer
 			{
-				Text = $"{blessing.DisplayName} | {blessing.Family} | {offer.Rarity}\n{blessing.Description}\n{FormatBloodBlessingEffects(blessing, offer.PowerMultiplier)}",
-				Icon = ResourceLoader.Load<Texture2D>(blessing.IconPath),
-				ExpandIcon = true,
-				AutowrapMode = TextServer.AutowrapMode.WordSmart,
-				CustomMinimumSize = new Vector2(1080, 125)
+				CustomMinimumSize = new Vector2(1080, 125),
+				MouseDefaultCursorShape = Control.CursorShape.PointingHand
 			};
 			var border = new StyleBoxFlat { BgColor = new Color(0.035f, 0.01f, 0.015f, 0.96f), BorderColor = BlessingRarityColor(offer.Rarity), BorderWidthLeft = 4, BorderWidthTop = 4, BorderWidthRight = 4, BorderWidthBottom = 4, CornerRadiusTopLeft = 8, CornerRadiusTopRight = 8, CornerRadiusBottomLeft = 8, CornerRadiusBottomRight = 8 };
-			button.AddThemeStyleboxOverride("normal", border);
-			button.AddThemeStyleboxOverride("hover", border.Duplicate() as StyleBoxFlat);
-			button.AddThemeStyleboxOverride("pressed", border.Duplicate() as StyleBoxFlat);
-			button.Pressed += () => SelectBloodBlessing(offer);
-			_bloodBlessingList.AddChild(button);
+			card.AddThemeStyleboxOverride("panel", border);
+			var content = new RichTextLabel
+			{
+				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
+				Text = $"[font_size=22][b]{blessing.DisplayName}[/b] | {blessing.Family} | {offer.Rarity}[/font_size]\n{FormatEffectKeywords(blessing.Description)}\n{FormatBloodBlessingEffects(blessing, offer.PowerMultiplier)}{replacementWarning}",
+				CustomMinimumSize = new Vector2(1040, 115),
+				MouseDefaultCursorShape = Control.CursorShape.PointingHand,
+				TooltipText = replaced != null ? $"Ao escolher, substitui {replaced.Name}." : FullBlessingTooltip(blessing, offer.Rarity, offer.PowerMultiplier)
+			};
+			content.GuiInput += input =>
+			{
+				if (input is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) SelectBloodBlessing(offer);
+			};
+			content.MouseEntered += () =>
+			{
+				if (replaced != null) _bloodBlessingStatusLabel.Text = $"ATENÇÃO: esta escolha substituirá {replaced.Name}.";
+			};
+			content.MouseExited += () => _bloodBlessingStatusLabel.Text = $"O sangue revelou a familia {family}. Escolha uma bencao unica:";
+			var row = new HBoxContainer();
+			row.AddChild(new TextureRect
+			{
+				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
+				CustomMinimumSize = new Vector2(92, 92),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+				MouseFilter = Control.MouseFilterEnum.Ignore
+			});
+			content.CustomMinimumSize = new Vector2(930, 115);
+			row.AddChild(content);
+			card.AddChild(row);
+			_bloodBlessingList.AddChild(card);
 		}
 	}
 
@@ -1929,6 +1981,8 @@ public partial class HUD : CanvasLayer
 		_bloodBlessingOverlay.Visible = false;
 		GetTree().Paused = false;
 		RefreshCharacterSheet();
+		RefreshBlessingHud();
+		GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 	}
 
 	private string FormatBloodBlessingEffects(BloodBlessingDefinition blessing, float powerMultiplier = 1.0f)
@@ -1942,6 +1996,44 @@ public partial class HUD : CanvasLayer
 			if (i < blessing.Effects.Length - 1) text += " | ";
 		}
 		return text;
+	}
+
+	private static string FormatEffectKeywords(string text)
+	{
+		return Regex.Replace(text, @"\b(Sangramento|Sangrando|Pestilência|Pestilento|Pestilenta|Encanto|Encantar|Encantado|Encantada|Encantados|Encantadas)\b", match =>
+		{
+			var lower = match.Value.ToLowerInvariant();
+			if (lower.StartsWith("sangr"))
+				return $"[hint=\"Causa dano periódico cumulativo em um único inimigo.\"][color=#ff4055]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("pest"))
+				return $"[hint=\"Ao morrer, espalha a infecção para até 3 inimigos próximos; bônus podem aumentar esse limite.\"][color=#78d957]{match.Value}[/color][/hint]";
+			return $"[hint=\"O inimigo passa a atacar outros inimigos; sem alvo, vagueia pela sala.\"][color=#dd77ff]{match.Value}[/color][/hint]";
+		}, RegexOptions.IgnoreCase);
+	}
+
+	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier)
+	{
+		return $"{blessing.DisplayName} [{rarity}]\n{blessing.Description}\n{FormatBloodBlessingEffects(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
+	}
+
+	private void RefreshBlessingHud()
+	{
+		if (_blessingHudList == null) return;
+		foreach (var child in _blessingHudList.GetChildren()) child.QueueFree();
+		foreach (var record in RunState.RunBlessings)
+		{
+			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
+			var icon = new TextureRect
+			{
+				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
+				CustomMinimumSize = new Vector2(54.0f, 54.0f),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier),
+				MouseDefaultCursorShape = Control.CursorShape.Help
+			};
+			_blessingHudList.AddChild(icon);
+		}
 	}
 
 	private void ToggleCharacterSheet()
@@ -1982,7 +2074,7 @@ public partial class HUD : CanvasLayer
 		AddCharacterSheetSection(_characterInventoryColumn, "Artefatos da run");
 		AddCharacterSheetLines(_characterInventoryColumn, FormatRunArtifacts());
 		AddCharacterSheetSection(_characterInventoryColumn, "Bencaos de Sangue");
-		AddCharacterSheetLines(_characterInventoryColumn, FormatRunBlessings());
+		AddCharacterSheetBlessings(_characterInventoryColumn);
 		AddCharacterSheetSection(_characterInventoryColumn, "Colecao permanente");
 		AddCharacterSheetLines(_characterInventoryColumn, FormatArtifacts());
 
@@ -2014,6 +2106,28 @@ public partial class HUD : CanvasLayer
 	{
 		foreach (var line in lines.Split('\n', StringSplitOptions.RemoveEmptyEntries))
 			AddCharacterSheetText(column, line);
+	}
+
+	private void AddCharacterSheetBlessings(VBoxContainer column)
+	{
+		if (RunState.RunBlessings.Count == 0)
+		{
+			AddCharacterSheetText(column, "- nenhuma");
+			return;
+		}
+		foreach (var record in RunState.RunBlessings)
+		{
+			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
+			var row = new HBoxContainer { TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier) };
+			row.AddChild(new TextureRect
+			{
+				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath), CustomMinimumSize = new Vector2(38, 38),
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+				MouseFilter = Control.MouseFilterEnum.Ignore
+			});
+			row.AddChild(new Label { Text = $"[{record.Rarity}] {record.Name}", VerticalAlignment = VerticalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
+			column.AddChild(row);
+		}
 	}
 
 	private void AddCharacterSheetText(VBoxContainer column, string text, bool centered = false)
@@ -2170,7 +2284,7 @@ public partial class HUD : CanvasLayer
 		var label = new Label
 		{
 			Name = "RoomClearLabel",
-			Text = "SALA LIMPA",
+			Text = Localization.Text("hud.room_clear"),
 			AnchorRight = 1.0f,
 			AnchorBottom = 1.0f,
 			HorizontalAlignment = HorizontalAlignment.Center,
@@ -2249,7 +2363,7 @@ public partial class HUD : CanvasLayer
 		var title = new Label
 		{
 			Name = "GameOverTitle",
-			Text = "GAME OVER",
+			Text = Localization.Text("hud.game_over"),
 			HorizontalAlignment = HorizontalAlignment.Center,
 			CustomMinimumSize = new Vector2(360.0f, 42.0f)
 		};
@@ -2306,7 +2420,7 @@ public partial class HUD : CanvasLayer
 		var title = new Label
 		{
 			Name = "PauseTitle",
-			Text = "PAUSADO",
+			Text = Localization.Text("hud.paused"),
 			HorizontalAlignment = HorizontalAlignment.Center,
 			CustomMinimumSize = new Vector2(360.0f, 42.0f)
 		};
@@ -2395,7 +2509,7 @@ public partial class HUD : CanvasLayer
 		var resumeButton = new Button
 		{
 			Name = "ResumeButton",
-			Text = "Continuar",
+			Text = Localization.Text("hud.continue"),
 			CustomMinimumSize = new Vector2(220.0f, 44.0f),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
 		};
@@ -2434,7 +2548,7 @@ public partial class HUD : CanvasLayer
 
 		var backButton = new Button
 		{
-			Name = "BackFromParametersButton", Text = "Voltar",
+			Name = "BackFromParametersButton", Text = Localization.Text("hud.back"),
 			CustomMinimumSize = new Vector2(180, 44)
 		};
 		backButton.Pressed += ShowPauseMainMenu;
@@ -2864,8 +2978,8 @@ public partial class HUD : CanvasLayer
 		AddAttackEditors(heavy, "attack.heavy", 78.0, 0.76, 0.24, 2.35, 2.15, 8.5);
 
 		var dash = AddCompendiumEntry(
-			"Ataque com dash",
-			"Dash + ataque imediato | golpe rapido ao finalizar o dash",
+			"Ataque rápido",
+			"Dash + ataque imediato | golpe rápido ao finalizar o dash",
 			"Cancela o ataque padrao, preserva invencibilidade e executa dano em circulo ao redor do personagem.",
 			"res://images/generic.png"
 		);
@@ -3054,7 +3168,9 @@ public partial class HUD : CanvasLayer
 		GetTree().CallGroup("audio_manager", "PlayEffect", "death");
 		GetTree().CallGroup("audio_manager", "PlayGameOverMusic");
 		_isGameOver = true;
-		_gameOverSubtitle.Text = $"Virgil foi derrotado por: {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}.";
+		var finalDamage = _runtimeHealth?.LastDamageAmount ?? 0.0f;
+		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}.");
+		_gameOverSubtitle.Text = $"Virgil foi derrotado por: {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}. Último golpe: {Mathf.RoundToInt(finalDamage)} de dano.";
 		_gameOverOverlay.Visible = true;
 		if (_artifactOfferOverlay != null)
 			_artifactOfferOverlay.Visible = false;

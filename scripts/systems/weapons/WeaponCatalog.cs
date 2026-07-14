@@ -13,7 +13,7 @@ public static class WeaponCatalog
                 new WeaponAttackDefinition("Espada longa III", 52, 0.16f, 0.18f, 6.4f, 2.05f, 1.95f, 0)
             },
             new("Espada longa pesado", 78, 0.26f, 0.24f, 8.5f, 2.35f, 2.15f, -0.42f),
-            new("Ataque com dash", 68, 0.12f, 0.18f, 7.4f, 2.25f, 2.05f, -0.1f)),
+            new("Ataque rápido", 68, 0.12f, 0.18f, 7.4f, 2.25f, 2.05f, -0.1f)),
         Placeholder("greatsword", "Espada Grande", "Golpes lentos, amplos e de alto impacto."),
         Placeholder("dual_revolvers", "Revolver Duplo", "Combate a distancia, alternando disparos entre as maos."),
         Placeholder("whip", "Chicote", "Grande alcance e controle de grupos."),

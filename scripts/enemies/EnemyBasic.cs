@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 public partial class EnemyBasic : CharacterBody3D
 {
+    private static readonly Dictionary<string, Texture2D> StatusTextures = new();
     public EnemyRarity Rarity { get; private set; }
     public EnemyArchetype Archetype { get; private set; }
     [Export] public float MoveSpeed { get; set; } = 3.2f;
@@ -27,7 +28,6 @@ public partial class EnemyBasic : CharacterBody3D
     [Export] public int MinBloodCoinsReward { get; set; } = 1;
     [Export] public int MaxBloodCoinsReward { get; set; } = 10;
     [Export] public float FuryOnDeath { get; set; } = 12.0f;
-    [Export] public float HealthPotionDropChance { get; set; } = 0.10f;
     [Export] public NodePath HealthPath { get; set; } = new("Health");
     [Export] public NodePath VisualPath { get; set; } = new("Visual");
 
@@ -45,7 +45,13 @@ public partial class EnemyBasic : CharacterBody3D
     private StandardMaterial3D _hitMaterial;
     private StandardMaterial3D _alertMaterial;
     private StandardMaterial3D _warningMaterial;
-    private Label3D _healthLabel;
+    private MeshInstance3D _healthBarBackground;
+    private MeshInstance3D _healthBarFill;
+    private MeshInstance3D _rarityIcon;
+    private float _healthBarWidth = 1.55f;
+    private Sprite3D _bleedingStatusIcon;
+    private Sprite3D _pestilenceStatusIcon;
+    private Sprite3D _charmedStatusIcon;
     private Label3D _attackWarningLabel;
     private MeshInstance3D _attackTelegraph;
     private float _contactDamageTimer;
@@ -67,10 +73,17 @@ public partial class EnemyBasic : CharacterBody3D
     private int _pestilenceStacks;
     private float _pestilenceTimer;
     private float _pestilenceTickTimer;
+    private int _bleedingStacks;
+    private float _bleedingTimer;
+    private float _bleedingTickTimer;
+    private float _bleedingDamagePerSecond;
     private float _charmTimer;
     private float _charmAttackTimer;
     private bool _permanentCharm;
+    private string _legendaryName = "";
+    private float _bossActionAnimationTimer;
     public bool IsPestilent => _pestilenceStacks > 0;
+    public bool IsBleeding => _bleedingStacks > 0;
     public bool IsPestilenceHost => _pestilenceStacks >= Mathf.RoundToInt(RunState.GetEffectParameter("DamageVsPlagueHost", "requiredStacks", 5));
     public bool IsCharmed => _permanentCharm || _charmTimer > 0.0f;
 
@@ -107,10 +120,11 @@ public partial class EnemyBasic : CharacterBody3D
         _health.HealthChanged += OnHealthChanged;
         _health.Died += OnDied;
         _player = GetTree().GetFirstNodeInGroup("player") as Node3D;
-        CreateHealthLabel();
+        CreateHealthBar();
+        CreateStatusIcons();
         CreateAttackTelegraph();
         PickNewPatrolTarget();
-        UpdateHealthLabel(_health.CurrentHealth, _health.MaxHealth);
+        UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
     }
 
     public void ConfigureVariant(EnemyRarity rarity, EnemyArchetype archetype)
@@ -122,6 +136,11 @@ public partial class EnemyBasic : CharacterBody3D
         AttackDamage *= tuning.Damage;
         _health?.SetMaxHealth(_health.MaxHealth * tuning.Health, true);
         _health.ShieldHits = tuning.FirstHitShield ? 1 : 0;
+        if (rarity == EnemyRarity.Legendary && !Name.ToString().Contains("Boss"))
+        {
+            string[] titles = { "Vharos, o Faminto", "Morcant, o Profano", "Seraph, o Rubro", "Nerezza, a Imortal", "Vorigan, o Carrasco" };
+            _legendaryName = titles[Mathf.Abs(Name.ToString().GetHashCode()) % titles.Length];
+        }
 
         if (archetype == EnemyArchetype.Ranged)
         {
@@ -135,11 +154,8 @@ public partial class EnemyBasic : CharacterBody3D
             _visual.Scale = Vector3.One * 1.35f;
         }
 
-        if (_healthLabel != null)
-        {
-            _healthLabel.Modulate = tuning.Color;
-            UpdateHealthLabel(_health.CurrentHealth, _health.MaxHealth);
-        }
+        UpdateRarityVisual(tuning);
+        UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
         if (_visual != null && archetype != EnemyArchetype.Melee)
         {
             _baseMaterial = new StandardMaterial3D
@@ -165,6 +181,7 @@ public partial class EnemyBasic : CharacterBody3D
         _importedVisual = scene.Instantiate<Node3D>();
         _importedVisual.Name = "ImportedVisual";
         _importedVisual.Scale = Vector3.One * definition.Scale;
+        _importedVisual.RotationDegrees = new Vector3(0.0f, definition.FacingYawDegrees, 0.0f);
         AddChild(_importedVisual);
         if (definition.MatchPlayerHeight)
             MatchImportedVisualToPlayerHeight(definition.PlayerHeightMultiplier);
@@ -181,15 +198,25 @@ public partial class EnemyBasic : CharacterBody3D
     public void PlayBossMoveAnimation(string moveId, int phase)
     {
         if (_importedAnimationPlayer == null || !Name.ToString().Contains("Boss")) return;
-        var animation = moveId switch
-        {
-            "claw" => "Mon_BlackDragon31_Btl_Atk01",
-            "tail_sweep" => "Mon_BlackDragon31_Btl_Skl03",
-            "dragon_burst" => phase >= 3 ? "Mon_BlackDragon31_Btl_Skl08" : "Mon_BlackDragon31_Btl_Skl07",
-            _ => "Mon_BlackDragon31_Btl_Atk02"
-        };
+        var secondBoss = RunState.CurrentMapIndex == 1;
+        var animation = secondBoss
+            ? moveId switch
+            {
+                "psionic" => phase >= 2 ? "105031_PsionicStrike_02" : "105031_PsionicStrike_01",
+                "shield" => "105041_Shield",
+                "outbreak" => "105051_Outbreak",
+                _ => "105011_Primary_01"
+            }
+            : moveId switch
+            {
+                "claw" => "Mon_BlackDragon31_Btl_Atk01",
+                "tail_sweep" => "Mon_BlackDragon31_Btl_Skl03",
+                "dragon_burst" => phase >= 3 ? "Mon_BlackDragon31_Btl_Skl08" : "Mon_BlackDragon31_Btl_Skl07",
+                _ => "Mon_BlackDragon31_Btl_Atk02"
+            };
         if (!_importedAnimationPlayer.HasAnimation(animation)) return;
         _importedAnimationPlayer.Play(animation, 0.08, 1.25f + (phase - 1) * 0.12f);
+        _bossActionAnimationTimer = 0.7f;
     }
 
     private void OnImportedAnimationFinished(StringName animation)
@@ -293,6 +320,7 @@ public partial class EnemyBasic : CharacterBody3D
         _damageTakenTimer = Mathf.Max(_damageTakenTimer - (float)delta, 0); if (_damageTakenTimer <= 0) _damageTakenBonus = 0;
         _hitStunTimer = Mathf.Max(_hitStunTimer - (float)delta, 0.0f);
         TickBlessingStatuses((float)delta);
+        _bossActionAnimationTimer = Mathf.Max(_bossActionAnimationTimer - (float)delta, 0.0f);
         if (_hitStunTimer > 0.0f && !_isAttacking)
         {
             Velocity = Vector3.Zero;
@@ -355,6 +383,7 @@ public partial class EnemyBasic : CharacterBody3D
             chaseDirection = new Vector3(-chaseDirection.Z * _avoidanceSide, 0, chaseDirection.X * _avoidanceSide).Normalized();
         }
         Velocity = chaseDirection * MoveSpeed * _slowMultiplier;
+        PlayBossLocomotionAnimation(true);
         MoveAndSlide();
         if (GetSlideCollisionCount() > 0 && _alternatePathTimer <= 0)
         {
@@ -366,11 +395,24 @@ public partial class EnemyBasic : CharacterBody3D
     public void ApplyTimedSlow(float multiplier, float seconds) { _slowMultiplier = Mathf.Clamp(multiplier, 0.05f, 1); _slowTimer = Mathf.Max(_slowTimer, seconds); }
     public void ApplyFear(float seconds) { _fearTimer = Mathf.Max(_fearTimer, seconds); }
     public void ApplyDamageTakenDebuff(float bonus, float seconds) { _damageTakenBonus = Mathf.Max(_damageTakenBonus, bonus); _damageTakenTimer = Mathf.Max(_damageTakenTimer, seconds); }
+    public void RefreshPlayerHitStatuses()
+    {
+        if (IsPestilent) _pestilenceTimer = 3.0f;
+        if (IsBleeding) _bleedingTimer = 2.0f;
+    }
     public void ApplyPestilence(float seconds)
     {
         _pestilenceStacks = Mathf.Min(_pestilenceStacks + 1, 99);
-        _pestilenceTimer = Mathf.Max(_pestilenceTimer, seconds);
-        if (_healthLabel != null) _healthLabel.Modulate = new Color(0.48f, 0.9f, 0.18f);
+        _pestilenceTimer = 3.0f;
+        UpdateStatusIcons();
+    }
+
+    public void ApplyBleeding(float seconds, float damagePerSecond, int maxStacks)
+    {
+        _bleedingStacks = Mathf.Min(_bleedingStacks + 1, Mathf.Max(maxStacks, 1));
+        _bleedingTimer = 2.0f;
+        _bleedingDamagePerSecond = Mathf.Max(_bleedingDamagePerSecond, damagePerSecond);
+        UpdateStatusIcons();
     }
 
     public void ApplyCharm(float seconds, bool permanent)
@@ -378,26 +420,44 @@ public partial class EnemyBasic : CharacterBody3D
         _permanentCharm |= permanent;
         _charmTimer = Mathf.Max(_charmTimer, seconds);
         AddToGroup("charmed_enemies");
-        if (_healthLabel != null) _healthLabel.Modulate = new Color(1.0f, 0.25f, 0.72f);
+        UpdateStatusIcons();
     }
 
     private void TickBlessingStatuses(float delta)
     {
         if (!_permanentCharm) _charmTimer = Mathf.Max(_charmTimer - delta, 0.0f);
         if (!IsCharmed && IsInGroup("charmed_enemies")) RemoveFromGroup("charmed_enemies");
-        if (_pestilenceStacks <= 0) return;
-        _pestilenceTimer -= delta;
-        _pestilenceTickTimer -= delta;
-        if (_pestilenceTickTimer <= 0)
+        if (_pestilenceStacks > 0)
         {
-            _pestilenceTickTimer = 1.0f;
-            var damage = 20.0f * RunState.GetEffectTotal("PestilenceDamage.Multiplier") * _pestilenceStacks;
-            if (damage > 0) _health.ApplyDamage(damage);
-            if (RunState.GetEffectTotal("InfinitePestilenceSpread.Flat") > 0)
-                foreach (var node in GetTree().GetNodesInGroup("enemies"))
-                    if (node is EnemyBasic enemy && enemy != this && !enemy.IsPestilent && enemy.GlobalPosition.DistanceTo(GlobalPosition) <= 6) { enemy.ApplyPestilence(Mathf.Max(_pestilenceTimer, 3)); break; }
+            _pestilenceTimer -= delta;
+            _pestilenceTickTimer -= delta;
+            if (_pestilenceTickTimer <= 0)
+            {
+                _pestilenceTickTimer = 1.0f;
+                if (RunState.GetEffectTotal("InfinitePestilenceSpread.Flat") > 0)
+                    foreach (var node in GetTree().GetNodesInGroup("enemies"))
+                        if (node is EnemyBasic enemy && enemy != this && !enemy.IsPestilent && enemy.GlobalPosition.DistanceTo(GlobalPosition) <= 6) { enemy.ApplyPestilence(Mathf.Max(_pestilenceTimer, 3)); break; }
+            }
+            if (_pestilenceTimer <= 0) _pestilenceStacks = 0;
         }
-        if (_pestilenceTimer <= 0 && RunState.GetEffectTotal("PestilenceDurationLink.Multiplier") <= 0) _pestilenceStacks = 0;
+
+        if (_bleedingStacks > 0)
+        {
+            _bleedingTimer -= delta;
+            _bleedingTickTimer -= delta;
+            if (_bleedingTickTimer <= 0)
+            {
+                _bleedingTickTimer = 1.0f;
+                _health.ApplyDamage(_bleedingDamagePerSecond * _bleedingStacks);
+            }
+            if (_bleedingTimer <= 0)
+            {
+                _bleedingStacks = 0;
+                _bleedingDamagePerSecond = 0.0f;
+            }
+        }
+
+        UpdateStatusIcons();
     }
 
     private void RunCharmedBehavior(float delta)
@@ -412,7 +472,7 @@ public partial class EnemyBasic : CharacterBody3D
             if (enemy.Rarity != EnemyRarity.Normal && RunState.GetEffectTotal("CharmedDamageVsElite.Multiplier") > 0) distance *= 0.55f;
             if (distance < closest) { closest = distance; target = enemy; }
         }
-        if (target == null) { Velocity = Vector3.Zero; return; }
+        if (target == null) { Patrol(delta); return; }
         var direction = target.GlobalPosition - GlobalPosition; direction.Y = 0;
         LookAt(GlobalPosition + direction.Normalized(), Vector3.Up);
         if (closest > AttackRange) { Velocity = direction.Normalized() * MoveSpeed; MoveAndSlide(); return; }
@@ -547,13 +607,15 @@ public partial class EnemyBasic : CharacterBody3D
     public string GetDisplayName()
     {
         if (Name.ToString().Contains("Boss")) return $"Chefe de {RunState.CurrentMap.Name}";
+        if (!string.IsNullOrWhiteSpace(_legendaryName)) return _legendaryName;
         return $"{EnemyTuningCatalog.Get(Rarity).DisplayName} {Archetype}";
     }
 
     public void ApplyBossMoveTuning(BossMoveDefinition move, int phase)
     {
         AttackCooldown = Mathf.Max(move.Cooldown / (1.0f + (phase - 1) * 0.12f), 0.35f);
-        AttackDamage = Mathf.Max(30.0f * move.DamageMultiplier * (1.0f + (phase - 1) * 0.18f), 1.0f);
+        var bossBaseDamage = RunState.CurrentMapIndex == 1 ? 40.5f : 30.0f;
+        AttackDamage = Mathf.Max(bossBaseDamage * move.DamageMultiplier * (1.0f + (phase - 1) * 0.18f), 1.0f);
         AttackRange = Mathf.Max(2.25f * move.RangeMultiplier, 1.0f);
         AttackWidth = Mathf.Max(1.5f * move.RangeMultiplier, 1.0f);
     }
@@ -607,7 +669,6 @@ public partial class EnemyBasic : CharacterBody3D
         GetTree().CallGroup("run_manager", "QueueEnemyDefeat", RollBloodCoinsReward());
         GetTree().CallGroup("player_skills", "OnEnemyDefeated");
         RunState.NotifyEnemyKilled();
-        TryDropHealthPotion();
 
         var combat = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
         combat?.AddFury(FuryOnDeath);
@@ -637,42 +698,18 @@ public partial class EnemyBasic : CharacterBody3D
         tween.TweenProperty(essence, "position:y", essence.Position.Y, 0.45f);
     }
 
-    private void TryDropHealthPotion()
-    {
-        if (GD.Randf() > HealthPotionDropChance || GetTree().GetNodeCountInGroup("health_potions") >= 6)
-            return;
-
-        var potion = new HealthPotion
-        {
-            Name = "HealthPotion",
-            Position = GlobalPosition + Vector3.Up * 0.18f
-        };
-        GetParent()?.AddChild(potion);
-        potion.AddToGroup("health_potions");
-
-        potion.AddChild(new MeshInstance3D
-        {
-            Mesh = new SphereMesh { Radius = 0.24f, Height = 0.42f },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.95f, 0.02f, 0.04f),
-                EmissionEnabled = true,
-                Emission = new Color(1.0f, 0.0f, 0.0f),
-                EmissionEnergyMultiplier = 1.6f
-            }
-        });
-
-        potion.AddChild(new CollisionShape3D
-        {
-            Shape = new SphereShape3D { Radius = 0.85f }
-        });
-    }
-
     private int RollBloodCoinsReward()
     {
         var minReward = Mathf.Min(MinBloodCoinsReward, MaxBloodCoinsReward);
         var maxReward = Mathf.Max(MinBloodCoinsReward, MaxBloodCoinsReward);
-        return (int)GD.RandRange(minReward, maxReward + 1);
+        var rarityMultiplier = Rarity switch
+        {
+            EnemyRarity.Magic => 2.0f,
+            EnemyRarity.Rare => 4.0f,
+            EnemyRarity.Legendary => 8.0f,
+            _ => 1.0f
+        };
+        return Mathf.RoundToInt((int)GD.RandRange(minReward, maxReward + 1) * rarityMultiplier);
     }
 
     private async void OnDamaged(float amount)
@@ -752,22 +789,81 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void OnHealthChanged(float currentHealth, float maxHealth)
     {
-        UpdateHealthLabel(currentHealth, maxHealth);
+        UpdateHealthBar(currentHealth, maxHealth);
     }
 
-    private void CreateHealthLabel()
+    private void CreateHealthBar()
     {
-        _healthLabel = new Label3D
+        _healthBarBackground = new MeshInstance3D
         {
-            Name = "HealthLabel",
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 34,
-            Modulate = new Color(1.0f, 0.14f, 0.1f),
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 2.05f
+            Name = "EnemyHealthBarBackground",
+            Mesh = new QuadMesh { Size = new Vector2(_healthBarWidth + 0.08f, 0.2f) },
+            MaterialOverride = CreateBillboardMaterial(new Color(0.025f, 0.01f, 0.012f, 0.96f), 1),
+            Position = new Vector3(0.0f, 2.12f, 0.0f)
         };
-        AddChild(_healthLabel);
+        AddChild(_healthBarBackground);
+        _healthBarFill = new MeshInstance3D
+        {
+            Name = "EnemyHealthBarFill",
+            Mesh = new QuadMesh { Size = new Vector2(_healthBarWidth, 0.13f) },
+            MaterialOverride = CreateBillboardMaterial(new Color(0.82f, 0.025f, 0.045f), 2),
+            Position = new Vector3(0.0f, 2.12f, 0.012f)
+        };
+        AddChild(_healthBarFill);
+        _rarityIcon = new MeshInstance3D
+        {
+            Name = "EnemyRarityIcon",
+            Mesh = new QuadMesh { Size = new Vector2(0.18f, 0.18f) },
+            MaterialOverride = CreateBillboardMaterial(Colors.White, 3),
+            Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, 2.12f, 0.018f),
+            Rotation = new Vector3(0.0f, 0.0f, Mathf.Pi * 0.25f)
+        };
+        AddChild(_rarityIcon);
+    }
+
+    private static StandardMaterial3D CreateBillboardMaterial(Color color, int renderPriority = 0) => new()
+    {
+        AlbedoColor = color,
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+        Transparency = color.A < 1.0f ? BaseMaterial3D.TransparencyEnum.Alpha : BaseMaterial3D.TransparencyEnum.Disabled,
+        NoDepthTest = true,
+        RenderPriority = renderPriority
+    };
+
+    private void CreateStatusIcons()
+    {
+        _bleedingStatusIcon = CreateStatusIcon("BleedingStatusIcon", "res://images/effects/bleeding.png", -0.22f);
+        _pestilenceStatusIcon = CreateStatusIcon("PestilenceStatusIcon", "res://images/effects/pestilence.png", 0.0f);
+        _charmedStatusIcon = CreateStatusIcon("CharmedStatusIcon", "res://images/effects/enchanted.png", 0.22f);
+        UpdateStatusIcons();
+    }
+
+    private Sprite3D CreateStatusIcon(string name, string texturePath, float xPosition)
+    {
+        if (!StatusTextures.TryGetValue(texturePath, out var texture))
+        {
+            texture = ResourceLoader.Exists(texturePath) ? GD.Load<Texture2D>(texturePath) : null;
+            StatusTextures[texturePath] = texture;
+        }
+        var icon = new Sprite3D
+        {
+            Name = name,
+            Texture = texture,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            PixelSize = 0.006f,
+            Position = new Vector3(xPosition * 1.45f, 2.43f, 0.0f),
+            Visible = false
+        };
+        AddChild(icon);
+        return icon;
+    }
+
+    private void UpdateStatusIcons()
+    {
+        if (_bleedingStatusIcon != null) _bleedingStatusIcon.Visible = IsBleeding;
+        if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Visible = IsPestilent;
+        if (_charmedStatusIcon != null) _charmedStatusIcon.Visible = IsCharmed;
     }
 
     private void CreateAttackTelegraph()
@@ -801,13 +897,43 @@ public partial class EnemyBasic : CharacterBody3D
         AddChild(_attackWarningLabel);
     }
 
-    private void UpdateHealthLabel(float currentHealth, float maxHealth)
+    private void UpdateRarityVisual(EnemyRarityDefinition tuning)
     {
-        if (_healthLabel == null)
-            return;
+        _healthBarWidth = Rarity == EnemyRarity.Legendary ? 2.15f : 1.55f;
+        if (_healthBarBackground?.Mesh is QuadMesh background) background.Size = new Vector2(_healthBarWidth + 0.08f, Rarity == EnemyRarity.Legendary ? 0.25f : 0.2f);
+        if (_healthBarFill?.Mesh is QuadMesh fill) fill.Size = new Vector2(_healthBarWidth, Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
+        if (_rarityIcon != null)
+        {
+            _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, 2.12f, 0.018f);
+            _rarityIcon.MaterialOverride = CreateBillboardMaterial(tuning.Color, 3);
+        }
+    }
 
-        var rarityName = EnemyTuningCatalog.Get(Rarity).DisplayName;
-        _healthLabel.Text = $"{rarityName} {Archetype}  HP {Mathf.CeilToInt(currentHealth)}/{Mathf.CeilToInt(maxHealth)}";
+    private void UpdateHealthBar(float currentHealth, float maxHealth)
+    {
+        if (_healthBarFill == null) return;
+        var ratio = maxHealth > 0.0f ? Mathf.Clamp(currentHealth / maxHealth, 0.0f, 1.0f) : 0.0f;
+        if (_healthBarFill.Mesh is QuadMesh fill)
+            fill.Size = new Vector2(Mathf.Max(_healthBarWidth * ratio, 0.001f), Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
+        _healthBarFill.Scale = Vector3.One;
+        _healthBarFill.Position = new Vector3(-_healthBarWidth * (1.0f - ratio) * 0.5f, 2.12f, 0.012f);
+    }
+
+    public void SetOverheadHealthVisible(bool visible)
+    {
+        if (_healthBarBackground != null) _healthBarBackground.Visible = visible;
+        if (_healthBarFill != null) _healthBarFill.Visible = visible;
+        if (_rarityIcon != null) _rarityIcon.Visible = visible;
+    }
+
+    private void PlayBossLocomotionAnimation(bool moving)
+    {
+        if (_importedAnimationPlayer == null || !Name.ToString().Contains("Boss") || _bossActionAnimationTimer > 0.0f) return;
+        var animation = RunState.CurrentMapIndex == 1
+            ? (moving ? "Run_Fwd_C" : "Idle_C")
+            : (moving ? "Mon_BlackDragon31_Btl_Run01" : "Mon_BlackDragon31_Btl_Std01");
+        if (_importedAnimationPlayer.HasAnimation(animation) && _importedAnimationPlayer.CurrentAnimation != animation)
+            _importedAnimationPlayer.Play(animation, 0.12, RunState.CurrentMapIndex == 1 ? 1.35f : 1.05f);
     }
 
     private void SpawnDamageNumber(float amount)

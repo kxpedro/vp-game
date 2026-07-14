@@ -78,7 +78,7 @@ public partial class PlayerCombat : Node
 
 	private void BeginLightAttack()
 	{
-		if (_controller != null && _controller.IsDodging)
+		if (_controller != null && (_controller.IsDodging || Input.IsActionJustPressed("dodge")))
 		{
 			_queuedDashAttack = true;
 			return;
@@ -101,7 +101,7 @@ public partial class PlayerCombat : Node
 
 	private void BeginHeavyAttack()
 	{
-		if (_controller != null && _controller.IsDodging)
+		if (_controller != null && (_controller.IsDodging || Input.IsActionJustPressed("dodge")))
 		{
 			_queuedDashAttack = true;
 			return;
@@ -159,7 +159,7 @@ public partial class PlayerCombat : Node
 		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus) * GameTuning.GetDamageMultiplier();
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
-		var hit = DealDamage(attack.Damage * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f), attack.Knockback, attack);
+		var hit = DealDamage(attack.Damage * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f), attack.Knockback, attack, !isHeavy);
 		CombatFeedback.Instance?.PlayPlayerHit(hit.TargetsHit, hit.IsCritical, isHeavy || _lightComboIndex == LightCombo.Length - 1);
 
 		var recoveryDelay = Mathf.Max((attack.Recovery * GameTuning.GetAttackDelayMultiplier()) / GetCurrentAttackSpeedMultiplier(), 0.01f);
@@ -217,7 +217,7 @@ public partial class PlayerCombat : Node
 		_lightComboIndex = 0;
 	}
 
-	private HitResult DealDamage(float damage, float knockback, WeaponAttackDefinition attack)
+	private HitResult DealDamage(float damage, float knockback, WeaponAttackDefinition attack, bool isBasicAttack)
 	{
 		var player = GetParent<Node3D>();
 		var halfArcRadians = Mathf.DegToRad(AttackArcDegrees * 0.5f);
@@ -255,12 +255,12 @@ public partial class PlayerCombat : Node
 				if (special.Name.ToString().Contains("Boss")) finalDamage *= 1.0f + RunState.GetEffectTotal("DamageVsBoss.Multiplier");
 			}
 			if (enemyNode is EnemyBasic blessingTarget)
-				finalDamage = _blessings?.ModifyOutgoingDamage(finalDamage, blessingTarget) ?? finalDamage;
+				finalDamage = _blessings?.ModifyOutgoingDamage(finalDamage, blessingTarget, isBasicAttack) ?? finalDamage;
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
 			targetHealth.ApplyDamage(finalDamage, isCritical);
 			if (enemyNode is EnemyBasic hitEnemy)
-				_blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical);
+				_blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical, isBasicAttack);
 			targetsHit++;
 			if (isCritical)
 			{
@@ -291,9 +291,9 @@ public partial class PlayerCombat : Node
 			if (toEnemy.Length() > radius + HitboxEdgeForgiveness + targetRadius)
 				continue;
 
-			var finalDamage = enemyNode is EnemyBasic blessingTarget ? _blessings?.ModifyOutgoingDamage(damage, blessingTarget) ?? damage : damage;
+			var finalDamage = enemyNode is EnemyBasic blessingTarget ? _blessings?.ModifyOutgoingDamage(damage, blessingTarget, false, true) ?? damage : damage;
 			enemyNode.GetNodeOrNull<Health>("Health")?.ApplyDamage(finalDamage);
-			if (enemyNode is EnemyBasic hitEnemy) _blessings?.OnPlayerHit(hitEnemy, finalDamage, false);
+			if (enemyNode is EnemyBasic hitEnemy) _blessings?.OnPlayerHit(hitEnemy, finalDamage, false, false, true);
 			targetsHit++;
 			if (enemyNode is EnemyBasic enemy)
 				enemy.ApplyKnockback(toEnemy.LengthSquared() > 0.001f ? toEnemy : _attackDirection, knockback);
@@ -302,7 +302,7 @@ public partial class PlayerCombat : Node
 		return targetsHit;
 	}
 
-	private float GetCurrentAttackSpeedMultiplier()
+	public float GetCurrentAttackSpeedMultiplier()
 	{
 		var missingHealth = _health != null && _health.MaxHealth > 0 ? 1.0f - _health.CurrentHealth / _health.MaxHealth : 0.0f;
 		var artifactSpeed = 1.0f + RunState.GetEffectTotal("AttackSpeed.Multiplier")

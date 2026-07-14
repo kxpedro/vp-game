@@ -330,18 +330,26 @@
       "name": "Dízimo de Sangue",
       "family": "Dracul",
       "rarity": "Common",
-      "weight": 90,
+      "weight": 160,
       "maxStacks": 6,
-      "description": "Rouba vida equivalente a 1,5% do dano causado por nível.",
+      "exclusiveGroup": "basic_attack_status",
+      "description": "Ataques básicos causam 8% mais dano e roubam vida equivalente a 1,5% do dano causado.",
       "flavorText": "O castelo sempre recolhe sua parte.",
       "tags": [
         "dracul",
+        "basic_attack",
+        "damage",
         "lifesteal",
         "healing"
       ],
       "effects": [
         {
-          "type": "LifeSteal",
+          "type": "BasicAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        },
+        {
+          "type": "BasicAttackLifeSteal",
           "operation": "AddMultiplier",
           "value": 0.015
         }
@@ -514,6 +522,39 @@
           "operation": "AddMultiplier",
           "value": 0.002,
           "perOverhealMaxHealthPercent": 0.01
+        }
+      ]
+    },
+    {
+      "id": "bathory_crimson_edge",
+      "name": "Lâmina Escarlate",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 160,
+      "maxStacks": 6,
+      "exclusiveGroup": "basic_attack_status",
+      "description": "Ataques básicos causam 6% mais dano e sempre causam Sangramento. O efeito expira após 2 segundos sem um novo acerto.",
+      "flavorText": "Cada corte oferece à condessa uma nova fonte para seu banho.",
+      "tags": [
+        "bathory",
+        "basic_attack",
+        "damage",
+        "bleeding",
+        "dot"
+      ],
+      "effects": [
+        {
+          "type": "BasicAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.06
+        },
+        {
+          "type": "BasicAttackBleed",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 2.0,
+          "damagePerSecond": 6.0,
+          "maxStacks": 5
         }
       ]
     },
@@ -773,21 +814,30 @@
       "name": "Mordida Pútrida",
       "family": "Orlok",
       "rarity": "Common",
-      "weight": 100,
+      "weight": 160,
       "maxStacks": 6,
-      "description": "Ataques têm 15% de chance por nível de aplicar Pestilência por 5 segundos.",
+      "exclusiveGroup": "basic_attack_status",
+      "description": "Ataques básicos causam 4% mais dano e sempre aplicam Pestilência. O efeito expira após 3 segundos sem um novo acerto.",
       "flavorText": "A fome antiga não distingue alimento de doença.",
       "tags": [
         "orlok",
+        "basic_attack",
+        "damage",
         "pestilence",
         "dot"
       ],
       "effects": [
         {
-          "type": "PestilenceChance",
-          "operation": "AddFlat",
-          "value": 0.15,
-          "duration": 5.0
+          "type": "BasicAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.04
+        },
+        {
+          "type": "BasicAttackPestilence",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 3.0,
+          "deathRadius": 5.0
         }
       ]
     },
@@ -798,7 +848,7 @@
       "rarity": "Common",
       "weight": 95,
       "maxStacks": 6,
-      "description": "Pestilência causa 8% mais dano por nível.",
+      "description": "A morte de um inimigo pestilento espalha Pestilência para 1 alvo adicional.",
       "flavorText": "A febre continua mesmo depois do último suspiro.",
       "tags": [
         "orlok",
@@ -807,9 +857,9 @@
       ],
       "effects": [
         {
-          "type": "PestilenceDamage",
-          "operation": "AddMultiplier",
-          "value": 0.08
+          "type": "PestilenceSpreadTargets",
+          "operation": "AddFlat",
+          "value": 1
         }
       ]
     },
@@ -867,7 +917,7 @@
       "rarity": "Uncommon",
       "weight": 62,
       "maxStacks": 4,
-      "description": "Quando um inimigo pestilento morre, transmite Pestilência a até 2 inimigos próximos por nível.",
+      "description": "Aumenta em 1 metro o raio do contágio e espalha Pestilência para 1 alvo adicional.",
       "flavorText": "Nenhum cadáver guarda a doença só para si.",
       "tags": [
         "orlok",
@@ -876,9 +926,14 @@
       ],
       "effects": [
         {
-          "type": "PestilenceSpreadTargetsOnDeath",
+          "type": "PestilenceDeathSpreadRadius",
           "operation": "AddFlat",
-          "value": 2
+          "value": 1.0
+        },
+        {
+          "type": "PestilenceSpreadTargets",
+          "operation": "AddFlat",
+          "value": 1
         }
       ]
     },
@@ -1012,20 +1067,59 @@
       "name": "Olhar Sedutor",
       "family": "Karnstein",
       "rarity": "Common",
-      "weight": 100,
+      "weight": 160,
       "maxStacks": 6,
-      "description": "Acertos críticos têm 12% de chance por nível de Encantar o inimigo por 3 segundos.",
+      "exclusiveGroup": "basic_attack_status",
+      "description": "Ataques básicos causam 10% mais dano e têm 10% de chance de Encantar o inimigo por 3 segundos.",
       "flavorText": "Um instante de contato vale mais que uma corrente.",
       "tags": [
         "karnstein",
+        "basic_attack",
+        "damage",
         "charm",
-        "critical"
+        "control"
       ],
       "effects": [
         {
-          "type": "CharmOnCriticalChance",
+          "type": "BasicAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.10
+        },
+        {
+          "type": "BasicAttackCharmChance",
           "operation": "AddFlat",
-          "value": 0.12,
+          "value": 0.10,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "karnstein_lovers_lunge",
+      "name": "Investida dos Amantes",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 120,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "description": "Ataques rápidos causam 18% mais dano e têm 8% de chance de Encantar os inimigos atingidos por 3 segundos.",
+      "flavorText": "A distância entre desejo e ferida dura apenas um salto.",
+      "tags": [
+        "karnstein",
+        "quick_attack",
+        "dash",
+        "damage",
+        "charm"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.18
+        },
+        {
+          "type": "QuickAttackCharmChance",
+          "operation": "AddFlat",
+          "value": 0.08,
           "duration": 3.0
         }
       ]

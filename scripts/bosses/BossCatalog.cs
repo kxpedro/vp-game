@@ -14,11 +14,11 @@ public static class BossCatalog
             new BossMoveDefinition("tail_sweep", "Varredura de Cauda", 1.45f, 1.25f, 1.35f),
             new BossMoveDefinition("dragon_burst", "Explosao Draconica", 2.1f, 1.6f, 1.65f)
         }),
-        new("invisible_woman", "Guardia Invisivel", 300, 60, new[]
+        new("invisible_woman", "Guardiã Invisível", 280, 50, new[]
         {
-            new BossMoveDefinition("psionic", "Rajada Psionica", 1.4f, 1.0f, 1.4f),
-            new BossMoveDefinition("shield", "Escudo Cinetico", 2.5f, 1.2f, 1.2f),
-            new BossMoveDefinition("outbreak", "Surto de Forca", 3.2f, 1.7f, 1.7f)
+            new BossMoveDefinition("psionic", "Rajada Psiônica", 0.9f, 1.35f, 1.45f),
+            new BossMoveDefinition("shield", "Escudo Cinético", 1.65f, 1.55f, 1.3f),
+            new BossMoveDefinition("outbreak", "Surto de Força", 2.15f, 2.15f, 1.8f)
         })
     };
     public static BossDefinition Get(int mapIndex) => Bosses[System.Math.Clamp(mapIndex, 0, Bosses.Length - 1)];

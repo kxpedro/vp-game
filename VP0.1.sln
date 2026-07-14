@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VP0.1", "VP0.1.csproj", "{81962F04-C926-4F50-B003-4BC564AB1D65}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81962F04-C926-4F50-B003-4BC564AB1D65}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -94,7 +94,10 @@ public static class BloodBlessingCatalog
                 var tags = new List<string>();
                 if (element.TryGetProperty("tags", out var tagArray)) foreach (var tag in tagArray.EnumerateArray()) tags.Add(tag.GetString() ?? "");
                 var familyName = S(element, "family");
-                var definition = new BloodBlessingDefinition(S(element, "id"), S(element, "name"), S(element, "rarity"), I(element, "weight"), 1, S(element, "description"), S(element, "flavorText"), familyName, FamilyIconPath(familyName), tags.ToArray(), effects.ToArray());
+                var definition = new BloodBlessingDefinition(
+                    S(element, "id"), S(element, "name"), S(element, "rarity"), I(element, "weight"), 1,
+                    NormalizeDescription(S(element, "description")), S(element, "flavorText"), familyName,
+                    FamilyIconPath(familyName), S(element, "exclusiveGroup"), tags.ToArray(), effects.ToArray());
                 if (string.IsNullOrWhiteSpace(definition.Id) || ById.ContainsKey(definition.Id)) continue;
                 Definitions.Add(definition); ById[definition.Id] = definition;
             }
@@ -108,6 +111,14 @@ public static class BloodBlessingCatalog
     private static string S(JsonElement e, string key) => e.TryGetProperty(key, out var v) ? v.GetString() ?? "" : "";
     private static int I(JsonElement e, string key) => e.TryGetProperty(key, out var v) && v.TryGetInt32(out var n) ? n : 0;
     private static float F(JsonElement e, string key) => e.TryGetProperty(key, out var v) && v.TryGetSingle(out var n) ? n : 0.0f;
+
+    private static string NormalizeDescription(string description)
+    {
+        // Blessings are unique; their numeric power scales with the rolled quality, not with a nonexistent level.
+        return description
+            .Replace(" por nível", " (valor base; aumenta com a qualidade)", StringComparison.OrdinalIgnoreCase)
+            .Replace(" por nivel", " (valor base; aumenta com a qualidade)", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static BloodBlessingEffectDefinition ParseEffect(JsonElement effect)
     {

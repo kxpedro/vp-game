@@ -40,7 +40,9 @@ public partial class SaveGameManager : Node
     public string GetSlotSummary(int slot)
     {
         var data = ReadSlot(slot);
-        return data == null ? "Novo jogo" : $"{data.BloodCoins} moedas | {data.LastPlayedUtc.ToLocalTime():dd/MM/yyyy HH:mm}";
+        return data == null
+            ? Localization.Text("menu.new_game")
+            : Localization.TextFormat("menu.slot_summary", data.BloodCoins, data.LastPlayedUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
     }
 
     public void StartSlot(int slot)

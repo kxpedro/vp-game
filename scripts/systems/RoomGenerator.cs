@@ -11,7 +11,8 @@ public partial class RoomGenerator : Node3D
     [Export] public int EnemySpawnWallPaddingCells { get; set; } = 2;
     [Export] public bool ShowLayoutDebugLabels { get; set; } = true;
     [Export] public float EnemySpawnDelaySeconds { get; set; } = 5.0f;
-    [Export] public int EnemiesPerWave { get; set; } = 10;
+    [Export] public float WaveIntervalSeconds { get; set; } = 15.0f;
+    [Export] public int EnemiesPerWave { get; set; } = 8;
     [Export] public int WaveCount { get; set; } = 3;
 
     public Vector3 PlayerSpawnPosition { get; private set; }
@@ -54,6 +55,7 @@ public partial class RoomGenerator : Node3D
     private readonly List<(Vector3 Position, EnemyRarity Rarity, EnemyArchetype Archetype, string Name)> _pendingEnemyWaves = new();
     private int _nextWaveEnemyIndex;
     private bool _isSpawningWave;
+    private float _waveCountdown;
 
     public override void _Ready()
     {
@@ -73,7 +75,8 @@ public partial class RoomGenerator : Node3D
 
     public override void _Process(double delta)
     {
-        if (!_isSpawningWave && _nextWaveEnemyIndex < _pendingEnemyWaves.Count && GetTree().GetNodeCountInGroup("enemies") == 0)
+        _waveCountdown -= (float)delta;
+        if (!_isSpawningWave && _nextWaveEnemyIndex < _pendingEnemyWaves.Count && _waveCountdown <= 0.0f)
             SpawnNextWave();
     }
 
@@ -297,34 +300,24 @@ public partial class RoomGenerator : Node3D
         {
             _pendingEnemyWaves.Add((Vector3.Zero, EnemyRarity.Legendary, EnemyArchetype.Ranged, "BloodMageBoss"));
         }
-        else for (var blockIndex = 0; blockIndex < EnemyBlocksPerRoom; blockIndex++)
+        else
         {
-            var blockCenter = PickEnemyBlockCenter();
-
-            for (var enemyIndex = 0; enemyIndex < EnemiesPerBlock; enemyIndex++)
+            var progress = RunState.CurrentMap.CommonRoomCount > 1
+                ? (RunState.CurrentRoom - 1.0f) / (RunState.CurrentMap.CommonRoomCount - 1.0f)
+                : 1.0f;
+            for (var waveIndex = 0; waveIndex < WaveCount; waveIndex++)
             {
-                var progress = RunState.CurrentMap.CommonRoomCount > 1 ? (RunState.CurrentRoom - 1.0f) / (RunState.CurrentMap.CommonRoomCount - 1.0f) : 1.0f;
-                var rarity = EnemyTuningCatalog.Roll(_rng, progress);
-                var archetype = (EnemyArchetype)_rng.RandiRange(0, 2);
-                _pendingEnemyWaves.Add((PickPositionNearBlock(blockCenter), rarity, archetype, $"EnemyBlock{blockIndex + 1}_{enemyIndex + 1}"));
-            }
-        }
-
-        if (!RunState.IsBossRoom && WaveCount > 1)
-        {
-            var firstWave = new List<(Vector3 Position, EnemyRarity Rarity, EnemyArchetype Archetype, string Name)>(_pendingEnemyWaves);
-            var progress = RunState.CurrentMap.CommonRoomCount > 1 ? (RunState.CurrentRoom - 1.0f) / (RunState.CurrentMap.CommonRoomCount - 1.0f) : 1.0f;
-            for (var waveIndex = 1; waveIndex < WaveCount; waveIndex++)
-            {
-                for (var i = 0; i < firstWave.Count; i++)
-                {
-                    var source = firstWave[i];
-                    _pendingEnemyWaves.Add((PickRandomWavePosition(), EnemyTuningCatalog.Roll(_rng, progress), (EnemyArchetype)_rng.RandiRange(0, 2), $"Wave{waveIndex + 1}_{source.Name}"));
-                }
+                for (var enemyIndex = 0; enemyIndex < EnemiesPerWave; enemyIndex++)
+                    _pendingEnemyWaves.Add((
+                        PickRandomWavePosition(),
+                        EnemyTuningCatalog.Roll(_rng, RunState.CurrentMapIndex, progress),
+                        (EnemyArchetype)_rng.RandiRange(0, 2),
+                        $"Wave{waveIndex + 1}_Enemy{enemyIndex + 1}"));
             }
         }
 
         _nextWaveEnemyIndex = 0;
+        _waveCountdown = 0.0f;
         AddToGroup("enemy_waves_remaining");
         SpawnNextWave();
     }
@@ -363,7 +356,6 @@ public partial class RoomGenerator : Node3D
 
         foreach (var marker in markers) if (IsInstanceValid(marker)) marker.QueueFree();
         var spawnedEnemies = new List<EnemyBasic>();
-        var spawnedThisFrame = 0;
         foreach (var spawn in wave)
         {
             var enemy = EnemyScene.Instantiate<EnemyBasic>();
@@ -377,17 +369,14 @@ public partial class RoomGenerator : Node3D
             enemy.ApplyPlaceholderVisual(visual);
             enemy.SetSpawnActive(false);
             spawnedEnemies.Add(enemy);
-            spawnedThisFrame++;
-            if (spawnedThisFrame >= 5)
-            {
-                spawnedThisFrame = 0;
-                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            }
+            // Model instantiation is deliberately spread over frames to avoid a spawn hitch.
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
         foreach (var enemy in spawnedEnemies) if (IsInstanceValid(enemy)) enemy.SetSpawnActive(true);
         RemoveFromGroup("enemy_spawn_pending");
         if (_nextWaveEnemyIndex >= _pendingEnemyWaves.Count) RemoveFromGroup("enemy_waves_remaining");
         _isSpawningWave = false;
+        _waveCountdown = Mathf.Max(WaveIntervalSeconds - EnemySpawnDelaySeconds, 0.1f);
         GetTree().CallGroup("run_manager", "NotifyWaveSpawned", wave.Count, _pendingEnemyWaves.Count);
     }
 
@@ -509,6 +498,20 @@ public partial class RoomGenerator : Node3D
         if (_enemySpawnCells.Count < EnemyBlocksPerRoom)
             AddEnemySpawnCellsWithPadding(0, false);
 
+        Shuffle(_enemySpawnCells);
+        KeepCentralSpawnCells();
+    }
+
+    private void KeepCentralSpawnCells()
+    {
+        if (_enemySpawnCells.Count < 8 || _roomCells.Count == 0) return;
+        var center = Vector2.Zero;
+        foreach (var cell in _roomCells) center += new Vector2(cell.X, cell.Y);
+        center /= _roomCells.Count;
+        _enemySpawnCells.Sort((a, b) =>
+            new Vector2(a.X, a.Y).DistanceSquaredTo(center).CompareTo(new Vector2(b.X, b.Y).DistanceSquaredTo(center)));
+        var keep = Mathf.Max(Mathf.CeilToInt(_enemySpawnCells.Count * 0.62f), 8);
+        if (_enemySpawnCells.Count > keep) _enemySpawnCells.RemoveRange(keep, _enemySpawnCells.Count - keep);
         Shuffle(_enemySpawnCells);
     }
 
@@ -921,7 +924,7 @@ public partial class RoomGenerator : Node3D
     {
         if (_roomCells.Count == 0) return;
         var anchors = new List<Vector2I>(_roomCells);
-        var additions = _rng.RandiRange(2, 5);
+        var additions = _rng.Randf() < 0.35f ? 1 : 0;
         var directions = new[] { Vector2I.Left, Vector2I.Right, Vector2I.Up, Vector2I.Down };
         for (var i = 0; i < additions; i++)
         {

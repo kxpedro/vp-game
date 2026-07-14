@@ -31,9 +31,11 @@ public partial class BloodBlessingRuntime : Node
         UpdateBloodPoolState(d);
     }
 
-    public float ModifyOutgoingDamage(float damage, EnemyBasic enemy)
+    public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, bool isBasicAttack, bool isQuickAttack = false)
     {
         var bonus = RunState.BlessingPermanentDamage + RunState.BlessingRoomDamage;
+        if (isBasicAttack) bonus += RunState.GetEffectTotal("BasicAttackDamage.Multiplier");
+        if (isQuickAttack) bonus += RunState.GetEffectTotal("QuickAttackDamage.Multiplier");
         var healthRatio = _health?.MaxHealth > 0 ? _health.CurrentHealth / _health.MaxHealth : 0;
         if (healthRatio >= RunState.GetEffectParameter("DamageAboveHealth", "threshold", 0.8f)) bonus += RunState.GetEffectTotal("DamageAboveHealth.Multiplier");
         if (_damageAfterHealTimer > 0) bonus += RunState.GetEffectTotal("DamageAfterHealing.Multiplier");
@@ -136,14 +138,20 @@ public partial class BloodBlessingRuntime : Node
         return true;
     }
 
-    public void OnPlayerHit(EnemyBasic enemy, float damage, bool critical)
+    public void OnPlayerHit(EnemyBasic enemy, float damage, bool critical, bool isBasicAttack, bool isQuickAttack = false)
     {
         if (enemy == null || _health == null) return;
+        enemy.RefreshPlayerHitStatuses();
         var lifeSteal = RunState.GetEffectTotal("LifeSteal.Multiplier");
+        if (isBasicAttack) lifeSteal += RunState.GetEffectTotal("BasicAttackLifeSteal.Multiplier");
         var enemyHealth = enemy.GetNodeOrNull<Health>("Health");
         var threshold = RunState.GetEffectParameter("LifeStealVsLowHealthEnemy", "threshold", 0.25f);
         if (enemyHealth != null && enemyHealth.CurrentHealth / enemyHealth.MaxHealth <= threshold) lifeSteal += RunState.GetEffectTotal("LifeStealVsLowHealthEnemy.Multiplier");
-        if (lifeSteal > 0) _health.Heal(damage * lifeSteal);
+        if (lifeSteal > 0 && _health.CurrentHealth < _health.MaxHealth)
+        {
+            _health.Heal(damage * lifeSteal);
+            SpawnLifeStealTrail(enemy.GlobalPosition, GetParent<Node3D>().GlobalPosition);
+        }
 
         if (critical && GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("CharmOnCriticalChance.Flat"), 0, 1))
             enemy.ApplyCharm(RunState.GetEffectParameter("CharmOnCriticalChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
@@ -151,6 +159,21 @@ public partial class BloodBlessingRuntime : Node
             enemy.ApplyPestilence(RunState.GetEffectParameter("PestilenceChance", "duration", 5));
         if (enemy.IsPestilenceHost && RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat") > 0)
             SpreadPestilence(enemy, Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat")));
+
+        if (isQuickAttack && GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("QuickAttackCharmChance.Flat"), 0, 1))
+            enemy.ApplyCharm(RunState.GetEffectParameter("QuickAttackCharmChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+
+        if (!isBasicAttack) return;
+
+        if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("BasicAttackCharmChance.Flat"), 0, 1))
+            enemy.ApplyCharm(RunState.GetEffectParameter("BasicAttackCharmChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+        if (RunState.GetEffectTotal("BasicAttackPestilence.Flat") > 0)
+            enemy.ApplyPestilence(RunState.GetEffectParameter("BasicAttackPestilence", "duration", 5));
+        if (RunState.GetEffectTotal("BasicAttackBleed.Flat") > 0)
+            enemy.ApplyBleeding(
+                RunState.GetEffectParameter("BasicAttackBleed", "duration", 5),
+                RunState.GetEffectParameter("BasicAttackBleed", "damagePerSecond", 6),
+                Mathf.RoundToInt(RunState.GetEffectParameter("BasicAttackBleed", "maxStacks", 5)));
     }
 
     public void OnEnemyKilled(EnemyBasic enemy)
@@ -166,7 +189,11 @@ public partial class BloodBlessingRuntime : Node
         }
         if (enemy.IsPestilent)
         {
-            SpreadPestilence(enemy, Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadTargetsOnDeath.Flat")));
+            var spreadRadius = RunState.GetEffectParameter("BasicAttackPestilence", "deathRadius", 5.0f)
+                + RunState.GetEffectTotal("PestilenceDeathSpreadRadius.Flat");
+            SpawnPestilenceDeathBurst(enemy.GlobalPosition, spreadRadius);
+            var spreadTargets = 3 + Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadTargets.Flat"));
+            SpreadPestilence(enemy, Mathf.Max(spreadTargets, 3), spreadRadius);
             if (RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier") > 0) DamageEnemiesNear(enemy.GlobalPosition, 2.5f, 32 * RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier"), enemy);
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("RatSummonOnInfectedKillChance.Flat"), 0, 1)) DamageEnemiesNear(enemy.GlobalPosition, 2.0f, 24, enemy);
         }
@@ -189,8 +216,41 @@ public partial class BloodBlessingRuntime : Node
     {
         var radius = 1.8f * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
         var duration = RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4) + RunState.GetEffectTotal("BloodPoolDuration.Flat");
-        var pool = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.025f, RadialSegments = 48 }, MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.45f, 0.0f, 0.02f, 0.62f), EmissionEnabled = true, Emission = new Color(0.35f, 0, 0), Transparency = BaseMaterial3D.TransparencyEnum.Alpha }, Position = position + Vector3.Up * 0.025f };
-        GetTree().CurrentScene.AddChild(pool); pool.AddToGroup("blood_pools"); pool.SetMeta("radius", radius);
+        var pool = new Node3D { Name = "BloodPool" };
+        GetTree().CurrentScene.AddChild(pool);
+        pool.GlobalPosition = position + Vector3.Up * 0.035f;
+        pool.AddToGroup("blood_pools");
+        pool.SetMeta("radius", radius);
+        var bloodMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.62f, 0.0f, 0.025f, 0.76f),
+            EmissionEnabled = true,
+            Emission = new Color(0.72f, 0.0f, 0.025f),
+            EmissionEnergyMultiplier = 1.75f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+        };
+        var surface = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.045f, RadialSegments = 64 },
+            MaterialOverride = bloodMaterial
+        };
+        pool.AddChild(surface);
+        var rim = new MeshInstance3D
+        {
+            Mesh = new TorusMesh { InnerRadius = radius * 0.94f, OuterRadius = radius, Rings = 64 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(1.0f, 0.015f, 0.04f, 0.86f), EmissionEnabled = true,
+                Emission = new Color(0.95f, 0.0f, 0.03f), EmissionEnergyMultiplier = 2.4f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+            },
+            Position = Vector3.Up * 0.035f
+        };
+        pool.AddChild(rim);
+        var pulse = rim.CreateTween().SetLoops();
+        pulse.TweenProperty(rim, "scale", Vector3.One * 1.035f, 0.55f);
+        pulse.TweenProperty(rim, "scale", Vector3.One * 0.985f, 0.55f);
         await ToSignal(GetTree().CreateTimer(duration), SceneTreeTimer.SignalName.Timeout);
         if (IsInstanceValid(pool)) pool.QueueFree();
     }
@@ -203,14 +263,18 @@ public partial class BloodBlessingRuntime : Node
         orb.AddChild(new CollisionShape3D { Shape = new SphereShape3D { Radius = 0.65f } });
     }
 
-    private void SpreadPestilence(EnemyBasic source, int targets)
+    private void SpreadPestilence(EnemyBasic source, int targets, float radius = 7.0f)
     {
         if (targets <= 0) return;
         foreach (var node in GetTree().GetNodesInGroup("enemies"))
         {
             if (targets <= 0) break;
-            if (node is not EnemyBasic enemy || enemy == source || enemy.IsPestilent || enemy.GlobalPosition.DistanceTo(source.GlobalPosition) > 7) continue;
-            enemy.ApplyPestilence(RunState.GetEffectParameter("PestilenceChance", "duration", 5)); targets--;
+            if (node is not EnemyBasic enemy || enemy == source || enemy.IsPestilent || enemy.GlobalPosition.DistanceTo(source.GlobalPosition) > radius) continue;
+            var duration = RunState.GetEffectParameter(
+                "BasicAttackPestilence",
+                "duration",
+                RunState.GetEffectParameter("PestilenceChance", "duration", 5));
+            enemy.ApplyPestilence(duration); targets--;
         }
     }
 
@@ -218,6 +282,62 @@ public partial class BloodBlessingRuntime : Node
     {
         foreach (var node in GetTree().GetNodesInGroup("enemies"))
             if (node is EnemyBasic enemy && enemy != excluded && enemy.GlobalPosition.DistanceTo(position) <= radius) enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage);
+    }
+
+    private async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
+    {
+        var burst = new MeshInstance3D
+        {
+            Name = "PestilenceDeathBurst",
+            Mesh = new CylinderMesh
+            {
+                TopRadius = radius,
+                BottomRadius = radius,
+                Height = 0.035f,
+                RadialSegments = 64
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.2f, 0.8f, 0.18f, 0.28f),
+                EmissionEnabled = true,
+                Emission = new Color(0.12f, 0.72f, 0.08f),
+                EmissionEnergyMultiplier = 1.8f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            },
+            Position = position + Vector3.Up * 0.04f,
+            Scale = Vector3.One * 0.1f
+        };
+        GetTree().CurrentScene.AddChild(burst);
+        var tween = burst.CreateTween();
+        tween.TweenProperty(burst, "scale", Vector3.One, 0.18f);
+        tween.TweenProperty(burst, "transparency", 1.0f, 0.22f);
+        await ToSignal(tween, Tween.SignalName.Finished);
+        if (IsInstanceValid(burst)) burst.QueueFree();
+    }
+
+    private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
+    {
+        var orb = new MeshInstance3D
+        {
+            Name = "LifeStealTrail",
+            Mesh = new SphereMesh { Radius = 0.13f, Height = 0.26f },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.95f, 0.02f, 0.12f, 0.9f),
+                EmissionEnabled = true,
+                Emission = new Color(1.0f, 0.0f, 0.08f),
+                EmissionEnergyMultiplier = 4.0f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            },
+            GlobalPosition = source + Vector3.Up * 1.0f
+        };
+        GetTree().CurrentScene.AddChild(orb);
+        var tween = orb.CreateTween();
+        tween.TweenProperty(orb, "global_position", destination + Vector3.Up * 1.0f, 0.28f)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+        tween.Parallel().TweenProperty(orb, "scale", Vector3.One * 0.25f, 0.28f);
+        await ToSignal(tween, Tween.SignalName.Finished);
+        if (IsInstanceValid(orb)) orb.QueueFree();
     }
 
     private bool HasNearbyEnemy()

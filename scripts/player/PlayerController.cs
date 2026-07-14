@@ -23,6 +23,7 @@ public partial class PlayerController : CharacterBody3D
 	public Vector3 LastMoveDirection => _lastMoveDirection;
 	public float DodgeCooldownRemaining => _dodgeCooldownTimeRemaining;
 	public float DodgeCooldownTotal => DodgeCooldown;
+	public float DodgeAnimationSpeedMultiplier => _baseDodgeSpeed > 0.0f ? DodgeSpeed / _baseDodgeSpeed : 1.0f;
 
 	private Health _health;
 	private PlayerSkillController _skillController;
@@ -62,7 +63,10 @@ public partial class PlayerController : CharacterBody3D
 		GameTuning.Changed += ApplyRuntimeTuning;
 		ApplyRuntimeTuning();
 		CurrentStamina = MaxStamina;
-		RestoreSavedHealth();
+		if (RunState.SavedPlayerHealth >= 0.0f)
+			RestoreSavedHealth();
+		else
+			_health.SetCurrentHealth(_health.MaxHealth);
 
 		_health.HealthChanged += OnHealthChanged;
 		_health.Died += OnDied;
@@ -174,7 +178,7 @@ public partial class PlayerController : CharacterBody3D
 		var moveMultiplier = CharacterSheet.GetMoveSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("MoveSpeed.Multiplier"));
 		WalkSpeed = _baseWalkSpeed * moveMultiplier * GameTuning.GetWalkSpeedMultiplier();
 		SprintSpeed = _baseSprintSpeed * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
-		DodgeSpeed = _baseDodgeSpeed * GameTuning.GetDashSpeedMultiplier();
+		DodgeSpeed = _baseDodgeSpeed * GameTuning.GetDashSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("DashSpeed.Multiplier"));
 		DodgeDuration = _baseDodgeDuration * GameTuning.GetDashDistanceMultiplier();
 		DodgeCooldown = _baseDodgeCooldown * GameTuning.GetDashCooldownMultiplier();
 		MaxStamina = _baseMaxStamina + CharacterSheet.GetMaxStaminaBonus();

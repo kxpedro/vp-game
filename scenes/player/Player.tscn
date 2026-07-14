@@ -35,7 +35,7 @@ shape = SubResource("BoxShape3D_attack")
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("3")
-MaxHealth = 120.0
+MaxHealth = 100.0
 
 [node name="PlayerCombat" type="Node" parent="."]
 script = ExtResource("2")
