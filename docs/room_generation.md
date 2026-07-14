@@ -1,129 +1,101 @@
-# Room Generation Spec
+# Especificação da geração de salas
 
-This document describes the current room generation structure for Vampire's Prey.
+Este documento descreve a estrutura atual de geração procedural de Vampire's Prey.
 
-## Current Run Structure
+## Estrutura da campanha
 
-- Map 1 has 3 common rooms and a boss.
-- Map 2 has 25 common rooms and a boss.
-- Map 3 has 35 common rooms and a boss.
-- Map 4 contains only the final boss.
-- Boss victories continue directly into the next map.
-- `CampaignCatalog` owns map count, room count, boss id, special rule, and difficulty multiplier.
-- Common rooms generate 10 enemy blocks.
-- Each enemy block currently spawns 5 enemies.
-- Artifacts spawn near the treasure point when a room rolls an artifact.
+- Mapa 1: 3 salas comuns e boss.
+- Mapa 2: 4 salas comuns e boss.
+- Mapa 3: 5 salas comuns e boss.
+- Mapa 4: somente o boss final.
+- `CampaignCatalog` controla quantidade de salas, boss, regra especial e multiplicador de dificuldade.
+- A vitória contra um boss avança diretamente para o mapa seguinte preservando o HP atual.
 
-## Generation Model
+## Modelo de geração
 
-Rooms are generated as grid-based maps, not rectangular arenas.
+`RoomGenerator` mantém o piso navegável em `HashSet<Vector2I> _walkableCells`. Cada célula gera um tile de piso e paredes apenas nas bordas sem vizinho navegável.
 
-The generator stores walkable space as `HashSet<Vector2I> _walkableCells`.
-Each cell becomes:
+As cinco famílias de layout são:
 
-- one floor tile
-- boundary walls only where neighboring cells are not walkable
+- `BranchingKeep`;
+- `LairWithVault`;
+- `CrossDungeon`;
+- `SplitHalls`;
+- `WindingCrypt`.
 
-This means map silhouettes are irregular and can form branches, corridors, vaults, dead ends, and connected chambers.
+Antes da construção, cada layout recebe rotação em quartos de volta e pode ser espelhado. Depois, `RepairDisconnectedMapPieces()` garante a conectividade.
 
-## Main Types
+## Escala e composição
 
-`MapTemplate`
+- `CellSize = 1.64`;
+- `MainRoomScale = 2`;
+- `RegionSpacing = 2`;
+- salas principais usam `AddMainRoom`;
+- entradas, saídas, tesouros e becos usam `AddRoom`;
+- corredores são criados por `ConnectCells`;
+- existe 35% de chance de somente uma sala lateral procedural adicional;
+- becos sem saída continuam existindo como pontos intencionais, sem cadeias extras sem propósito.
 
-Defines the high-level room layout family:
+## Spawns e waves
 
-- `BranchingKeep`
-- `LairWithVault`
-- `CrossDungeon`
-- `SplitHalls`
-- `WindingCrypt`
+- três waves por sala comum;
+- oito inimigos por wave, 24 planejados no total;
+- primeira wave iniciada ao carregar a sala;
+- intervalo total entre inícios de wave: 15 segundos;
+- telegraph de spawn: 5 segundos;
+- inimigos são instanciados um por frame para reduzir hitch;
+- waves não esperam a eliminação completa da wave anterior;
+- a sala só termina quando não restam inimigos nem spawns pendentes;
+- células próximas de paredes, entrada, saída e pontos reservados são evitadas;
+- `EnemySpawnWallPaddingCells = 2` mantém o spawn mais centralizado.
 
-`RunState`
+A raridade é sorteada usando mapa e progresso dentro dele. O primeiro mapa não gera inimigos Legendary. Arquétipo e raridade são definidos antes da aplicação do visual.
 
-Defines run progression:
+## Salas de boss
 
-- current map and room
-- dynamic boss-room calculation from the current `MapDefinition`
-- continuous transitions between maps
-- `CurrentRoom`
-- `IsBossRoom`
-- temporary run stats such as damage and max health bonuses
+Salas de boss usam uma arena própria com pilares, entrada e portão final. Apenas um inimigo Legendary é planejado e depois configurado por `RunManager`, `BossCatalog` e `BossController`.
 
-`RoomGenerator`
+O boss utiliza barra de vida no topo do HUD e não exibe barra aérea.
 
-Owns map construction:
+## Pontos de interesse
 
-- `BuildMap()`
-- `AddRoom(center, width, height)`
-- `AddMainRoom(center, width, height)`
-- `ConnectCells(from, to)`
-- `GenerateMapGeometry()`
-- `GenerateEnemies()`
-- `GetArtifactSpawnPosition()`
+O gerador mantém posições para:
 
-## Room Properties
+- spawn do jogador;
+- saída/portal;
+- tesouro/artefato;
+- beco sem saída;
+- arena do boss.
 
-Each template currently defines:
+O portal de saída permanece fechado durante o combate e, em salas comuns, continua bloqueado até o jogador escolher a Bênção de Sangue.
 
-- entrance cell
-- exit cell
-- treasure cell
-- dead-end cell
-- main rooms
-- side rooms
-- corridor connections
+## Métodos centrais
 
-Example:
+- `BuildMap()`;
+- `BuildBossMap()`;
+- `AddRoom()`;
+- `AddMainRoom()`;
+- `ConnectCells()`;
+- `AddProceduralSideRooms()`;
+- `RepairDisconnectedMapPieces()`;
+- `GenerateMapGeometry()`;
+- `BuildEnemySpawnCells()`;
+- `GenerateEnemies()`;
+- `SpawnNextWave()`;
+- `GetArtifactSpawnPosition()`.
 
-```csharp
-_entranceCell = new Vector2I(0, 4);
-_exitCell = new Vector2I(0, -5);
-_treasureCell = new Vector2I(5, -2);
-_deadEndCell = new Vector2I(-5, -2);
-
-AddMainRoom(new Vector2I(0, 2), 5, 3);
-AddMainRoom(new Vector2I(0, -2), 5, 3);
-AddRoom(new Vector2I(5, -2), 3, 3);
-AddRoom(new Vector2I(-5, -2), 3, 3);
-ConnectCells(new Vector2I(2, -2), _treasureCell);
-```
-
-## Scale Rules
-
-`MainRoomScale = 3`
-
-Main rooms use `AddMainRoom`, which multiplies width and height by 3.
-
-Side rooms, treasure alcoves, exits, and dead ends still use `AddRoom` at normal scale.
-
-## How To Specify A New Map Template
-
-Use this format:
+## Formato para novos templates
 
 ```text
-Template name:
-Entrance:
-Exit:
-Main rooms:
-Side rooms:
-Treasure:
-Dead ends:
-Connections:
-Enemy block placement:
-Special rules:
+Nome do template:
+Entrada:
+Saída:
+Salas principais:
+Salas laterais:
+Tesouro:
+Becos sem saída:
+Conexões:
+Regras especiais:
 ```
 
-Example:
-
-```text
-Template name: Chapel Fork
-Entrance: south center
-Exit: north altar room
-Main rooms: one large chapel nave, one side transept
-Side rooms: two small confession rooms
-Treasure: east side room
-Dead ends: west confession room
-Connections: entrance -> nave -> altar, nave -> east treasure, nave -> west dead end
-Enemy block placement: 4 in nave, 3 near altar, 2 in transept, 1 guarding treasure
-Special rules: center aisle must stay mostly open
-```
+Ao adicionar um template, verificar visualmente rotação e espelhamento, conectividade, distância do spawn às paredes, acesso ao portal e ausência de corredores órfãos.

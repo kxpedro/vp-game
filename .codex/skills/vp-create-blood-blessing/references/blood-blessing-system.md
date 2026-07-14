@@ -30,9 +30,8 @@ Procurar o tipo de efeito em todos os `.cs`. Confirmar onde o valor é lido, qua
 
 ## Armadilhas atuais
 
-- O loader constrói cada `BloodBlessingDefinition` com `MaxStacks = 1`, ignorando atualmente o `maxStacks` do JSON.
-- A oferta também exclui uma definição quando seu stack já é diferente de zero. Não descrever progressão por vários níveis como funcional sem corrigir e testar esse fluxo.
+- As bênçãos são deliberadamente únicas: o loader fixa `MaxStacks = 1` e a oferta exclui definições já escolhidas. A qualidade sorteada é a progressão de poder; não descrever efeitos como ganho "por nível".
+- Bênçãos com `exclusiveGroup` substituem a escolha anterior do mesmo grupo. A HUD precisa continuar avisando essa troca antes da confirmação.
 - `rarity` na entrada não limita a raridade sorteada; todas usam a tabela global.
 - Um efeito pode ser parseado e exibido sem possuir consumidor de gameplay.
 - Booleanos ficam em `BooleanValue` quando são o campo `value`; outros booleanos adicionais são armazenados como texto.
-
