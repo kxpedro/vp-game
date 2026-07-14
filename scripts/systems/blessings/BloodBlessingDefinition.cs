@@ -23,6 +23,7 @@ public sealed record BloodBlessingDefinition(
     string FlavorText,
     string Family,
     string IconPath,
+    string ExclusiveGroup,
     string[] Tags,
     BloodBlessingEffectDefinition[] Effects
 );

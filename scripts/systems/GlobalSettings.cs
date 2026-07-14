@@ -4,7 +4,8 @@ using System.Text.Json;
 
 public sealed class GlobalSettingsData
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
+    public string Language { get; set; } = "pt-BR";
     public int ResolutionIndex { get; set; } = 1;
     public bool Fullscreen { get; set; }
     public float MusicVolume { get; set; } = 70.0f;
@@ -19,13 +20,17 @@ public partial class GlobalSettings : Node
 
     public override void _Ready()
     {
-        Instance = this; ProcessMode = ProcessModeEnum.Always; Load(); ApplyDisplay();
+        Instance = this; ProcessMode = ProcessModeEnum.Always; Load();
+        Data.Language = Localization.NormalizeLanguage(Data.Language);
+        Localization.Instance?.SetLanguage(Data.Language);
+        ApplyDisplay();
     }
 
     public void SetResolution(int index) { Data.ResolutionIndex = Math.Clamp(index, 0, 2); Data.Fullscreen = false; ApplyDisplay(); Save(); }
     public void SetFullscreen(bool enabled) { Data.Fullscreen = enabled; ApplyDisplay(); Save(); }
     public void SetMusicVolume(float value) { Data.MusicVolume = Mathf.Clamp(value, 0, 100); ApplyAudio(); Save(); }
     public void SetEffectsVolume(float value) { Data.EffectsVolume = Mathf.Clamp(value, 0, 100); ApplyAudio(); Save(); }
+    public void SetLanguage(string language) { Data.Language = Localization.NormalizeLanguage(language); Localization.Instance?.SetLanguage(Data.Language); Save(); }
     public void ApplyAudio() { GetTree().CallGroup("audio_manager", "SetMusicVolume", Data.MusicVolume); GetTree().CallGroup("audio_manager", "SetEffectsVolume", Data.EffectsVolume); }
 
     private void ApplyDisplay()

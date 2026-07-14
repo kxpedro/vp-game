@@ -19,6 +19,7 @@ public partial class Health : Node
     public int ShieldHits { get; set; }
     public bool LastDamageWasCritical { get; private set; }
     public string LastDamageSource { get; private set; } = "Perigos do castelo";
+    public float LastDamageAmount { get; private set; }
 
     public override void _Ready()
     {
@@ -70,6 +71,7 @@ public partial class Health : Node
         if (amount <= 0.0f) { EmitSignal(SignalName.Damaged, 0.0f); return; }
         if (blessingRuntime?.ProtectMinimumHealth(amount) == true)
             amount = Mathf.Max(CurrentHealth - 1.0f, 0.0f);
+        LastDamageAmount = amount;
 
         if (amount >= CurrentHealth && blessingRuntime?.TrySacrificeCharmedOnFatal(out var restoredHealth) == true)
         {

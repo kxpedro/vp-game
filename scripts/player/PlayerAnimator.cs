@@ -27,6 +27,7 @@ public partial class PlayerAnimator : Node
 
     private AnimationPlayer _animationPlayer;
     private CharacterBody3D _player;
+    private PlayerCombat _combat;
     private string _currentAnimation = "";
     private string _idleAnimation = "";
     private string _walkAnimation = "";
@@ -44,6 +45,7 @@ public partial class PlayerAnimator : Node
     public override void _Ready()
     {
         _player = GetParent<CharacterBody3D>();
+        _combat = _player.GetNodeOrNull<PlayerCombat>("PlayerCombat");
         var modelRoot = GetNodeOrNull<Node>(ModelRootPath);
         _animationPlayer = FindAnimationPlayer(modelRoot ?? _player);
 
@@ -109,41 +111,44 @@ public partial class PlayerAnimator : Node
 
     public void PlayDodge()
     {
-        PlayOneShot(_dodgeAnimation, GetAnimationDuration(_dodgeAnimation, DodgeAnimationSpeed, true), DodgeAnimationSpeed);
+        var dashSpeed = (_player as PlayerController)?.DodgeAnimationSpeedMultiplier ?? 1.0f;
+        PlayOneShot(_dodgeAnimation, GetAnimationDuration(_dodgeAnimation, DodgeAnimationSpeed * dashSpeed, true), DodgeAnimationSpeed * dashSpeed);
     }
 
     public void PlayLightAttack(int comboIndex)
     {
         if (comboIndex % 2 == 0)
-            PlayOneShot(_lightAttackAnimation, GetLightAttackDuration(), LightAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier());
+            PlayOneShot(_lightAttackAnimation, GetLightAttackDuration(), LightAttackAnimationSpeed * CurrentAttackSpeed());
         else
-            PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier());
+            PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * CurrentAttackSpeed());
     }
 
     public void PlayHeavyAttack()
     {
-        PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier());
+        PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * CurrentAttackSpeed());
     }
 
     public void PlayDashAttack()
     {
-        PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier());
+        PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed * CurrentAttackSpeed());
     }
 
     public float GetLightAttackDuration()
     {
-        return GetAnimationDuration(_lightAttackAnimation, LightAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier(), false);
+        return GetAnimationDuration(_lightAttackAnimation, LightAttackAnimationSpeed * CurrentAttackSpeed(), false);
     }
 
     public float GetHeavyAttackDuration()
     {
-        return GetAnimationDuration(_heavyAttackAnimation, HeavyAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier(), false);
+        return GetAnimationDuration(_heavyAttackAnimation, HeavyAttackAnimationSpeed * CurrentAttackSpeed(), false);
     }
 
     public float GetDashAttackDuration()
     {
-        return GetAnimationDuration(_heavyAttackAnimation, DashAttackAnimationSpeed * GameTuning.GetAttackSpeedMultiplier(), false);
+        return GetAnimationDuration(_heavyAttackAnimation, DashAttackAnimationSpeed * CurrentAttackSpeed(), false);
     }
+
+    private float CurrentAttackSpeed() => _combat?.GetCurrentAttackSpeedMultiplier() ?? GameTuning.GetAttackSpeedMultiplier();
 
     public float GetAnimationLength(string animationName)
     {

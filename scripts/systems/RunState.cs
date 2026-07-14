@@ -64,7 +64,6 @@ public static class RunState
         {
             CurrentMapIndex++;
             CurrentRoom = 1;
-            SavedPlayerHealth = -1.0f;
             BlessingRoomDamage = 0.0f;
             return;
         }
@@ -157,12 +156,34 @@ public static class RunState
     public static bool AddBloodBlessing(BloodBlessingOffer offer)
     {
         var definition = offer.Definition;
+        if (!string.IsNullOrWhiteSpace(definition.ExclusiveGroup))
+        {
+            for (var i = BloodBlessings.Count - 1; i >= 0; i--)
+            {
+                if (!BloodBlessingCatalog.TryGet(BloodBlessings[i].Id, out var equipped) ||
+                    !equipped.ExclusiveGroup.Equals(definition.ExclusiveGroup, System.StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                BlessingStacks.Remove(equipped.Id);
+                BloodBlessings.RemoveAt(i);
+            }
+        }
         var nextStack = GetBlessingStack(definition.Id) + 1;
         if (nextStack > definition.MaxStacks) return false;
         BlessingStacks[definition.Id] = nextStack;
         BloodBlessings.Add(new BloodBlessingRecord(definition.Id, definition.DisplayName, nextStack, offer.Rarity, offer.PowerMultiplier));
-        ApplyBlessingEffects(definition, offer.PowerMultiplier);
+        RecalculateArtifactBonuses();
         return true;
+    }
+
+    public static BloodBlessingRecord GetBlessingInExclusiveGroup(string group)
+    {
+        if (string.IsNullOrWhiteSpace(group)) return null;
+        foreach (var blessing in BloodBlessings)
+            if (BloodBlessingCatalog.TryGet(blessing.Id, out var definition) &&
+                definition.ExclusiveGroup.Equals(group, System.StringComparison.OrdinalIgnoreCase))
+                return blessing;
+        return null;
     }
 
     private static void ApplyBlessingEffects(BloodBlessingDefinition definition, float powerMultiplier)

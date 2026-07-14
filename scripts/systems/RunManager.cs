@@ -150,14 +150,9 @@ public partial class RunManager : Node3D
         foreach (var projectile in GetTree().GetNodesInGroup("enemy_projectiles"))
             projectile.QueueFree();
 
-        if (_exitPortal != null)
+        if (_exitPortal != null && RunState.IsBossRoom)
         {
-            ConfigureExitPortal();
-            SetPortalOpen(true);
-            var tween = _exitPortal.CreateTween();
-            _exitPortal.Scale = Vector3.One * 0.78f;
-            tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);
-            tween.TweenProperty(_exitPortal, "scale", Vector3.One, 0.12f);
+            UnlockExitAfterReward();
         }
 
         EmitSignal(SignalName.RoomCleared);
@@ -166,6 +161,17 @@ public partial class RunManager : Node3D
             SpawnArtifact();
         else
             GetTree().CallGroup("hud", "OpenBloodBlessingOffer");
+    }
+
+    public void UnlockExitAfterReward()
+    {
+        if (_exitPortal == null) return;
+        ConfigureExitPortal();
+        SetPortalOpen(true);
+        var tween = _exitPortal.CreateTween();
+        _exitPortal.Scale = Vector3.One * 0.78f;
+        tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);
+        tween.TweenProperty(_exitPortal, "scale", Vector3.One, 0.12f);
     }
 
     private void ConfigureRoom()
@@ -205,7 +211,9 @@ public partial class RunManager : Node3D
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
 
             var health = enemy.GetNodeOrNull<Health>("Health");
-            health?.SetMaxHealth((CompendiumTuning.GetFloat("enemy.basic.health", 110.0f) + difficultyBonus * 18.0f) * mapDifficulty, true);
+            var rarityHealth = EnemyTuningCatalog.Get(enemy.Rarity).Health;
+            var archetypeHealth = enemy.Archetype == EnemyArchetype.Tank ? 1.8f : 1.0f;
+            health?.SetMaxHealth((CompendiumTuning.GetFloat("enemy.basic.health", 110.0f) + difficultyBonus * 18.0f) * mapDifficulty * rarityHealth * archetypeHealth, true);
         }
 
     }
@@ -225,12 +233,14 @@ public partial class RunManager : Node3D
             {
                 var bossDefinition = BossCatalog.Get(RunState.CurrentMapIndex);
                 enemy.Name = $"Boss_{bossDefinition.Id}";
+                enemy.SetOverheadHealthVisible(false);
                 if (enemy.GetNodeOrNull<Node3D>("Visual") is { } bossVisual)
                     bossVisual.Scale = Vector3.One * 1.55f;
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
-                if (RunState.CurrentMapIndex == 0) enemy.MoveSpeed *= 1.4f;
-                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f);
+                enemy.MoveSpeed *= RunState.CurrentMapIndex == 0 ? 1.4f : 1.85f;
+                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f);
                 if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.55f;
+                else enemy.AttackWindup = 0.38f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
                 enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.min_blood_coins", 8);
                 enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.max_blood_coins", 10);
@@ -260,8 +270,8 @@ public partial class RunManager : Node3D
                 ? "res://scenes/game/CrowsNest.tscn"
                 : "res://scenes/game/TestArena.tscn";
             var prompt = RunState.IsFinalMap
-                ? "E - concluir a campanha"
-                : "E - seguir para o proximo mapa";
+                ? Localization.Text("portal.finish_campaign")
+                : Localization.Text("portal.next_map");
             _scenePortal.ConfigureDestination(
                 destination,
                 prompt,
@@ -272,7 +282,7 @@ public partial class RunManager : Node3D
 
         _scenePortal.ConfigureDestination(
             "res://scenes/game/TestArena.tscn",
-            "E - avancar para proxima sala",
+            Localization.Text("portal.next_room"),
             ScenePortal.RunPortalAction.AdvanceRoom
         );
     }

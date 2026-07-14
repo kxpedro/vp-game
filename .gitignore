@@ -6,6 +6,7 @@
 .mono/
 bin/
 obj/
+/builds/
 
 # IDE and operating system files
 .vs/

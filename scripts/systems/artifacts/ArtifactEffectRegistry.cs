@@ -12,7 +12,15 @@ public static class ArtifactEffectRegistry
         ["CriticalLifeSteal"] = "Roubo de vida em criticos", ["ExecuteThreshold"] = "Limite de execucao",
         ["PreventFatalDamage"] = "Impede dano fatal uma vez", ["EnemyTimeScale"] = "Lentidao dos inimigos",
         ["SummonSpectralServants"] = "Servos espectrais", ["FearArea"] = "Medo em area",
-        ["Intangible"] = "Intangibilidade", ["Duration"] = "Duracao"
+        ["Intangible"] = "Intangibilidade", ["Duration"] = "Duracao",
+        ["BasicAttackDamage"] = "Dano de ataque basico",
+        ["BasicAttackLifeSteal"] = "Roubo de vida de ataque basico",
+        ["BasicAttackBleed"] = "Sangramento em ataque basico",
+        ["BasicAttackPestilence"] = "Pestilencia em ataque basico",
+        ["BasicAttackCharmChance"] = "Chance de Encanto em ataque basico",
+        ["QuickAttackDamage"] = "Dano de ataque rápido",
+        ["QuickAttackCharmChance"] = "Chance de Encanto no ataque rápido",
+        ["PestilenceDeathSpreadRadius"] = "Raio de contagio na morte"
     };
 
     public static string FriendlyName(string type) => Names.TryGetValue(type, out var name) ? name : SplitPascalCase(type);
