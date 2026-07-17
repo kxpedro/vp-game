@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4jrw1ye1s8a0"
-path="res://.godot/imported/invisible_women__marvel_rivals_12.png-7a808d7b94c3d3be03d786aace7a3607.ctex"
+path.s3tc="res://.godot/imported/invisible_women__marvel_rivals_12.png-7a808d7b94c3d3be03d786aace7a3607.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7f6447d44c18c84eb9b0ec7c132b1904"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://3d/invisible_women__marvel_rivals_12.png"
-dest_files=["res://.godot/imported/invisible_women__marvel_rivals_12.png-7a808d7b94c3d3be03d786aace7a3607.ctex"]
+dest_files=["res://.godot/imported/invisible_women__marvel_rivals_12.png-7a808d7b94c3d3be03d786aace7a3607.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

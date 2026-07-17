@@ -20,20 +20,10 @@ public partial class RoomGenerator : Node3D
     public IReadOnlyCollection<Vector2I> WalkableCells => _walkableCells;
     public float MapCellSize => CellSize;
 
-    private const float CellSize = 1.64f;
+    private const float CellSize = 1.45f;
     private const float FloorHeight = 0.22f;
     private const float WallHeight = 2.35f;
-    private const int MainRoomScale = 2;
-    private const int RegionSpacing = 2;
-
-    private enum MapTemplate
-    {
-        BranchingKeep,
-        LairWithVault,
-        CrossDungeon,
-        SplitHalls,
-        WindingCrypt
-    }
+    private const int RegionSpacing = 1;
 
     private readonly RandomNumberGenerator _rng = new();
     private readonly HashSet<Vector2I> _walkableCells = new();
@@ -44,8 +34,8 @@ public partial class RoomGenerator : Node3D
 
     private Vector2I _entranceCell = new(0, 3);
     private Vector2I _exitCell = new(0, -4);
-    private Vector2I _treasureCell = new(3, -2);
-    private Vector2I _deadEndCell = new(-4, -2);
+    private Vector2I _rewardCell = new(0, -12);
+    private Vector2I _focusCell = Vector2I.Zero;
 
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
@@ -76,13 +66,25 @@ public partial class RoomGenerator : Node3D
     public override void _Process(double delta)
     {
         _waveCountdown -= (float)delta;
-        if (!_isSpawningWave && _nextWaveEnemyIndex < _pendingEnemyWaves.Count && _waveCountdown <= 0.0f)
+        var canSpawnNextWave = !_isSpawningWave && _nextWaveEnemyIndex < _pendingEnemyWaves.Count;
+        if (canSpawnNextWave && (_waveCountdown <= 0.0f || !HasLivingEnemies()))
             SpawnNextWave();
+    }
+
+    private bool HasLivingEnemies()
+    {
+        foreach (var node in GetTree().GetNodesInGroup("enemies"))
+        {
+            if (node.IsQueuedForDeletion()) continue;
+            var health = node.GetNodeOrNull<Health>("Health");
+            if (health != null && !health.IsDead) return true;
+        }
+        return false;
     }
 
     public Vector3 GetArtifactSpawnPosition()
     {
-        return CellToWorld(_treasureCell) + new Vector3(_rng.RandfRange(-0.55f, 0.55f), 0.15f, _rng.RandfRange(-0.55f, 0.55f));
+        return CellToWorld(_rewardCell) + new Vector3(_rng.RandfRange(-0.55f, 0.55f), 0.15f, _rng.RandfRange(-0.55f, 0.55f));
     }
 
     private void BuildMap()
@@ -96,170 +98,48 @@ public partial class RoomGenerator : Node3D
             return;
         }
 
-        var template = (MapTemplate)_rng.RandiRange(0, 4);
-        if (template == MapTemplate.BranchingKeep)
-            BuildBranchingKeep();
-        else if (template == MapTemplate.LairWithVault)
-            BuildLairWithVault();
-        else if (template == MapTemplate.CrossDungeon)
-            BuildCrossDungeon();
-        else if (template == MapTemplate.SplitHalls)
-            BuildSplitHalls();
-        else
-            BuildWindingCrypt();
-
-        AddProceduralSideRooms();
-        RepairDisconnectedMapPieces();
+        BuildCompactLinearMap();
     }
 
-    private void BuildBranchingKeep()
+    private void BuildCompactLinearMap()
     {
-        _entranceCell = R(0, 4);
-        _exitCell = R(0, -5);
-        _treasureCell = R(5, -2);
-        _deadEndCell = R(-5, -2);
+        var firstOffset = _rng.RandiRange(-1, 1) * 3;
+        var secondOffset = _rng.RandiRange(-1, 1) * 3;
+        var rooms = new[] { R(0, 12), R(firstOffset, 4), R(secondOffset, -4), R(0, -12) };
 
-        AddMainRoom(R(0, 2), 5, 3, "Comodo principal");
-        AddMainRoom(R(0, -2), 5, 3, "Comodo principal");
-        AddMainRoom(R(8, 2), 4, 3, "Ala leste");
-        AddMainRoom(R(-8, 2), 4, 3, "Ala oeste");
-        AddMainRoom(R(8, -5), 4, 3, "Ala inferior leste");
-        AddMainRoom(R(-8, -5), 4, 3, "Ala inferior oeste");
-        AddRoom(R(-5, -2), 3, 3, "Beco sem saida");
-        AddRoom(R(0, -5), 3, 2, "Saida");
-        ConnectCells(_entranceCell, R(0, 2), "Corredor entrada");
-        ConnectCells(R(0, 1), R(0, -2), "Corredor central");
-        ConnectCells(R(2, 2), R(8, 2), "Corredor ala");
-        ConnectCells(R(-2, 2), R(-8, 2), "Corredor ala");
-        ConnectCells(R(2, -2), R(8, -5), "Corredor diagonal");
-        ConnectCells(R(-2, -2), R(-8, -5), "Corredor diagonal");
-        ConnectCells(R(8, 1), R(8, -5), "Corredor vertical");
-        ConnectCells(R(-8, 1), R(-8, -5), "Corredor vertical");
-        ConnectCells(R(-2, -2), _deadEndCell, "Corredor beco");
-        ConnectCells(R(0, -3), _exitCell, "Corredor saida");
-    }
+        _entranceCell = rooms[0];
+        _focusCell = rooms[1];
+        _rewardCell = rooms[3];
+        _exitCell = rooms[3];
 
-    private void BuildLairWithVault()
-    {
-        _entranceCell = R(-4, 4);
-        _exitCell = R(4, -5);
-        _treasureCell = R(-5, -4);
-        _deadEndCell = R(5, 3);
-
-        AddMainRoom(R(-4, 3), 3, 3, "Comodo inicial");
-        AddMainRoom(R(0, 1), 5, 4, "Sala central");
-        AddMainRoom(R(4, -2), 4, 3, "Comodo principal");
-        AddMainRoom(R(-9, 0), 4, 3, "Ala oeste");
-        AddMainRoom(R(9, 2), 4, 3, "Ala leste");
-        AddMainRoom(R(0, -7), 5, 3, "Ala inferior");
-        AddRoom(R(5, 3), 3, 2, "Beco sem saida");
-        ConnectCells(_entranceCell, R(-1, 2), "Corredor entrada");
-        ConnectCells(R(1, 0), R(4, -2), "Corredor principal");
-        ConnectCells(R(-3, 1), R(-9, 0), "Corredor oeste");
-        ConnectCells(R(4, 1), R(9, 2), "Corredor leste");
-        ConnectCells(R(4, -3), R(0, -7), "Corredor inferior");
-        ConnectCells(R(4, -3), _exitCell, "Corredor saida");
-        ConnectCells(R(2, 2), _deadEndCell, "Corredor beco");
-    }
-
-    private void BuildCrossDungeon()
-    {
-        _entranceCell = R(0, 5);
-        _exitCell = R(0, -5);
-        _treasureCell = R(6, 0);
-        _deadEndCell = R(-6, 0);
-
-        AddMainRoom(R(0, 0), 5, 5, "Sala central");
-        AddMainRoom(R(0, 9), 5, 3, "Ala norte");
-        AddMainRoom(R(0, -9), 5, 3, "Ala sul");
-        AddMainRoom(R(9, 0), 4, 4, "Ala leste");
-        AddMainRoom(R(-9, 0), 4, 4, "Ala oeste");
-        AddRoom(R(0, 5), 3, 2, "Entrada");
-        AddRoom(R(0, -5), 3, 2, "Saida");
-        AddRoom(_deadEndCell, 3, 3, "Beco sem saida");
-        ConnectCells(_entranceCell, R(0, 2), "Corredor entrada");
-        ConnectCells(R(0, -2), _exitCell, "Corredor saida");
-        ConnectCells(R(0, 3), R(0, 9), "Corredor norte");
-        ConnectCells(R(0, -3), R(0, -9), "Corredor sul");
-        ConnectCells(R(3, 0), R(9, 0), "Corredor leste");
-        ConnectCells(R(-3, 0), R(-9, 0), "Corredor oeste");
-        ConnectCells(R(9, -2), R(0, -9), "Corredor lateral");
-        ConnectCells(R(-9, 2), R(0, 9), "Corredor lateral");
-        ConnectCells(R(-2, 0), _deadEndCell, "Corredor beco");
-    }
-
-    private void BuildSplitHalls()
-    {
-        _entranceCell = R(0, 5);
-        _exitCell = R(0, -5);
-        _treasureCell = R(-5, -3);
-        _deadEndCell = R(5, -3);
-
-        AddMainRoom(R(0, 4), 5, 2, "Galeria entrada");
-        AddMainRoom(R(-4, 0), 3, 5, "Ala oeste");
-        AddMainRoom(R(4, 0), 3, 5, "Ala leste");
-        AddMainRoom(R(0, -4), 5, 3, "Sala inferior");
-        AddMainRoom(R(-10, 0), 4, 4, "Comodo oeste");
-        AddMainRoom(R(10, 0), 4, 4, "Comodo leste");
-        AddMainRoom(R(-5, -8), 4, 3, "Ala inferior oeste");
-        AddMainRoom(R(5, -8), 4, 3, "Ala inferior leste");
-        AddRoom(_deadEndCell, 3, 2, "Beco sem saida");
-        ConnectCells(_entranceCell, R(-4, 2), "Corredor bifurcado");
-        ConnectCells(_entranceCell, R(4, 2), "Corredor bifurcado");
-        ConnectCells(R(-4, -2), R(0, -4), "Corredor oeste");
-        ConnectCells(R(4, -2), R(0, -4), "Corredor leste");
-        ConnectCells(R(-6, 0), R(-10, 0), "Corredor oeste");
-        ConnectCells(R(6, 0), R(10, 0), "Corredor leste");
-        ConnectCells(R(-4, -4), R(-5, -8), "Corredor inferior");
-        ConnectCells(R(4, -4), R(5, -8), "Corredor inferior");
-        ConnectCells(R(-5, -8), R(5, -8), "Corredor baixo");
-        ConnectCells(R(0, -4), _exitCell, "Corredor saida");
-        ConnectCells(R(4, -2), _deadEndCell, "Corredor beco");
-    }
-
-    private void BuildWindingCrypt()
-    {
-        _entranceCell = R(-5, 5);
-        _exitCell = R(5, -5);
-        _treasureCell = R(-5, -3);
-        _deadEndCell = R(5, 3);
-
-        AddMainRoom(R(-5, 5), 3, 2, "Entrada cripta");
-        AddMainRoom(R(-2, 2), 4, 3, "Comodo principal");
-        AddMainRoom(R(3, 1), 4, 3, "Ala sinuosa");
-        AddMainRoom(R(0, -3), 5, 3, "Sala inferior");
-        AddMainRoom(R(-9, 1), 4, 3, "Ala oeste");
-        AddMainRoom(R(9, -1), 4, 3, "Ala leste");
-        AddMainRoom(R(-4, -8), 4, 3, "Cripta inferior");
-        AddMainRoom(R(7, -7), 4, 3, "Galeria final");
-        AddRoom(R(5, -5), 3, 2, "Saida");
-        AddRoom(_deadEndCell, 3, 2, "Beco sem saida");
-        ConnectCells(_entranceCell, R(-2, 2), "Corredor entrada");
-        ConnectCells(R(0, 2), R(3, 1), "Corredor sinuoso");
-        ConnectCells(R(3, 0), R(0, -3), "Corredor descida");
-        ConnectCells(R(-4, 2), R(-9, 1), "Corredor oeste");
-        ConnectCells(R(5, 1), R(9, -1), "Corredor leste");
-        ConnectCells(R(0, -4), R(-4, -8), "Corredor cripta");
-        ConnectCells(R(3, -4), R(7, -7), "Corredor final");
-        ConnectCells(R(-4, -8), R(7, -7), "Corredor baixo");
-        ConnectCells(R(2, -3), _exitCell, "Corredor saida");
-        ConnectCells(R(3, 1), _deadEndCell, "Corredor beco");
+        for (var i = 0; i < rooms.Length; i++)
+            AddRoom(rooms[i], 9, 9, GetRoomLoreLabel(i));
     }
 
     private void BuildBossMap()
     {
-        _entranceCell = new Vector2I(0, 5);
-        _exitCell = new Vector2I(0, -5);
-        _treasureCell = new Vector2I(0, -3);
-        _deadEndCell = new Vector2I(0, 0);
+        _entranceCell = new Vector2I(0, 8);
+        _exitCell = new Vector2I(0, -8);
+        _rewardCell = new Vector2I(0, -5);
+        _focusCell = Vector2I.Zero;
 
-        AddMainRoom(new Vector2I(0, 0), 9, 9, "Arena do chefe");
-        AddRoom(_entranceCell, 3, 2, "Entrada");
-        AddRoom(_exitCell, 3, 2, "Portao final");
-        ConnectCells(_entranceCell, new Vector2I(0, 3), "Corredor entrada");
-        ConnectCells(new Vector2I(0, -3), _exitCell, "Corredor saida");
-        RepairDisconnectedMapPieces();
+        AddMainRoom(new Vector2I(0, 0), 21, 21, "Arena do chefe");
     }
+
+    private static string GetRoomLoreLabel(int roomIndex) => (RunState.CurrentMapIndex, roomIndex) switch
+    {
+        (0, 0) => "Cela de Vigia",
+        (0, 1) => "Cripta dos Condenados",
+        (0, 2) => "Camara de Tortura",
+        (0, _) => "Portao para o Jardim",
+        (1, 0) => "Atrio do Jardim Sangrento",
+        (1, 1) => "Estufa Carmesim",
+        (1, 2) => "Patio das Rosas",
+        (1, _) => "Escadaria do Primeiro Andar",
+        (_, 0) => "Entrada da Ala Superior",
+        (_, 3) => "Escadaria Ascendente",
+        _ => "Comodo do Castelo"
+    };
 
     private void GenerateMapGeometry()
     {
@@ -280,7 +160,7 @@ public partial class RoomGenerator : Node3D
 
         if (!RunState.IsBossRoom)
         {
-            CreatePointOfInterest("Beco sem saida", CellToWorld(_deadEndCell), new Color(0.28f, 0.28f, 0.32f));
+            CreatePointOfInterest("Camara central", CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
         }
         else
         {
@@ -531,7 +411,7 @@ public partial class RoomGenerator : Node3D
 
     private bool IsValidEnemySpawnCell(Vector2I cell, int wallPaddingCells, bool roomCellsOnly)
     {
-        if (cell == _entranceCell || cell == _exitCell || cell == _deadEndCell)
+        if (cell == _entranceCell || cell == _exitCell || cell == _focusCell)
             return false;
 
         if (roomCellsOnly && !_roomCells.Contains(cell))
@@ -585,8 +465,8 @@ public partial class RoomGenerator : Node3D
         PlayerSpawnPosition = new Vector3(playerSpawn.X, 0.2f, playerSpawn.Z);
         var exitPortal = CellToWorld(_exitCell);
         ExitPortalPosition = new Vector3(exitPortal.X, 0.18f, exitPortal.Z);
-        _treasureCell = NearestWalkableCell(_treasureCell);
-        _deadEndCell = NearestWalkableCell(_deadEndCell);
+        _rewardCell = NearestWalkableCell(_rewardCell);
+        _focusCell = NearestWalkableCell(_focusCell);
 
         if (GetParent().GetNodeOrNull<Node3D>("Player") is { } player)
             player.Position = PlayerSpawnPosition;
@@ -687,7 +567,7 @@ public partial class RoomGenerator : Node3D
 
     private void AddMainRoom(Vector2I center, int width, int height)
     {
-        AddRoom(center, width * MainRoomScale, height * MainRoomScale);
+        AddRoom(center, width, height);
     }
 
     private void AddMainRoom(Vector2I center, int width, int height, string labelText)
@@ -696,244 +576,11 @@ public partial class RoomGenerator : Node3D
         CreateLayoutDebugLabel(labelText, CellToWorld(center));
     }
 
-    private void ConnectCells(Vector2I from, Vector2I to)
-    {
-        var path = BuildCorridorPath(from, to);
-        CarveCorridor(path);
-    }
-
-    private void ConnectCells(Vector2I from, Vector2I to, string labelText)
-    {
-        var path = BuildCorridorPath(from, to);
-        CarveCorridor(path);
-
-        if (TryFindValidCorridorLabelCell(path, out var midpoint))
-            CreateLayoutDebugLabel(labelText, CellToWorld(midpoint), 0.58f);
-    }
-
-    private List<Vector2I> BuildCorridorPath(Vector2I from, Vector2I to)
-    {
-        var current = from;
-        var path = new List<Vector2I> { current };
-
-        while (current.X != to.X)
-        {
-            current.X += current.X < to.X ? 1 : -1;
-            path.Add(current);
-        }
-
-        while (current.Y != to.Y)
-        {
-            current.Y += current.Y < to.Y ? 1 : -1;
-            path.Add(current);
-        }
-
-        return path;
-    }
-
-    private void CarveCorridor(List<Vector2I> path)
-    {
-        for (var i = 0; i < path.Count; i++)
-        {
-            var cell = path[i];
-            _walkableCells.Add(cell);
-
-            var direction = GetPathDirection(path, i);
-            if (direction.X != 0)
-                _walkableCells.Add(new Vector2I(cell.X, cell.Y + 1));
-            else if (direction.Y != 0)
-                _walkableCells.Add(new Vector2I(cell.X + 1, cell.Y));
-        }
-    }
-
-    private void RepairDisconnectedMapPieces()
-    {
-        if (_walkableCells.Count == 0)
-            return;
-
-        _entranceCell = NearestWalkableCell(_entranceCell);
-        var reachableCells = FindReachableCells(_entranceCell);
-        var repairs = 0;
-
-        while (reachableCells.Count < _walkableCells.Count)
-        {
-            var disconnectedPiece = FindDisconnectedPiece(reachableCells);
-            if (disconnectedPiece.Count == 0)
-                break;
-
-            var bridge = FindClosestBridge(reachableCells, disconnectedPiece);
-            ConnectCells(bridge.FromReachable, bridge.ToDisconnected);
-            repairs++;
-
-            reachableCells = FindReachableCells(_entranceCell);
-        }
-
-        if (repairs > 0)
-            GD.Print($"RoomGenerator repaired {repairs} disconnected map piece(s).");
-    }
-
-    private HashSet<Vector2I> FindReachableCells(Vector2I startCell)
-    {
-        var reachableCells = new HashSet<Vector2I>();
-        if (!_walkableCells.Contains(startCell))
-            return reachableCells;
-
-        var queue = new Queue<Vector2I>();
-        reachableCells.Add(startCell);
-        queue.Enqueue(startCell);
-
-        while (queue.Count > 0)
-        {
-            var cell = queue.Dequeue();
-            foreach (var neighbor in GetCardinalNeighbors(cell))
-            {
-                if (!_walkableCells.Contains(neighbor) || reachableCells.Contains(neighbor))
-                    continue;
-
-                reachableCells.Add(neighbor);
-                queue.Enqueue(neighbor);
-            }
-        }
-
-        return reachableCells;
-    }
-
-    private List<Vector2I> FindDisconnectedPiece(HashSet<Vector2I> reachableCells)
-    {
-        var piece = new List<Vector2I>();
-        var startCell = Vector2I.Zero;
-        var foundStart = false;
-
-        foreach (var cell in _walkableCells)
-        {
-            if (reachableCells.Contains(cell))
-                continue;
-
-            startCell = cell;
-            foundStart = true;
-            break;
-        }
-
-        if (!foundStart)
-            return piece;
-
-        var visited = new HashSet<Vector2I> { startCell };
-        var queue = new Queue<Vector2I>();
-        queue.Enqueue(startCell);
-
-        while (queue.Count > 0)
-        {
-            var cell = queue.Dequeue();
-            piece.Add(cell);
-
-            foreach (var neighbor in GetCardinalNeighbors(cell))
-            {
-                if (!_walkableCells.Contains(neighbor) || reachableCells.Contains(neighbor) || visited.Contains(neighbor))
-                    continue;
-
-                visited.Add(neighbor);
-                queue.Enqueue(neighbor);
-            }
-        }
-
-        return piece;
-    }
-
-    private (Vector2I FromReachable, Vector2I ToDisconnected) FindClosestBridge(HashSet<Vector2I> reachableCells, List<Vector2I> disconnectedPiece)
-    {
-        var bestReachableCell = _entranceCell;
-        var bestDisconnectedCell = disconnectedPiece[0];
-        var bestDistance = int.MaxValue;
-
-        foreach (var reachableCell in reachableCells)
-        {
-            foreach (var disconnectedCell in disconnectedPiece)
-            {
-                var distance = Mathf.Abs(reachableCell.X - disconnectedCell.X) + Mathf.Abs(reachableCell.Y - disconnectedCell.Y);
-                if (distance >= bestDistance)
-                    continue;
-
-                bestDistance = distance;
-                bestReachableCell = reachableCell;
-                bestDisconnectedCell = disconnectedCell;
-            }
-        }
-
-        return (bestReachableCell, bestDisconnectedCell);
-    }
-
-    private IEnumerable<Vector2I> GetCardinalNeighbors(Vector2I cell)
-    {
-        yield return cell + Vector2I.Up;
-        yield return cell + Vector2I.Down;
-        yield return cell + Vector2I.Left;
-        yield return cell + Vector2I.Right;
-    }
-
-    private Vector2I GetPathDirection(List<Vector2I> path, int index)
-    {
-        if (path.Count <= 1)
-            return Vector2I.Zero;
-
-        if (index < path.Count - 1)
-            return path[index + 1] - path[index];
-
-        return path[index] - path[index - 1];
-    }
-
-    private bool TryFindValidCorridorLabelCell(List<Vector2I> path, out Vector2I labelCell)
-    {
-        labelCell = path[path.Count / 2];
-
-        if (path.Count < 3)
-            return false;
-
-        if (!IsMapPieceCell(path[0]) || !IsMapPieceCell(path[^1]))
-            return false;
-
-        var corridorOnlyCells = new List<Vector2I>();
-        foreach (var cell in path)
-        {
-            if (!_roomCells.Contains(cell))
-                corridorOnlyCells.Add(cell);
-        }
-
-        if (corridorOnlyCells.Count < 2)
-            return false;
-
-        labelCell = corridorOnlyCells[corridorOnlyCells.Count / 2];
-        return true;
-    }
-
-    private bool IsMapPieceCell(Vector2I cell)
-    {
-        return _roomCells.Contains(cell)
-            || cell == _entranceCell
-            || cell == _exitCell
-            || cell == _deadEndCell;
-    }
-
     private Vector2I R(int x, int y)
     {
         var point = new Vector2I((_layoutMirror ? -x : x) * RegionSpacing, y * RegionSpacing);
         for (var i = 0; i < _layoutQuarterTurns; i++) point = new Vector2I(-point.Y, point.X);
         return point;
-    }
-
-    private void AddProceduralSideRooms()
-    {
-        if (_roomCells.Count == 0) return;
-        var anchors = new List<Vector2I>(_roomCells);
-        var additions = _rng.Randf() < 0.35f ? 1 : 0;
-        var directions = new[] { Vector2I.Left, Vector2I.Right, Vector2I.Up, Vector2I.Down };
-        for (var i = 0; i < additions; i++)
-        {
-            var anchor = anchors[_rng.RandiRange(0, anchors.Count - 1)];
-            var direction = directions[_rng.RandiRange(0, directions.Length - 1)];
-            var center = anchor + direction * _rng.RandiRange(4, 8);
-            AddRoom(center, _rng.RandiRange(2, 4), _rng.RandiRange(2, 4), "Comodo procedural");
-            ConnectCells(anchor, center, "Passagem procedural");
-        }
     }
 
     private Vector3 CellToWorld(Vector2I cell)
