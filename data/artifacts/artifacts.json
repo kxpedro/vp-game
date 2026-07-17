@@ -1,636 +1,539 @@
 {
-  "version": 2,
-  "bossDropPowerMultiplier": 1.75,
-  "notes": "Artefatos agora sao recompensas exclusivas de bosses. Este multiplicador fortalece todos os efeitos numericos.",
-  "artifacts": [
-    {
-      "id": "serrated_fang",
-      "name": "Presa Serrilhada",
-      "icon": "res://images/generic.png",
-      "rarity": "Common",
-      "slot": "Passive",
-      "weight": 100,
-      "tags": ["damage", "melee", "blood"],
-      "description": "Aumenta o dano causado durante a run.",
-      "flavorText": "Ainda vibra com a fome do ultimo dono.",
-      "effects": [
-        {
-          "type": "Damage",
-          "operation": "AddMultiplier",
-          "value": 0.25
-        }
-      ]
-    },
-    {
-      "id": "ruby_chalice",
-      "name": "Calice Rubro",
-      "icon": "res://images/generic.png",
-      "rarity": "Common",
-      "slot": "Passive",
-      "weight": 100,
-      "tags": ["health", "blood", "survival"],
-      "description": "Aumenta a vida maxima durante a run.",
-      "flavorText": "Cheio o bastante para salvar, vazio o bastante para tentar.",
-      "effects": [
-        {
-          "type": "MaxHealth",
-          "operation": "AddFlat",
-          "value": 30.0
-        }
-      ]
-    },
-    {
-      "id": "ashen_heart",
-      "name": "Coracao Cinereo",
-      "icon": "res://images/generic.png",
-      "rarity": "Uncommon",
-      "slot": "Passive",
-      "weight": 70,
-      "tags": ["health", "damage", "risk"],
-      "description": "Aumenta dano e vida maxima, mas deve ser tratado como artefato de risco quando efeitos negativos forem implementados.",
-      "flavorText": "Bate uma vez a cada sala limpa.",
-      "effects": [
-        {
-          "type": "Damage",
-          "operation": "AddMultiplier",
-          "value": 0.50
-        },
-        {
-          "type": "MaxHealth",
-          "operation": "AddFlat",
-          "value": 20.0
-        }
-      ]
-    },
-    {
-      "id": "executioners_signet",
-      "name": "Sinete do Carrasco",
-      "icon": "res://images/generic.png",
-      "rarity": "Uncommon",
-      "slot": "Passive",
-      "weight": 65,
-      "tags": ["damage", "elite", "boss"],
-      "description": "Aumenta o dano causado. Futuramente pode ganhar bonus contra elites e chefes.",
-      "flavorText": "A cera vermelha nunca seca.",
-      "effects": [
-        {
-          "type": "Damage",
-          "operation": "AddMultiplier",
-          "value": 0.22
-        }
-      ]
-    },
-    {
-      "id": "marrow_locket",
-      "name": "Relicario de Medula",
-      "icon": "res://images/generic.png",
-      "rarity": "Rare",
-      "slot": "Passive",
-      "weight": 35,
-      "tags": ["health", "survival", "relic"],
-      "description": "Aumenta bastante a vida maxima durante a run.",
-      "flavorText": "Guarda uma promessa feita antes da primeira mordida.",
-      "effects": [
-        {
-          "type": "MaxHealth",
-          "operation": "AddFlat",
-          "value": 45.0
-        }
-      ]
-    },
-    {
-      "id": "night_tithe",
-      "name": "Dizimo da Noite",
-      "icon": "res://images/generic.png",
-      "rarity": "Rare",
-      "slot": "Passive",
-      "weight": 30,
-      "tags": ["damage", "blood", "economy"],
-      "description": "Aumenta muito o dano. Futuramente pode interagir com Moedas de Sangue.",
-      "flavorText": "Toda dadiva cobra seu recibo.",
-      "effects": [
-        {
-          "type": "Damage",
-          "operation": "AddMultiplier",
-          "value": 0.30
-        }
-      ]
-    },
-    {
-      "id": "sanguine_nova",
-      "name": "Nova Sanguinea",
-      "icon": "res://images/generic.png",
-      "rarity": "Rare",
-      "slot": "Active",
-      "weight": 28,
-      "tags": ["active", "damage", "blood", "area"],
-      "description": "Ativo: libera uma explosao de sangue ao redor do jogador.",
-      "flavorText": "Um coracao roubado ainda sabe explodir.",
-      "effects": [
-        {
-          "type": "DamageBurst",
-          "operation": "ApplyFlat",
-          "value": 90.0
-        }
-      ]
-    },
-    {
-      "id": "crimson_vial",
-      "name": "Frasco Carmesim",
-      "icon": "res://images/generic.png",
-      "rarity": "Uncommon",
-      "slot": "Active",
-      "weight": 45,
-      "tags": ["active", "heal", "blood", "survival"],
-      "description": "Ativo: restaura vida do jogador.",
-      "flavorText": "Nao e cura. E uma divida adiada.",
-      "effects": [
-        {
-          "type": "Heal",
-          "operation": "ApplyFlat",
-          "value": 35.0
-        }
-      ]
-    },
-	{
-    "id": "mirror_of_the_last_guest",
-    "name": "Espelho do Último Convidado",
-    "icon": "res://images/generic.png",
-    "rarity": "Rare",
-    "slot": "Passive",
-    "weight": 30,
-    "tags": ["critical", "damage", "curse", "mirror"],
-    "description": "Aumenta significativamente a chance de crítico, mas reduz a vida máxima.",
-    "flavorText": "Seu reflexo sorri um instante antes de você.",
-    "effects": [
-      {
-        "type": "CriticalChance",
-        "operation": "AddFlat",
-        "value": 0.20
-      },
-      {
-        "type": "MaxHealth",
-        "operation": "AddMultiplier",
-        "value": -0.15
-      }
-    ]
-  },
-  {
-    "id": "boots_of_the_headless_duke",
-    "name": "Botas do Duque Sem Cabeça",
-    "icon": "res://images/generic.png",
-    "rarity": "Uncommon",
-    "slot": "Passive",
-    "weight": 55,
-    "tags": ["speed", "mobility", "evasion"],
-    "description": "Aumenta a velocidade de movimento e concede velocidade adicional após sofrer dano.",
-    "flavorText": "O duque perdeu a cabeça. As botas nunca perderam o caminho.",
-    "effects": [
-      {
-        "type": "MoveSpeed",
-        "operation": "AddMultiplier",
-        "value": 0.12
-      },
-      {
-        "type": "MoveSpeedOnHit",
-        "operation": "AddMultiplier",
-        "value": 0.30
-      }
-    ]
-  },
-  {
-    "id": "saints_broken_halo",
-    "name": "Auréola Partida do Santo",
-    "icon": "res://images/generic.png",
-    "rarity": "Legendary",
-    "slot": "Passive",
-    "weight": 10,
-    "tags": ["critical", "holy", "damage", "curse"],
-    "description": "Críticos causam muito mais dano, mas ataques normais causam menos dano.",
-    "flavorText": "A fé não morreu. Apenas aprendeu a odiar.",
-    "effects": [
-      {
-        "type": "CriticalDamage",
-        "operation": "AddMultiplier",
-        "value": 1.00
-      },
-      {
-        "type": "NonCriticalDamage",
-        "operation": "AddMultiplier",
-        "value": -0.20
-      }
-    ]
-  },
-  {
-    "id": "hourglass_of_stolen_dawns",
-    "name": "Ampulheta das Alvoradas Roubadas",
-    "icon": "res://images/generic.png",
-    "rarity": "Legendary",
-    "slot": "Active",
-    "weight": 8,
-    "tags": ["active", "time", "speed", "cooldown"],
-    "description": "Ativo: desacelera drasticamente todos os inimigos próximos enquanto o jogador mantém sua velocidade normal.",
-    "flavorText": "Durante séculos, nenhuma manhã chegou ao castelo sem pagar tributo.",
-    "effects": [
-      {
-        "type": "EnemyTimeScale",
-        "operation": "ApplyMultiplier",
-        "value": 0.25
-      },
-      {
-        "type": "Duration",
-        "operation": "ApplyFlat",
-        "value": 5.0
-      }
-    ]
-  },
-  {
-    "id": "countess_vein_ring",
-    "name": "Anel de Veias da Condessa",
-    "icon": "res://images/generic.png",
-    "rarity": "Rare",
-    "slot": "Passive",
-    "weight": 28,
-    "tags": ["lifesteal", "critical", "blood", "survival"],
-    "description": "Golpes críticos restauram uma pequena quantidade de vida.",
-    "flavorText": "Foi moldado ao redor de um dedo que jamais esfriou.",
-    "effects": [
-      {
-        "type": "CriticalLifeSteal",
-        "operation": "AddMultiplier",
-        "value": 0.08
-      }
-    ]
-  },
-  {
-    "id": "bell_of_the_buried_servants",
-    "name": "Sino dos Servos Sepultados",
-    "icon": "res://images/generic.png",
-    "rarity": "Rare",
-    "slot": "Active",
-    "weight": 25,
-    "tags": ["active", "summon", "undead", "area"],
-    "description": "Ativo: toca o sino e invoca servos espectrais que atacam inimigos próximos.",
-    "flavorText": "Eles ainda obedecem. Mesmo sem carne. Mesmo sem nomes.",
-    "effects": [
-      {
-        "type": "SummonSpectralServants",
-        "operation": "ApplyFlat",
-        "value": 3.0
-      },
-      {
-        "type": "Duration",
-        "operation": "ApplyFlat",
-        "value": 12.0
-      }
-    ]
-  },
-  {
-    "id": "black_widows_corset",
-    "name": "Espartilho da Viúva Negra",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 18,
-    "tags": ["speed", "damage", "health", "risk"],
-    "description": "Quanto menor a vida atual, maiores a velocidade de ataque e a velocidade de movimento.",
-    "flavorText": "A última dona dançou até que o salão estivesse vazio.",
-    "effects": [
-      {
-        "type": "AttackSpeedMissingHealth",
-        "operation": "ScaleMultiplier",
-        "value": 0.60
-      },
-      {
-        "type": "MoveSpeedMissingHealth",
-        "operation": "ScaleMultiplier",
-        "value": 0.40
-      }
-    ]
-  },
-  {
-    "id": "crown_of_the_uninvited_king",
-    "name": "Coroa do Rei Não Convidado",
-    "icon": "res://images/generic.png",
-    "rarity": "Legendary",
-    "slot": "Passive",
-    "weight": 7,
-    "tags": ["boss", "damage", "elite", "curse"],
-    "description": "Aumenta drasticamente o dano contra chefes e elites, mas inimigos comuns também causam mais dano ao jogador.",
-    "flavorText": "Ele entrou como hóspede. Morreu como rei.",
-    "effects": [
-      {
-        "type": "DamageVsBoss",
-        "operation": "AddMultiplier",
-        "value": 0.50
-      },
-      {
-        "type": "DamageVsElite",
-        "operation": "AddMultiplier",
-        "value": 0.35
-      },
-      {
-        "type": "DamageTakenFromNormal",
-        "operation": "AddMultiplier",
-        "value": 0.20
-      }
-    ]
-  },
-  {
-    "id": "embalmed_bat_heart",
-    "name": "Coração Embalsamado de Morcego",
-    "icon": "res://images/generic.png",
-    "rarity": "Uncommon",
-    "slot": "Passive",
-    "weight": 60,
-    "tags": ["speed", "attack", "blood", "beast"],
-    "description": "Aumenta a velocidade de ataque. Abates concedem brevemente ainda mais velocidade.",
-    "flavorText": "Continua batendo quando a lua desaparece.",
-    "effects": [
-      {
-        "type": "AttackSpeed",
-        "operation": "AddMultiplier",
-        "value": 0.10
-      },
-      {
-        "type": "AttackSpeedOnKill",
-        "operation": "AddMultiplier",
-        "value": 0.20
-      }
-    ]
-  },
-  {
-    "id": "key_to_the_thirteenth_cellar",
-    "name": "Chave da Décima Terceira Adega",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 15,
-    "tags": ["critical", "luck", "secret", "economy"],
-    "description": "Aumenta a chance de crítico e a chance de encontrar recompensas raras.",
-    "flavorText": "O castelo possui doze adegas.",
-    "effects": [
-      {
-        "type": "CriticalChance",
-        "operation": "AddFlat",
-        "value": 0.08
-      },
-      {
-        "type": "RareDropChance",
-        "operation": "AddMultiplier",
-        "value": 0.25
-      }
-    ]
-  },
-  {
-    "id": "fang_clock",
-    "name": "Relógio de Presas",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 16,
-    "tags": ["cooldown", "critical", "active", "time"],
-    "description": "Golpes críticos reduzem o tempo de recarga do artefato ativo equipado.",
-    "flavorText": "Cada tique é uma mordida que o tempo não recupera.",
-    "effects": [
-      {
-        "type": "ActiveCooldownReductionOnCritical",
-        "operation": "ApplyFlat",
-        "value": 0.50
-      }
-    ]
-  },
-  {
-    "id": "goblet_of_the_first_victim",
-    "name": "Taça da Primeira Vítima",
-    "icon": "res://images/generic.png",
-    "rarity": "Legendary",
-    "slot": "Passive",
-    "weight": 6,
-    "tags": ["blood", "lifesteal", "damage", "snowball"],
-    "description": "Cada inimigo morto sem sofrer dano aumenta temporariamente o dano e o roubo de vida. O bônus é perdido ao ser atingido.",
-    "flavorText": "O primeiro sangue derramado no castelo jamais secou.",
-    "effects": [
-      {
-        "type": "FlawlessKillDamageStack",
-        "operation": "AddMultiplier",
-        "value": 0.03
-      },
-      {
-        "type": "FlawlessKillLifeStealStack",
-        "operation": "AddMultiplier",
-        "value": 0.01
-      },
-      {
-        "type": "ResetStacksOnHit",
-        "operation": "Set",
-        "value": 1.0
-      }
-    ]
-  },
-  {
-    "id": "portrait_of_the_hungry_child",
-    "name": "Retrato da Criança Faminta",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 14,
-    "tags": ["curse", "damage", "health", "room"],
-    "description": "Ao entrar em uma sala, perde parte da vida atual e recebe um grande bônus de dano até limpar a sala.",
-    "flavorText": "A criança muda de posição quando ninguém está olhando.",
-    "effects": [
-      {
-        "type": "CurrentHealthCostOnRoomEnter",
-        "operation": "ApplyMultiplier",
-        "value": 0.10
-      },
-      {
-        "type": "DamageUntilRoomClear",
-        "operation": "AddMultiplier",
-        "value": 0.35
-      }
-    ]
-  },
-  {
-    "id": "marquis_shadow_cloak",
-    "name": "Manto de Sombra do Marquês",
-    "icon": "res://images/generic.png",
-    "rarity": "Rare",
-    "slot": "Active",
-    "weight": 22,
-    "tags": ["active", "stealth", "critical", "mobility"],
-    "description": "Ativo: torna o jogador intangível por um curto período. O primeiro ataque realizado encerra o efeito e é um crítico garantido.",
-    "flavorText": "O marquês estava presente em todos os banquetes. Ninguém jamais o viu chegar.",
-    "effects": [
-      {
-        "type": "Intangible",
-        "operation": "ApplyFlat",
-        "value": 2.5
-      },
-      {
-        "type": "GuaranteedCriticalAfterStealth",
-        "operation": "Set",
-        "value": 1.0
-      }
-    ]
-  },
-  {
-    "id": "bone_organ_key",
-    "name": "Tecla do Órgão de Ossos",
-    "icon": "res://images/generic.png",
-    "rarity": "Rare",
-    "slot": "Active",
-    "weight": 24,
-    "tags": ["active", "fear", "area", "control"],
-    "description": "Ativo: toca uma nota impossível que causa medo nos inimigos e aumenta o dano que eles recebem.",
-    "flavorText": "Uma única tecla. Um único acorde. Centenas de funerais.",
-    "effects": [
-      {
-        "type": "FearArea",
-        "operation": "ApplyFlat",
-        "value": 5.0
-      },
-      {
-        "type": "DamageTakenDebuff",
-        "operation": "AddMultiplier",
-        "value": 0.25
-      }
-    ]
-  },
-  {
-    "id": "executioners_last_tooth",
-    "name": "Último Dente do Carrasco",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 17,
-    "tags": ["execute", "critical", "damage", "melee"],
-    "description": "Inimigos abaixo de um limite de vida podem ser executados instantaneamente. Críticos aumentam temporariamente esse limite.",
-    "flavorText": "Foi encontrado preso no pescoço do último condenado.",
-    "effects": [
-      {
-        "type": "ExecuteThreshold",
-        "operation": "AddFlat",
-        "value": 0.08
-      },
-      {
-        "type": "ExecuteThresholdOnCritical",
-        "operation": "AddFlat",
-        "value": 0.04
-      }
-    ]
-  },
-  {
-    "id": "bottle_of_imprisoned_moonlight",
-    "name": "Frasco de Luar Aprisionado",
-    "icon": "res://images/generic.png",
-    "rarity": "Legendary",
-    "slot": "Active",
-    "weight": 9,
-    "tags": ["active", "moon", "critical", "speed", "transformation"],
-    "description": "Ativo: libera luar ancestral, aumentando temporariamente velocidade, chance de crítico e dano crítico.",
-    "flavorText": "A lua esteve cheia durante trezentos anos dentro deste vidro.",
-    "effects": [
-      {
-        "type": "MoveSpeed",
-        "operation": "TemporaryAddMultiplier",
-        "value": 0.30
-      },
-      {
-        "type": "CriticalChance",
-        "operation": "TemporaryAddFlat",
-        "value": 0.25
-      },
-      {
-        "type": "CriticalDamage",
-        "operation": "TemporaryAddMultiplier",
-        "value": 0.50
-      },
-      {
-        "type": "Duration",
-        "operation": "ApplyFlat",
-        "value": 8.0
-      }
-    ]
-  },
-  {
-    "id": "nail_from_the_vampires_coffin",
-    "name": "Prego do Caixão do Vampiro",
-    "icon": "res://images/generic.png",
-    "rarity": "Mythic",
-    "slot": "Passive",
-    "weight": 3,
-    "tags": ["death", "revive", "curse", "vampire"],
-    "description": "Uma vez por run, ao sofrer dano fatal, permanece com 1 de vida, torna-se invulnerável brevemente e recebe enorme bônus de dano.",
-    "flavorText": "Você tem certeza de que o caixão estava vazio?",
-    "effects": [
-      {
-        "type": "PreventFatalDamage",
-        "operation": "Set",
-        "value": 1.0
-      },
-      {
-        "type": "InvulnerabilityOnFatal",
-        "operation": "ApplyFlat",
-        "value": 3.0
-      },
-      {
-        "type": "DamageOnFatal",
-        "operation": "TemporaryAddMultiplier",
-        "value": 1.00
-      }
-    ]
-  },
-  {
-    "id": "ledger_of_unpaid_blood",
-    "name": "Livro-Caixa do Sangue Não Pago",
-    "icon": "res://images/generic.png",
-    "rarity": "Epic",
-    "slot": "Passive",
-    "weight": 13,
-    "tags": ["damage", "economy", "blood", "risk"],
-    "description": "Quanto mais recursos o jogador acumula sem gastar, maior seu dano. Receber cura reduz temporariamente o bônus.",
-    "flavorText": "Toda dívida está registrada. Inclusive a sua.",
-    "effects": [
-      {
-        "type": "DamagePerCurrencyHeld",
-        "operation": "ScaleMultiplier",
-        "value": 0.001
-      },
-      {
-        "type": "DamagePenaltyOnHeal",
-        "operation": "AddMultiplier",
-        "value": -0.15
-      }
-    ]
-  },
-  {
-    "id": "throne_shard",
-    "name": "Lasca do Trono Imortal",
-    "icon": "res://images/generic.png",
-    "rarity": "Mythic",
-    "slot": "Active",
-    "weight": 2,
-    "tags": ["active", "vampire", "domination", "boss", "power"],
-    "description": "Ativo: libera uma fração da autoridade do senhor do castelo. Inimigos comuns ajoelham-se, elites ficam enfraquecidas e chefes sofrem dano massivo.",
-    "flavorText": "É apenas uma lasca. Ainda assim, seu joelho deseja dobrar.",
-    "effects": [
-      {
-        "type": "ExecuteNormalEnemies",
-        "operation": "ApplyFlat",
-        "value": 1.0
-      },
-      {
-        "type": "EliteDamageTakenDebuff",
-        "operation": "AddMultiplier",
-        "value": 0.50
-      },
-      {
-        "type": "BossCurrentHealthDamage",
-        "operation": "ApplyMultiplier",
-        "value": 0.10
-      }
-    ]
-  }
-  ]
+    "version":  2,
+    "bossDropPowerMultiplier":  1.75,
+    "notes":  "Artefatos agora sao recompensas exclusivas de bosses. Este multiplicador fortalece todos os efeitos numericos.",
+    "artifacts":  [
+                      {
+                          "id":  "serrated_fang",
+                          "name":  "Presa Serrilhada",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Common",
+                          "slot":  "Passive",
+                          "weight":  100,
+                          "tags":  [
+                                       "damage",
+                                       "melee",
+                                       "blood"
+                                   ],
+                          "description":  "Aumenta o dano causado durante a run.",
+                          "flavorText":  "Ainda vibra com a fome do ultimo dono.",
+                          "effects":  [
+                                          {
+                                              "type":  "Damage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.25
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "ruby_chalice",
+                          "name":  "Calice Rubro",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Common",
+                          "slot":  "Passive",
+                          "weight":  100,
+                          "tags":  [
+                                       "health",
+                                       "blood",
+                                       "survival"
+                                   ],
+                          "description":  "Aumenta a vida maxima durante a run.",
+                          "flavorText":  "Cheio o bastante para salvar, vazio o bastante para tentar.",
+                          "effects":  [
+                                          {
+                                              "type":  "MaxHealth",
+                                              "operation":  "AddFlat",
+                                              "value":  30.0
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "ashen_heart",
+                          "name":  "Coracao Cinereo",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Uncommon",
+                          "slot":  "Passive",
+                          "weight":  70,
+                          "tags":  [
+                                       "health",
+                                       "damage",
+                                       "risk"
+                                   ],
+                          "description":  "Aumenta dano e vida maxima, mas deve ser tratado como artefato de risco quando efeitos negativos forem implementados.",
+                          "flavorText":  "Bate uma vez a cada sala limpa.",
+                          "effects":  [
+                                          {
+                                              "type":  "Damage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.50
+                                          },
+                                          {
+                                              "type":  "MaxHealth",
+                                              "operation":  "AddFlat",
+                                              "value":  20.0
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "executioners_signet",
+                          "name":  "Sinete do Carrasco",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Uncommon",
+                          "slot":  "Passive",
+                          "weight":  65,
+                          "tags":  [
+                                       "damage",
+                                       "elite",
+                                       "boss"
+                                   ],
+                          "description":  "Aumenta o dano causado. Futuramente pode ganhar bonus contra elites e chefes.",
+                          "flavorText":  "A cera vermelha nunca seca.",
+                          "effects":  [
+                                          {
+                                              "type":  "Damage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.22
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "marrow_locket",
+                          "name":  "Relicario de Medula",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Rare",
+                          "slot":  "Passive",
+                          "weight":  35,
+                          "tags":  [
+                                       "health",
+                                       "survival",
+                                       "relic"
+                                   ],
+                          "description":  "Aumenta bastante a vida maxima durante a run.",
+                          "flavorText":  "Guarda uma promessa feita antes da primeira mordida.",
+                          "effects":  [
+                                          {
+                                              "type":  "MaxHealth",
+                                              "operation":  "AddFlat",
+                                              "value":  45.0
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "night_tithe",
+                          "name":  "Dizimo da Noite",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Rare",
+                          "slot":  "Passive",
+                          "weight":  30,
+                          "tags":  [
+                                       "damage",
+                                       "blood",
+                                       "economy"
+                                   ],
+                          "description":  "Aumenta muito o dano. Futuramente pode interagir com Moedas de Sangue.",
+                          "flavorText":  "Toda dadiva cobra seu recibo.",
+                          "effects":  [
+                                          {
+                                              "type":  "Damage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.30
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "mirror_of_the_last_guest",
+                          "name":  "Espelho do Último Convidado",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Rare",
+                          "slot":  "Passive",
+                          "weight":  30,
+                          "tags":  [
+                                       "critical",
+                                       "damage",
+                                       "curse",
+                                       "mirror"
+                                   ],
+                          "description":  "Aumenta significativamente a chance de crítico, mas reduz a vida máxima.",
+                          "flavorText":  "Seu reflexo sorri um instante antes de você.",
+                          "effects":  [
+                                          {
+                                              "type":  "CriticalChance",
+                                              "operation":  "AddFlat",
+                                              "value":  0.20
+                                          },
+                                          {
+                                              "type":  "MaxHealth",
+                                              "operation":  "AddMultiplier",
+                                              "value":  -0.15
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "boots_of_the_headless_duke",
+                          "name":  "Botas do Duque Sem Cabeça",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Uncommon",
+                          "slot":  "Passive",
+                          "weight":  55,
+                          "tags":  [
+                                       "speed",
+                                       "mobility",
+                                       "evasion"
+                                   ],
+                          "description":  "Aumenta a velocidade de movimento e concede velocidade adicional após sofrer dano.",
+                          "flavorText":  "O duque perdeu a cabeça. As botas nunca perderam o caminho.",
+                          "effects":  [
+                                          {
+                                              "type":  "MoveSpeed",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.12
+                                          },
+                                          {
+                                              "type":  "MoveSpeedOnHit",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.30
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "saints_broken_halo",
+                          "name":  "Auréola Partida do Santo",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Legendary",
+                          "slot":  "Passive",
+                          "weight":  10,
+                          "tags":  [
+                                       "critical",
+                                       "holy",
+                                       "damage",
+                                       "curse"
+                                   ],
+                          "description":  "Críticos causam muito mais dano, mas ataques normais causam menos dano.",
+                          "flavorText":  "A fé não morreu. Apenas aprendeu a odiar.",
+                          "effects":  [
+                                          {
+                                              "type":  "CriticalDamage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  1.00
+                                          },
+                                          {
+                                              "type":  "NonCriticalDamage",
+                                              "operation":  "AddMultiplier",
+                                              "value":  -0.20
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "countess_vein_ring",
+                          "name":  "Anel de Veias da Condessa",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Rare",
+                          "slot":  "Passive",
+                          "weight":  28,
+                          "tags":  [
+                                       "lifesteal",
+                                       "critical",
+                                       "blood",
+                                       "survival"
+                                   ],
+                          "description":  "Golpes críticos restauram uma pequena quantidade de vida.",
+                          "flavorText":  "Foi moldado ao redor de um dedo que jamais esfriou.",
+                          "effects":  [
+                                          {
+                                              "type":  "CriticalLifeSteal",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.08
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "black_widows_corset",
+                          "name":  "Espartilho da Viúva Negra",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  18,
+                          "tags":  [
+                                       "speed",
+                                       "damage",
+                                       "health",
+                                       "risk"
+                                   ],
+                          "description":  "Quanto menor a vida atual, maiores a velocidade de ataque e a velocidade de movimento.",
+                          "flavorText":  "A última dona dançou até que o salão estivesse vazio.",
+                          "effects":  [
+                                          {
+                                              "type":  "AttackSpeedMissingHealth",
+                                              "operation":  "ScaleMultiplier",
+                                              "value":  0.60
+                                          },
+                                          {
+                                              "type":  "MoveSpeedMissingHealth",
+                                              "operation":  "ScaleMultiplier",
+                                              "value":  0.40
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "crown_of_the_uninvited_king",
+                          "name":  "Coroa do Rei Não Convidado",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Legendary",
+                          "slot":  "Passive",
+                          "weight":  7,
+                          "tags":  [
+                                       "boss",
+                                       "damage",
+                                       "elite",
+                                       "curse"
+                                   ],
+                          "description":  "Aumenta drasticamente o dano contra chefes e elites, mas inimigos comuns também causam mais dano ao jogador.",
+                          "flavorText":  "Ele entrou como hóspede. Morreu como rei.",
+                          "effects":  [
+                                          {
+                                              "type":  "DamageVsBoss",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.50
+                                          },
+                                          {
+                                              "type":  "DamageVsElite",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.35
+                                          },
+                                          {
+                                              "type":  "DamageTakenFromNormal",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.20
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "embalmed_bat_heart",
+                          "name":  "Coração Embalsamado de Morcego",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Uncommon",
+                          "slot":  "Passive",
+                          "weight":  60,
+                          "tags":  [
+                                       "speed",
+                                       "attack",
+                                       "blood",
+                                       "beast"
+                                   ],
+                          "description":  "Aumenta a velocidade de ataque. Abates concedem brevemente ainda mais velocidade.",
+                          "flavorText":  "Continua batendo quando a lua desaparece.",
+                          "effects":  [
+                                          {
+                                              "type":  "AttackSpeed",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.10
+                                          },
+                                          {
+                                              "type":  "AttackSpeedOnKill",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.20
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "key_to_the_thirteenth_cellar",
+                          "name":  "Chave da Décima Terceira Adega",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  15,
+                          "tags":  [
+                                       "critical",
+                                       "luck",
+                                       "secret",
+                                       "economy"
+                                   ],
+                          "description":  "Aumenta a chance de crítico e a chance de encontrar recompensas raras.",
+                          "flavorText":  "O castelo possui doze adegas.",
+                          "effects":  [
+                                          {
+                                              "type":  "CriticalChance",
+                                              "operation":  "AddFlat",
+                                              "value":  0.08
+                                          },
+                                          {
+                                              "type":  "RareDropChance",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.25
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "fang_clock",
+                          "name":  "Relógio de Presas",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  16,
+                          "tags":  [
+                                       "attack_speed",
+                                       "critical",
+                                       "time"
+                                   ],
+                          "description":  "O mecanismo acelera os reflexos de Virgil, aumentando em 8% a velocidade de ataque.",
+                          "flavorText":  "Cada tique é uma mordida que o tempo não recupera.",
+                          "effects":  [
+                                          {
+                                              "type":  "AttackSpeed",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.08
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "goblet_of_the_first_victim",
+                          "name":  "Taça da Primeira Vítima",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Legendary",
+                          "slot":  "Passive",
+                          "weight":  6,
+                          "tags":  [
+                                       "blood",
+                                       "lifesteal",
+                                       "damage",
+                                       "snowball"
+                                   ],
+                          "description":  "Cada inimigo morto sem sofrer dano aumenta temporariamente o dano e o roubo de vida. O bônus é perdido ao ser atingido.",
+                          "flavorText":  "O primeiro sangue derramado no castelo jamais secou.",
+                          "effects":  [
+                                          {
+                                              "type":  "FlawlessKillDamageStack",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.03
+                                          },
+                                          {
+                                              "type":  "FlawlessKillLifeStealStack",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.01
+                                          },
+                                          {
+                                              "type":  "ResetStacksOnHit",
+                                              "operation":  "Set",
+                                              "value":  1.0
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "portrait_of_the_hungry_child",
+                          "name":  "Retrato da Criança Faminta",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  14,
+                          "tags":  [
+                                       "curse",
+                                       "damage",
+                                       "health",
+                                       "room"
+                                   ],
+                          "description":  "Ao entrar em uma sala, perde parte da vida atual e recebe um grande bônus de dano até limpar a sala.",
+                          "flavorText":  "A criança muda de posição quando ninguém está olhando.",
+                          "effects":  [
+                                          {
+                                              "type":  "CurrentHealthCostOnRoomEnter",
+                                              "operation":  "ApplyMultiplier",
+                                              "value":  0.10
+                                          },
+                                          {
+                                              "type":  "DamageUntilRoomClear",
+                                              "operation":  "AddMultiplier",
+                                              "value":  0.35
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "executioners_last_tooth",
+                          "name":  "Último Dente do Carrasco",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  17,
+                          "tags":  [
+                                       "execute",
+                                       "critical",
+                                       "damage",
+                                       "melee"
+                                   ],
+                          "description":  "Inimigos abaixo de um limite de vida podem ser executados instantaneamente. Críticos aumentam temporariamente esse limite.",
+                          "flavorText":  "Foi encontrado preso no pescoço do último condenado.",
+                          "effects":  [
+                                          {
+                                              "type":  "ExecuteThreshold",
+                                              "operation":  "AddFlat",
+                                              "value":  0.08
+                                          },
+                                          {
+                                              "type":  "ExecuteThresholdOnCritical",
+                                              "operation":  "AddFlat",
+                                              "value":  0.04
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "nail_from_the_vampires_coffin",
+                          "name":  "Prego do Caixão do Vampiro",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Mythic",
+                          "slot":  "Passive",
+                          "weight":  3,
+                          "tags":  [
+                                       "death",
+                                       "revive",
+                                       "curse",
+                                       "vampire"
+                                   ],
+                          "description":  "Uma vez por run, ao sofrer dano fatal, permanece com 1 de vida, torna-se invulnerável brevemente e recebe enorme bônus de dano.",
+                          "flavorText":  "Você tem certeza de que o caixão estava vazio?",
+                          "effects":  [
+                                          {
+                                              "type":  "PreventFatalDamage",
+                                              "operation":  "Set",
+                                              "value":  1.0
+                                          },
+                                          {
+                                              "type":  "InvulnerabilityOnFatal",
+                                              "operation":  "ApplyFlat",
+                                              "value":  3.0
+                                          },
+                                          {
+                                              "type":  "DamageOnFatal",
+                                              "operation":  "TemporaryAddMultiplier",
+                                              "value":  1.00
+                                          }
+                                      ]
+                      },
+                      {
+                          "id":  "ledger_of_unpaid_blood",
+                          "name":  "Livro-Caixa do Sangue Não Pago",
+                          "icon":  "res://images/generic.png",
+                          "rarity":  "Epic",
+                          "slot":  "Passive",
+                          "weight":  13,
+                          "tags":  [
+                                       "damage",
+                                       "economy",
+                                       "blood",
+                                       "risk"
+                                   ],
+                          "description":  "Quanto mais recursos o jogador acumula sem gastar, maior seu dano. Receber cura reduz temporariamente o bônus.",
+                          "flavorText":  "Toda dívida está registrada. Inclusive a sua.",
+                          "effects":  [
+                                          {
+                                              "type":  "DamagePerCurrencyHeld",
+                                              "operation":  "ScaleMultiplier",
+                                              "value":  0.001
+                                          },
+                                          {
+                                              "type":  "DamagePenaltyOnHeal",
+                                              "operation":  "AddMultiplier",
+                                              "value":  -0.15
+                                          }
+                                      ]
+                      }
+                  ]
 }

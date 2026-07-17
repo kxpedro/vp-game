@@ -21,7 +21,6 @@ public readonly record struct ArtifactRecord(string Id, string Name, string Slot
 public static class CharacterSheet
 {
     private const int StartingAttributeValue = 5;
-    public const int ActiveSkillSlotCount = 4;
     public const int EquippedArtifactSlotCount = 3;
 
     private static readonly Dictionary<CharacterAttribute, int> Attributes = new()
@@ -34,7 +33,6 @@ public static class CharacterSheet
     };
 
     private static readonly Dictionary<string, int> SkillRanks = new();
-    private static readonly string[] ActiveSkillSlots = new string[ActiveSkillSlotCount];
     private static readonly List<ArtifactRecord> Artifacts = new();
     private static readonly string[] EquippedArtifactSlots = new string[EquippedArtifactSlotCount];
 
@@ -87,6 +85,9 @@ public static class CharacterSheet
         if (!SkillCatalog.TryGet(skillId, out var definition))
             return false;
 
+        if (!definition.IsImplemented || SkillCatalog.HasExclusiveConflict(definition))
+            return false;
+
         if (!SkillCatalog.HasPrerequisites(definition))
             return false;
 
@@ -108,52 +109,6 @@ public static class CharacterSheet
     public static int GetSkillRank(string skillId)
     {
         return SkillRanks.TryGetValue(skillId, out var rank) ? rank : 0;
-    }
-
-    public static string GetActiveSkillSlot(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveSkillSlots.Length)
-            return "";
-
-        return ActiveSkillSlots[slotIndex] ?? "";
-    }
-
-    public static bool EquipActiveSkill(int slotIndex, string skillId)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveSkillSlots.Length)
-            return false;
-
-        if (!HasSkill(skillId) || !SkillCatalog.TryGet(skillId, out var definition))
-            return false;
-
-        if (definition.ActivationMode != SkillActivationMode.Active)
-            return false;
-
-        ActiveSkillSlots[slotIndex] = skillId;
-        SaveGameManager.RequestAutosave();
-        return true;
-    }
-
-    public static bool EquipFirstOpenActiveSkill(string skillId)
-    {
-        for (var i = 0; i < ActiveSkillSlots.Length; i++)
-        {
-            if (!string.IsNullOrWhiteSpace(ActiveSkillSlots[i]))
-                continue;
-
-            return EquipActiveSkill(i, skillId);
-        }
-
-        return false;
-    }
-
-    public static void UnequipActiveSkill(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveSkillSlots.Length)
-            return;
-
-        ActiveSkillSlots[slotIndex] = "";
-        SaveGameManager.RequestAutosave();
     }
 
     public static void AddArtifact(string artifactName, string effect, float amount)
@@ -268,7 +223,6 @@ public static class CharacterSheet
         {
             BloodCoins = BloodCoins,
             SkillRanks = new Dictionary<string, int>(SkillRanks),
-            ActiveSkills = (string[])ActiveSkillSlots.Clone(),
             Artifacts = new List<ArtifactRecord>(Artifacts),
             EquippedArtifacts = (string[])EquippedArtifactSlots.Clone(),
             EquippedWeaponId = WeaponLoadout.EquippedWeaponId
@@ -283,8 +237,13 @@ public static class CharacterSheet
         BloodCoins = System.Math.Max(data.BloodCoins, 0);
         foreach (var pair in data.Attributes)
             if (System.Enum.TryParse<CharacterAttribute>(pair.Key, out var attribute)) Attributes[attribute] = pair.Value;
-        foreach (var pair in data.SkillRanks) SkillRanks[pair.Key] = pair.Value;
-        for (var i = 0; i < ActiveSkillSlots.Length && i < data.ActiveSkills.Length; i++) ActiveSkillSlots[i] = data.ActiveSkills[i] ?? "";
+        foreach (var pair in data.SkillRanks)
+        {
+            if (!SkillCatalog.TryGet(pair.Key, out var definition)) continue;
+            var maxRank = CompendiumTuning.GetInt($"{definition.Id}.max_rank", definition.MaxRank);
+            var rank = System.Math.Clamp(pair.Value, 0, System.Math.Max(maxRank, 1));
+            if (rank > 0) SkillRanks[pair.Key] = rank;
+        }
         Artifacts.AddRange(data.Artifacts ?? new List<ArtifactRecord>());
         for (var i = 0; i < EquippedArtifactSlots.Length && i < data.EquippedArtifacts.Length; i++) EquippedArtifactSlots[i] = data.EquippedArtifacts[i] ?? "";
         WeaponLoadout.Equip(data.EquippedWeaponId);
@@ -294,7 +253,7 @@ public static class CharacterSheet
     {
         foreach (var attribute in Attributes.Keys.ToList()) Attributes[attribute] = StartingAttributeValue;
         BloodCoins = 0; SkillRanks.Clear(); Artifacts.Clear();
-        System.Array.Fill(ActiveSkillSlots, ""); System.Array.Fill(EquippedArtifactSlots, "");
+        System.Array.Fill(EquippedArtifactSlots, "");
         WeaponLoadout.Equip("longsword");
     }
 

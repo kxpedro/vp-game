@@ -1,4 +1,4 @@
 interface:
-  display_name: "Criar habilidade de VP"
-  short_description: "Cria habilidades jogáveis no Vampire's Prey"
-  default_prompt: "Use $vp-create-player-skill para criar e implementar uma habilidade do jogador no Vampire's Prey."
+  display_name: "Criar habilidade passiva de VP"
+  short_description: "Cria skills permanentes Bestialis e Humanitas"
+  default_prompt: "Use $vp-create-player-skill para criar e implementar uma habilidade passiva da Fonte de Sangue no Vampire's Prey."

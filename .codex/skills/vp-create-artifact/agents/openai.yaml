@@ -1,4 +1,4 @@
 interface:
-  display_name: "Criar artefato de VP"
-  short_description: "Cria e integra artefatos no Vampire's Prey"
-  default_prompt: "Use $vp-create-artifact para criar e implementar um novo artefato no Vampire's Prey."
+  display_name: "Criar artefato passivo de VP"
+  short_description: "Cria artefatos passivos e integra seus efeitos"
+  default_prompt: "Use $vp-create-artifact para criar e implementar um artefato passivo no Vampire's Prey."

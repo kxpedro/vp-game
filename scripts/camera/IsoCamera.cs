@@ -22,7 +22,8 @@ public partial class IsoCamera : Camera3D
     {
         AddToGroup("combat_camera");
         _target = GetNodeOrNull<Node3D>(TargetPath);
-        _zoomDistance = StartZoomDistance;
+        GameTuning.Changed += ApplyRuntimeTuning;
+        ApplyRuntimeTuning();
         _offsetDirection = BuildOffsetDirection();
         GlobalRotation = BuildCameraRotation();
 
@@ -34,6 +35,16 @@ public partial class IsoCamera : Camera3D
         }
 
         Current = true;
+    }
+
+    public override void _ExitTree()
+    {
+        GameTuning.Changed -= ApplyRuntimeTuning;
+    }
+
+    private void ApplyRuntimeTuning()
+    {
+        _zoomDistance = StartZoomDistance * GameTuning.GetCameraZoomDistanceMultiplier();
     }
 
     public override void _Process(double delta)

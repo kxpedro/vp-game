@@ -124,6 +124,9 @@ public static class ArtifactCatalog
 
     private static void AddDefinition(ArtifactDefinition definition)
     {
+        if (!definition.Slot.Equals("Passive", StringComparison.OrdinalIgnoreCase))
+            return;
+
         if (string.IsNullOrWhiteSpace(definition.Id))
         {
             GD.PushWarning("Artifact catalog ignored an entry without id.");

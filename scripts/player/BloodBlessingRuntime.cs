@@ -31,11 +31,12 @@ public partial class BloodBlessingRuntime : Node
         UpdateBloodPoolState(d);
     }
 
-    public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, bool isBasicAttack, bool isQuickAttack = false)
+    public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, PlayerAttackType attackType)
     {
         var bonus = RunState.BlessingPermanentDamage + RunState.BlessingRoomDamage;
-        if (isBasicAttack) bonus += RunState.GetEffectTotal("BasicAttackDamage.Multiplier");
-        if (isQuickAttack) bonus += RunState.GetEffectTotal("QuickAttackDamage.Multiplier");
+        if (attackType == PlayerAttackType.Basic) bonus += RunState.GetEffectTotal("BasicAttackDamage.Multiplier");
+        if (attackType == PlayerAttackType.Quick) bonus += RunState.GetEffectTotal("QuickAttackDamage.Multiplier");
+        if (attackType == PlayerAttackType.Special) bonus += RunState.GetEffectTotal("SpecialAttackDamage.Multiplier");
         var healthRatio = _health?.MaxHealth > 0 ? _health.CurrentHealth / _health.MaxHealth : 0;
         if (healthRatio >= RunState.GetEffectParameter("DamageAboveHealth", "threshold", 0.8f)) bonus += RunState.GetEffectTotal("DamageAboveHealth.Multiplier");
         if (_damageAfterHealTimer > 0) bonus += RunState.GetEffectTotal("DamageAfterHealing.Multiplier");
@@ -46,6 +47,15 @@ public partial class BloodBlessingRuntime : Node
         var charmedCount = Mathf.Min(GetTree().GetNodeCountInGroup("charmed_enemies"), Mathf.RoundToInt(RunState.GetEffectParameter("DamagePerCharmedEnemy", "maxTargets", 5)));
         bonus += charmedCount * RunState.GetEffectTotal("DamagePerCharmedEnemy.Multiplier");
         return damage * Mathf.Max(1.0f + bonus, 0.0f);
+    }
+
+    public void OnSpecialAttack(Vector3 position, float range, WeaponAttackShape shape)
+    {
+        if (RunState.GetEffectTotal("SpecialAttackBloodPool.Flat") <= 0.0f)
+            return;
+        var radius = shape == WeaponAttackShape.Radial ? range : Mathf.Max(range * 0.55f, 1.2f);
+        var duration = RunState.GetEffectParameter("SpecialAttackBloodPool", "duration", 5.0f);
+        SpawnBloodPool(position, radius, duration);
     }
 
     public float BonusCriticalChance()
@@ -88,11 +98,11 @@ public partial class BloodBlessingRuntime : Node
     {
         if (actual > 0)
         {
-            _damageAfterHealTimer = Mathf.Max(_damageAfterHealTimer, RunState.GetEffectParameter("DamageAfterHealing", "duration", 5));
-            _damageReductionAfterHealTimer = Mathf.Max(_damageReductionAfterHealTimer, RunState.GetEffectParameter("DamageReductionAfterHealing", "duration", 4));
+            _damageAfterHealTimer = Mathf.Max(_damageAfterHealTimer, RunState.GetEffectParameter("DamageAfterHealing", "duration", 5) * TemporaryEffectDurationMultiplier());
+            _damageReductionAfterHealTimer = Mathf.Max(_damageReductionAfterHealTimer, RunState.GetEffectParameter("DamageReductionAfterHealing", "duration", 4) * TemporaryEffectDurationMultiplier());
             var threshold = RunState.GetEffectParameter("AttackSpeedAfterHighHealthHeal", "healthThreshold", 0.9f);
             if (_health != null && _health.CurrentHealth / _health.MaxHealth >= threshold)
-                _attackSpeedAfterHealTimer = Mathf.Max(_attackSpeedAfterHealTimer, RunState.GetEffectParameter("AttackSpeedAfterHighHealthHeal", "duration", 5));
+                _attackSpeedAfterHealTimer = Mathf.Max(_attackSpeedAfterHealTimer, RunState.GetEffectParameter("AttackSpeedAfterHighHealthHeal", "duration", 5) * TemporaryEffectDurationMultiplier());
         }
         if (overheal <= 0 || _health == null) return;
         var barrierRatio = RunState.GetEffectTotal("OverhealToBarrier.Multiplier");
@@ -105,7 +115,7 @@ public partial class BloodBlessingRuntime : Node
 
     public void OnDodged()
     {
-        _criticalAfterDashTimer = Mathf.Max(_criticalAfterDashTimer, RunState.GetEffectParameter("CriticalChanceAfterDash", "duration", 2));
+        _criticalAfterDashTimer = Mathf.Max(_criticalAfterDashTimer, RunState.GetEffectParameter("CriticalChanceAfterDash", "duration", 2) * TemporaryEffectDurationMultiplier());
     }
 
     public async void OnPlayerDamaged(float amount)
@@ -144,6 +154,7 @@ public partial class BloodBlessingRuntime : Node
         enemy.RefreshPlayerHitStatuses();
         var lifeSteal = RunState.GetEffectTotal("LifeSteal.Multiplier");
         if (isBasicAttack) lifeSteal += RunState.GetEffectTotal("BasicAttackLifeSteal.Multiplier");
+        if (enemy.IsBleeding) lifeSteal += RunState.GetEffectTotal("LifeStealVsBleeding.Multiplier");
         var enemyHealth = enemy.GetNodeOrNull<Health>("Health");
         var threshold = RunState.GetEffectParameter("LifeStealVsLowHealthEnemy", "threshold", 0.25f);
         if (enemyHealth != null && enemyHealth.CurrentHealth / enemyHealth.MaxHealth <= threshold) lifeSteal += RunState.GetEffectTotal("LifeStealVsLowHealthEnemy.Multiplier");
@@ -162,6 +173,11 @@ public partial class BloodBlessingRuntime : Node
 
         if (isQuickAttack && GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("QuickAttackCharmChance.Flat"), 0, 1))
             enemy.ApplyCharm(RunState.GetEffectParameter("QuickAttackCharmChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+        if (enemy.IsCharmed && RunState.GetEffectTotal("CharmedTargetBleed.Flat") > 0)
+            enemy.ApplyBleeding(
+                RunState.GetEffectParameter("CharmedTargetBleed", "duration", 4),
+                RunState.GetEffectParameter("CharmedTargetBleed", "damagePerSecond", 5),
+                Mathf.RoundToInt(RunState.GetEffectParameter("CharmedTargetBleed", "maxStacks", 3)));
 
         if (!isBasicAttack) return;
 
@@ -189,6 +205,7 @@ public partial class BloodBlessingRuntime : Node
         }
         if (enemy.IsPestilent)
         {
+            _health?.Heal((_health?.MaxHealth ?? 0.0f) * RunState.GetEffectTotal("HealOnPestilentKill.Flat"));
             var spreadRadius = RunState.GetEffectParameter("BasicAttackPestilence", "deathRadius", 5.0f)
                 + RunState.GetEffectTotal("PestilenceDeathSpreadRadius.Flat");
             SpawnPestilenceDeathBurst(enemy.GlobalPosition, spreadRadius);
@@ -212,10 +229,12 @@ public partial class BloodBlessingRuntime : Node
         if (_poolHealTimer <= 0) { _poolHealTimer = 0.25f; _health.Heal(_health.MaxHealth * RunState.GetEffectTotal("BloodPoolHealPerSecond.Flat") * 0.25f); }
     }
 
-    private async void SpawnBloodPool(Vector3 position)
+    private async void SpawnBloodPool(Vector3 position, float radiusOverride = 0.0f, float durationOverride = 0.0f)
     {
-        var radius = 1.8f * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
-        var duration = RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4) + RunState.GetEffectTotal("BloodPoolDuration.Flat");
+        var baseRadius = radiusOverride > 0.0f ? radiusOverride : 1.8f;
+        var radius = baseRadius * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
+        var baseDuration = durationOverride > 0.0f ? durationOverride : RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4);
+        var duration = (baseDuration + RunState.GetEffectTotal("BloodPoolDuration.Flat")) * TemporaryEffectDurationMultiplier();
         var pool = new Node3D { Name = "BloodPool" };
         GetTree().CurrentScene.AddChild(pool);
         pool.GlobalPosition = position + Vector3.Up * 0.035f;
@@ -253,6 +272,11 @@ public partial class BloodBlessingRuntime : Node
         pulse.TweenProperty(rim, "scale", Vector3.One * 0.985f, 0.55f);
         await ToSignal(GetTree().CreateTimer(duration), SceneTreeTimer.SignalName.Timeout);
         if (IsInstanceValid(pool)) pool.QueueFree();
+    }
+
+    private float TemporaryEffectDurationMultiplier()
+    {
+        return GetParent()?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController")?.TemporaryEffectDurationMultiplier() ?? 1.0f;
     }
 
     private void SpawnBloodOrb(Vector3 position)

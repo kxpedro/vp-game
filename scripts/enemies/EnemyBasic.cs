@@ -19,12 +19,17 @@ public partial class EnemyBasic : CharacterBody3D
     [Export] public float AttackDamage { get; set; } = 22.0f;
     [Export] public float AttackWindup { get; set; } = 0.85f;
     [Export] public float AttackCooldown { get; set; } = 1.55f;
+    [Export] public float SpawnAttackDelay { get; set; } = 2.0f;
+    [Export] public float RangedPreferredDistance { get; set; } = 6.25f;
+    [Export] public float RangedRetreatDistance { get; set; } = 4.6f;
+    [Export] public float TacticalMoveSpeedMultiplier { get; set; } = 0.82f;
     [Export] public float AttackWidth { get; set; } = 1.25f;
     [Export] public float AttackDepthBonus { get; set; } = 0.75f;
     [Export] public float ContactDamage { get; set; } = 7.0f;
     [Export] public float ContactDamageRange { get; set; } = 0.95f;
     [Export] public float ContactDamageCooldown { get; set; } = 0.8f;
     [Export] public float KnockbackResistance { get; set; } = 0.45f;
+    [Export] public float BasicStaggerDuration { get; set; } = 0.24f;
     [Export] public int MinBloodCoinsReward { get; set; } = 1;
     [Export] public int MaxBloodCoinsReward { get; set; } = 10;
     [Export] public float FuryOnDeath { get; set; } = 12.0f;
@@ -45,10 +50,12 @@ public partial class EnemyBasic : CharacterBody3D
     private StandardMaterial3D _hitMaterial;
     private StandardMaterial3D _alertMaterial;
     private StandardMaterial3D _warningMaterial;
-    private MeshInstance3D _healthBarBackground;
     private MeshInstance3D _healthBarFill;
     private MeshInstance3D _rarityIcon;
     private float _healthBarWidth = 1.55f;
+    private float _overheadHeight = 2.12f;
+    private bool _overheadHealthEnabled = true;
+    private bool _overheadHealthRevealed;
     private Sprite3D _bleedingStatusIcon;
     private Sprite3D _pestilenceStatusIcon;
     private Sprite3D _charmedStatusIcon;
@@ -70,6 +77,14 @@ public partial class EnemyBasic : CharacterBody3D
     private readonly List<Node> _ownedProjectiles = new();
     private int _hitFeedbackVersion;
     private float _hitStunTimer;
+    private float _pendingWallImpactDamage;
+    private int _attackSequenceVersion;
+    private float _attackCooldownRemaining;
+    private float _spawnAttackDelayRemaining;
+    private float _tacticalMoveTimer;
+    private int _tacticalSide = 1;
+    private bool _bossActionLocked;
+    private bool _bossMovesEnabled;
     private int _pestilenceStacks;
     private float _pestilenceTimer;
     private float _pestilenceTickTimer;
@@ -84,13 +99,17 @@ public partial class EnemyBasic : CharacterBody3D
     private float _bossActionAnimationTimer;
     public bool IsPestilent => _pestilenceStacks > 0;
     public bool IsBleeding => _bleedingStacks > 0;
+    public int NegativeStatusCount => (IsPestilent ? 1 : 0) + (IsBleeding ? 1 : 0) + (IsCharmed ? 1 : 0) + (_fearTimer > 0.0f ? 1 : 0);
     public bool IsPestilenceHost => _pestilenceStacks >= Mathf.RoundToInt(RunState.GetEffectParameter("DamageVsPlagueHost", "requiredStacks", 5));
     public bool IsCharmed => _permanentCharm || _charmTimer > 0.0f;
+    public bool HasStaggerArmor => Name.ToString().Contains("Boss") || (Rarity is EnemyRarity.Rare or EnemyRarity.Legendary && Archetype == EnemyArchetype.Tank);
+    public bool CanAttackAfterSpawn => _spawnAttackDelayRemaining <= 0.0f;
 
     public override void _Ready()
     {
         AddToGroup("enemies");
         _spawnPosition = GlobalPosition;
+        _spawnAttackDelayRemaining = SpawnAttackDelay;
         _health = GetNode<Health>(HealthPath);
         _visual = GetNodeOrNull<MeshInstance3D>(VisualPath);
         _baseMaterial = _visual?.MaterialOverride as StandardMaterial3D;
@@ -125,6 +144,7 @@ public partial class EnemyBasic : CharacterBody3D
         CreateAttackTelegraph();
         PickNewPatrolTarget();
         UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
+        SetHealthBarMeshesVisible(false);
     }
 
     public void ConfigureVariant(EnemyRarity rarity, EnemyArchetype archetype)
@@ -193,6 +213,7 @@ public partial class EnemyBasic : CharacterBody3D
         _importedAnimationPlayer = FindImportedAnimationPlayer(_importedVisual);
         if (_importedAnimationPlayer != null)
             _importedAnimationPlayer.AnimationFinished += OnImportedAnimationFinished;
+        UpdateOverheadHeight();
     }
 
     public void PlayBossMoveAnimation(string moveId, int phase)
@@ -202,16 +223,20 @@ public partial class EnemyBasic : CharacterBody3D
         var animation = secondBoss
             ? moveId switch
             {
-                "psionic" => phase >= 2 ? "105031_PsionicStrike_02" : "105031_PsionicStrike_01",
-                "shield" => "105041_Shield",
-                "outbreak" => "105051_Outbreak",
+                "psionic_volley" => phase >= 2 ? "105031_PsionicStrike_02" : "105031_PsionicStrike_01",
+                "kinetic_shift" => "105041_Shield",
+                "force_outbreak" => "105051_Outbreak",
+                "mirror_dash" => "105011_Primary_01",
+                "singularity" => "105051_Outbreak",
                 _ => "105011_Primary_01"
             }
             : moveId switch
             {
-                "claw" => "Mon_BlackDragon31_Btl_Atk01",
+                "claw_combo" => "Mon_BlackDragon31_Btl_Atk01",
                 "tail_sweep" => "Mon_BlackDragon31_Btl_Skl03",
-                "dragon_burst" => phase >= 3 ? "Mon_BlackDragon31_Btl_Skl08" : "Mon_BlackDragon31_Btl_Skl07",
+                "dragon_volley" => "Mon_BlackDragon31_Btl_Skl07",
+                "blood_charge" => "Mon_BlackDragon31_Btl_Skl03",
+                "meteor_requiem" => "Mon_BlackDragon31_Btl_Skl08",
                 _ => "Mon_BlackDragon31_Btl_Atk02"
             };
         if (!_importedAnimationPlayer.HasAnimation(animation)) return;
@@ -319,6 +344,9 @@ public partial class EnemyBasic : CharacterBody3D
         _fearTimer = Mathf.Max(_fearTimer - (float)delta, 0);
         _damageTakenTimer = Mathf.Max(_damageTakenTimer - (float)delta, 0); if (_damageTakenTimer <= 0) _damageTakenBonus = 0;
         _hitStunTimer = Mathf.Max(_hitStunTimer - (float)delta, 0.0f);
+        _attackCooldownRemaining = Mathf.Max(_attackCooldownRemaining - (float)delta, 0.0f);
+        _spawnAttackDelayRemaining = Mathf.Max(_spawnAttackDelayRemaining - (float)delta, 0.0f);
+        _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer - (float)delta, 0.0f);
         TickBlessingStatuses((float)delta);
         _bossActionAnimationTimer = Mathf.Max(_bossActionAnimationTimer - (float)delta, 0.0f);
         if (_hitStunTimer > 0.0f && !_isAttacking)
@@ -331,10 +359,17 @@ public partial class EnemyBasic : CharacterBody3D
             RunCharmedBehavior((float)delta);
             return;
         }
+        if (_bossActionLocked)
+        {
+            Velocity = Vector3.Zero;
+            MoveAndSlide();
+            return;
+        }
         var toPlayer = _player.GlobalPosition - GlobalPosition;
         toPlayer.Y = 0.0f;
         var distance = toPlayer.Length();
-        TickContactDamage((float)delta, distance);
+        if (CanAttackAfterSpawn)
+            TickContactDamage((float)delta, distance);
 
         if (_isAttacking)
         {
@@ -348,8 +383,11 @@ public partial class EnemyBasic : CharacterBody3D
             Velocity = _knockbackVelocity;
             _knockbackVelocity = _knockbackVelocity.MoveToward(Vector3.Zero, 18.0f * (float)delta);
             MoveAndSlide();
+            ApplyPendingWallImpact();
             return;
         }
+
+        _pendingWallImpactDamage = 0.0f;
 
         if (!_hasDetectedPlayer && distance <= DetectionRange && CanSeePlayer())
             DetectPlayer();
@@ -362,7 +400,21 @@ public partial class EnemyBasic : CharacterBody3D
 
         LookAt(GlobalPosition + toPlayer.Normalized(), Vector3.Up);
 
-        if (distance <= AttackRange)
+        var insideTacticalRange = distance <= AttackRange + (Archetype == EnemyArchetype.Ranged ? 2.0f : 0.9f);
+        if ((_tacticalMoveTimer > 0.0f || _attackCooldownRemaining > 0.0f) && insideTacticalRange)
+        {
+            MoveTactically(toPlayer, distance, (float)delta);
+            return;
+        }
+
+        if (Archetype == EnemyArchetype.Ranged && distance < RangedRetreatDistance)
+        {
+            BeginTacticalMovement(0.55f, 0.85f);
+            MoveTactically(toPlayer, distance, (float)delta);
+            return;
+        }
+
+        if (distance <= AttackRange && _attackCooldownRemaining <= 0.0f && CanAttackAfterSpawn && !_bossMovesEnabled)
         {
             if (Archetype == EnemyArchetype.Ranged && !CanSeePlayer())
             {
@@ -373,6 +425,13 @@ public partial class EnemyBasic : CharacterBody3D
             Velocity = Vector3.Zero;
             MoveAndSlide();
             BeginAttack();
+            return;
+        }
+
+        if (_bossMovesEnabled && distance <= AttackRange)
+        {
+            BeginTacticalMovement(0.35f, 0.65f);
+            MoveTactically(toPlayer, distance, (float)delta);
             return;
         }
 
@@ -392,26 +451,74 @@ public partial class EnemyBasic : CharacterBody3D
         }
     }
 
+    private void BeginTacticalMovement(float minimumSeconds, float maximumSeconds)
+    {
+        _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer, (float)GD.RandRange(minimumSeconds, maximumSeconds));
+        if (GD.Randf() < 0.45f) _tacticalSide *= -1;
+    }
+
+    private void MoveTactically(Vector3 toPlayer, float distance, float delta)
+    {
+        if (toPlayer.LengthSquared() <= 0.001f) return;
+        var radial = toPlayer.Normalized();
+        var tangent = new Vector3(-radial.Z * _tacticalSide, 0.0f, radial.X * _tacticalSide);
+        Vector3 direction;
+
+        if (Archetype == EnemyArchetype.Ranged)
+        {
+            if (distance < RangedPreferredDistance - 0.65f)
+                direction = (-radial + tangent * 0.38f).Normalized();
+            else if (distance > RangedPreferredDistance + 0.9f)
+                direction = (radial + tangent * 0.28f).Normalized();
+            else
+                direction = tangent;
+        }
+        else
+        {
+            var retreatWeight = Archetype == EnemyArchetype.Tank ? 0.16f : 0.32f;
+            direction = (tangent - radial * retreatWeight).Normalized();
+        }
+
+        Velocity = direction * MoveSpeed * TacticalMoveSpeedMultiplier * _slowMultiplier;
+        PlayBossLocomotionAnimation(true);
+        MoveAndSlide();
+        if (GetSlideCollisionCount() > 0)
+        {
+            _tacticalSide *= -1;
+            _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer, 0.35f);
+        }
+    }
+
     public void ApplyTimedSlow(float multiplier, float seconds) { _slowMultiplier = Mathf.Clamp(multiplier, 0.05f, 1); _slowTimer = Mathf.Max(_slowTimer, seconds); }
     public void ApplyFear(float seconds) { _fearTimer = Mathf.Max(_fearTimer, seconds); }
     public void ApplyDamageTakenDebuff(float bonus, float seconds) { _damageTakenBonus = Mathf.Max(_damageTakenBonus, bonus); _damageTakenTimer = Mathf.Max(_damageTakenTimer, seconds); }
     public void RefreshPlayerHitStatuses()
     {
-        if (IsPestilent) _pestilenceTimer = 3.0f;
-        if (IsBleeding) _bleedingTimer = 2.0f;
+        if (IsPestilent) _pestilenceTimer = Mathf.Max(_pestilenceTimer, 3.0f);
+        if (IsBleeding) _bleedingTimer = Mathf.Max(_bleedingTimer, 2.0f);
     }
     public void ApplyPestilence(float seconds)
     {
         _pestilenceStacks = Mathf.Min(_pestilenceStacks + 1, 99);
-        _pestilenceTimer = 3.0f;
+        _pestilenceTimer = Mathf.Max(_pestilenceTimer, seconds);
+        if (RunState.GetEffectTotal("PestilenceAlsoBleeds.Flat") > 0)
+            ApplyBleeding(
+                RunState.GetEffectParameter("PestilenceAlsoBleeds", "duration", 4),
+                RunState.GetEffectParameter("PestilenceAlsoBleeds", "damagePerSecond", 5),
+                Mathf.RoundToInt(RunState.GetEffectParameter("PestilenceAlsoBleeds", "maxStacks", 3)));
         UpdateStatusIcons();
     }
 
     public void ApplyBleeding(float seconds, float damagePerSecond, int maxStacks)
     {
         _bleedingStacks = Mathf.Min(_bleedingStacks + 1, Mathf.Max(maxStacks, 1));
-        _bleedingTimer = 2.0f;
+        _bleedingTimer = Mathf.Max(_bleedingTimer, seconds);
         _bleedingDamagePerSecond = Mathf.Max(_bleedingDamagePerSecond, damagePerSecond);
+        if (!IsPestilent && RunState.GetEffectTotal("BleedingAlsoPestilence.Flat") > 0)
+        {
+            _pestilenceStacks = 1;
+            _pestilenceTimer = RunState.GetEffectParameter("BleedingAlsoPestilence", "duration", 3);
+        }
         UpdateStatusIcons();
     }
 
@@ -563,7 +670,17 @@ public partial class EnemyBasic : CharacterBody3D
             && colliderVariant.AsGodotObject() == _player;
     }
 
-    public void ApplyKnockback(Vector3 direction, float force)
+    public bool IsAttackedFromBehind(Vector3 attackerPosition)
+    {
+        var toAttacker = attackerPosition - GlobalPosition;
+        toAttacker.Y = 0.0f;
+        if (toAttacker.LengthSquared() <= 0.001f) return false;
+        var forward = -GlobalTransform.Basis.Z;
+        forward.Y = 0.0f;
+        return forward.LengthSquared() > 0.001f && forward.Normalized().Dot(toAttacker.Normalized()) < -0.45f;
+    }
+
+    public void ApplyKnockback(Vector3 direction, float force, float wallImpactDamage = 0.0f)
     {
         direction.Y = 0.0f;
 
@@ -571,6 +688,34 @@ public partial class EnemyBasic : CharacterBody3D
             return;
 
         _knockbackVelocity = direction.Normalized() * force * KnockbackResistance;
+        _pendingWallImpactDamage = Mathf.Max(wallImpactDamage, 0.0f);
+    }
+
+    public bool IsThreateningDodge(Vector3 position)
+    {
+        var delta = position - GlobalPosition;
+        delta.Y = 0.0f;
+        return (_isAttacking || _attackWarningLabel?.Visible == true) && delta.Length() <= AttackRange + AttackDepthBonus + 1.0f;
+    }
+
+    private void ApplyPendingWallImpact()
+    {
+        if (_pendingWallImpactDamage <= 0.0f || GetSlideCollisionCount() == 0) return;
+        for (var i = 0; i < GetSlideCollisionCount(); i++)
+        {
+            var collision = GetSlideCollision(i);
+            if (collision.GetCollider() is not PhysicsBody3D surface || surface is CharacterBody3D) continue;
+            var normal = collision.GetNormal();
+            if (Mathf.Abs(normal.Y) > 0.4f) continue;
+            var knockbackDirection = _knockbackVelocity.Normalized();
+            if (knockbackDirection.LengthSquared() <= 0.001f || knockbackDirection.Dot(normal) > -0.35f) continue;
+            var impactDamage = _pendingWallImpactDamage;
+            _pendingWallImpactDamage = 0.0f;
+            _knockbackVelocity = Vector3.Zero;
+            _health.ApplyDamage(impactDamage, false, "Impacto contra parede");
+            CombatFeedback.Instance?.PlayPlayerHit(1, false, true);
+            return;
+        }
     }
 
     private async void BeginAttack()
@@ -579,11 +724,13 @@ public partial class EnemyBasic : CharacterBody3D
             return;
 
         _isAttacking = true;
+        var attackSequence = ++_attackSequenceVersion;
         LockAttackDirection();
         ShowAttackTelegraph();
         if (Archetype == EnemyArchetype.Ranged)
             SpawnProjectileVisual();
         await Wait(AttackWindup);
+        if (attackSequence != _attackSequenceVersion) return;
         HideAttackTelegraph();
 
         if (!_health.IsDead && _player != null && IsPlayerInsideLockedAttack() && (Archetype != EnemyArchetype.Ranged || CanSeePlayer()))
@@ -595,12 +742,16 @@ public partial class EnemyBasic : CharacterBody3D
             if (Rarity == EnemyRarity.Legendary)
             {
                 await Wait(0.16f);
+                if (attackSequence != _attackSequenceVersion) return;
                 if (!_health.IsDead && IsPlayerInsideLockedAttack())
                     _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage * 0.55f, false, GetDisplayName());
             }
         }
 
-        await Wait(AttackCooldown);
+        _attackCooldownRemaining = Mathf.Max(AttackCooldown, 0.25f);
+        BeginTacticalMovement(
+            Archetype == EnemyArchetype.Ranged ? 0.9f : Archetype == EnemyArchetype.Tank ? 0.45f : 0.28f,
+            Archetype == EnemyArchetype.Ranged ? 1.35f : Archetype == EnemyArchetype.Tank ? 0.8f : 0.58f);
         _isAttacking = false;
     }
 
@@ -614,10 +765,48 @@ public partial class EnemyBasic : CharacterBody3D
     public void ApplyBossMoveTuning(BossMoveDefinition move, int phase)
     {
         AttackCooldown = Mathf.Max(move.Cooldown / (1.0f + (phase - 1) * 0.12f), 0.35f);
-        var bossBaseDamage = RunState.CurrentMapIndex == 1 ? 40.5f : 30.0f;
+        var bossBaseDamage = 30.0f * (1.0f + RunState.CurrentMapIndex * 0.22f);
         AttackDamage = Mathf.Max(bossBaseDamage * move.DamageMultiplier * (1.0f + (phase - 1) * 0.18f), 1.0f);
         AttackRange = Mathf.Max(2.25f * move.RangeMultiplier, 1.0f);
         AttackWidth = Mathf.Max(1.5f * move.RangeMultiplier, 1.0f);
+    }
+
+    public void EnableBossMoves()
+    {
+        _bossMovesEnabled = true;
+        _attackCooldownRemaining = 0.0f;
+    }
+
+    public void SetBossActionLocked(bool locked)
+    {
+        _bossActionLocked = locked;
+        if (!locked) return;
+        _attackSequenceVersion++;
+        _isAttacking = false;
+        Velocity = Vector3.Zero;
+        HideAttackTelegraph();
+    }
+
+    public Node3D GetCombatTarget() => _player;
+
+    public void FaceCombatTarget()
+    {
+        if (_player == null) return;
+        var direction = _player.GlobalPosition - GlobalPosition;
+        direction.Y = 0.0f;
+        if (direction.LengthSquared() > 0.001f) LookAt(GlobalPosition + direction.Normalized(), Vector3.Up);
+    }
+
+    public void MoveBoss(Vector3 displacement)
+    {
+        displacement.Y = 0.0f;
+        if (displacement.LengthSquared() > 0.001f) MoveAndCollide(displacement);
+    }
+
+    public void TeleportBoss(Vector3 destination)
+    {
+        destination.Y = GlobalPosition.Y;
+        GlobalPosition = destination;
     }
 
     private async void SpawnProjectileVisual()
@@ -715,17 +904,21 @@ public partial class EnemyBasic : CharacterBody3D
     private async void OnDamaged(float amount)
     {
         if (amount <= 0) { SpawnAlertMarker(); return; }
-        if (!_isAttacking)
+        if (_overheadHealthEnabled)
         {
-            var stun = Archetype switch
+            _overheadHealthRevealed = true;
+            SetHealthBarMeshesVisible(true);
+        }
+        if (!HasStaggerArmor)
+        {
+            var rarityMultiplier = Rarity == EnemyRarity.Normal ? 1.0f : 0.72f;
+            _hitStunTimer = Mathf.Max(_hitStunTimer, BasicStaggerDuration * rarityMultiplier);
+            if (_isAttacking)
             {
-                EnemyArchetype.Tank => 0.035f,
-                EnemyArchetype.Ranged => 0.095f,
-                _ => 0.075f
-            };
-            if (Name.ToString().Contains("Boss")) stun = 0.025f;
-            if (Rarity == EnemyRarity.Legendary) stun *= 0.55f;
-            _hitStunTimer = Mathf.Max(_hitStunTimer, stun);
+                _attackSequenceVersion++;
+                _isAttacking = false;
+                HideAttackTelegraph();
+            }
         }
         SpawnDamageNumber(amount);
         SpawnHitImpact();
@@ -794,20 +987,12 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void CreateHealthBar()
     {
-        _healthBarBackground = new MeshInstance3D
-        {
-            Name = "EnemyHealthBarBackground",
-            Mesh = new QuadMesh { Size = new Vector2(_healthBarWidth + 0.08f, 0.2f) },
-            MaterialOverride = CreateBillboardMaterial(new Color(0.025f, 0.01f, 0.012f, 0.96f), 1),
-            Position = new Vector3(0.0f, 2.12f, 0.0f)
-        };
-        AddChild(_healthBarBackground);
         _healthBarFill = new MeshInstance3D
         {
             Name = "EnemyHealthBarFill",
             Mesh = new QuadMesh { Size = new Vector2(_healthBarWidth, 0.13f) },
             MaterialOverride = CreateBillboardMaterial(new Color(0.82f, 0.025f, 0.045f), 2),
-            Position = new Vector3(0.0f, 2.12f, 0.012f)
+            Position = new Vector3(0.0f, _overheadHeight, 0.0f)
         };
         AddChild(_healthBarFill);
         _rarityIcon = new MeshInstance3D
@@ -815,7 +1000,7 @@ public partial class EnemyBasic : CharacterBody3D
             Name = "EnemyRarityIcon",
             Mesh = new QuadMesh { Size = new Vector2(0.18f, 0.18f) },
             MaterialOverride = CreateBillboardMaterial(Colors.White, 3),
-            Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, 2.12f, 0.018f),
+            Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f),
             Rotation = new Vector3(0.0f, 0.0f, Mathf.Pi * 0.25f)
         };
         AddChild(_rarityIcon);
@@ -826,8 +1011,8 @@ public partial class EnemyBasic : CharacterBody3D
         AlbedoColor = color,
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
         BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-        Transparency = color.A < 1.0f ? BaseMaterial3D.TransparencyEnum.Alpha : BaseMaterial3D.TransparencyEnum.Disabled,
-        NoDepthTest = true,
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        NoDepthTest = false,
         RenderPriority = renderPriority
     };
 
@@ -852,7 +1037,7 @@ public partial class EnemyBasic : CharacterBody3D
             Texture = texture,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             PixelSize = 0.006f,
-            Position = new Vector3(xPosition * 1.45f, 2.43f, 0.0f),
+            Position = new Vector3(xPosition * 1.45f, _overheadHeight + 0.28f, 0.0f),
             Visible = false
         };
         AddChild(icon);
@@ -900,11 +1085,10 @@ public partial class EnemyBasic : CharacterBody3D
     private void UpdateRarityVisual(EnemyRarityDefinition tuning)
     {
         _healthBarWidth = Rarity == EnemyRarity.Legendary ? 2.15f : 1.55f;
-        if (_healthBarBackground?.Mesh is QuadMesh background) background.Size = new Vector2(_healthBarWidth + 0.08f, Rarity == EnemyRarity.Legendary ? 0.25f : 0.2f);
         if (_healthBarFill?.Mesh is QuadMesh fill) fill.Size = new Vector2(_healthBarWidth, Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
         if (_rarityIcon != null)
         {
-            _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, 2.12f, 0.018f);
+            _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f);
             _rarityIcon.MaterialOverride = CreateBillboardMaterial(tuning.Color, 3);
         }
     }
@@ -916,14 +1100,37 @@ public partial class EnemyBasic : CharacterBody3D
         if (_healthBarFill.Mesh is QuadMesh fill)
             fill.Size = new Vector2(Mathf.Max(_healthBarWidth * ratio, 0.001f), Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
         _healthBarFill.Scale = Vector3.One;
-        _healthBarFill.Position = new Vector3(-_healthBarWidth * (1.0f - ratio) * 0.5f, 2.12f, 0.012f);
+        _healthBarFill.Position = new Vector3(-_healthBarWidth * (1.0f - ratio) * 0.5f, _overheadHeight, 0.0f);
     }
 
     public void SetOverheadHealthVisible(bool visible)
     {
-        if (_healthBarBackground != null) _healthBarBackground.Visible = visible;
+        _overheadHealthEnabled = visible;
+        _overheadHealthRevealed = visible;
+        SetHealthBarMeshesVisible(visible);
+    }
+
+    private void SetHealthBarMeshesVisible(bool visible)
+    {
         if (_healthBarFill != null) _healthBarFill.Visible = visible;
         if (_rarityIcon != null) _rarityIcon.Visible = visible;
+    }
+
+    private void UpdateOverheadHeight()
+    {
+        if (_importedVisual != null && TryGetVisualBounds(_importedVisual, out _, out var maximum))
+            _overheadHeight = Mathf.Max(maximum.Y - GlobalPosition.Y + 0.28f, 1.7f);
+        UpdateOverheadLayout();
+    }
+
+    private void UpdateOverheadLayout()
+    {
+        if (_healthBarFill != null) _healthBarFill.Position = new Vector3(_healthBarFill.Position.X, _overheadHeight, 0.0f);
+        if (_rarityIcon != null) _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f);
+        if (_bleedingStatusIcon != null) _bleedingStatusIcon.Position = new Vector3(-0.319f, _overheadHeight + 0.28f, 0.0f);
+        if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Position = new Vector3(0.0f, _overheadHeight + 0.28f, 0.0f);
+        if (_charmedStatusIcon != null) _charmedStatusIcon.Position = new Vector3(0.319f, _overheadHeight + 0.28f, 0.0f);
+        SetHealthBarMeshesVisible(_overheadHealthEnabled && _overheadHealthRevealed);
     }
 
     private void PlayBossLocomotionAnimation(bool moving)
@@ -939,9 +1146,15 @@ public partial class EnemyBasic : CharacterBody3D
     private void SpawnDamageNumber(float amount)
     {
         var isCritical = _health?.LastDamageWasCritical == true;
+        var reason = _health?.LastDamageSource switch
+        {
+            "Ataque pelas costas" => "\nCOSTAS +50%",
+            "Impacto contra parede" => "\nPAREDE +30%",
+            _ => ""
+        };
         var label = new Label3D
         {
-            Text = Mathf.RoundToInt(amount).ToString(),
+            Text = $"{Mathf.RoundToInt(amount)}{reason}",
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             FontSize = isCritical ? 108 : 76,
             Modulate = isCritical ? new Color(1.0f, 0.82f, 0.08f) : Colors.White,

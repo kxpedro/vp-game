@@ -1,19 +1,15 @@
 using Godot;
+using System;
 
 public partial class PlayerSkillController : Node
 {
-    [Signal]
-    public delegate void ActiveSkillUsedEventHandler(int slotIndex, string skillId, float cooldownSeconds);
-
-    [Signal]
-    public delegate void ActiveSkillFailedEventHandler(int slotIndex, string message);
-
     [Export] public NodePath CombatPath { get; set; } = new("../PlayerCombat");
     [Export] public NodePath HealthPath { get; set; } = new("../Health");
 
-    private readonly float[] _slotCooldowns = new float[CharacterSheet.ActiveSkillSlotCount];
     private PlayerCombat _combat;
     private Health _health;
+    private float _perfectDodgeDamageTimer;
+    private float _perfectDodgeMoveTimer;
 
     public override void _Ready()
     {
@@ -24,132 +20,147 @@ public partial class PlayerSkillController : Node
 
     public override void _Process(double delta)
     {
-        TickCooldowns((float)delta);
-
-        for (var slotIndex = 0; slotIndex < CharacterSheet.ActiveSkillSlotCount; slotIndex++)
-        {
-            if (Input.IsActionJustPressed(GetSlotActionName(slotIndex)))
-                TryUseActiveSkill(slotIndex);
-        }
+        _perfectDodgeDamageTimer = Mathf.Max(_perfectDodgeDamageTimer - (float)delta, 0.0f);
+        _perfectDodgeMoveTimer = Mathf.Max(_perfectDodgeMoveTimer - (float)delta, 0.0f);
     }
 
     public void OnEnemyDefeated()
     {
-        if (!CharacterSheet.HasSkill(SkillCatalog.VampireFangsId) || _health == null)
+        var healFraction = EffectValue("HealOnKill");
+        if (healFraction <= 0.0f || _health == null)
             return;
 
-        var healAmount = _health.MaxHealth * 0.05f;
+        var healAmount = _health.MaxHealth * healFraction;
         _health.Heal(healAmount);
         SpawnLifeStealNumber(healAmount);
     }
 
-    public bool HasSurvivalInstinctSpeedBonus()
+    public void OnRoomCleared()
     {
-        if (!CharacterSheet.HasSkill(SkillCatalog.SurvivalInstinctId) || _health == null || _health.MaxHealth <= 0.0f)
+        var heal = EffectValue("HealOnRoomClear");
+        if (heal > 0.0f)
+            _health?.Heal(heal);
+    }
+
+    public void OnPerfectDodge()
+    {
+        var damageDuration = EffectParameter("PerfectDodgeDamage", "durationSeconds", 3.0f);
+        var moveDuration = EffectParameter("PerfectDodgeMoveSpeed", "durationSeconds", 3.0f);
+        if (EffectValue("PerfectDodgeDamage") > 0.0f)
+            _perfectDodgeDamageTimer = Mathf.Max(_perfectDodgeDamageTimer, damageDuration * TemporaryEffectDurationMultiplier());
+        if (EffectValue("PerfectDodgeMoveSpeed") > 0.0f)
+            _perfectDodgeMoveTimer = Mathf.Max(_perfectDodgeMoveTimer, moveDuration * TemporaryEffectDurationMultiplier());
+    }
+
+    public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, bool isBackstab, PlayerAttackType attackType)
+    {
+        var bonus = EffectValue("Damage");
+        if (attackType == PlayerAttackType.Basic) bonus += EffectValue("BasicAttackDamage");
+        if (attackType == PlayerAttackType.Quick) bonus += EffectValue("QuickAttackDamage");
+        if (attackType == PlayerAttackType.Special) bonus += EffectValue("SpecialAttackDamage");
+        var enemyHealth = enemy?.GetNodeOrNull<Health>("Health");
+        if (enemyHealth != null && Mathf.IsEqualApprox(enemyHealth.CurrentHealth, enemyHealth.MaxHealth))
+            bonus += EffectValue("DamageVsFullHealth");
+        if (isBackstab)
+            bonus += EffectValue("BackstabDamage");
+        if (enemy != null && enemy.NegativeStatusCount >= Mathf.RoundToInt(EffectParameter("DamageVsStatus", "minimumStatusCount", 1.0f)))
+            bonus += EffectValue("DamageVsStatus");
+        if (HealthRatio() <= EffectParameter("LowHealthDamage", "healthThreshold", 0.3f))
+            bonus += EffectValue("LowHealthDamage");
+        if (_perfectDodgeDamageTimer > 0.0f)
+            bonus += EffectValue("PerfectDodgeDamage");
+        return damage * Mathf.Max(1.0f + bonus, 0.0f);
+    }
+
+    public float ModifyIncomingDamage(float damage)
+    {
+        var modifier = EffectValue("DamageTaken");
+        var threshold = EffectParameter("LowHealthDamageTaken", "healthThreshold", 0.3f);
+        if (HealthRatio() <= threshold)
+            modifier += EffectValue("LowHealthDamageTaken");
+        return damage * Mathf.Max(1.0f + modifier, 0.05f);
+    }
+
+    public float MovementMultiplier()
+    {
+        var bonus = EffectValue("MoveSpeed");
+        if (HealthRatio() <= EffectParameter("LowHealthMoveSpeed", "healthThreshold", 0.1f))
+            bonus += EffectValue("LowHealthMoveSpeed");
+        if (_perfectDodgeMoveTimer > 0.0f)
+            bonus += EffectValue("PerfectDodgeMoveSpeed");
+        return 1.0f + bonus;
+    }
+
+    public float MaxHealthBonus() => EffectValue("MaxHealth");
+    public float ArtifactDropChanceBonus() => EffectValue("ArtifactDropChance");
+    public float TemporaryEffectDurationMultiplier() => 1.0f + EffectValue("TemporaryEffectDuration");
+    public float FuryDamageBonus() => EffectValue("FuryDamage");
+
+    public float BloodCoinMultiplier()
+    {
+        return _combat?.IsFuryActive == true ? 1.0f + EffectValue("BloodCoinsDuringFury") : 1.0f;
+    }
+
+    public bool TryPreventFatalDamage(out float restoredHealth)
+    {
+        restoredHealth = 0.0f;
+        if (EffectValue("PreventFatalDamage") <= 0.0f || _health == null || !RunState.TryConsumeSkillFatalProtection())
             return false;
-
-        return _health.CurrentHealth / _health.MaxHealth <= 0.1f;
+        restoredHealth = _health.MaxHealth * EffectParameter("PreventFatalDamage", "restoreMaxHealthFraction", 0.3f);
+        return true;
     }
 
-    public float GetCooldownRemaining(int slotIndex)
+    public bool CanRerollReward()
     {
-        if (slotIndex < 0 || slotIndex >= _slotCooldowns.Length)
-            return 0.0f;
-
-        return _slotCooldowns[slotIndex];
+        return EffectValue("RewardOfferReroll") > 0.0f && RunState.CanConsumeSkillRewardReroll();
     }
 
-    private void TryUseActiveSkill(int slotIndex)
+    public bool TryConsumeRewardReroll()
     {
-        var skillId = CharacterSheet.GetActiveSkillSlot(slotIndex);
-        if (string.IsNullOrWhiteSpace(skillId))
+        return CanRerollReward() && RunState.TryConsumeSkillRewardReroll();
+    }
+
+    private float HealthRatio() => _health != null && _health.MaxHealth > 0.0f ? _health.CurrentHealth / _health.MaxHealth : 1.0f;
+
+    private static float EffectValue(string effectType)
+    {
+        var total = 0.0f;
+        foreach (var skillId in CharacterSheet.AcquiredSkills)
         {
-            EmitSignal(SignalName.ActiveSkillFailed, slotIndex, "Nenhuma habilidade equipada.");
-            return;
+            if (!SkillCatalog.TryGet(skillId, out var skill) || !skill.IsImplemented) continue;
+            foreach (var effect in skill.Effects)
+                if (effect.Type.Equals(effectType, StringComparison.OrdinalIgnoreCase))
+                {
+                    var rank = CharacterSheet.GetSkillRank(skillId);
+                    if (effect.Values.Length == 1)
+                        total += effect.Values[0] * rank;
+                    else if (rank > 0)
+                        total += effect.Values[Mathf.Min(rank - 1, effect.Values.Length - 1)];
+                }
         }
-
-        if (!CharacterSheet.HasSkill(skillId) || !SkillCatalog.TryGet(skillId, out var definition))
-        {
-            EmitSignal(SignalName.ActiveSkillFailed, slotIndex, "Habilidade indisponivel.");
-            return;
-        }
-
-        if (definition.ActivationMode != SkillActivationMode.Active)
-        {
-            EmitSignal(SignalName.ActiveSkillFailed, slotIndex, "Habilidade passiva nao pode ser usada.");
-            return;
-        }
-
-        if (_slotCooldowns[slotIndex] > 0.0f)
-        {
-            EmitSignal(SignalName.ActiveSkillFailed, slotIndex, $"Recarga: {_slotCooldowns[slotIndex]:0.0}s.");
-            return;
-        }
-
-        if (!ApplyActiveSkill(definition))
-        {
-            EmitSignal(SignalName.ActiveSkillFailed, slotIndex, "Condicao de uso nao atendida.");
-            return;
-        }
-
-        SpawnActivationIndicator();
-
-        var cooldown = CompendiumTuning.GetFloat($"{definition.Id}.cooldown", definition.CooldownSeconds);
-        _slotCooldowns[slotIndex] = cooldown;
-        EmitSignal(SignalName.ActiveSkillUsed, slotIndex, skillId, cooldown);
+        return total;
     }
 
-    private async void SpawnActivationIndicator()
+    private static float EffectParameter(string effectType, string parameter, float fallback)
     {
-        var player = GetParent<Node3D>(); if (player == null) return;
-        var indicator = new MeshInstance3D
+        foreach (var skillId in CharacterSheet.AcquiredSkills)
         {
-            Mesh = new CylinderMesh { TopRadius = 1.35f, BottomRadius = 1.35f, Height = 0.05f },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.8f, 0.02f, 0.04f, 0.3f), EmissionEnabled = true,
-                Emission = new Color(1, 0, 0), EmissionEnergyMultiplier = 1.5f,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
-            }, Position = Vector3.Up * 0.04f
-        };
-        player.AddChild(indicator);
-        var tween = indicator.CreateTween(); tween.TweenProperty(indicator, "scale", Vector3.One * 1.35f, 0.25f);
-        tween.TweenProperty(indicator, "transparency", 1.0f, 0.2f);
-        await ToSignal(tween, Tween.SignalName.Finished); indicator.QueueFree();
-    }
-
-    private bool ApplyActiveSkill(SkillDefinition definition)
-    {
-        if (definition.Id == SkillCatalog.BestialTransformationId)
-            return _combat != null && _combat.TryActivateFury();
-
-        return false;
-    }
-
-    private void TickCooldowns(float delta)
-    {
-        for (var i = 0; i < _slotCooldowns.Length; i++)
-            _slotCooldowns[i] = Mathf.Max(_slotCooldowns[i] - delta, 0.0f);
-    }
-
-    private string GetSlotActionName(int slotIndex)
-    {
-        return $"skill_slot_{slotIndex + 1}";
+            if (!SkillCatalog.TryGet(skillId, out var skill) || !skill.IsImplemented) continue;
+            foreach (var effect in skill.Effects)
+                if (effect.Type.Equals(effectType, StringComparison.OrdinalIgnoreCase) && effect.NumberParameters.TryGetValue(parameter, out var value))
+                    return value;
+        }
+        return fallback;
     }
 
     private async void SpawnLifeStealNumber(float amount)
     {
         var label = new Label3D
         {
-            Text = $"+{Mathf.RoundToInt(amount)}",
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 70,
-            Modulate = new Color(0.25f, 1.0f, 0.38f),
-            OutlineSize = 10,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 2.35f
+            Text = $"+{Mathf.RoundToInt(amount)}", Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 70, Modulate = new Color(0.25f, 1.0f, 0.38f), OutlineSize = 10,
+            OutlineModulate = Colors.Black, Position = Vector3.Up * 2.35f
         };
-
         GetParent()?.AddChild(label);
         var tween = label.CreateTween();
         tween.TweenProperty(label, "position", label.Position + Vector3.Up * 0.9f, 0.5f);

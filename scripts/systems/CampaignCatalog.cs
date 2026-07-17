@@ -14,10 +14,11 @@ public static class CampaignCatalog
 {
     private static readonly MapDefinition[] Maps =
     {
-        new("ruined_castle", "Castelo em Ruinas", 3, "blood_mage", "Altares de sangue: vida por recompensa", 1.0f),
-        new("crimson_gardens", "Jardins Carmesins", 4, "thorn_warden", "Neblina e vegetacao hostil alteram as rotas", 1.35f),
-        new("shifting_dungeons", "Masmorras Mutaveis", 5, "labyrinth_keeper", "Armadilhas e modificadores aleatorios de sala", 1.75f),
-        new("armands_throne", "Trono de Armand", 0, "armand", "Confronto final em multiplas fases", 2.25f)
+        new("armands_dungeons", "Calaboucos de Armand", 6, "blood_mage", "Subsolo: celas, criptas e camaras de tortura", 1.0f),
+        new("blood_garden", "Jardim Sangrento - Primeiro Andar", 4, "thorn_warden", "Neblina e vegetacao hostil alteram os comodos", 1.35f),
+        // Novos andares entram aqui sem alterar o fluxo de RunState/RunManager.
+        new("upper_castle", "Ala Superior do Castelo", 5, "labyrinth_keeper", "Andar reservado para a proxima etapa da subida", 1.75f),
+        new("armands_throne", "Trono de Armand - Torre Superior", 0, "armand", "Confronto final em multiplas fases", 2.25f)
     };
 
     public static IReadOnlyList<MapDefinition> All => Maps;

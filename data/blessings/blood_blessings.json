@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "rarityScaling": {
     "common": { "powerMultiplier": 1.0, "weight": 50 },
     "uncommon": { "powerMultiplier": 2.0, "weight": 28 },
@@ -7,7 +7,7 @@
     "epic": { "powerMultiplier": 4.5, "weight": 6 },
     "legendary": { "powerMultiplier": 6.5, "weight": 2 }
   },
-  "notes": "Cada sala oferece 3 bencaos unicas de uma familia aleatoria. Os values representam a base Common e sao multiplicados por rarityScaling. Booleanos e parametros como duration e threshold nao escalam. Todas as bencaos podem aparecer como Common, Uncommon, Rare, Epic ou Legendary.",
+  "notes": "Cada sala oferece bencaos unicas de uma linhagem aleatoria. Os values comuns sao multiplicados por rarityScaling; booleanos e parametros estruturais nao escalam. Stirps possui poder fixo, combina duas familias e so entra na oferta quando seus requisitos sao atendidos.",
   "blessings": [
     {
       "id": "predatory_thirst",
@@ -1342,6 +1342,133 @@
           "immuneTargetsOnly": true
         }
       ]
+    },
+    {
+      "id": "bathory_sanguine_circle",
+      "name": "Círculo da Condessa",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 105,
+      "maxStacks": 1,
+      "description": "O ataque especial causa 15% mais dano e cria uma poça de sangue com o mesmo alcance da área atingida por 5 segundos.",
+      "flavorText": "A lâmina desenha o círculo; o sangue termina o ritual.",
+      "tags": ["bathory", "special_attack", "blood_pool", "damage"],
+      "effects": [
+        {
+          "type": "SpecialAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.15
+        },
+        {
+          "type": "SpecialAttackBloodPool",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "dracul_beast_unbound",
+      "name": "Fera sem Correntes",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "description": "Desbloqueia Fúria Bestial no botão F. Enquanto ativa, ela causa 20% mais dano e dura 15% mais.",
+      "flavorText": "A coroa ordena; a fera decide quanto sangue será suficiente.",
+      "tags": ["dracul", "bestial_fury", "fury", "damage"],
+      "effects": [
+        {
+          "type": "UnlockBestialFury",
+          "operation": "SetBool",
+          "value": true
+        },
+        {
+          "type": "FuryDamage",
+          "operation": "AddMultiplier",
+          "value": 0.20
+        },
+        {
+          "type": "FuryDuration",
+          "operation": "AddMultiplier",
+          "value": 0.15
+        }
+      ]
+    },
+    {
+      "id": "stirps_pestilent_blood",
+      "name": "Sangue Pestilento",
+      "family": "Stirps",
+      "parentFamilies": ["Bathory", "Orlok"],
+      "rarity": "Stirps",
+      "weight": 100,
+      "maxStacks": 1,
+      "icon": "res://images/bloodBoons/orlok-bathory-stirps-icon.png",
+      "requiresAnyEffects": ["BasicAttackPestilence", "BasicAttackBleed"],
+      "description": "Pestilência também causa Sangramento, e Sangramento também causa Pestilência. Só pode surgir após adquirir uma bênção de ataque básico que aplique um desses efeitos.",
+      "flavorText": "Duas linhagens rivais apodrecem juntas no mesmo pulso.",
+      "tags": ["stirps", "bathory", "orlok", "basic_attack", "bleeding", "pestilence"],
+      "effects": [
+        {
+          "type": "PestilenceAlsoBleeds",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 4.0,
+          "damagePerSecond": 5.0,
+          "maxStacks": 3
+        },
+        {
+          "type": "BleedingAlsoPestilence",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "stirps_crimson_vow",
+      "name": "Voto Escarlate",
+      "family": "Stirps",
+      "parentFamilies": ["Bathory", "Karnstein"],
+      "rarity": "Stirps",
+      "weight": 85,
+      "maxStacks": 1,
+      "icon": "res://images/bloodBoons/karnstein-bathory-stirps.png",
+      "requiresAnyEffects": ["BasicAttackCharmChance", "QuickAttackCharmChance"],
+      "description": "Acertar um inimigo encantado também causa Sangramento. Só pode surgir após adquirir uma bênção capaz de aplicar Encanto por ataque.",
+      "flavorText": "A promessa de Karnstein é assinada na banheira de Bathory.",
+      "tags": ["stirps", "bathory", "karnstein", "charm", "bleeding"],
+      "effects": [
+        {
+          "type": "CharmedTargetBleed",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 4.0,
+          "damagePerSecond": 5.0,
+          "maxStacks": 3
+        }
+      ]
+    },
+    {
+      "id": "stirps_miasmatic_feast",
+      "name": "Banquete Miasmático",
+      "family": "Stirps",
+      "parentFamilies": ["Dracul", "Orlok"],
+      "rarity": "Stirps",
+      "weight": 80,
+      "maxStacks": 1,
+      "icon": "res://images/bloodBoons/dracul-orlok-stirps.png",
+      "requiresAnyEffects": ["BasicAttackPestilence", "BleedingAlsoPestilence"],
+      "description": "Matar um inimigo afetado por Pestilência restaura 3% da vida máxima. Só pode surgir após adquirir uma fonte ofensiva de Pestilência.",
+      "flavorText": "Dracul bebe o que Orlok teve a cortesia de estragar.",
+      "tags": ["stirps", "dracul", "orlok", "pestilence", "healing"],
+      "effects": [
+        {
+          "type": "HealOnPestilentKill",
+          "operation": "AddFlat",
+          "value": 0.03
+        }
+      ]
     }
   ],
   "families": [
@@ -1368,6 +1495,12 @@
       "name": "Karnstein",
       "theme": "Encanto, aliados temporários, mobilidade e manipulação.",
       "statusEffect": "Charm"
+    },
+    {
+      "id": "stirps",
+      "name": "Stirps",
+      "theme": "Heranças híbridas despertadas por combinações específicas de bênçãos.",
+      "statusEffect": "Hybrid Bloodline"
     }
   ]
 }

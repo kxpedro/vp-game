@@ -1,3 +1,17 @@
+public enum PlayerAttackType
+{
+    Basic,
+    Quick,
+    Special
+}
+
+public enum WeaponAttackShape
+{
+    Arc,
+    Line,
+    Radial
+}
+
 public sealed record WeaponAttackDefinition(
     string Name,
     float Damage,
@@ -6,14 +20,15 @@ public sealed record WeaponAttackDefinition(
     float Knockback,
     float Range,
     float Width,
-    float SlashTilt
+    float SlashTilt,
+    WeaponAttackShape Shape = WeaponAttackShape.Arc
 );
 
 public sealed record WeaponDefinition(
     string Id,
     string DisplayName,
     string Description,
-    WeaponAttackDefinition[] LightCombo,
-    WeaponAttackDefinition HeavyAttack,
-    WeaponAttackDefinition DashAttack
+    WeaponAttackDefinition[] BasicCombo,
+    WeaponAttackDefinition QuickAttack,
+    WeaponAttackDefinition SpecialAttack
 );

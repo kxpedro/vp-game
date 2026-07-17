@@ -9,7 +9,6 @@ public partial class PlayerController : CharacterBody3D
 	[Export] public float SprintSpeed { get; set; } = 7.4f;
 	[Export] public float DodgeSpeed { get; set; } = 13.5f;
 	[Export] public float DodgeDuration { get; set; } = 0.22f;
-	[Export] public float DodgeCooldown { get; set; } = 2.0f;
 	[Export] public float DashAttackGraceSeconds { get; set; } = 0.5f;
 	[Export] public float MaxStamina { get; set; } = 100.0f;
 	[Export] public float StaminaRegenPerSecond { get; set; } = 28.0f;
@@ -21,8 +20,6 @@ public partial class PlayerController : CharacterBody3D
 	public bool CanDashAttack => IsDodging || _dashAttackGraceTimeRemaining > 0.0f;
 	public Vector3 DodgeDirection => _dodgeDirection;
 	public Vector3 LastMoveDirection => _lastMoveDirection;
-	public float DodgeCooldownRemaining => _dodgeCooldownTimeRemaining;
-	public float DodgeCooldownTotal => DodgeCooldown;
 	public float DodgeAnimationSpeedMultiplier => _baseDodgeSpeed > 0.0f ? DodgeSpeed / _baseDodgeSpeed : 1.0f;
 
 	private Health _health;
@@ -34,13 +31,11 @@ public partial class PlayerController : CharacterBody3D
 	private float _baseSprintSpeed;
 	private float _baseDodgeSpeed;
 	private float _baseDodgeDuration;
-	private float _baseDodgeCooldown;
 	private float _baseMaxHealth;
 	private float _baseMaxStamina;
 	private Vector3 _lastMoveDirection = Vector3.Forward;
 	private Vector3 _dodgeDirection = Vector3.Zero;
 	private float _dodgeTimeRemaining;
-	private float _dodgeCooldownTimeRemaining;
 	private float _dashAttackGraceTimeRemaining;
 
 	public override void _Ready()
@@ -50,7 +45,6 @@ public partial class PlayerController : CharacterBody3D
 		_baseSprintSpeed = SprintSpeed;
 		_baseDodgeSpeed = DodgeSpeed;
 		_baseDodgeDuration = DodgeDuration;
-		_baseDodgeCooldown = DodgeCooldown;
 		CurrentStamina = MaxStamina;
 		_baseMaxStamina = MaxStamina;
 		_health = GetNode<Health>(HealthPath);
@@ -90,9 +84,6 @@ public partial class PlayerController : CharacterBody3D
 
 		var deltaF = (float)delta;
 		RunState.Tick(deltaF);
-		if (_dodgeCooldownTimeRemaining > 0.0f)
-			_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - deltaF, 0.0f);
-
 		if (_dashAttackGraceTimeRemaining > 0.0f)
 		{
 			_dashAttackGraceTimeRemaining = Mathf.Max(_dashAttackGraceTimeRemaining - deltaF, 0.0f);
@@ -100,7 +91,7 @@ public partial class PlayerController : CharacterBody3D
 				_health?.SetInvincible(false);
 		}
 
-		if (!IsDodging && !CanDashAttack && (_combat == null || !_combat.IsDashAttacking) && _health.IsInvincible)
+		if (!IsDodging && !CanDashAttack && (_combat == null || !_combat.IsQuickAttacking) && _health.IsInvincible)
 			_health.SetInvincible(false);
 
 		var moveInput = Input.GetVector("move_left", "move_right", "move_forward", "move_back");
@@ -113,6 +104,8 @@ public partial class PlayerController : CharacterBody3D
 
 		if (_dodgeTimeRemaining > 0.0f)
 		{
+			if (Input.IsActionJustPressed("attack_light") && !(_combat?.IsPointerAttackBlocked() ?? false))
+				_combat?.QueueQuickAttack();
 			_dodgeTimeRemaining -= deltaF;
 			Velocity = _dodgeDirection * DodgeSpeed;
 			_animator?.SetMovementState(true, true, DodgeSpeed);
@@ -124,14 +117,19 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		}
 
-		if (Input.IsActionJustPressed("dodge") && _dodgeCooldownTimeRemaining <= 0.0f)
+		if (Input.IsActionJustPressed("dodge"))
 		{
+			var perfectDodge = IsEnemyAttackThreatening();
+			_combat?.CancelCurrentAttack();
+			if (Input.IsActionJustPressed("attack_light") && !(_combat?.IsPointerAttackBlocked() ?? false))
+				_combat?.QueueQuickAttack();
 			_dodgeDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection : _lastMoveDirection;
 		_dodgeTimeRemaining = DodgeDuration;
 			_dashAttackGraceTimeRemaining = 0.0f;
-			_dodgeCooldownTimeRemaining = DodgeCooldown;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();
+			if (perfectDodge)
+				_skillController?.OnPerfectDodge();
 			Velocity = _dodgeDirection * DodgeSpeed;
 			_animator?.SetMovementState(true, true, DodgeSpeed);
 			MoveAndSlide();
@@ -144,8 +142,7 @@ public partial class PlayerController : CharacterBody3D
 		var missingHealth = _health.MaxHealth > 0 ? 1.0f - _health.CurrentHealth / _health.MaxHealth : 0;
 		speed *= 1.0f + RunState.GetEffectTotal("MoveSpeedMissingHealth.Multiplier") * missingHealth + RunState.ContextMoveSpeed;
 		speed *= _blessings?.MovementMultiplier() ?? 1.0f;
-		if (HasSurvivalInstinctBonus())
-			speed *= 1.05f;
+		speed *= _skillController?.MovementMultiplier() ?? 1.0f;
 
 		Velocity = moveDirection * speed;
 		_animator?.SetMovementState(moveDirection.LengthSquared() > 0.001f, !isWalking, speed);
@@ -168,9 +165,12 @@ public partial class PlayerController : CharacterBody3D
 			|| Input.IsPhysicalKeyPressed(Key.Capslock);
 	}
 
-	private bool HasSurvivalInstinctBonus()
+	private bool IsEnemyAttackThreatening()
 	{
-		return _skillController != null && _skillController.HasSurvivalInstinctSpeedBonus();
+		foreach (var node in GetTree().GetNodesInGroup("enemies"))
+			if (node is EnemyBasic enemy && enemy.IsThreateningDodge(GlobalPosition))
+				return true;
+		return false;
 	}
 
 	public void ApplyRuntimeTuning()
@@ -180,11 +180,10 @@ public partial class PlayerController : CharacterBody3D
 		SprintSpeed = _baseSprintSpeed * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
 		DodgeSpeed = _baseDodgeSpeed * GameTuning.GetDashSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("DashSpeed.Multiplier"));
 		DodgeDuration = _baseDodgeDuration * GameTuning.GetDashDistanceMultiplier();
-		DodgeCooldown = _baseDodgeCooldown * GameTuning.GetDashCooldownMultiplier();
 		MaxStamina = _baseMaxStamina + CharacterSheet.GetMaxStaminaBonus();
 		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
-		var maxHealthBonus = RunState.MaxHealthBonus + CharacterSheet.GetMaxHealthBonus();
+		var maxHealthBonus = RunState.MaxHealthBonus + CharacterSheet.GetMaxHealthBonus() + (_skillController?.MaxHealthBonus() ?? 0.0f);
 		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus) * RunState.MaxHealthMultiplier * GameTuning.GetHealthMultiplier();
 		_health?.SetMaxHealth(tunedMaxHealth, false);
 	}
@@ -192,6 +191,14 @@ public partial class PlayerController : CharacterBody3D
 	public void ConsumeDashAttackGrace()
 	{
 		_dashAttackGraceTimeRemaining = 0.0f;
+	}
+
+	public void PerformAttackLunge(Vector3 direction, float distance)
+	{
+		direction.Y = 0.0f;
+		if (direction.LengthSquared() <= 0.001f || distance <= 0.0f)
+			return;
+		MoveAndCollide(direction.Normalized() * distance);
 	}
 
 	private void UpdateFacing(Vector3 fallbackDirection)
@@ -208,7 +215,7 @@ public partial class PlayerController : CharacterBody3D
 
 	private void EndDodge()
 	{
-		if (_combat != null && _combat.TryReleaseQueuedDashAttack(_dodgeDirection))
+		if (_combat != null && _combat.TryReleaseQueuedQuickAttack(_dodgeDirection))
 			return;
 
 		_dashAttackGraceTimeRemaining = DashAttackGraceSeconds;

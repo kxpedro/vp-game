@@ -68,6 +68,8 @@ public partial class Health : Node
 
         var blessingRuntime = GetParent()?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
         amount = blessingRuntime?.AbsorbBarrierAndReduceDamage(amount) ?? amount;
+        var skillController = GetParent()?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+        amount = skillController?.ModifyIncomingDamage(amount) ?? amount;
         if (amount <= 0.0f) { EmitSignal(SignalName.Damaged, 0.0f); return; }
         if (blessingRuntime?.ProtectMinimumHealth(amount) == true)
             amount = Mathf.Max(CurrentHealth - 1.0f, 0.0f);
@@ -78,6 +80,15 @@ public partial class Health : Node
             CurrentHealth = Mathf.Clamp(restoredHealth, 1.0f, MaxHealth);
             EmitSignal(SignalName.Damaged, amount);
             EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+            return;
+        }
+
+        if (amount >= CurrentHealth && skillController?.TryPreventFatalDamage(out var skillRestoredHealth) == true)
+        {
+            CurrentHealth = Mathf.Clamp(skillRestoredHealth, 1.0f, MaxHealth);
+            EmitSignal(SignalName.Damaged, amount);
+            EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+            ApplyFatalInvulnerability();
             return;
         }
 

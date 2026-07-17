@@ -10,7 +10,6 @@ public static class RunState
     public static float MaxHealthMultiplier => 1.0f + GetEffectTotal("MaxHealth.Multiplier");
     public static float SavedPlayerHealth { get; private set; } = -1.0f;
     private static readonly System.Collections.Generic.List<ArtifactRecord> TemporaryArtifacts = new();
-    private static readonly ArtifactRecord[] ActiveArtifactSlots = new ArtifactRecord[2];
     private static readonly System.Collections.Generic.List<BloodBlessingRecord> BloodBlessings = new();
     private static readonly System.Collections.Generic.Dictionary<string, int> BlessingStacks = new();
 
@@ -20,6 +19,8 @@ public static class RunState
     public static bool IsFinalMap => CurrentMapIndex >= CampaignCatalog.Count - 1;
     public static bool IsCampaignComplete { get; private set; }
     private static bool _fatalProtectionConsumed;
+    private static bool _skillFatalProtectionConsumed;
+    private static int _skillRerollConsumedMap = -1;
     private static float _killAttackSpeedBonus, _killAttackSpeedTimer, _moveOnHitBonus, _moveOnHitTimer;
     private static float _flawlessDamage, _flawlessLifeSteal, _fatalDamageBonus, _fatalDamageTimer, _healPenalty, _healPenaltyTimer;
     private static float _temporaryMoveSpeed, _temporaryCriticalChance, _temporaryCriticalDamage, _temporaryBuffTimer;
@@ -35,10 +36,11 @@ public static class RunState
         CurrentRoom = 1;
         IsCampaignComplete = false;
         _fatalProtectionConsumed = false;
+        _skillFatalProtectionConsumed = false;
+        _skillRerollConsumedMap = -1;
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
-        ClearActiveArtifacts();
         DamageMultiplier = 1.0f;
         MaxHealthBonus = 0.0f;
         EffectTotals.Clear();
@@ -72,8 +74,9 @@ public static class RunState
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
-        ClearActiveArtifacts();
         IsCampaignComplete = true;
+        _skillFatalProtectionConsumed = false;
+        _skillRerollConsumedMap = -1;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
         DamageMultiplier = 1.0f;
@@ -92,10 +95,11 @@ public static class RunState
         CurrentRoom = 1;
         IsCampaignComplete = false;
         _fatalProtectionConsumed = false;
+        _skillFatalProtectionConsumed = false;
+        _skillRerollConsumedMap = -1;
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
-        ClearActiveArtifacts();
         DamageMultiplier = 1.0f;
         MaxHealthBonus = 0.0f;
         EffectTotals.Clear();
@@ -131,8 +135,7 @@ public static class RunState
 
         foreach (var artifact in TemporaryArtifacts)
         {
-            if (!IsActiveArtifact(artifact))
-                ApplyArtifactEffect(artifact);
+            ApplyArtifactEffect(artifact);
         }
 
         foreach (var blessing in BloodBlessings)
@@ -144,14 +147,16 @@ public static class RunState
     {
         TemporaryArtifacts.Add(artifact);
 
-        if (!IsActiveArtifact(artifact))
-            ApplyArtifactEffect(artifact);
+        ApplyArtifactEffect(artifact);
     }
 
     public static int GetBlessingStack(string blessingId) => BlessingStacks.TryGetValue(blessingId, out var stack) ? stack : 0;
 
     public static bool AddBloodBlessing(BloodBlessingDefinition definition)
-        => AddBloodBlessing(new BloodBlessingOffer(definition, "Common", 1.0f));
+        => AddBloodBlessing(new BloodBlessingOffer(
+            definition,
+            definition.Rarity.Equals("Stirps", System.StringComparison.OrdinalIgnoreCase) ? "Stirps" : "Common",
+            1.0f));
 
     public static bool AddBloodBlessing(BloodBlessingOffer offer)
     {
@@ -203,37 +208,11 @@ public static class RunState
             SetEffectParameterMaximum(effect.Type, parameter.Key, parameter.Value);
     }
 
-    public static ArtifactRecord GetActiveArtifactSlot(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveArtifactSlots.Length)
-            return default;
-
-        return ActiveArtifactSlots[slotIndex];
-    }
-
-    public static bool EquipActiveArtifact(int slotIndex, ArtifactRecord artifact)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveArtifactSlots.Length || !IsActiveArtifact(artifact))
-            return false;
-
-        ActiveArtifactSlots[slotIndex] = artifact;
-        return true;
-    }
-
-    public static void UnequipActiveArtifact(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= ActiveArtifactSlots.Length)
-            return;
-
-        ActiveArtifactSlots[slotIndex] = default;
-    }
-
     private static void ApplyEquippedArtifacts()
     {
         foreach (var artifact in CharacterSheet.GetEquippedArtifacts())
         {
-            if (!IsActiveArtifact(artifact))
-                ApplyArtifactEffect(artifact);
+            ApplyArtifactEffect(artifact);
         }
     }
 
@@ -264,6 +243,8 @@ public static class RunState
     }
 
     public static float GetEffectTotal(string key) => EffectTotals.TryGetValue(key, out var value) ? value : 0.0f;
+    public static bool HasEffectType(string effectType)
+        => GetEffectTotal(effectType + ".Flat") != 0.0f || GetEffectTotal(effectType + ".Multiplier") != 0.0f;
     public static float GetEffectParameter(string effectType, string parameter, float fallback = 0.0f)
         => EffectParameters.TryGetValue($"{effectType}.{parameter}", out var value) ? value : fallback;
 
@@ -273,6 +254,22 @@ public static class RunState
         _fatalProtectionConsumed = true;
         _fatalDamageBonus = GetEffectTotal("DamageOnFatal.Multiplier");
         _fatalDamageTimer = GetEffectTotal("InvulnerabilityOnFatal.Flat");
+        return true;
+    }
+
+    public static bool TryConsumeSkillFatalProtection()
+    {
+        if (_skillFatalProtectionConsumed) return false;
+        _skillFatalProtectionConsumed = true;
+        return true;
+    }
+
+    public static bool CanConsumeSkillRewardReroll() => _skillRerollConsumedMap != CurrentMapIndex;
+
+    public static bool TryConsumeSkillRewardReroll()
+    {
+        if (!CanConsumeSkillRewardReroll()) return false;
+        _skillRerollConsumedMap = CurrentMapIndex;
         return true;
     }
 
@@ -334,14 +331,4 @@ public static class RunState
             EffectParameters[key] = value;
     }
 
-    private static bool IsActiveArtifact(ArtifactRecord artifact)
-    {
-        return artifact.Slot == "Active";
-    }
-
-    private static void ClearActiveArtifacts()
-    {
-        for (var i = 0; i < ActiveArtifactSlots.Length; i++)
-            ActiveArtifactSlots[i] = default;
-    }
 }

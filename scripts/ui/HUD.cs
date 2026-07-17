@@ -10,6 +10,7 @@ public partial class HUD : CanvasLayer
 	private Label _healthPointsLabel;
 	private Label _fpsLabel;
 	private ColorRect _damageFlash;
+	private ColorRect _criticalHealthVignette;
 	private MinimapControl _minimap;
 	private RichTextLabel _gameLog;
 	private readonly Queue<string> _gameLogEntries = new();
@@ -19,11 +20,7 @@ public partial class HUD : CanvasLayer
 	private Label _weaponLabel;
 	private Control _weaponBenchOverlay;
 	private Label _weaponBenchStatusLabel;
-	private Label _activeSkillsLabel;
 	private Label _enemyProgressLabel;
-	private VBoxContainer _cooldownPanel;
-	private Label _dashCooldownLabel;
-	private readonly Label[] _skillCooldownLabels = new Label[CharacterSheet.ActiveSkillSlotCount];
 	private Label _roomLabel;
 	private Control _bossHealthPanel;
 	private ProgressBar _bossHealthBar;
@@ -39,9 +36,6 @@ public partial class HUD : CanvasLayer
 	private Label _bloodFountainStatusLabel;
 	private Button _bloodCoinCheatButton;
 	private readonly Dictionary<string, Button> _skillTreeButtons = new();
-	private readonly Button[] _activeSkillSlotButtons = new Button[CharacterSheet.ActiveSkillSlotCount];
-	private VBoxContainer _activeSkillList;
-	private Label _activeSkillLoadoutStatusLabel;
 	private Control _skillDescriptionPopup;
 	private Label _skillDescriptionLabel;
 	private Control _artifactChestOverlay;
@@ -51,11 +45,12 @@ public partial class HUD : CanvasLayer
 	private Control _artifactOfferOverlay;
 	private Label _artifactOfferStatusLabel;
 	private VBoxContainer _artifactOfferList;
+	private Button _artifactRerollButton;
 	private RoomArtifact _pendingArtifactSource;
-	private ArtifactRecord _pendingActiveArtifact;
 	private Control _bloodBlessingOverlay;
 	private Label _bloodBlessingStatusLabel;
 	private VBoxContainer _bloodBlessingList;
+	private Button _blessingRerollButton;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
 	private VBoxContainer _blessingHudList;
@@ -78,8 +73,8 @@ public partial class HUD : CanvasLayer
 	private Label _dashSpeedValueLabel;
 	private HSlider _dashDistanceSlider;
 	private Label _dashDistanceValueLabel;
-	private HSlider _dashCooldownSlider;
-	private Label _dashCooldownValueLabel;
+	private HSlider _cameraZoomDistanceSlider;
+	private Label _cameraZoomDistanceValueLabel;
 	private HSlider _damageSlider;
 	private Label _damageValueLabel;
 	private HSlider _healthSlider;
@@ -99,14 +94,14 @@ public partial class HUD : CanvasLayer
 	private bool _isRuntimeBound;
 	private bool _roomClearAnnounced;
 	private PlayerController _runtimePlayerController;
-	private PlayerSkillController _runtimeSkillController;
-	private int _selectedActiveSkillSlot;
+	private PlayerCombat _runtimePlayerCombat;
 	private int _selectedArtifactSlot;
 	private string _selectedCompendiumTab = "Artifacts";
 	private float _bloodFountainZoom = 1.0f;
 	private bool _isDraggingBloodFountain;
 	private Vector2 _lastBloodFountainMousePosition;
 	private Vector2 _skillTreePan = Vector2.Zero;
+	private float _criticalHealthPulse;
 
 	public override void _Ready()
 	{
@@ -178,10 +173,26 @@ public partial class HUD : CanvasLayer
 
 	public override void _Process(double delta)
 	{
-		UpdateCooldownPanel();
+		UpdateCriticalHealthIndicator((float)delta);
 		if (_fpsLabel != null)
 			_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
 	}
+
+	public bool IsGameplayInputBlocked()
+	{
+		return IsVisible(_weaponBenchOverlay)
+			|| IsVisible(_characterSheetOverlay)
+			|| IsVisible(_bloodFountainOverlay)
+			|| IsVisible(_artifactChestOverlay)
+			|| IsVisible(_artifactOfferOverlay)
+			|| IsVisible(_bloodBlessingOverlay)
+			|| IsVisible(_pauseOverlay)
+			|| IsVisible(_compendiumOverlay)
+			|| IsVisible(_gameOverOverlay)
+			|| IsVisible(_skillDescriptionPopup);
+	}
+
+	private static bool IsVisible(Control control) => control != null && control.Visible;
 
 	private void BuildLayout()
 	{
@@ -197,7 +208,6 @@ public partial class HUD : CanvasLayer
 		AddHudPanel(root, "ResourceFrame", new Vector4(1, 0, 1, 0), new Vector4(-344, 14, -14, 132));
 		AddHudPanel(root, "LogFrame", new Vector4(1, 1, 1, 1), new Vector4(-444, -282, -14, -14), 0.72f);
 		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-382, 10, 382, 54), 0.76f);
-		AddHudPanel(root, "SkillsFrame", new Vector4(0.5f, 1, 0.5f, 1), new Vector4(-440, -66, 440, -14), 0.76f);
 
 		var leftStatus = new VBoxContainer
 		{
@@ -256,6 +266,15 @@ public partial class HUD : CanvasLayer
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		root.AddChild(_damageFlash);
+		_criticalHealthVignette = new ColorRect
+		{
+			Name = "CriticalHealthVignette",
+			Color = new Color(0.75f, 0.0f, 0.025f, 0.0f),
+			AnchorRight = 1.0f,
+			AnchorBottom = 1.0f,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		root.AddChild(_criticalHealthVignette);
 
 		_gameLog = new RichTextLabel
 		{
@@ -296,22 +315,6 @@ public partial class HUD : CanvasLayer
 		};
 		resourcePanel.AddChild(_weaponLabel);
 
-		_activeSkillsLabel = new Label
-		{
-			Name = "ActiveSkillsLabel",
-			Text = "Habilidades: 1 vazio | 2 vazio | 3 vazio | 4 vazio",
-			AnchorLeft = 0.5f,
-			AnchorTop = 1.0f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = -420.0f,
-			OffsetTop = -56.0f,
-			OffsetRight = 420.0f,
-			OffsetBottom = -24.0f,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		root.AddChild(_activeSkillsLabel);
-
 		_enemyProgressLabel = new Label
 		{
 			Name = "EnemyProgressLabel",
@@ -320,33 +323,10 @@ public partial class HUD : CanvasLayer
 		};
 		resourcePanel.AddChild(_enemyProgressLabel);
 
-		_cooldownPanel = new VBoxContainer
-		{
-			Name = "CooldownPanel",
-			AnchorLeft = 1.0f,
-			AnchorTop = 1.0f,
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = -260.0f,
-			OffsetTop = -220.0f,
-			OffsetRight = -24.0f,
-			OffsetBottom = -82.0f,
-			Visible = false
-		};
-		root.AddChild(_cooldownPanel);
-
-		_dashCooldownLabel = CreateCooldownLabel("Dash");
-		_cooldownPanel.AddChild(_dashCooldownLabel);
-		for (var i = 0; i < _skillCooldownLabels.Length; i++)
-		{
-			_skillCooldownLabels[i] = CreateCooldownLabel($"{i + 1}");
-			_cooldownPanel.AddChild(_skillCooldownLabels[i]);
-		}
-
 		_roomLabel = new Label
 		{
 			Name = "RoomLabel",
-			Text = "WASD move | CAPSLOCK caminha | 1-4 habilidades | Q/R artefatos | ESC pausa",
+			Text = "WASD move | Mouse Esq. ataque | ESPACO dash | Q especial | R/T artefatos | ESC pausa",
 			AnchorLeft = 0.5f,
 			AnchorRight = 0.5f,
 			OffsetLeft = -360.0f,
@@ -483,16 +463,6 @@ public partial class HUD : CanvasLayer
 		root.AddChild(panel);
 	}
 
-	private Label CreateCooldownLabel(string label)
-	{
-		return new Label
-		{
-			Text = label,
-			HorizontalAlignment = HorizontalAlignment.Right,
-			Visible = false
-		};
-	}
-
 	private void ApplyHealthBarStyle()
 	{
 		var fill = new StyleBoxFlat
@@ -525,7 +495,6 @@ public partial class HUD : CanvasLayer
 		var health = player?.GetNodeOrNull<Health>("Health");
 		var controller = player as PlayerController;
 		var combat = player?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
-		var skillController = player?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
 		var runManager = GetTree().GetFirstNodeInGroup("run_manager") as RunManager;
 
 		if (health != null)
@@ -541,16 +510,10 @@ public partial class HUD : CanvasLayer
 
 		if (combat != null)
 		{
+			_runtimePlayerCombat = combat;
 			_furyBar.MaxValue = combat.MaxFury;
 			_furyBar.Value = combat.CurrentFury;
 			combat.FuryChanged += OnFuryChanged;
-		}
-
-		if (skillController != null)
-		{
-			_runtimeSkillController = skillController;
-			skillController.ActiveSkillUsed += OnActiveSkillUsed;
-			skillController.ActiveSkillFailed += OnActiveSkillFailed;
 		}
 
 		_runtimePlayerController = controller;
@@ -567,7 +530,6 @@ public partial class HUD : CanvasLayer
 			_isRuntimeBound = true;
 		}
 
-		RefreshActiveSkills();
 	}
 
 	private void OnPlayerDamaged(float amount)
@@ -709,66 +671,33 @@ public partial class HUD : CanvasLayer
 			_healthPointsLabel.Text = $"{Mathf.RoundToInt(current)}/{Mathf.RoundToInt(max)}";
 	}
 
+	private void UpdateCriticalHealthIndicator(float delta)
+	{
+		if (_criticalHealthVignette == null || _runtimeHealth == null || _runtimeHealth.MaxHealth <= 0.0f)
+			return;
+
+		var healthRatio = _runtimeHealth.CurrentHealth / _runtimeHealth.MaxHealth;
+		if (healthRatio >= 0.3f || _runtimeHealth.IsDead)
+		{
+			_criticalHealthVignette.Color = new Color(0.75f, 0.0f, 0.025f, 0.0f);
+			return;
+		}
+
+		_criticalHealthPulse += delta * 3.4f;
+		var severity = Mathf.Clamp((0.3f - healthRatio) / 0.3f, 0.0f, 1.0f);
+		var pulse = 0.5f + 0.5f * Mathf.Sin(_criticalHealthPulse);
+		_criticalHealthVignette.Color = new Color(0.75f, 0.0f, 0.025f, 0.08f + severity * 0.12f + pulse * 0.055f);
+	}
+
 	private void OnFuryChanged(float current, float max, bool isActive)
 	{
 		_furyBar.MaxValue = max;
 		_furyBar.Value = isActive ? max : current;
-		_furyBar.TooltipText = isActive ? "Furia ativa" : "Furia";
-	}
-
-	private void OnActiveSkillUsed(int slotIndex, string skillId, float cooldownSeconds)
-	{
-		var name = SkillCatalog.TryGet(skillId, out var definition) ? definition.DisplayName : skillId;
-		ShowEnemyDefeatedToast($"{slotIndex + 1}: {name} ativada");
-	}
-
-	private void OnActiveSkillFailed(int slotIndex, string message)
-	{
-		ShowEnemyDefeatedToast($"{slotIndex + 1}: {message}");
-	}
-
-	private void UpdateCooldownPanel()
-	{
-		if (_cooldownPanel == null)
-			return;
-
-		var hasCooldown = false;
-
-		if (_runtimePlayerController != null && _runtimePlayerController.DodgeCooldownRemaining > 0.0f)
-		{
-			_dashCooldownLabel.Text = $"Dash {Mathf.CeilToInt(_runtimePlayerController.DodgeCooldownRemaining)}s";
-			_dashCooldownLabel.Visible = true;
-			hasCooldown = true;
-		}
-		else if (_dashCooldownLabel != null)
-		{
-			_dashCooldownLabel.Visible = false;
-		}
-
-		for (var i = 0; i < _skillCooldownLabels.Length; i++)
-		{
-			var label = _skillCooldownLabels[i];
-			if (label == null)
-				continue;
-
-			var remaining = _runtimeSkillController?.GetCooldownRemaining(i) ?? 0.0f;
-			if (remaining > 0.0f)
-			{
-				var skillId = CharacterSheet.GetActiveSkillSlot(i);
-				var skillName = !string.IsNullOrWhiteSpace(skillId) && SkillCatalog.TryGet(skillId, out var definition)
-					? definition.IconText
-					: $"{i + 1}";
-				label.Text = $"{skillName} {Mathf.CeilToInt(remaining)}s";
-				label.Visible = true;
-				hasCooldown = true;
-			}
-			else
-			{
-				label.Visible = false;
-			}
-		}
-
-		_cooldownPanel.Visible = hasCooldown;
+		_furyBar.TooltipText = isActive
+			? "Furia Bestial ativa"
+			: RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f
+				? "Furia Bestial - pressione F quando a barra estiver cheia"
+				: "Furia Bestial bloqueada - encontre uma Bencao de Sangue compativel";
 	}
 
 	private void OnBloodCoinsChanged(int amount)
@@ -939,7 +868,6 @@ public partial class HUD : CanvasLayer
 		BuildSkillTreeBoard("Bestialis", SkillTree.Bestialis, 230.0f);
 		BuildSkillTreeBoard("Humanitas", SkillTree.Humanitas, 910.0f);
 
-		BuildActiveSkillLoadoutPanel();
 		BuildSkillDescriptionPopup();
 
 		var closeButton = new Button
@@ -980,7 +908,7 @@ public partial class HUD : CanvasLayer
 		for (var i = 0; i < skills.Count; i++)
 		{
 			var definition = skills[i];
-			var nodePosition = GetSkillNodePosition(offsetLeft, i);
+			var nodePosition = GetSkillNodePosition(offsetLeft, definition);
 			CreateSkillNode(definition, nodePosition);
 
 			foreach (var prerequisiteId in definition.Prerequisites)
@@ -988,19 +916,18 @@ public partial class HUD : CanvasLayer
 				if (!SkillCatalog.TryGet(prerequisiteId, out var prerequisite))
 					continue;
 
-				var prerequisiteIndex = skills.FindIndex(skill => skill.Id == prerequisite.Id);
-				if (prerequisiteIndex < 0)
+				if (prerequisite.Tree != tree)
 					continue;
 
-				CreateSkillLink(GetSkillNodePosition(offsetLeft, prerequisiteIndex), nodePosition);
+				CreateSkillLink(GetSkillNodePosition(offsetLeft, prerequisite), nodePosition);
 			}
 		}
 	}
 
-	private Vector2 GetSkillNodePosition(float treeOffsetLeft, int index)
+	private Vector2 GetSkillNodePosition(float treeOffsetLeft, SkillDefinition definition)
 	{
-		var x = treeOffsetLeft + 190.0f;
-		var y = 170.0f + index * 112.0f;
+		var x = treeOffsetLeft + 20.0f + definition.GridColumn * 130.0f;
+		var y = 170.0f + definition.GridRow * 112.0f;
 		return new Vector2(x, y);
 	}
 
@@ -1014,7 +941,8 @@ public partial class HUD : CanvasLayer
 			OffsetTop = position.Y,
 			OffsetRight = position.X + 72.0f,
 			OffsetBottom = position.Y + 72.0f,
-			TooltipText = $"{definition.DisplayName} - clique direito para detalhes"
+			TooltipText = $"{definition.DisplayName} - clique direito para detalhes" +
+				(definition.IsImplemented ? "" : "\nEm planejamento; compra indisponível.")
 		};
 		button.Pressed += () => BuySkill(definition.Id);
 		button.GuiInput += @event =>
@@ -1044,104 +972,32 @@ public partial class HUD : CanvasLayer
 
 	private void CreateSkillLink(Vector2 from, Vector2 to)
 	{
-		var link = new ColorRect
+		var start = from + new Vector2(36.0f, 36.0f);
+		var end = to + new Vector2(36.0f, 36.0f);
+		var corner = new Vector2(end.X, start.Y);
+		CreateSkillLinkSegment(start, corner);
+		CreateSkillLinkSegment(corner, end);
+	}
+
+	private void CreateSkillLinkSegment(Vector2 from, Vector2 to)
+	{
+		var horizontal = Mathf.Abs(to.X - from.X) >= Mathf.Abs(to.Y - from.Y);
+		var link = new ColorRect { Name = "SkillLink", Color = new Color(0.55f, 0.08f, 0.08f, 0.8f) };
+		if (horizontal)
 		{
-			Name = "SkillLink",
-			Color = new Color(0.55f, 0.08f, 0.08f, 0.8f),
-			OffsetLeft = from.X + 34.0f,
-			OffsetTop = from.Y + 72.0f,
-			OffsetRight = from.X + 38.0f,
-			OffsetBottom = to.Y
-		};
+			link.OffsetLeft = Mathf.Min(from.X, to.X);
+			link.OffsetTop = from.Y - 2.0f;
+			link.OffsetRight = Mathf.Max(from.X, to.X) + 4.0f;
+			link.OffsetBottom = from.Y + 2.0f;
+		}
+		else
+		{
+			link.OffsetLeft = from.X - 2.0f;
+			link.OffsetTop = Mathf.Min(from.Y, to.Y);
+			link.OffsetRight = from.X + 2.0f;
+			link.OffsetBottom = Mathf.Max(from.Y, to.Y) + 4.0f;
+		}
 		_skillTreeCanvas.AddChild(link);
-	}
-
-	private void BuildActiveSkillLoadoutPanel()
-	{
-		var loadoutTitle = new Label
-		{
-			Name = "ActiveSkillLoadoutTitle",
-			Text = "Habilidades Ativas",
-			AnchorLeft = 0.0f,
-			AnchorRight = 1.0f,
-			OffsetTop = 650.0f,
-			OffsetBottom = 680.0f,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		_bloodFountainOverlay.AddChild(loadoutTitle);
-
-		_activeSkillLoadoutStatusLabel = new Label
-		{
-			Name = "ActiveSkillLoadoutStatus",
-			Text = "Selecione um slot 1-4 e clique em uma habilidade ativa adquirida para vincular.",
-			AnchorLeft = 0.0f,
-			AnchorRight = 1.0f,
-			OffsetTop = 682.0f,
-			OffsetBottom = 710.0f,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		_bloodFountainOverlay.AddChild(_activeSkillLoadoutStatusLabel);
-
-		var slotRow = new HBoxContainer
-		{
-			Name = "ActiveSkillSlotRow",
-			AnchorLeft = 0.5f,
-			AnchorRight = 0.5f,
-			OffsetLeft = -520.0f,
-			OffsetTop = 720.0f,
-			OffsetRight = -120.0f,
-			OffsetBottom = 810.0f
-		};
-		_bloodFountainOverlay.AddChild(slotRow);
-
-		for (var i = 0; i < CharacterSheet.ActiveSkillSlotCount; i++)
-		{
-			var slotIndex = i;
-			var button = new Button
-			{
-				Name = $"ActiveSkillSlot{slotIndex + 1}",
-				Text = $"{slotIndex + 1}: vazio",
-				CustomMinimumSize = new Vector2(86.0f, 58.0f)
-			};
-			button.Pressed += () => SelectActiveSkillSlot(slotIndex);
-			_activeSkillSlotButtons[slotIndex] = button;
-			slotRow.AddChild(button);
-		}
-
-		_activeSkillList = new VBoxContainer
-		{
-			Name = "AvailableActiveSkillList",
-			AnchorLeft = 0.5f,
-			AnchorRight = 0.5f,
-			OffsetLeft = -70.0f,
-			OffsetTop = 720.0f,
-			OffsetRight = 520.0f,
-			OffsetBottom = 810.0f
-		};
-		_bloodFountainOverlay.AddChild(_activeSkillList);
-	}
-
-	private void SelectActiveSkillSlot(int slotIndex)
-	{
-		_selectedActiveSkillSlot = slotIndex;
-		RefreshActiveSkillLoadout();
-	}
-
-	private void EquipSelectedActiveSkill(string skillId)
-	{
-		if (!SkillCatalog.TryGet(skillId, out var definition))
-			return;
-
-		if (!CharacterSheet.EquipActiveSkill(_selectedActiveSkillSlot, skillId))
-		{
-			SetActiveSkillLoadoutStatus($"Nao foi possivel vincular {definition.DisplayName}.");
-			return;
-		}
-
-		SetActiveSkillLoadoutStatus($"{definition.DisplayName} vinculada no slot {_selectedActiveSkillSlot + 1}.");
-		RefreshActiveSkills();
-		RefreshCharacterSheet();
-		RefreshActiveSkillLoadout();
 	}
 
 	private void BuySkill(string skillId)
@@ -1152,9 +1008,17 @@ public partial class HUD : CanvasLayer
 			return;
 		}
 
-		if (CharacterSheet.HasSkill(skillId))
+		if (!definition.IsImplemented)
 		{
-			SetBloodFountainStatus($"{definition.DisplayName} ja foi adquirida.");
+			SetBloodFountainStatus($"{definition.DisplayName} ainda está em planejamento.");
+			return;
+		}
+
+		var currentRank = CharacterSheet.GetSkillRank(skillId);
+		var maxRank = GetSkillMaxRank(definition);
+		if (currentRank >= maxRank)
+		{
+			SetBloodFountainStatus($"{definition.DisplayName} ja esta no nivel maximo ({maxRank}).");
 			return;
 		}
 
@@ -1164,7 +1028,13 @@ public partial class HUD : CanvasLayer
 			return;
 		}
 
-		var cost = CompendiumTuning.GetInt($"{definition.Id}.cost", definition.Cost);
+		if (SkillCatalog.HasExclusiveConflict(definition))
+		{
+			SetBloodFountainStatus($"{definition.DisplayName} conflita com outra escolha já adquirida.");
+			return;
+		}
+
+		var cost = GetSkillUpgradeCost(definition);
 		if (!CharacterSheet.SpendBloodCoins(cost))
 		{
 			SetBloodFountainStatus($"Moedas insuficientes para {definition.DisplayName}.");
@@ -1178,14 +1048,23 @@ public partial class HUD : CanvasLayer
 			return;
 		}
 
-		if (definition.ActivationMode == SkillActivationMode.Active)
-			CharacterSheet.EquipFirstOpenActiveSkill(skillId);
-
 		_coinsLabel.Text = $"Moedas de Sangue: {CharacterSheet.BloodCoins}";
 		RefreshCharacterSheet();
+		GetTree().CallGroup("player", "ApplyRuntimeTuning");
 		RefreshBloodFountain();
-		RefreshActiveSkills();
-		SetBloodFountainStatus($"{definition.DisplayName} adquirida.");
+		SetBloodFountainStatus($"{definition.DisplayName} aprimorada para o nivel {currentRank + 1}/{maxRank}.");
+	}
+
+	private static int GetSkillMaxRank(SkillDefinition definition)
+	{
+		return Mathf.Max(CompendiumTuning.GetInt($"{definition.Id}.max_rank", definition.MaxRank), 1);
+	}
+
+	private static int GetSkillUpgradeCost(SkillDefinition definition)
+	{
+		var baseCost = CompendiumTuning.GetInt($"{definition.Id}.cost", definition.Cost);
+		var currentRank = CharacterSheet.GetSkillRank(definition.Id);
+		return Mathf.RoundToInt(baseCost * (1.0f + currentRank * 0.5f));
 	}
 
 	private void AddCheatBloodCoins()
@@ -1202,7 +1081,6 @@ public partial class HUD : CanvasLayer
 
 		_bloodFountainStatusLabel.Text = $"Moedas de Sangue: {CharacterSheet.BloodCoins}";
 		RefreshSkillTreeButtons();
-		RefreshActiveSkillLoadout();
 	}
 
 	private void RefreshSkillTreeButtons()
@@ -1213,16 +1091,26 @@ public partial class HUD : CanvasLayer
 				continue;
 
 			var button = pair.Value;
-			var hasSkill = CharacterSheet.HasSkill(definition.Id);
+			var currentRank = CharacterSheet.GetSkillRank(definition.Id);
+			var maxRank = GetSkillMaxRank(definition);
+			var hasSkill = currentRank > 0;
+			var isMaxRank = currentRank >= maxRank;
 			var unlocked = SkillCatalog.HasPrerequisites(definition);
-			var cost = CompendiumTuning.GetInt($"{definition.Id}.cost", definition.Cost);
+			var exclusiveConflict = SkillCatalog.HasExclusiveConflict(definition);
+			var cost = GetSkillUpgradeCost(definition);
 			var canAfford = CharacterSheet.BloodCoins >= cost;
 
 			button.Disabled = false;
-			button.Text = hasSkill ? "✓" : definition.IconText;
+			button.Text = $"{definition.IconText}\n{currentRank}/{maxRank}";
 
-			if (hasSkill)
+			if (!definition.IsImplemented)
+				button.Modulate = new Color(0.48f, 0.34f, 0.58f);
+			else if (isMaxRank)
 				button.Modulate = new Color(0.75f, 1.0f, 0.78f);
+			else if (hasSkill && canAfford)
+				button.Modulate = new Color(0.9f, 0.72f, 1.0f);
+			else if (exclusiveConflict)
+				button.Modulate = new Color(0.32f, 0.28f, 0.34f);
 			else if (!unlocked)
 				button.Modulate = new Color(0.42f, 0.42f, 0.46f);
 			else if (canAfford)
@@ -1263,68 +1151,6 @@ public partial class HUD : CanvasLayer
 
 		_skillTreeCanvas.Scale = Vector2.One * _bloodFountainZoom;
 		_skillTreeCanvas.Position = _skillTreePan;
-	}
-
-	private void RefreshActiveSkillLoadout()
-	{
-		for (var i = 0; i < _activeSkillSlotButtons.Length; i++)
-		{
-			var button = _activeSkillSlotButtons[i];
-			if (button == null)
-				continue;
-
-			var skillId = CharacterSheet.GetActiveSkillSlot(i);
-			var skillName = !string.IsNullOrWhiteSpace(skillId) && SkillCatalog.TryGet(skillId, out var definition)
-				? definition.DisplayName
-				: "vazio";
-
-			button.Text = $"{i + 1}: {skillName}";
-			button.Disabled = false;
-			button.Modulate = i == _selectedActiveSkillSlot ? new Color(1.0f, 0.35f, 0.32f) : Colors.White;
-		}
-
-		RefreshAvailableActiveSkillList();
-	}
-
-	private void RefreshAvailableActiveSkillList()
-	{
-		if (_activeSkillList == null)
-			return;
-
-		foreach (var child in _activeSkillList.GetChildren())
-			child.QueueFree();
-
-		var hasActiveSkill = false;
-		foreach (var skillId in CharacterSheet.AcquiredSkills)
-		{
-			if (!SkillCatalog.TryGet(skillId, out var definition) || definition.ActivationMode != SkillActivationMode.Active)
-				continue;
-
-			hasActiveSkill = true;
-			var button = new Button
-			{
-				Text = definition.DisplayName,
-				CustomMinimumSize = new Vector2(340.0f, 36.0f)
-			};
-			button.Pressed += () => EquipSelectedActiveSkill(skillId);
-			_activeSkillList.AddChild(button);
-		}
-
-		if (hasActiveSkill)
-			return;
-
-		_activeSkillList.AddChild(new Label
-		{
-			Text = "Nenhuma habilidade ativa adquirida. Habilidades passivas nao ocupam slot. Compre Transformacao Bestial para testar.",
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			CustomMinimumSize = new Vector2(340.0f, 46.0f)
-		});
-	}
-
-	private void SetActiveSkillLoadoutStatus(string text)
-	{
-		if (_activeSkillLoadoutStatusLabel != null)
-			_activeSkillLoadoutStatusLabel.Text = text;
 	}
 
 	private void BuildSkillDescriptionPopup()
@@ -1380,17 +1206,29 @@ public partial class HUD : CanvasLayer
 		if (_skillDescriptionPopup == null || _skillDescriptionLabel == null)
 			return;
 
-		var status = CharacterSheet.HasSkill(definition.Id)
-			? "Adquirida"
-			: SkillCatalog.HasPrerequisites(definition)
-				? "Disponivel"
-				: "Bloqueada";
+		var currentRank = CharacterSheet.GetSkillRank(definition.Id);
+		var maxRank = GetSkillMaxRank(definition);
+		var hasSkill = currentRank > 0;
+		var status = !definition.IsImplemented
+			? hasSkill
+				? "Adquirida em save anterior - efeito planejado"
+				: "Planejada - compra indisponível"
+			: currentRank >= maxRank
+				? "Nivel maximo"
+				: hasSkill
+					? "Disponivel para aprimorar"
+				: SkillCatalog.HasExclusiveConflict(definition)
+					? "Bloqueada por escolha exclusiva"
+					: SkillCatalog.HasPrerequisites(definition)
+						? "Disponível"
+						: "Bloqueada";
 
 		_skillDescriptionLabel.Text =
 			$"{definition.DisplayName}\n" +
-			$"{definition.Tree} - {definition.ActivationMode}\n\n" +
-			$"{definition.Description}\n\n" +
-			$"Custo: {CompendiumTuning.GetInt($"{definition.Id}.cost", definition.Cost)} moedas\n" +
+			$"{definition.Tree} - Passiva - Tier {definition.Tier}\n\n" +
+			$"{definition.Description}\n\n{definition.FlavorText}\n\n" +
+			$"Nivel: {currentRank}/{maxRank}\n" +
+			$"Custo do proximo nivel: {(currentRank >= maxRank ? 0 : GetSkillUpgradeCost(definition))} moedas\n" +
 			$"Estado: {status}\n" +
 			$"Pre-requisitos: {FormatPrerequisites(definition)}";
 		_skillDescriptionPopup.Visible = true;
@@ -1452,7 +1290,7 @@ public partial class HUD : CanvasLayer
 
 		_artifactChestStatusLabel = new Label
 		{
-			Text = "Catalogo dos artefatos encontrados. Este bau nao altera o loadout.",
+			Text = "Artefatos encontrados na run atual e na colecao permanente.",
 			AnchorRight = 1.0f,
 			OffsetTop = 58.0f,
 			OffsetBottom = 92.0f,
@@ -1505,7 +1343,7 @@ public partial class HUD : CanvasLayer
 
 		var collectionTitle = new Label
 		{
-			Text = "Colecao de artefatos encontrados",
+			Text = "Artefatos encontrados",
 			OffsetLeft = 56.0f,
 			OffsetTop = 110.0f,
 			OffsetRight = 980.0f,
@@ -1514,14 +1352,21 @@ public partial class HUD : CanvasLayer
 		};
 		_artifactChestOverlay.AddChild(collectionTitle);
 
-		_artifactCollectionList = new VBoxContainer
+		var collectionScroll = new ScrollContainer
 		{
 			OffsetLeft = 56.0f,
 			OffsetTop = 150.0f,
 			OffsetRight = 984.0f,
 			OffsetBottom = 470.0f
 		};
-		_artifactChestOverlay.AddChild(_artifactCollectionList);
+		_artifactChestOverlay.AddChild(collectionScroll);
+
+		_artifactCollectionList = new VBoxContainer
+		{
+			CustomMinimumSize = new Vector2(900.0f, 0.0f),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+		};
+		collectionScroll.AddChild(_artifactCollectionList);
 
 		var closeButton = new Button
 		{
@@ -1590,30 +1435,45 @@ public partial class HUD : CanvasLayer
 		foreach (var child in _artifactCollectionList.GetChildren())
 			child.QueueFree();
 
-		if (CharacterSheet.FoundArtifacts.Count == 0)
+		if (RunState.RunArtifacts.Count == 0 && CharacterSheet.FoundArtifacts.Count == 0)
 		{
 			_artifactCollectionList.AddChild(new Label
 			{
-				Text = "Nenhum artefato permanente ainda. Derrote um chefe para confirmar os artefatos temporarios da run.",
+				Text = "Nenhum artefato encontrado nesta run ou na colecao permanente.",
 				AutowrapMode = TextServer.AutowrapMode.WordSmart,
 				CustomMinimumSize = new Vector2(480.0f, 60.0f)
 			});
 			return;
 		}
 
-		foreach (var artifact in CharacterSheet.FoundArtifacts)
+		var displayed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var artifact in RunState.RunArtifacts)
 		{
-			var details = ArtifactCatalog.TryGet(artifact.Id, out var definition)
-				? $"{definition.DisplayName} | {definition.Rarity}\n{definition.Description}\nEfeitos: {FormatArtifactEffects(definition)}"
-				: $"{artifact.Name} | {artifact.Effect} {artifact.Amount:+0.##;-0.##;0}";
-			var entry = new Label
-			{
-				Text = details,
-				AutowrapMode = TextServer.AutowrapMode.WordSmart,
-				CustomMinimumSize = new Vector2(900.0f, 82.0f)
-			};
-			_artifactCollectionList.AddChild(entry);
+			AddArtifactCollectionEntry(artifact, "RUN ATUAL");
+			displayed.Add(ArtifactCollectionKey(artifact));
 		}
+
+		foreach (var artifact in CharacterSheet.FoundArtifacts)
+			if (displayed.Add(ArtifactCollectionKey(artifact)))
+				AddArtifactCollectionEntry(artifact, "COLECAO PERMANENTE");
+	}
+
+	private void AddArtifactCollectionEntry(ArtifactRecord artifact, string source)
+	{
+		var details = ArtifactCatalog.TryGet(artifact.Id, out var definition)
+			? $"[{source}] {definition.DisplayName} | {definition.Rarity}\n{definition.Description}\nEfeitos: {FormatArtifactEffects(definition)}"
+			: $"[{source}] {artifact.Name} | {artifact.Effect} {artifact.Amount:+0.##;-0.##;0}";
+		_artifactCollectionList.AddChild(new Label
+		{
+			Text = details,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			CustomMinimumSize = new Vector2(880.0f, 82.0f)
+		});
+	}
+
+	private static string ArtifactCollectionKey(ArtifactRecord artifact)
+	{
+		return string.IsNullOrWhiteSpace(artifact.Id) ? artifact.Name : artifact.Id;
 	}
 
 	private void SetArtifactChestStatus(string text)
@@ -1634,7 +1494,6 @@ public partial class HUD : CanvasLayer
 			return;
 
 		_pendingArtifactSource = source;
-		_pendingActiveArtifact = default;
 		BuildArtifactOfferChoices();
 		_artifactOfferOverlay.Visible = true;
 		GetTree().Paused = true;
@@ -1680,6 +1539,14 @@ public partial class HUD : CanvasLayer
 		};
 		_artifactOfferOverlay.AddChild(_artifactOfferStatusLabel);
 
+		_artifactRerollButton = new Button
+		{
+			Text = "Trocar oferta",
+			OffsetLeft = 980.0f, OffsetTop = 68.0f, OffsetRight = 1180.0f, OffsetBottom = 106.0f
+		};
+		_artifactRerollButton.Pressed += RerollArtifactOffer;
+		_artifactOfferOverlay.AddChild(_artifactRerollButton);
+
 		_artifactOfferList = new VBoxContainer
 		{
 			OffsetLeft = 56.0f,
@@ -1697,6 +1564,8 @@ public partial class HUD : CanvasLayer
 		var rng = new RandomNumberGenerator();
 		rng.Randomize();
 		var choices = ArtifactCatalog.RollChoices(rng, 3, BuildExcludedArtifactOfferIds());
+		if (_artifactRerollButton != null)
+			_artifactRerollButton.Disabled = !(GetPlayerSkillController()?.CanRerollReward() ?? false);
 
 		if (choices.Count == 0)
 		{
@@ -1707,6 +1576,13 @@ public partial class HUD : CanvasLayer
 		_artifactOfferStatusLabel.Text = "Escolha um artefato. Raridade e peso influenciam as opcoes que aparecem.";
 		foreach (var artifact in choices)
 			AddArtifactOfferButton(artifact);
+	}
+
+	private void RerollArtifactOffer()
+	{
+		if (GetPlayerSkillController()?.TryConsumeRewardReroll() != true) return;
+		BuildArtifactOfferChoices();
+		_artifactOfferStatusLabel.Text = "O Espelho do Destino reescreveu a oferta deste mapa.";
 	}
 
 	private void AddArtifactOfferButton(ArtifactDefinition artifact)
@@ -1731,13 +1607,6 @@ public partial class HUD : CanvasLayer
 				excluded.Add(artifact.Id);
 		}
 
-		for (var i = 0; i < 2; i++)
-		{
-			var active = RunState.GetActiveArtifactSlot(i);
-			if (!string.IsNullOrWhiteSpace(active.Id))
-				excluded.Add(active.Id);
-		}
-
 		foreach (var artifact in CharacterSheet.GetEquippedArtifacts())
 		{
 			if (!string.IsNullOrWhiteSpace(artifact.Id))
@@ -1751,45 +1620,7 @@ public partial class HUD : CanvasLayer
 	{
 		var record = ArtifactCatalog.CreateRecord(artifact);
 
-		if (record.Slot == "Active")
-		{
-			_pendingActiveArtifact = record;
-			ShowActiveArtifactSlotChoice(record);
-			return;
-		}
-
 		CollectArtifact(record);
-	}
-
-	private void ShowActiveArtifactSlotChoice(ArtifactRecord artifact)
-	{
-		ClearArtifactOfferList();
-		_artifactOfferStatusLabel.Text = $"{artifact.Name} e um artefato ativo. Escolha o slot.";
-
-		AddActiveArtifactSlotButton(0, "Q");
-		AddActiveArtifactSlotButton(1, "R");
-	}
-
-	private void AddActiveArtifactSlotButton(int slotIndex, string keyName)
-	{
-		var current = RunState.GetActiveArtifactSlot(slotIndex);
-		var currentText = string.IsNullOrWhiteSpace(current.Name) ? "vazio" : current.Name;
-		var button = new Button
-		{
-			Text = $"Slot {keyName}: {currentText}",
-			CustomMinimumSize = new Vector2(1080.0f, 82.0f)
-		};
-		button.Pressed += () =>
-		{
-			if (!RunState.EquipActiveArtifact(slotIndex, _pendingActiveArtifact))
-			{
-				_artifactOfferStatusLabel.Text = "Nao foi possivel equipar o artefato ativo.";
-				return;
-			}
-
-			CollectArtifact(_pendingActiveArtifact);
-		};
-		_artifactOfferList.AddChild(button);
 	}
 
 	private void CollectArtifact(ArtifactRecord artifact)
@@ -1799,7 +1630,6 @@ public partial class HUD : CanvasLayer
 		NotifyArtifactCollected(artifact.Name);
 		_pendingArtifactSource?.Consume();
 		_pendingArtifactSource = null;
-		_pendingActiveArtifact = default;
 		_artifactOfferOverlay.Visible = false;
 		GetTree().Paused = false;
 		RefreshCharacterSheet();
@@ -1892,6 +1722,14 @@ public partial class HUD : CanvasLayer
 		};
 		_bloodBlessingOverlay.AddChild(_bloodBlessingStatusLabel);
 
+		_blessingRerollButton = new Button
+		{
+			Text = "Trocar oferta",
+			OffsetLeft = 980.0f, OffsetTop = 68.0f, OffsetRight = 1180.0f, OffsetBottom = 106.0f
+		};
+		_blessingRerollButton.Pressed += RerollBlessingOffer;
+		_bloodBlessingOverlay.AddChild(_blessingRerollButton);
+
 		_bloodBlessingList = new VBoxContainer
 		{
 			OffsetLeft = 56, OffsetTop = 116, OffsetRight = 1184, OffsetBottom = 640
@@ -1903,7 +1741,9 @@ public partial class HUD : CanvasLayer
 	{
 		foreach (var child in _bloodBlessingList.GetChildren()) child.QueueFree();
 		var rng = new RandomNumberGenerator(); rng.Randomize();
-		var choices = BloodBlessingCatalog.RollOffers(rng, 3, out var family);
+		var choices = BloodBlessingCatalog.RollOffers(rng, 3, out var family, RunState.RunBlessings.Count == 0);
+		if (_blessingRerollButton != null)
+			_blessingRerollButton.Disabled = !(GetPlayerSkillController()?.CanRerollReward() ?? false);
 		if (choices.Count == 0)
 		{
 			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
@@ -1932,7 +1772,7 @@ public partial class HUD : CanvasLayer
 			var content = new RichTextLabel
 			{
 				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
-				Text = $"[font_size=22][b]{blessing.DisplayName}[/b] | {blessing.Family} | {offer.Rarity}[/font_size]\n{FormatEffectKeywords(blessing.Description)}\n{FormatBloodBlessingEffects(blessing, offer.PowerMultiplier)}{replacementWarning}",
+				Text = $"[font_size=22][b]{blessing.DisplayName}[/b] | {FormatBlessingLineage(blessing)} | {offer.Rarity}[/font_size]\n{FormatEffectKeywords(blessing.Description)}\n{FormatBloodBlessingEffects(blessing, offer.PowerMultiplier)}{replacementWarning}",
 				CustomMinimumSize = new Vector2(1040, 115),
 				MouseDefaultCursorShape = Control.CursorShape.PointingHand,
 				TooltipText = replaced != null ? $"Ao escolher, substitui {replaced.Name}." : FullBlessingTooltip(blessing, offer.Rarity, offer.PowerMultiplier)
@@ -1962,14 +1802,35 @@ public partial class HUD : CanvasLayer
 		}
 	}
 
+	private void RerollBlessingOffer()
+	{
+		if (GetPlayerSkillController()?.TryConsumeRewardReroll() != true) return;
+		BuildBloodBlessingChoices();
+		_bloodBlessingStatusLabel.Text = "O Espelho do Destino revelou uma nova linhagem.";
+	}
+
+	private PlayerSkillController GetPlayerSkillController()
+	{
+		return _runtimePlayerController?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController")
+			?? GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+	}
+
 	private static Color BlessingRarityColor(string rarity) => rarity.ToLowerInvariant() switch
 	{
+		"stirps" => new Color(1.0f, 0.08f, 0.22f),
 		"uncommon" => new Color(0.2f, 0.9f, 0.3f),
 		"rare" => new Color(0.2f, 0.48f, 1.0f),
 		"epic" => new Color(0.68f, 0.25f, 0.95f),
 		"legendary" => new Color(1.0f, 0.48f, 0.08f),
 		_ => Colors.White
 	};
+
+	private static string FormatBlessingLineage(BloodBlessingDefinition blessing)
+	{
+		return blessing.ParentFamilies.Length > 0
+			? $"{blessing.Family}: {string.Join(" + ", blessing.ParentFamilies)}"
+			: blessing.Family;
+	}
 
 	private void SelectBloodBlessing(BloodBlessingOffer offer)
 	{
@@ -2078,12 +1939,8 @@ public partial class HUD : CanvasLayer
 		AddCharacterSheetSection(_characterInventoryColumn, "Colecao permanente");
 		AddCharacterSheetLines(_characterInventoryColumn, FormatArtifacts());
 
-		AddCharacterSheetSection(_characterLoadoutColumn, "Habilidades ativas");
-		AddCharacterSheetLines(_characterLoadoutColumn, FormatActiveSkillSlots());
 		AddCharacterSheetSection(_characterLoadoutColumn, "Habilidades adquiridas");
 		AddCharacterSheetLines(_characterLoadoutColumn, FormatSkills());
-		AddCharacterSheetSection(_characterLoadoutColumn, "Artefatos ativos");
-		AddCharacterSheetLines(_characterLoadoutColumn, FormatActiveArtifactSlots());
 		AddCharacterSheetSection(_characterLoadoutColumn, "Artefatos equipados");
 		AddCharacterSheetLines(_characterLoadoutColumn, FormatEquippedArtifacts());
 		AddCharacterSheetSection(_characterLoadoutColumn, "Impacto dos artefatos");
@@ -2160,30 +2017,6 @@ public partial class HUD : CanvasLayer
 		return text;
 	}
 
-	private string FormatActiveSkillSlots()
-	{
-		var text = "";
-		for (var i = 0; i < CharacterSheet.ActiveSkillSlotCount; i++)
-		{
-			var skillId = CharacterSheet.GetActiveSkillSlot(i);
-			var skillName = !string.IsNullOrWhiteSpace(skillId) && SkillCatalog.TryGet(skillId, out var definition)
-				? definition.DisplayName
-				: "vazio";
-			text += $"{i + 1}: {skillName}\n";
-		}
-
-		return text;
-	}
-
-	private string FormatActiveArtifactSlots()
-	{
-		var q = RunState.GetActiveArtifactSlot(0);
-		var r = RunState.GetActiveArtifactSlot(1);
-		return
-			$"Q: {(string.IsNullOrWhiteSpace(q.Name) ? "vazio" : q.Name)}\n" +
-			$"R: {(string.IsNullOrWhiteSpace(r.Name) ? "vazio" : r.Name)}\n";
-	}
-
 	private string FormatRunBlessings()
 	{
 		if (RunState.RunBlessings.Count == 0) return "- nenhuma\n";
@@ -2192,26 +2025,6 @@ public partial class HUD : CanvasLayer
 		var text = "";
 		foreach (var blessing in latestStacks.Values) text += $"- [{blessing.Rarity}] {blessing.Name}\n";
 		return text;
-	}
-
-	private void RefreshActiveSkills()
-	{
-		if (_activeSkillsLabel == null)
-			return;
-
-		var text = "Habilidades:";
-		for (var i = 0; i < CharacterSheet.ActiveSkillSlotCount; i++)
-		{
-			var skillId = CharacterSheet.GetActiveSkillSlot(i);
-			var skillName = !string.IsNullOrWhiteSpace(skillId) && SkillCatalog.TryGet(skillId, out var definition)
-				? definition.DisplayName
-				: "vazio";
-			text += $" {i + 1} {skillName}";
-			if (i < CharacterSheet.ActiveSkillSlotCount - 1)
-				text += " |";
-		}
-
-		_activeSkillsLabel.Text = text;
 	}
 
 	private string FormatArtifacts()
@@ -2452,7 +2265,7 @@ public partial class HUD : CanvasLayer
 		var subtitle = new Label
 		{
 			Name = "PauseSubtitle",
-			Text = "Ajuste os parametros em tempo real. Cada slider vai de 1 a 100.",
+			Text = "Ajuste os parametros em tempo real. A faixa de cada controle aparece no proprio slider.",
 			HorizontalAlignment = HorizontalAlignment.Center,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 			CustomMinimumSize = new Vector2(0.0f, 36.0f)
@@ -2490,7 +2303,7 @@ public partial class HUD : CanvasLayer
 		AddPauseTuningSlider("Velocidade de correr", GameTuning.RunSpeedPercent, GameTuning.SetRunSpeedPercent, out _runSpeedSlider, out _runSpeedValueLabel);
 		AddPauseTuningSlider("Velocidade do dash", GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent, out _dashSpeedSlider, out _dashSpeedValueLabel);
 		AddPauseTuningSlider("Distancia do dash", GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent, out _dashDistanceSlider, out _dashDistanceValueLabel, 180);
-		AddPauseTuningSlider("Recarga do dash", GameTuning.DashCooldownPercent, GameTuning.SetDashCooldownPercent, out _dashCooldownSlider, out _dashCooldownValueLabel);
+		AddPauseTuningSlider("Distancia do zoom da camera", GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent, out _cameraZoomDistanceSlider, out _cameraZoomDistanceValueLabel, 200);
 		AddPauseTuningSlider("Dano do jogador", GameTuning.DamagePercent, GameTuning.SetDamagePercent, out _damageSlider, out _damageValueLabel);
 		AddPauseTuningSlider("Vida maxima", GameTuning.HealthPercent, GameTuning.SetHealthPercent, out _healthSlider, out _healthValueLabel);
 		AddPauseTuningSlider("Velocidade da animacao", GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent, out _animationSpeedSlider, out _animationSpeedValueLabel);
@@ -2875,14 +2688,15 @@ public partial class HUD : CanvasLayer
 
 	private void RefreshBlessingCompendium()
 	{
-		SetCompendiumStatus($"{BloodBlessingCatalog.All.Count} bencaos em {BloodBlessingCatalog.AllFamilies.Count} familias. Todas podem surgir em cinco raridades.");
+		SetCompendiumStatus($"{BloodBlessingCatalog.All.Count} bencaos em {BloodBlessingCatalog.AllFamilies.Count} linhagens. Stirps possui raridade propria e exige pre-condicoes.");
 		var rarityText = "Raridades: " + string.Join(" | ", BloodBlessingCatalog.AllRarities.Select(r => $"{r.DisplayName} x{r.PowerMultiplier:0.##}"));
 		foreach (var blessing in BloodBlessingCatalog.All)
 		{
+			var isStirps = blessing.Rarity.Equals("Stirps", StringComparison.OrdinalIgnoreCase);
 			AddCompendiumEntry(
 				blessing.DisplayName,
-				$"{blessing.Family} | Todas as raridades | {blessing.Id}",
-				$"{blessing.Description}\n{blessing.FlavorText}\nBase Common: {FormatBloodBlessingEffects(blessing)}\n{rarityText}",
+				$"{FormatBlessingLineage(blessing)} | {(isStirps ? "Raridade Stirps" : "Todas as raridades")} | {blessing.Id}",
+				$"{blessing.Description}\n{blessing.FlavorText}\n{(isStirps ? "Poder fixo Stirps" : "Base Common")}: {FormatBloodBlessingEffects(blessing)}\n{(isStirps ? "Desbloqueada apenas quando suas condicoes forem atendidas." : rarityText)}",
 				blessing.IconPath
 			);
 		}
@@ -2896,17 +2710,15 @@ public partial class HUD : CanvasLayer
 		foreach (var skill in skills)
 		{
 			var cost = GetCompendiumNumber($"{skill.Id}.cost", skill.Cost);
-			var cooldown = GetCompendiumNumber($"{skill.Id}.cooldown", skill.CooldownSeconds);
 			var maxRank = GetCompendiumNumber($"{skill.Id}.max_rank", skill.MaxRank);
 			var entry = AddCompendiumEntry(
 				skill.DisplayName,
-				$"{skill.Tree} | {skill.ActivationMode} | custo {cost:0} | {skill.Id}",
-				$"{skill.Description}\nRecarga: {cooldown:0.##}s | Rank maximo: {maxRank:0}\nPre-requisitos: {FormatPrerequisites(skill)}",
+				$"{skill.Tree} | Passiva | custo {cost:0} | {skill.Id}",
+				$"{skill.Description}\nRank maximo: {maxRank:0}\nPre-requisitos: {FormatPrerequisites(skill)}",
 				"res://images/generic.png"
 			);
 			AddCompendiumNumberEditor(entry, "Custo", $"{skill.Id}.cost", skill.Cost);
 			AddCompendiumNumberEditor(entry, "Rank maximo", $"{skill.Id}.max_rank", skill.MaxRank);
-			AddCompendiumNumberEditor(entry, "Recarga", $"{skill.Id}.cooldown", skill.CooldownSeconds, 0.1, 999.0);
 		}
 	}
 
@@ -2969,13 +2781,13 @@ public partial class HUD : CanvasLayer
 		);
 		AddAttackEditors(lightThree, "attack.light_3", 52.0, 0.72, 0.28, 2.05, 1.95, 6.4);
 
-		var heavy = AddCompendiumEntry(
-			"Ataque pesado",
-			"Mouse direito | golpe unico de espada longa",
-			"Golpe unico mais forte, sem fila de combo.",
+		var special = AddCompendiumEntry(
+			"Ataque especial",
+			"Q | ataque especial da arma equipada",
+			"Interrompe imediatamente o combo basico atual.",
 			"res://images/generic.png"
 		);
-		AddAttackEditors(heavy, "attack.heavy", 78.0, 0.76, 0.24, 2.35, 2.15, 8.5);
+		AddAttackEditors(special, "attack.special", 56.0, 0.28, 0.42, 3.15, 3.15, 11.0);
 
 		var dash = AddCompendiumEntry(
 			"Ataque rápido",
@@ -2987,9 +2799,9 @@ public partial class HUD : CanvasLayer
 		AddCompendiumNumberEditor(dash, "Multiplicador de dano", "attack.dash.damage_multiplier", 1.35, 0.05, 20.0);
 
 		var fury = AddCompendiumEntry(
-			"Furia",
-			"Habilidade ativada quando a barra esta cheia",
-			"Modo temporario de dano aumentado. Inimigos derrotados concedem furia.",
+			"Furia Bestial",
+			"F | requer uma Bencao de Sangue que desperte a Furia",
+			"Consome a barra cheia e ativa temporariamente o estado de dano aumentado.",
 			"res://images/generic.png"
 		);
 		AddCompendiumNumberEditor(fury, "Multiplicador de dano", "attack.fury.damage_multiplier", 1.75, 0.05, 20.0);
@@ -3243,7 +3055,7 @@ public partial class HUD : CanvasLayer
 		SyncSlider(_runSpeedSlider, _runSpeedValueLabel, GameTuning.RunSpeedPercent);
 		SyncSlider(_dashSpeedSlider, _dashSpeedValueLabel, GameTuning.DashSpeedPercent);
 		SyncSlider(_dashDistanceSlider, _dashDistanceValueLabel, GameTuning.DashDistancePercent);
-		SyncSlider(_dashCooldownSlider, _dashCooldownValueLabel, GameTuning.DashCooldownPercent);
+		SyncSlider(_cameraZoomDistanceSlider, _cameraZoomDistanceValueLabel, GameTuning.CameraZoomDistancePercent);
 		SyncSlider(_damageSlider, _damageValueLabel, GameTuning.DamagePercent);
 		SyncSlider(_healthSlider, _healthValueLabel, GameTuning.HealthPercent);
 		SyncSlider(_animationSpeedSlider, _animationSpeedValueLabel, GameTuning.AnimationSpeedPercent);

@@ -5,15 +5,15 @@ public static class WeaponCatalog
     private static readonly WeaponDefinition[] Weapons =
     {
         new(
-            "longsword", "Espada Longa", "Moveset equilibrado atual, com combo de tres golpes.",
+            "longsword", "Espada Longa", "Combo de tres cortes, avanco rapido e giro especial em 360 graus.",
             new[]
             {
                 new WeaponAttackDefinition("Espada longa I", 32, 0.12f, 0.12f, 4.2f, 1.55f, 1.65f, 0.25f),
                 new WeaponAttackDefinition("Espada longa II", 38, 0.11f, 0.11f, 4.8f, 1.75f, 1.75f, -0.25f),
-                new WeaponAttackDefinition("Espada longa III", 52, 0.16f, 0.18f, 6.4f, 2.05f, 1.95f, 0)
+                new WeaponAttackDefinition("Estocada da espada longa", 52, 0.16f, 0.2f, 7.2f, 2.85f, 0.85f, 0, WeaponAttackShape.Line)
             },
-            new("Espada longa pesado", 78, 0.26f, 0.24f, 8.5f, 2.35f, 2.15f, -0.42f),
-            new("Ataque rápido", 68, 0.12f, 0.18f, 7.4f, 2.25f, 2.05f, -0.1f)),
+            new("Corte de avanco", 68, 0.08f, 0.18f, 7.4f, 2.45f, 2.05f, -0.1f, WeaponAttackShape.Radial),
+            new("Circulo Carmesim", 56, 0.28f, 0.42f, 11.0f, 3.15f, 3.15f, 0.0f, WeaponAttackShape.Radial)),
         Placeholder("greatsword", "Espada Grande", "Golpes lentos, amplos e de alto impacto."),
         Placeholder("dual_revolvers", "Revolver Duplo", "Combate a distancia, alternando disparos entre as maos."),
         Placeholder("whip", "Chicote", "Grande alcance e controle de grupos."),

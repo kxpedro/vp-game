@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 
 REQUIRED = {"id", "name", "family", "rarity", "weight", "maxStacks", "description", "flavorText", "tags", "effects"}
-FAMILIES = {"Dracul", "Bathory", "Karnstein", "Orlok"}
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*$")
 
 
@@ -35,6 +34,15 @@ def main() -> int:
     if not isinstance(blessings, list):
         print("ERROR: root.blessings must be an array")
         return 1
+    family_entries = data.get("families")
+    if not isinstance(family_entries, list) or not family_entries:
+        print("ERROR: root.families must be a non-empty array")
+        return 1
+    families = {
+        family.get("name")
+        for family in family_entries
+        if isinstance(family, dict) and isinstance(family.get("name"), str)
+    }
     source_text = "\n".join(path.read_text(encoding="utf-8-sig", errors="replace") for path in (root / "scripts").rglob("*.cs"))
     seen: set[str] = set()
     for index, blessing in enumerate(blessings):
@@ -52,8 +60,8 @@ def main() -> int:
             errors.append(f"duplicate blessing id: {blessing_id}")
         else:
             seen.add(blessing_id)
-        if blessing.get("family") not in FAMILIES:
-            errors.append(f"{label}.family must be one of {', '.join(sorted(FAMILIES))}")
+        if blessing.get("family") not in families:
+            errors.append(f"{label}.family must be declared in root.families ({', '.join(sorted(families))})")
         if not isinstance(blessing.get("tags"), list):
             errors.append(f"{label}.tags must be an array")
         effects = blessing.get("effects")
@@ -81,4 +89,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

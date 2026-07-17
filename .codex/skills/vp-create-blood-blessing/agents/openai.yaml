@@ -1,4 +1,4 @@
 interface:
-  display_name: "Criar bênção de sangue"
-  short_description: "Cria bênçãos de sangue no Vampire's Prey"
-  default_prompt: "Use $vp-create-blood-blessing para criar e implementar uma Bênção de Sangue no Vampire's Prey."
+  display_name: "Criar Bênção de Sangue"
+  short_description: "Integra bênçãos ao moveset do jogador"
+  default_prompt: "Use $vp-create-blood-blessing para criar uma Bênção de Sangue integrada a um ataque do Vampire's Prey."

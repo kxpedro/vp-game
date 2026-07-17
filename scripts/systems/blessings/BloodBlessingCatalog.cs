@@ -24,19 +24,21 @@ public static class BloodBlessingCatalog
 
     public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count) => RollChoices(rng, count, out _);
 
-    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily)
+    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false)
     {
-        var definitions = RollChoices(rng, count, out selectedFamily);
+        var definitions = RollChoices(rng, count, out selectedFamily, guaranteeBasicAttack);
         var offers = new List<BloodBlessingOffer>();
         foreach (var definition in definitions)
         {
-            var rarity = RollRarity(rng);
+            var rarity = definition.Rarity.Equals("Stirps", StringComparison.OrdinalIgnoreCase)
+                ? new BloodBlessingRarity("stirps", "Stirps", 1.0f, 1.0f)
+                : RollRarity(rng);
             offers.Add(new BloodBlessingOffer(definition, rarity.DisplayName, rarity.PowerMultiplier));
         }
         return offers;
     }
 
-    public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count, out string selectedFamily)
+    public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false)
     {
         EnsureLoaded();
         selectedFamily = "";
@@ -45,36 +47,65 @@ public static class BloodBlessingCatalog
         foreach (var family in Families)
         {
             var available = 0;
+            var hasBasicAttack = false;
             foreach (var definition in Definitions)
-                if (definition.Family.Equals(family.DisplayName, StringComparison.OrdinalIgnoreCase) && RunState.GetBlessingStack(definition.Id) == 0) available++;
-            if (available > 0) fallbackFamilies.Add(family.DisplayName);
-            if (available >= count) availableFamilies.Add(family.DisplayName);
+            {
+                if (!definition.Family.Equals(family.DisplayName, StringComparison.OrdinalIgnoreCase) || !IsEligible(definition)) continue;
+                available++;
+                if (HasTag(definition, "basic_attack")) hasBasicAttack = true;
+            }
+            if (available > 0 && (!guaranteeBasicAttack || hasBasicAttack)) fallbackFamilies.Add(family.DisplayName);
+            var isStirps = family.DisplayName.Equals("Stirps", StringComparison.OrdinalIgnoreCase);
+            if ((available >= count || (isStirps && available > 0)) && (!guaranteeBasicAttack || hasBasicAttack)) availableFamilies.Add(family.DisplayName);
         }
         if (availableFamilies.Count == 0) availableFamilies.AddRange(fallbackFamilies);
         if (availableFamilies.Count == 0) return new List<BloodBlessingDefinition>();
         selectedFamily = availableFamilies[rng.RandiRange(0, availableFamilies.Count - 1)];
         var pool = new List<BloodBlessingDefinition>();
         foreach (var definition in Definitions)
-            if (definition.Family.Equals(selectedFamily, StringComparison.OrdinalIgnoreCase) && RunState.GetBlessingStack(definition.Id) == 0)
+            if (definition.Family.Equals(selectedFamily, StringComparison.OrdinalIgnoreCase) && IsEligible(definition))
                 pool.Add(definition);
 
         var choices = new List<BloodBlessingDefinition>();
+        if (guaranteeBasicAttack)
+        {
+            var basicPool = pool.FindAll(definition => HasTag(definition, "basic_attack"));
+            if (basicPool.Count > 0)
+            {
+                var guaranteed = SelectWeighted(rng, basicPool);
+                choices.Add(guaranteed);
+                pool.Remove(guaranteed);
+            }
+        }
         while (choices.Count < count && pool.Count > 0)
         {
-            var total = 0.0f;
-            foreach (var entry in pool) total += Mathf.Max(entry.Weight, 0);
-            var roll = rng.RandfRange(0.0f, Mathf.Max(total, 0.01f));
-            var cursor = 0.0f;
-            var selected = pool[^1];
-            foreach (var entry in pool)
-            {
-                cursor += Mathf.Max(entry.Weight, 0);
-                if (roll <= cursor) { selected = entry; break; }
-            }
+            var selected = SelectWeighted(rng, pool);
             choices.Add(selected);
             pool.Remove(selected);
         }
         return choices;
+    }
+
+    private static bool HasTag(BloodBlessingDefinition definition, string tag)
+    {
+        foreach (var entry in definition.Tags)
+            if (entry.Equals(tag, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private static BloodBlessingDefinition SelectWeighted(RandomNumberGenerator rng, List<BloodBlessingDefinition> pool)
+    {
+        var total = 0.0f;
+        foreach (var entry in pool) total += Mathf.Max(entry.Weight, 0);
+        var roll = rng.RandfRange(0.0f, Mathf.Max(total, 0.01f));
+        var cursor = 0.0f;
+        var selected = pool[^1];
+        foreach (var entry in pool)
+        {
+            cursor += Mathf.Max(entry.Weight, 0);
+            if (roll <= cursor) { selected = entry; break; }
+        }
+        return selected;
     }
 
     private static void EnsureLoaded()
@@ -93,11 +124,17 @@ public static class BloodBlessingCatalog
                     effects.Add(ParseEffect(effect));
                 var tags = new List<string>();
                 if (element.TryGetProperty("tags", out var tagArray)) foreach (var tag in tagArray.EnumerateArray()) tags.Add(tag.GetString() ?? "");
+                var parentFamilies = ReadStrings(element, "parentFamilies");
+                var requiredAnyEffects = ReadStrings(element, "requiresAnyEffects");
+                var requiredAllEffects = ReadStrings(element, "requiresAllEffects");
                 var familyName = S(element, "family");
+                var iconPath = S(element, "icon");
+                if (string.IsNullOrWhiteSpace(iconPath)) iconPath = FamilyIconPath(familyName);
                 var definition = new BloodBlessingDefinition(
                     S(element, "id"), S(element, "name"), S(element, "rarity"), I(element, "weight"), 1,
                     NormalizeDescription(S(element, "description")), S(element, "flavorText"), familyName,
-                    FamilyIconPath(familyName), S(element, "exclusiveGroup"), tags.ToArray(), effects.ToArray());
+                    iconPath, S(element, "exclusiveGroup"), parentFamilies, requiredAnyEffects, requiredAllEffects,
+                    tags.ToArray(), effects.ToArray());
                 if (string.IsNullOrWhiteSpace(definition.Id) || ById.ContainsKey(definition.Id)) continue;
                 Definitions.Add(definition); ById[definition.Id] = definition;
             }
@@ -111,6 +148,32 @@ public static class BloodBlessingCatalog
     private static string S(JsonElement e, string key) => e.TryGetProperty(key, out var v) ? v.GetString() ?? "" : "";
     private static int I(JsonElement e, string key) => e.TryGetProperty(key, out var v) && v.TryGetInt32(out var n) ? n : 0;
     private static float F(JsonElement e, string key) => e.TryGetProperty(key, out var v) && v.TryGetSingle(out var n) ? n : 0.0f;
+
+    private static string[] ReadStrings(JsonElement element, string key)
+    {
+        if (!element.TryGetProperty(key, out var values) || values.ValueKind != JsonValueKind.Array)
+            return Array.Empty<string>();
+        var result = new List<string>();
+        foreach (var value in values.EnumerateArray())
+            if (!string.IsNullOrWhiteSpace(value.GetString())) result.Add(value.GetString() ?? "");
+        return result.ToArray();
+    }
+
+    private static bool IsEligible(BloodBlessingDefinition definition)
+    {
+        if (RunState.GetBlessingStack(definition.Id) > 0)
+            return false;
+        if (definition.RequiredAnyEffectTypes.Length > 0)
+        {
+            var foundAny = false;
+            foreach (var effectType in definition.RequiredAnyEffectTypes)
+                if (RunState.HasEffectType(effectType)) { foundAny = true; break; }
+            if (!foundAny) return false;
+        }
+        foreach (var effectType in definition.RequiredAllEffectTypes)
+            if (!RunState.HasEffectType(effectType)) return false;
+        return true;
+    }
 
     private static string NormalizeDescription(string description)
     {

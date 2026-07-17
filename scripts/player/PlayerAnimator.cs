@@ -133,6 +133,21 @@ public partial class PlayerAnimator : Node
         PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed * CurrentAttackSpeed());
     }
 
+    public void CancelOneShot()
+    {
+        _oneShotLockTimer = 0.0f;
+        _oneShotAnimation = "";
+        if (_animationPlayer == null)
+            return;
+
+        if (!_isMoving)
+            PlayLoop(_idleAnimation, IdleAnimationSpeed);
+        else if (_isRunning)
+            PlayLoop(_runAnimation, ComputeMovementPlaybackSpeed(true));
+        else
+            PlayLoop(_walkAnimation, ComputeMovementPlaybackSpeed(false));
+    }
+
     public float GetLightAttackDuration()
     {
         return GetAnimationDuration(_lightAttackAnimation, LightAttackAnimationSpeed * CurrentAttackSpeed(), false);

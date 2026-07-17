@@ -16,7 +16,7 @@ public partial class RunManager : Node3D
 
     [Export] public NodePath ExitPortalPath { get; set; } = new("ExitPortal");
     [Export] public NodePath RoomGeneratorPath { get; set; } = new("RoomGenerator");
-    [Export] public float ArtifactSpawnChance { get; set; } = 1.0f;
+    [Export] public float ArtifactSpawnChance { get; set; } = 0.9f;
 
     public int BloodCoins { get; private set; }
     public int LastBloodCoinsReward { get; private set; }
@@ -109,6 +109,8 @@ public partial class RunManager : Node3D
         if (_pendingDefeats == 0) return;
         var defeats = _pendingDefeats; var coins = _pendingBloodCoins;
         _pendingDefeats = 0; _pendingBloodCoins = 0;
+        var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+        coins = Mathf.RoundToInt(coins * (skillController?.BloodCoinMultiplier() ?? 1.0f));
         AddBloodCoins(coins);
         DefeatedEnemies = Mathf.Min(DefeatedEnemies + defeats, TotalEnemies);
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
@@ -156,6 +158,7 @@ public partial class RunManager : Node3D
         }
 
         EmitSignal(SignalName.RoomCleared);
+        GetTree().CallGroup("player_skills", "OnRoomCleared");
         GetTree().CallGroup("hud", "NotifyRoomCleared");
         if (RunState.IsBossRoom)
             SpawnArtifact();
@@ -205,7 +208,7 @@ public partial class RunManager : Node3D
                 continue;
 
             enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
-            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", enemy.AttackDamage) + difficultyBonus * 2.0f) * mapDifficulty;
+            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", enemy.AttackDamage) + difficultyBonus * 2.0f) * mapDifficulty * 0.9f;
             enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.min_blood_coins", enemy.MinBloodCoinsReward);
             enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.max_blood_coins", enemy.MaxBloodCoinsReward);
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
@@ -239,7 +242,7 @@ public partial class RunManager : Node3D
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
                 enemy.MoveSpeed *= RunState.CurrentMapIndex == 0 ? 1.4f : 1.85f;
                 enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f);
-                if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.55f;
+                if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.75f;
                 else enemy.AttackWindup = 0.38f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
                 enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.min_blood_coins", 8);
@@ -297,7 +300,8 @@ public partial class RunManager : Node3D
 
     private void SpawnArtifact()
     {
-        var adjustedChance = Mathf.Clamp(ArtifactSpawnChance * (1.0f + RunState.GetEffectTotal("RareDropChance.Multiplier")), 0.0f, 1.0f);
+        var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+        var adjustedChance = Mathf.Clamp(ArtifactSpawnChance * (1.0f + RunState.GetEffectTotal("RareDropChance.Multiplier")) + (skillController?.ArtifactDropChanceBonus() ?? 0.0f), 0.0f, 1.0f);
         if (_rng.Randf() > adjustedChance)
             return;
         var artifact = new RoomArtifact

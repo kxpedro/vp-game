@@ -10,7 +10,6 @@ public sealed class GameSaveData
     public Dictionary<string, int> Attributes { get; set; } = new();
     public int BloodCoins { get; set; }
     public Dictionary<string, int> SkillRanks { get; set; } = new();
-    public string[] ActiveSkills { get; set; } = Array.Empty<string>();
     public List<ArtifactRecord> Artifacts { get; set; } = new();
     public string[] EquippedArtifacts { get; set; } = Array.Empty<string>();
     public string EquippedWeaponId { get; set; } = "longsword";

@@ -20,7 +20,17 @@ public static class ArtifactEffectRegistry
         ["BasicAttackCharmChance"] = "Chance de Encanto em ataque basico",
         ["QuickAttackDamage"] = "Dano de ataque rápido",
         ["QuickAttackCharmChance"] = "Chance de Encanto no ataque rápido",
-        ["PestilenceDeathSpreadRadius"] = "Raio de contagio na morte"
+        ["PestilenceDeathSpreadRadius"] = "Raio de contagio na morte",
+        ["PestilenceAlsoBleeds"] = "Pestilencia tambem causa Sangramento",
+        ["BleedingAlsoPestilence"] = "Sangramento tambem causa Pestilencia",
+        ["CharmedTargetBleed"] = "Sangramento contra alvos encantados",
+        ["HealOnPestilentKill"] = "Cura ao matar inimigo pestilento",
+        ["LifeStealVsBleeding"] = "Roubo de vida contra alvos sangrando",
+        ["SpecialAttackDamage"] = "Dano de ataque especial",
+        ["SpecialAttackBloodPool"] = "Poca de sangue do ataque especial",
+        ["UnlockBestialFury"] = "Desbloqueia Furia Bestial (F)",
+        ["FuryDamage"] = "Dano durante Furia Bestial",
+        ["FuryDuration"] = "Duracao da Furia Bestial"
     };
 
     public static string FriendlyName(string type) => Names.TryGetValue(type, out var name) ? name : SplitPascalCase(type);

@@ -24,6 +24,9 @@ public sealed record BloodBlessingDefinition(
     string Family,
     string IconPath,
     string ExclusiveGroup,
+    string[] ParentFamilies,
+    string[] RequiredAnyEffectTypes,
+    string[] RequiredAllEffectTypes,
     string[] Tags,
     BloodBlessingEffectDefinition[] Effects
 );
