@@ -1,5 +1,7 @@
 # Character Asset
 
+> **Estado atual (2026-07-22):** o modelo `character.glb` não é usado pelo jogador na build de gameplay. Virgil está representado provisoriamente por um cilindro azul criado em `PlayerAnimator`. O catálogo abaixo é mantido como referência para uma futura retomada do rig e de suas animações.
+
 Arquivo: `res://3d/character.glb`
 
 O arquivo contem 45 animacoes. A numeracao abaixo segue a lista enviada pelo usuario

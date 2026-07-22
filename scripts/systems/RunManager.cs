@@ -16,7 +16,7 @@ public partial class RunManager : Node3D
 
     [Export] public NodePath ExitPortalPath { get; set; } = new("ExitPortal");
     [Export] public NodePath RoomGeneratorPath { get; set; } = new("RoomGenerator");
-    [Export] public float ArtifactSpawnChance { get; set; } = 0.9f;
+    [Export] public float ArtifactSpawnChance { get; set; } = 1.0f;
 
     public int BloodCoins { get; private set; }
     public int LastBloodCoinsReward { get; private set; }
@@ -152,11 +152,6 @@ public partial class RunManager : Node3D
         foreach (var projectile in GetTree().GetNodesInGroup("enemy_projectiles"))
             projectile.QueueFree();
 
-        if (_exitPortal != null && RunState.IsBossRoom)
-        {
-            UnlockExitAfterReward();
-        }
-
         EmitSignal(SignalName.RoomCleared);
         GetTree().CallGroup("player_skills", "OnRoomCleared");
         GetTree().CallGroup("hud", "NotifyRoomCleared");
@@ -208,7 +203,8 @@ public partial class RunManager : Node3D
                 continue;
 
             enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
-            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", enemy.AttackDamage) + difficultyBonus * 2.0f) * mapDifficulty * 0.9f;
+            var archetypeDamage = enemy.Archetype == EnemyArchetype.Tank ? 1.52f : enemy.Archetype == EnemyArchetype.Ranged ? 0.8f : 1.0f;
+            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", 22.0f) + difficultyBonus * 2.0f) * mapDifficulty * 0.81f * archetypeDamage;
             enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.min_blood_coins", enemy.MinBloodCoinsReward);
             enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.max_blood_coins", enemy.MaxBloodCoinsReward);
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
@@ -241,7 +237,7 @@ public partial class RunManager : Node3D
                     bossVisual.Scale = Vector3.One * 1.55f;
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
                 enemy.MoveSpeed *= RunState.CurrentMapIndex == 0 ? 1.4f : 1.85f;
-                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f);
+                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f) * 0.9f;
                 if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.75f;
                 else enemy.AttackWindup = 0.38f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
@@ -271,10 +267,10 @@ public partial class RunManager : Node3D
         {
             var destination = RunState.IsFinalMap
                 ? "res://scenes/game/CrowsNest.tscn"
-                : "res://scenes/game/TestArena.tscn";
+                : "res://scenes/game/IntermissionChamber.tscn";
             var prompt = RunState.IsFinalMap
                 ? Localization.Text("portal.finish_campaign")
-                : Localization.Text("portal.next_map");
+                : "Interagir — entrar na Câmara de Hemomancia";
             _scenePortal.ConfigureDestination(
                 destination,
                 prompt,
@@ -300,10 +296,6 @@ public partial class RunManager : Node3D
 
     private void SpawnArtifact()
     {
-        var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
-        var adjustedChance = Mathf.Clamp(ArtifactSpawnChance * (1.0f + RunState.GetEffectTotal("RareDropChance.Multiplier")) + (skillController?.ArtifactDropChanceBonus() ?? 0.0f), 0.0f, 1.0f);
-        if (_rng.Randf() > adjustedChance)
-            return;
         var artifact = new RoomArtifact
         {
             Name = "RoomArtifact",
@@ -331,6 +323,7 @@ public partial class RunManager : Node3D
             Position = Vector3.Up * 0.3f
         };
         artifact.AddChild(collision);
+        GetTree().CallGroup("hud", "OpenArtifactOffer", artifact);
     }
 
     private void CreateRoomLabel(string text)

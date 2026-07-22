@@ -8,6 +8,8 @@ public partial class HUD : CanvasLayer
 {
 	private ProgressBar _healthBar;
 	private Label _healthPointsLabel;
+	private Label _barrierLabel;
+	private Label _controlsHintLabel;
 	private Label _fpsLabel;
 	private ColorRect _damageFlash;
 	private ColorRect _criticalHealthVignette;
@@ -28,6 +30,7 @@ public partial class HUD : CanvasLayer
 	private Label _enemyDefeatedToast;
 	private Control _roomClearBanner;
 	private Control _characterSheetOverlay;
+	private VBoxContainer _characterBlessingsColumn;
 	private VBoxContainer _characterAttributesColumn;
 	private VBoxContainer _characterInventoryColumn;
 	private VBoxContainer _characterLoadoutColumn;
@@ -51,6 +54,9 @@ public partial class HUD : CanvasLayer
 	private Label _bloodBlessingStatusLabel;
 	private VBoxContainer _bloodBlessingList;
 	private Button _blessingRerollButton;
+	private readonly List<Button> _blessingChoiceButtons = new();
+	private int _focusedBlessingChoice;
+	private bool _bloodBlessingChoiceMandatory;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
 	private VBoxContainer _blessingHudList;
@@ -89,6 +95,7 @@ public partial class HUD : CanvasLayer
 	private Label _attackRangeValueLabel;
 	private Control _gameOverOverlay;
 	private Label _gameOverSubtitle;
+	private Button _abandonRunButton;
 	private Health _runtimeHealth;
 	private bool _isGameOver;
 	private bool _isRuntimeBound;
@@ -105,10 +112,31 @@ public partial class HUD : CanvasLayer
 
 	public override void _Ready()
 	{
+		ControllerUiSupport.EnsureMappings();
 		AddToGroup("hud");
 		ProcessMode = ProcessModeEnum.Always;
 		BuildLayout();
 		CallDeferred(nameof(BindRuntimeNodes));
+	}
+
+	public override void _Input(InputEvent @event)
+	{
+		if (@event.IsActionPressed("ui_cancel") && !_isGameOver)
+		{
+			if (CloseTopmostOverlay())
+			{
+				GetViewport().SetInputAsHandled();
+				return;
+			}
+		}
+		if (IsVisible(_bloodBlessingOverlay) && _blessingChoiceButtons.Count > 0 &&
+			(@event.IsActionPressed("ui_up") || @event.IsActionPressed("ui_down")))
+		{
+			var direction = @event.IsActionPressed("ui_up") ? -1 : 1;
+			FocusBlessingChoice((_focusedBlessingChoice + direction + _blessingChoiceButtons.Count) % _blessingChoiceButtons.Count);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -122,18 +150,11 @@ public partial class HUD : CanvasLayer
 		}
 		if (@event.IsActionPressed("pause") && !_isGameOver)
 		{
-			if ((_artifactOfferOverlay != null && _artifactOfferOverlay.Visible) || (_bloodBlessingOverlay != null && _bloodBlessingOverlay.Visible))
-			{
-				GetViewport().SetInputAsHandled();
-				return;
-			}
-
-			if (_compendiumOverlay != null && _compendiumOverlay.Visible)
-				CloseCompendium();
-			else
-				TogglePause();
+			if (!CloseTopmostOverlay())
+				PauseGame();
 
 			GetViewport().SetInputAsHandled();
+			return;
 		}
 
 		if (@event.IsActionPressed("character_sheet") && !_isGameOver)
@@ -176,6 +197,12 @@ public partial class HUD : CanvasLayer
 		UpdateCriticalHealthIndicator((float)delta);
 		if (_fpsLabel != null)
 			_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
+		if (_barrierLabel != null && _runtimePlayerController != null)
+		{
+			var barrier = _runtimePlayerController.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+			_barrierLabel.Visible = barrier?.HasBarrier == true;
+			_barrierLabel.Text = barrier == null ? "" : $"BARREIRA  {Mathf.CeilToInt(barrier.CurrentBarrier)}/{Mathf.CeilToInt(barrier.MaximumBarrier)}";
+		}
 	}
 
 	public bool IsGameplayInputBlocked()
@@ -204,10 +231,10 @@ public partial class HUD : CanvasLayer
 			Theme = UIThemeFactory.Create()
 		};
 		AddChild(root);
-		AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(14, -100, 344, -14));
-		AddHudPanel(root, "ResourceFrame", new Vector4(1, 0, 1, 0), new Vector4(-344, 14, -14, 132));
-		AddHudPanel(root, "LogFrame", new Vector4(1, 1, 1, 1), new Vector4(-444, -282, -14, -14), 0.72f);
-		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-382, 10, 382, 54), 0.76f);
+		AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -132, 382, -18), 0.9f);
+		AddHudPanel(root, "ResourceFrame", new Vector4(1, 0, 1, 0), new Vector4(-366, 18, -18, 140), 0.86f);
+		AddHudPanel(root, "LogFrame", new Vector4(1, 1, 1, 1), new Vector4(-410, -224, -18, -18), 0.58f);
+		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-330, 14, 330, 62), 0.82f);
 
 		var leftStatus = new VBoxContainer
 		{
@@ -216,9 +243,9 @@ public partial class HUD : CanvasLayer
 			AnchorTop = 1.0f,
 			AnchorRight = 0.0f,
 			AnchorBottom = 1.0f,
-			OffsetLeft = 24.0f,
-			OffsetTop = -86.0f,
-			OffsetRight = 330.0f,
+			OffsetLeft = 32.0f,
+			OffsetTop = -116.0f,
+			OffsetRight = 366.0f,
 			OffsetBottom = -24.0f
 		};
 		root.AddChild(leftStatus);
@@ -243,6 +270,13 @@ public partial class HUD : CanvasLayer
 		};
 		_healthBar.AddChild(_healthPointsLabel);
 		leftStatus.AddChild(_furyBar);
+		_barrierLabel = new Label
+		{
+			Text = "BARREIRA  0/0", Visible = false,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			Modulate = new Color(0.45f, 0.82f, 1.0f)
+		};
+		leftStatus.AddChild(_barrierLabel);
 
 		_blessingHudList = new VBoxContainer
 		{
@@ -279,7 +313,7 @@ public partial class HUD : CanvasLayer
 		_gameLog = new RichTextLabel
 		{
 			Name = "GameLog", AnchorLeft = 1, AnchorTop = 1, AnchorRight = 1, AnchorBottom = 1,
-			OffsetLeft = -430, OffsetTop = -270, OffsetRight = -24, OffsetBottom = -24,
+			OffsetLeft = -396, OffsetTop = -212, OffsetRight = -30, OffsetBottom = -30,
 			BbcodeEnabled = true, FitContent = false, ScrollActive = false,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			Modulate = new Color(1, 1, 1, 0.82f)
@@ -326,7 +360,7 @@ public partial class HUD : CanvasLayer
 		_roomLabel = new Label
 		{
 			Name = "RoomLabel",
-			Text = "WASD move | Mouse Esq. ataque | ESPACO dash | Q especial | R/T artefatos | ESC pausa",
+			Text = "",
 			AnchorLeft = 0.5f,
 			AnchorRight = 0.5f,
 			OffsetLeft = -360.0f,
@@ -336,6 +370,19 @@ public partial class HUD : CanvasLayer
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
 		root.AddChild(_roomLabel);
+		_controlsHintLabel = new Label
+		{
+			Name = "ControlsHint",
+			Visible = false,
+			Text = "Teclado: WASD mover • Mouse atacar • Espaço esquiva • Q especial • F fúria • C ficha\nControle: L mover/mirar • □/X atacar • △/Y especial • X/A esquiva/confirmar • R1/RB fúria",
+			AnchorLeft = 0.5f, AnchorTop = 1.0f, AnchorRight = 0.5f, AnchorBottom = 1.0f,
+			OffsetLeft = -430.0f, OffsetTop = -62.0f, OffsetRight = 430.0f, OffsetBottom = -18.0f,
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			Modulate = new Color(1.0f, 1.0f, 1.0f, 0.62f),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		root.AddChild(_controlsHintLabel);
 
 		_bossHealthPanel = new VBoxContainer
 		{
@@ -388,6 +435,7 @@ public partial class HUD : CanvasLayer
 			return;
 		_weaponBenchStatusLabel.Text = $"Equipada: {WeaponLoadout.EquippedWeapon.DisplayName}";
 		_weaponBenchOverlay.Visible = true;
+		ControllerUiSupport.FocusFirst(_weaponBenchOverlay);
 	}
 
 	private void BuildWeaponBenchOverlay(Control root)
@@ -639,6 +687,7 @@ public partial class HUD : CanvasLayer
 
 		RefreshBloodFountain();
 		_bloodFountainOverlay.Visible = true;
+		ControllerUiSupport.FocusFirst(_bloodFountainOverlay);
 	}
 
 	public void NotifySkillMessage(string message)
@@ -661,6 +710,7 @@ public partial class HUD : CanvasLayer
 
 		RefreshArtifactChest();
 		_artifactChestOverlay.Visible = true;
+		ControllerUiSupport.FocusFirst(_artifactChestOverlay);
 	}
 
 	private void OnHealthChanged(float current, float max)
@@ -733,14 +783,10 @@ public partial class HUD : CanvasLayer
 		{
 			Name = "CharacterSheetOverlay",
 			Color = new Color(0.02f, 0.0f, 0.0f, 0.86f),
-			AnchorLeft = 0.5f,
-			AnchorTop = 0.5f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 0.5f,
-			OffsetLeft = -620.0f,
-			OffsetTop = -310.0f,
-			OffsetRight = 620.0f,
-			OffsetBottom = 310.0f,
+			AnchorLeft = 0.02f,
+			AnchorTop = 0.04f,
+			AnchorRight = 0.98f,
+			AnchorBottom = 0.96f,
 			Visible = false
 		};
 		root.AddChild(_characterSheetOverlay);
@@ -768,9 +814,21 @@ public partial class HUD : CanvasLayer
 		};
 		_characterSheetOverlay.AddChild(columns);
 
-		_characterAttributesColumn = CreateCharacterSheetColumn("Atributos", 340.0f);
-		_characterInventoryColumn = CreateCharacterSheetColumn("Inventario", 420.0f);
-		_characterLoadoutColumn = CreateCharacterSheetColumn("Habilidades e Artefatos", 420.0f);
+		var blessingScroll = new ScrollContainer
+		{
+			Name = "CharacterBlessingsScroll",
+			CustomMinimumSize = new Vector2(230.0f, 0.0f),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+		};
+		_characterBlessingsColumn = CreateCharacterSheetColumn("Bênçãos equipadas", 230.0f);
+		blessingScroll.AddChild(_characterBlessingsColumn);
+
+		_characterAttributesColumn = CreateCharacterSheetColumn("Atributos", 220.0f);
+		_characterInventoryColumn = CreateCharacterSheetColumn("Inventario", 270.0f);
+		_characterLoadoutColumn = CreateCharacterSheetColumn("Habilidades e Artefatos", 270.0f);
+		columns.AddChild(blessingScroll);
 		columns.AddChild(_characterAttributesColumn);
 		columns.AddChild(_characterInventoryColumn);
 		columns.AddChild(_characterLoadoutColumn);
@@ -781,6 +839,7 @@ public partial class HUD : CanvasLayer
 		var column = new VBoxContainer
 		{
 			CustomMinimumSize = new Vector2(width, 0.0f),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 			SizeFlagsVertical = Control.SizeFlags.ExpandFill
 		};
 
@@ -865,8 +924,11 @@ public partial class HUD : CanvasLayer
 		_skillTreeCanvas.MouseFilter = Control.MouseFilterEnum.Ignore;
 		_bloodFountainOverlay.AddChild(_skillTreeCanvas);
 
-		BuildSkillTreeBoard("Bestialis", SkillTree.Bestialis, 230.0f);
-		BuildSkillTreeBoard("Humanitas", SkillTree.Humanitas, 910.0f);
+		var viewportWidth = Mathf.Max(GetViewport().GetVisibleRect().Size.X, 1152.0f);
+		var leftBoard = Mathf.Max(80.0f, viewportWidth * 0.12f);
+		var rightBoard = Mathf.Max(leftBoard + 500.0f, viewportWidth * 0.56f);
+		BuildSkillTreeBoard("Bestialis", SkillTree.Bestialis, leftBoard);
+		BuildSkillTreeBoard("Humanitas", SkillTree.Humanitas, rightBoard);
 
 		BuildSkillDescriptionPopup();
 
@@ -874,14 +936,14 @@ public partial class HUD : CanvasLayer
 		{
 			Name = "CloseBloodFountainButton",
 			Text = "Fechar",
-			AnchorLeft = 0.5f,
-			AnchorTop = 1.0f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = -90.0f,
-			OffsetTop = -58.0f,
-			OffsetRight = 90.0f,
-			OffsetBottom = -18.0f
+			AnchorLeft = 1.0f,
+			AnchorTop = 0.0f,
+			AnchorRight = 1.0f,
+			AnchorBottom = 0.0f,
+			OffsetLeft = -154.0f,
+			OffsetTop = 22.0f,
+			OffsetRight = -24.0f,
+			OffsetBottom = 62.0f
 		};
 		closeButton.Pressed += CloseBloodFountain;
 		_bloodFountainOverlay.AddChild(closeButton);
@@ -1159,30 +1221,41 @@ public partial class HUD : CanvasLayer
 		{
 			Name = "SkillDescriptionPopup",
 			Color = new Color(0.015f, 0.0f, 0.0f, 0.94f),
-			AnchorLeft = 0.5f,
-			AnchorTop = 0.5f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 0.5f,
-			OffsetLeft = -220.0f,
-			OffsetTop = -150.0f,
-			OffsetRight = 220.0f,
-			OffsetBottom = 150.0f,
+			AnchorLeft = 0.22f,
+			AnchorTop = 0.14f,
+			AnchorRight = 0.78f,
+			AnchorBottom = 0.86f,
+			OffsetLeft = 0.0f,
+			OffsetTop = 0.0f,
+			OffsetRight = 0.0f,
+			OffsetBottom = 0.0f,
 			Visible = false
 		};
 		_bloodFountainOverlay.AddChild(_skillDescriptionPopup);
 
+		var descriptionScroll = new ScrollContainer
+		{
+			Name = "SkillDescriptionScroll",
+			AnchorRight = 1.0f,
+			AnchorBottom = 1.0f,
+			OffsetLeft = 24.0f,
+			OffsetTop = 22.0f,
+			OffsetRight = -24.0f,
+			OffsetBottom = -88.0f,
+			HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+		};
+		_skillDescriptionPopup.AddChild(descriptionScroll);
+
 		_skillDescriptionLabel = new Label
 		{
 			Name = "SkillDescriptionText",
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = 20.0f,
-			OffsetTop = 18.0f,
-			OffsetRight = -20.0f,
-			OffsetBottom = -62.0f,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart
+			CustomMinimumSize = new Vector2(360.0f, 0.0f),
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		_skillDescriptionPopup.AddChild(_skillDescriptionLabel);
+		descriptionScroll.AddChild(_skillDescriptionLabel);
 
 		var closeButton = new Button
 		{
@@ -1192,10 +1265,10 @@ public partial class HUD : CanvasLayer
 			AnchorTop = 1.0f,
 			AnchorRight = 0.5f,
 			AnchorBottom = 1.0f,
-			OffsetLeft = -70.0f,
-			OffsetTop = -50.0f,
-			OffsetRight = 70.0f,
-			OffsetBottom = -14.0f
+			OffsetLeft = -76.0f,
+			OffsetTop = -66.0f,
+			OffsetRight = 76.0f,
+			OffsetBottom = -22.0f
 		};
 		closeButton.Pressed += () => _skillDescriptionPopup.Visible = false;
 		_skillDescriptionPopup.AddChild(closeButton);
@@ -1497,6 +1570,7 @@ public partial class HUD : CanvasLayer
 		BuildArtifactOfferChoices();
 		_artifactOfferOverlay.Visible = true;
 		GetTree().Paused = true;
+		ControllerUiSupport.FocusFirst(_artifactOfferOverlay);
 	}
 
 	private void BuildArtifactOfferOverlay(Control root)
@@ -1570,6 +1644,9 @@ public partial class HUD : CanvasLayer
 		if (choices.Count == 0)
 		{
 			_artifactOfferStatusLabel.Text = "Nenhum artefato disponivel no catalogo.";
+			_artifactOfferOverlay.Visible = false;
+			GetTree().Paused = false;
+			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 			return;
 		}
 
@@ -1632,6 +1709,7 @@ public partial class HUD : CanvasLayer
 		_pendingArtifactSource = null;
 		_artifactOfferOverlay.Visible = false;
 		GetTree().Paused = false;
+		GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 		RefreshCharacterSheet();
 	}
 
@@ -1644,9 +1722,26 @@ public partial class HUD : CanvasLayer
 			child.QueueFree();
 	}
 
-	public async void OpenBloodBlessingOffer()
+	public void OpenBloodBlessingOffer()
+	{
+		OpenBloodBlessingOfferInternal(false);
+	}
+
+	public void OpenMandatoryBloodBlessingOffer()
+	{
+		OpenBloodBlessingOfferInternal(true);
+	}
+
+	private async void OpenBloodBlessingOfferInternal(bool mandatory)
 	{
 		if (_bloodBlessingOverlay == null) return;
+		_bloodBlessingChoiceMandatory = mandatory;
+		if (mandatory)
+		{
+			AppendGameLog("A fonte primordial revelou a primeira Bencao de Sangue desta run.");
+			BuildBloodBlessingChoices();
+			return;
+		}
 		GetTree().Paused = false;
 		_bloodAbsorptionOverlay.Visible = true;
 		_bloodAbsorptionOverlay.Modulate = Colors.White;
@@ -1740,6 +1835,8 @@ public partial class HUD : CanvasLayer
 	private void BuildBloodBlessingChoices()
 	{
 		foreach (var child in _bloodBlessingList.GetChildren()) child.QueueFree();
+		_blessingChoiceButtons.Clear();
+		_focusedBlessingChoice = 0;
 		var rng = new RandomNumberGenerator(); rng.Randomize();
 		var choices = BloodBlessingCatalog.RollOffers(rng, 3, out var family, RunState.RunBlessings.Count == 0);
 		if (_blessingRerollButton != null)
@@ -1749,6 +1846,7 @@ public partial class HUD : CanvasLayer
 			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
 			AppendGameLog("Todas as bencaos unicas foram encontradas. Sangue convertido em 25 moedas.");
 			_bloodBlessingOverlay.Visible = false;
+			_bloodBlessingChoiceMandatory = false;
 			GetTree().Paused = false;
 			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 			return;
@@ -1795,11 +1893,30 @@ public partial class HUD : CanvasLayer
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = Control.MouseFilterEnum.Ignore
 			});
-			content.CustomMinimumSize = new Vector2(930, 115);
+			content.CustomMinimumSize = new Vector2(790, 115);
 			row.AddChild(content);
+			var chooseButton = new Button
+			{
+				Text = "Escolher",
+				CustomMinimumSize = new Vector2(135.0f, 82.0f),
+				SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+			};
+			chooseButton.Pressed += () => SelectBloodBlessing(offer);
+			var choiceIndex = _blessingChoiceButtons.Count;
+			chooseButton.FocusEntered += () => _focusedBlessingChoice = choiceIndex;
+			_blessingChoiceButtons.Add(chooseButton);
+			row.AddChild(chooseButton);
 			card.AddChild(row);
 			_bloodBlessingList.AddChild(card);
 		}
+		FocusBlessingChoice(0);
+	}
+
+	private void FocusBlessingChoice(int index)
+	{
+		if (_blessingChoiceButtons.Count == 0) return;
+		_focusedBlessingChoice = Mathf.Clamp(index, 0, _blessingChoiceButtons.Count - 1);
+		_blessingChoiceButtons[_focusedBlessingChoice].GrabFocus();
 	}
 
 	private void RerollBlessingOffer()
@@ -1840,6 +1957,7 @@ public partial class HUD : CanvasLayer
 		AppendGameLog($"Bencao adquirida: {blessing.DisplayName} [{offer.Rarity}].");
 		ShowEnemyDefeatedToast($"{offer.Rarity}: {blessing.DisplayName}");
 		_bloodBlessingOverlay.Visible = false;
+		_bloodBlessingChoiceMandatory = false;
 		GetTree().Paused = false;
 		RefreshCharacterSheet();
 		RefreshBlessingHud();
@@ -1881,13 +1999,16 @@ public partial class HUD : CanvasLayer
 	{
 		if (_blessingHudList == null) return;
 		foreach (var child in _blessingHudList.GetChildren()) child.QueueFree();
-		foreach (var record in RunState.RunBlessings)
+		const int visibleBlessingLimit = 7;
+		var visibleCount = Mathf.Min(RunState.RunBlessings.Count, visibleBlessingLimit);
+		for (var i = 0; i < visibleCount; i++)
 		{
+			var record = RunState.RunBlessings[i];
 			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
 			var icon = new TextureRect
 			{
 				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
-				CustomMinimumSize = new Vector2(54.0f, 54.0f),
+				CustomMinimumSize = new Vector2(44.0f, 44.0f),
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier),
@@ -1895,6 +2016,30 @@ public partial class HUD : CanvasLayer
 			};
 			_blessingHudList.AddChild(icon);
 		}
+
+		if (RunState.RunBlessings.Count <= visibleBlessingLimit)
+			return;
+
+		var hiddenCount = RunState.RunBlessings.Count - visibleBlessingLimit;
+		var more = new Label
+		{
+			Text = "+",
+			TooltipText = $"Mais {hiddenCount} bênção(ões). Pressione C para ver todas.",
+			CustomMinimumSize = new Vector2(44.0f, 40.0f),
+			HorizontalAlignment = HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Pass,
+			MouseDefaultCursorShape = Control.CursorShape.Help,
+			Modulate = new Color(1.0f, 0.3f, 0.34f)
+		};
+		more.AddThemeFontSizeOverride("font_size", 30);
+		_blessingHudList.AddChild(more);
+	}
+
+	public void RefreshBlessingDisplays()
+	{
+		RefreshBlessingHud();
+		RefreshCharacterSheet();
 	}
 
 	private void ToggleCharacterSheet()
@@ -1904,17 +2049,26 @@ public partial class HUD : CanvasLayer
 
 		_characterSheetOverlay.Visible = !_characterSheetOverlay.Visible;
 		if (_characterSheetOverlay.Visible)
+		{
+			SetModalPause(true);
 			RefreshCharacterSheet();
+			ControllerUiSupport.FocusFirst(_characterSheetOverlay);
+		}
+		else
+			RefreshModalPause();
 	}
 
 	private void RefreshCharacterSheet()
 	{
-		if (_characterAttributesColumn == null || _characterInventoryColumn == null || _characterLoadoutColumn == null)
+		if (_characterBlessingsColumn == null || _characterAttributesColumn == null || _characterInventoryColumn == null || _characterLoadoutColumn == null)
 			return;
 
+		ClearCharacterSheetColumn(_characterBlessingsColumn);
 		ClearCharacterSheetColumn(_characterAttributesColumn);
 		ClearCharacterSheetColumn(_characterInventoryColumn);
 		ClearCharacterSheetColumn(_characterLoadoutColumn);
+
+		AddCharacterSheetBlessings(_characterBlessingsColumn);
 
 		AddCharacterSheetText(_characterAttributesColumn, $"Moedas de Sangue: {CharacterSheet.BloodCoins}");
 		AddCharacterSheetText(_characterAttributesColumn, $"Forca: {CharacterSheet.GetAttribute(CharacterAttribute.Strength)}");
@@ -1934,13 +2088,11 @@ public partial class HUD : CanvasLayer
 
 		AddCharacterSheetSection(_characterInventoryColumn, "Artefatos da run");
 		AddCharacterSheetLines(_characterInventoryColumn, FormatRunArtifacts());
-		AddCharacterSheetSection(_characterInventoryColumn, "Bencaos de Sangue");
-		AddCharacterSheetBlessings(_characterInventoryColumn);
 		AddCharacterSheetSection(_characterInventoryColumn, "Colecao permanente");
 		AddCharacterSheetLines(_characterInventoryColumn, FormatArtifacts());
 
-		AddCharacterSheetSection(_characterLoadoutColumn, "Habilidades adquiridas");
-		AddCharacterSheetLines(_characterLoadoutColumn, FormatSkills());
+		AddCharacterSheetSection(_characterLoadoutColumn, "Habilidades passivas");
+		AddCharacterSheetSkills(_characterLoadoutColumn);
 		AddCharacterSheetSection(_characterLoadoutColumn, "Artefatos equipados");
 		AddCharacterSheetLines(_characterLoadoutColumn, FormatEquippedArtifacts());
 		AddCharacterSheetSection(_characterLoadoutColumn, "Impacto dos artefatos");
@@ -1975,14 +2127,25 @@ public partial class HUD : CanvasLayer
 		foreach (var record in RunState.RunBlessings)
 		{
 			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
-			var row = new HBoxContainer { TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier) };
+			var row = new HBoxContainer
+			{
+				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier),
+				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+			};
 			row.AddChild(new TextureRect
 			{
 				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath), CustomMinimumSize = new Vector2(38, 38),
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = Control.MouseFilterEnum.Ignore
 			});
-			row.AddChild(new Label { Text = $"[{record.Rarity}] {record.Name}", VerticalAlignment = VerticalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
+			row.AddChild(new Label
+			{
+				Text = $"[{record.Rarity}] {record.Name}",
+				VerticalAlignment = VerticalAlignment.Center,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+				MouseFilter = Control.MouseFilterEnum.Ignore
+			});
 			column.AddChild(row);
 		}
 	}
@@ -2015,6 +2178,35 @@ public partial class HUD : CanvasLayer
 		}
 
 		return text;
+	}
+
+	private void AddCharacterSheetSkills(VBoxContainer column)
+	{
+		if (CharacterSheet.AcquiredSkills.Count == 0)
+		{
+			AddCharacterSheetText(column, "- nenhuma");
+			return;
+		}
+
+		foreach (var skillId in CharacterSheet.AcquiredSkills)
+		{
+			var rank = CharacterSheet.GetSkillRank(skillId);
+			if (!SkillCatalog.TryGet(skillId, out var definition))
+			{
+				AddCharacterSheetText(column, $"• {skillId} nv. {rank}");
+				continue;
+			}
+			var entry = new Button
+			{
+				Text = $"{definition.IconText}  {definition.DisplayName}  {rank}/{definition.MaxRank}",
+				TooltipText = $"{definition.DisplayName}\n{definition.Description}\n\n{definition.FlavorText}",
+				Alignment = HorizontalAlignment.Left,
+				Flat = true,
+				MouseDefaultCursorShape = Control.CursorShape.Help,
+				CustomMinimumSize = new Vector2(0.0f, 38.0f)
+			};
+			column.AddChild(entry);
+		}
 	}
 
 	private string FormatRunBlessings()
@@ -2250,6 +2442,15 @@ public partial class HUD : CanvasLayer
 		AddPauseMenuButton(_pauseMainMenu, "Continuar", ResumeGame);
 		AddPauseMenuButton(_pauseMainMenu, "Parametros de gameplay", () => ShowPausePage(_pauseTuningPage));
 		AddPauseMenuButton(_pauseMainMenu, "Opcoes", () => ShowPausePage(_optionsPage));
+		_abandonRunButton = new Button
+		{
+			Name = "AbandonRunButton",
+			Text = "Desistir da run",
+			CustomMinimumSize = new Vector2(360, 52)
+		};
+		_abandonRunButton.AddThemeColorOverride("font_color", new Color(1.0f, 0.32f, 0.32f));
+		_abandonRunButton.Pressed += AbandonRun;
+		_pauseMainMenu.AddChild(_abandonRunButton);
 		AddPauseMenuButton(_pauseMainMenu, "Dicionario", OpenCompendium);
 		AddPauseMenuButton(_pauseMainMenu, "Reiniciar teste", RestartCurrentScene);
 		AddPauseMenuButton(_pauseMainMenu, "Voltar ao menu principal", ReturnToMainMenu);
@@ -2382,6 +2583,7 @@ public partial class HUD : CanvasLayer
 		_pauseMainMenu.Visible = false;
 		_pauseTuningPage.Visible = page == _pauseTuningPage;
 		_optionsPage.Visible = page == _optionsPage;
+		ControllerUiSupport.FocusFirst(page);
 	}
 
 	private void ShowPauseMainMenu()
@@ -2389,6 +2591,7 @@ public partial class HUD : CanvasLayer
 		_pauseMainMenu.Visible = true;
 		_pauseTuningPage.Visible = false;
 		_optionsPage.Visible = false;
+		ControllerUiSupport.FocusFirst(_pauseMainMenu);
 	}
 
 	private void BuildOptionsPage(VBoxContainer panel)
@@ -2619,12 +2822,14 @@ public partial class HUD : CanvasLayer
 		_compendiumOverlay.Visible = true;
 		GetTree().Paused = true;
 		RefreshCompendium();
+		ControllerUiSupport.FocusFirst(_compendiumOverlay);
 	}
 
 	private void CloseCompendium()
 	{
 		if (_compendiumOverlay != null)
 			_compendiumOverlay.Visible = false;
+		RefreshModalPause();
 	}
 
 	private void SelectCompendiumTab(string tabId)
@@ -2984,6 +3189,7 @@ public partial class HUD : CanvasLayer
 		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}.");
 		_gameOverSubtitle.Text = $"Virgil foi derrotado por: {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}. Último golpe: {Mathf.RoundToInt(finalDamage)} de dano.";
 		_gameOverOverlay.Visible = true;
+		ControllerUiSupport.FocusFirst(_gameOverOverlay);
 		if (_artifactOfferOverlay != null)
 			_artifactOfferOverlay.Visible = false;
 		if (_bloodBlessingOverlay != null)
@@ -3001,6 +3207,18 @@ public partial class HUD : CanvasLayer
 		GetTree().Paused = false;
 		GetTree().CallGroup("audio_manager", "SetPaused", false);
 		GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
+	}
+
+	private void AbandonRun()
+	{
+		if (!RunState.IsRunActive || _runtimeHealth == null || _runtimeHealth.IsDead)
+			return;
+
+		_pauseOverlay.Visible = false;
+		GetTree().Paused = false;
+		GetTree().CallGroup("audio_manager", "SetPaused", false);
+		_runtimeHealth.SetInvincible(false);
+		_runtimeHealth.ForceDeath("Desistência da run");
 	}
 
 	private void RestartCurrentScene()
@@ -3028,10 +3246,12 @@ public partial class HUD : CanvasLayer
 	private void PauseGame()
 	{
 		RefreshPauseTuningValues();
+		if (_abandonRunButton != null)
+			_abandonRunButton.Visible = RunState.IsRunActive;
 		ShowPauseMainMenu();
 		_pauseOverlay.Visible = true;
-		GetTree().CallGroup("audio_manager", "SetPaused", true);
-		GetTree().Paused = true;
+		ControllerUiSupport.FocusFirst(_pauseMainMenu);
+		SetModalPause(true);
 	}
 
 	private void ResumeGame()
@@ -3039,8 +3259,55 @@ public partial class HUD : CanvasLayer
 		if (_compendiumOverlay != null)
 			_compendiumOverlay.Visible = false;
 		_pauseOverlay.Visible = false;
-		GetTree().Paused = false;
-		GetTree().CallGroup("audio_manager", "SetPaused", false);
+		RefreshModalPause();
+	}
+
+	private bool CloseTopmostOverlay()
+	{
+		if (IsVisible(_skillDescriptionPopup)) { _skillDescriptionPopup.Visible = false; return true; }
+		if (IsVisible(_compendiumOverlay)) { _compendiumOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_pauseOverlay) && (IsVisible(_pauseTuningPage) || IsVisible(_optionsPage)))
+		{
+			ShowPauseMainMenu();
+			return true;
+		}
+		if (IsVisible(_artifactOfferOverlay)) { _artifactOfferOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_bloodBlessingOverlay))
+		{
+			if (_bloodBlessingChoiceMandatory)
+			{
+				_bloodBlessingStatusLabel.Text = "Escolha uma Bencao de Sangue para liberar a saida.";
+				FocusBlessingChoice(_focusedBlessingChoice);
+				return true;
+			}
+			_bloodBlessingOverlay.Visible = false;
+			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
+			RefreshModalPause();
+			return true;
+		}
+		if (IsVisible(_characterSheetOverlay)) { _characterSheetOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_bloodFountainOverlay)) { _bloodFountainOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_artifactChestOverlay)) { _artifactChestOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_weaponBenchOverlay)) { _weaponBenchOverlay.Visible = false; RefreshModalPause(); return true; }
+		if (IsVisible(_pauseOverlay)) { ResumeGame(); return true; }
+		return false;
+	}
+
+	private void SetModalPause(bool paused)
+	{
+		GetTree().CallGroup("audio_manager", "SetPaused", paused);
+		GetTree().Paused = paused;
+	}
+
+	private void RefreshModalPause()
+	{
+		var paused = _isGameOver
+			|| IsVisible(_pauseOverlay)
+			|| IsVisible(_characterSheetOverlay)
+			|| IsVisible(_compendiumOverlay)
+			|| IsVisible(_artifactOfferOverlay)
+			|| IsVisible(_bloodBlessingOverlay);
+		SetModalPause(paused);
 	}
 
 	private void SavePauseTuning()

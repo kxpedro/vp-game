@@ -8,20 +8,12 @@ public partial class PlayerCombat : Node
 
 	[Export] public NodePath AttackAreaPath { get; set; } = new("../AttackArea");
 	[Export] public NodePath AttackShapePath { get; set; } = new("../AttackArea/CollisionShape3D");
-	[Export] public float ComboResetTime { get; set; } = 0.9f;
+	[Export] public float ComboResetTime { get; set; } = 1.0f;
+	[Export] public float QuickAttackInputBufferSeconds { get; set; } = 0.32f;
 	[Export] public float MaxFury { get; set; } = 100.0f;
 	[Export] public float FuryDuration { get; set; } = 6.0f;
 	[Export] public float FuryDamageMultiplier { get; set; } = 1.75f;
 	[Export] public float AutoAimRadius { get; set; } = 4.25f;
-	[Export] public float QuickAttackDamageMultiplier { get; set; } = 1.35f;
-	[Export] public float AttackArcDegrees { get; set; } = 118.0f;
-	[Export] public float HitboxEdgeForgiveness { get; set; } = 1.15f;
-	[Export(PropertyHint.Range, "0.1,1.0,0.05")] public float QuickAttackHitboxScale { get; set; } = 0.5f;
-	[Export] public float BackstabDamageMultiplier { get; set; } = 1.5f;
-	[Export] public float WallImpactDamageMultiplier { get; set; } = 0.3f;
-	[Export] public float BasicAttackKnockbackMultiplier { get; set; } = 3.0f;
-	[Export] public float SpecialAttackKnockbackMultiplier { get; set; } = 2.5f;
-	[Export] public float QuickAttackKnockbackMultiplier { get; set; } = 2.7f;
 
 	public float CurrentFury { get; private set; }
 	public bool IsFuryActive { get; private set; }
@@ -44,9 +36,13 @@ public partial class PlayerCombat : Node
 	private bool _queuedQuickAttack;
 	private int _lightComboIndex;
 	private float _comboResetTimer;
+	private float _quickAttackInputBufferTimer;
+	private float _specialAttackCooldownTimer;
 	private float _baseMaxFury = 100.0f;
 	private Vector3 _attackDirection = Vector3.Forward;
 	private int _attackGeneration;
+	private CanvasLayer _furyVisualLayer;
+	private ColorRect _furyVisualOverlay;
 
 	private WeaponDefinition EquippedWeapon => WeaponLoadout.EquippedWeapon;
 	private WeaponAttackDefinition[] BasicCombo => EquippedWeapon.BasicCombo;
@@ -64,14 +60,24 @@ public partial class PlayerCombat : Node
 		_animator = player.GetNodeOrNull<PlayerAnimator>("PlayerAnimator");
 		_blessings = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
 		_skills = player.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+		CreateFuryVisualOverlay();
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
 	}
 
 	public override void _Process(double delta)
 	{
 		TickComboReset((float)delta);
+		_quickAttackInputBufferTimer = Mathf.Max(_quickAttackInputBufferTimer - (float)delta, 0.0f);
+		_specialAttackCooldownTimer = Mathf.Max(_specialAttackCooldownTimer - (float)delta, 0.0f);
+		if (_controller?.IsStaggered == true)
+			return;
+		if (GetTree().GetFirstNodeInGroup("hud") is HUD hud && hud.IsGameplayInputBlocked())
+			return;
 		if (Input.IsActionJustPressed("attack_light") && !IsPointerAttackBlocked())
+		{
+			_quickAttackInputBufferTimer = QuickAttackInputBufferSeconds;
 			BeginBasicAttack();
+		}
 		if (Input.IsActionJustPressed("attack_special"))
 			BeginSpecialAttack();
 		if (Input.IsActionJustPressed("attack_fury"))
@@ -93,11 +99,13 @@ public partial class PlayerCombat : Node
 		if (_controller != null && (_controller.IsDodging || Input.IsActionJustPressed("dodge")))
 		{
 			_queuedQuickAttack = true;
+			_quickAttackInputBufferTimer = 0.0f;
 			return;
 		}
 
 		if (_controller != null && _controller.CanDashAttack)
 		{
+			_quickAttackInputBufferTimer = 0.0f;
 			BeginQuickAttack(_controller.DodgeDirection);
 			return;
 		}
@@ -113,12 +121,17 @@ public partial class PlayerCombat : Node
 
 	private void BeginSpecialAttack()
 	{
+		if (_specialAttackCooldownTimer > 0.0f)
+			return;
+
+		var attack = GetTunedAttack(EquippedWeapon.SpecialAttack, $"weapon.{EquippedWeapon.Id}.special");
+		_specialAttackCooldownTimer = Mathf.Max(EquippedWeapon.SpecialAttackCooldown, 0.05f);
 		if (_isAttacking)
 			CancelCurrentAttack();
 
 		_queuedLightAttack = false;
 		_lightComboIndex = 0;
-		BeginAttack(GetTunedAttack(EquippedWeapon.SpecialAttack, $"weapon.{EquippedWeapon.Id}.special"), PlayerAttackType.Special);
+		BeginAttack(attack, PlayerAttackType.Special);
 	}
 
 	private void BeginBestialFury()
@@ -149,7 +162,10 @@ public partial class PlayerCombat : Node
 	public void QueueQuickAttack()
 	{
 		_queuedQuickAttack = true;
+		_quickAttackInputBufferTimer = 0.0f;
 	}
+
+	public bool HasBufferedQuickAttack => _quickAttackInputBufferTimer > 0.0f;
 
 	private async void BeginAttack(WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
@@ -167,19 +183,18 @@ public partial class PlayerCombat : Node
 		else
 			_animator?.PlayLightAttack(_lightComboIndex);
 
-		var attackSpeed = GetCurrentAttackSpeedMultiplier();
-		var hitDelay = Mathf.Max((attack.HitDelay * GameTuning.GetAttackDelayMultiplier()) / attackSpeed, 0.01f);
+		var hitDelay = GetAttackDelay(attack.HitDelay, attackType);
 		await Wait(hitDelay);
 		if (!IsCurrentAttack(attackGeneration))
 			return;
 
 		if (attack.Shape == WeaponAttackShape.Line)
 		{
-			_controller?.PerformAttackLunge(_attackDirection, 0.8f);
-			SpawnThrustIndicator(attack);
+			_controller?.PerformAttackLunge(_attackDirection, EquippedWeapon.LineAttackLungeDistance);
+			SpawnThrustIndicator(attack, attackType);
 		}
-		else if (attack.Shape == WeaponAttackShape.Radial) SpawnRadialAttackCircle(attack);
-		else SpawnAttackSlash(attack, attackType == PlayerAttackType.Special);
+		else if (attack.Shape == WeaponAttackShape.Radial) SpawnRadialAttackCircle(attack, attackType);
+		else SpawnAttackSlash(attack, attackType, attackType == PlayerAttackType.Special);
 		var currencyDamage = RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * CharacterSheet.BloodCoins;
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
 		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus) * GameTuning.GetDamageMultiplier();
@@ -188,13 +203,13 @@ public partial class PlayerCombat : Node
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
 		var attackDamage = attack.Damage * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f);
 		var hit = attack.Shape == WeaponAttackShape.Radial
-			? DealCircularDamage(attackDamage, attack.Knockback, attack.Range, attackType)
+			? DealCircularDamage(attackDamage, attack, attackType)
 			: DealDamage(attackDamage, attack.Knockback, attack, attackType);
 		CombatFeedback.Instance?.PlayPlayerHit(hit.TargetsHit, hit.IsCritical, attackType != PlayerAttackType.Basic || _lightComboIndex == BasicCombo.Length - 1);
 		if (attackType == PlayerAttackType.Special)
 			_blessings?.OnSpecialAttack(GetParent<Node3D>().GlobalPosition, attack.Range, attack.Shape);
 
-		var recoveryDelay = Mathf.Max((attack.Recovery * GameTuning.GetAttackDelayMultiplier()) / GetCurrentAttackSpeedMultiplier(), 0.01f);
+		var recoveryDelay = GetAttackDelay(attack.Recovery, attackType);
 		await Wait(recoveryDelay);
 		if (!IsCurrentAttack(attackGeneration))
 			return;
@@ -223,6 +238,7 @@ public partial class PlayerCombat : Node
 			return;
 
 		_isAttacking = true;
+		_quickAttackInputBufferTimer = 0.0f;
 		var attackGeneration = ++_attackGeneration;
 		IsQuickAttacking = true;
 		CurrentAttackType = PlayerAttackType.Quick;
@@ -234,26 +250,30 @@ public partial class PlayerCombat : Node
 		var tunedQuickAttack = GetTunedAttack(EquippedWeapon.QuickAttack, $"weapon.{EquippedWeapon.Id}.quick");
 		var attack = tunedQuickAttack with
 		{
-			Range = tunedQuickAttack.Range * QuickAttackHitboxScale,
-			Width = tunedQuickAttack.Width * QuickAttackHitboxScale
+			Range = tunedQuickAttack.Range * EquippedWeapon.QuickAttackHitboxScale,
+			Width = tunedQuickAttack.Width * EquippedWeapon.QuickAttackHitboxScale
 		};
 		ConfigureAttackArea(attack);
 		_animator?.PlayDashAttack();
+		var quickHitDelay = Mathf.Max(attack.HitDelay, 0.04f);
+		await Wait(quickHitDelay);
+		if (!IsCurrentAttack(attackGeneration)) return;
 
 		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * GameTuning.GetDamageMultiplier();
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		furyDamageMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
-		var quickDamageMultiplier = CompendiumTuning.GetFloat("attack.quick.damage_multiplier", QuickAttackDamageMultiplier);
-		if (attack.Shape == WeaponAttackShape.Radial) SpawnRadialAttackCircle(attack);
-		else SpawnAttackSlash(attack, true);
+		var quickDamageMultiplier = EquippedWeapon.QuickAttackDamageMultiplier;
+		if (attack.Shape == WeaponAttackShape.Radial) SpawnRadialAttackCircle(attack, PlayerAttackType.Quick);
+		else if (attack.Shape == WeaponAttackShape.Line) SpawnThrustIndicator(attack, PlayerAttackType.Quick);
+		else SpawnAttackSlash(attack, PlayerAttackType.Quick, true);
 		var quickDamage = attack.Damage * quickDamageMultiplier * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f);
 		var dashHit = attack.Shape == WeaponAttackShape.Radial
-			? DealCircularDamage(quickDamage, attack.Knockback, attack.Range, PlayerAttackType.Quick)
+			? DealCircularDamage(quickDamage, attack, PlayerAttackType.Quick)
 			: DealDamage(quickDamage, attack.Knockback, attack, PlayerAttackType.Quick);
 		CombatFeedback.Instance?.PlayPlayerHit(dashHit.TargetsHit, dashHit.IsCritical, true);
 
-		var recoveryDelay = Mathf.Max((attack.Recovery * GameTuning.GetAttackDelayMultiplier()) / Mathf.Max(GameTuning.GetAttackSpeedMultiplier(), 0.01f), 0.01f);
+		var recoveryDelay = Mathf.Max(attack.Recovery, 0.01f);
 		await Wait(recoveryDelay);
 		if (!IsCurrentAttack(attackGeneration))
 			return;
@@ -300,10 +320,8 @@ public partial class PlayerCombat : Node
 	private HitResult DealDamage(float damage, float knockback, WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
-		var halfArcRadians = Mathf.DegToRad(AttackArcDegrees * 0.5f);
-		var edgeForgiveness = attackType == PlayerAttackType.Quick
-			? HitboxEdgeForgiveness * QuickAttackHitboxScale
-			: HitboxEdgeForgiveness;
+		var halfArcRadians = Mathf.DegToRad(EquippedWeapon.AttackArcDegrees * 0.5f);
+		var edgeForgiveness = GetEdgeForgiveness(attackType);
 		var criticalChance = Mathf.Clamp(RunState.GetEffectTotal("CriticalChance.Flat") + RunState.ContextCriticalChance + (_blessings?.BonusCriticalChance() ?? 0.0f), 0, 1);
 		var isCritical = RunState.ConsumeGuaranteedCritical() || GD.Randf() < criticalChance;
 		var criticalMultiplier = 1.5f + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
@@ -353,30 +371,33 @@ public partial class PlayerCombat : Node
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
 			var isBackstab = enemyNode is EnemyBasic backstabTarget && backstabTarget.IsAttackedFromBehind(player.GlobalPosition);
-			if (isBackstab) finalDamage *= BackstabDamageMultiplier;
+			if (isBackstab) finalDamage *= EquippedWeapon.BackstabDamageMultiplier;
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
 			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? "Ataque pelas costas" : attack.Name);
 			if (enemyNode is EnemyBasic hitEnemy)
-				_blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical, attackType == PlayerAttackType.Basic, attackType == PlayerAttackType.Quick);
+			{
+				hitEnemy.ApplyStagger(attack.StaggerDuration);
+				_blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical, attackType);
+				if (IsFuryActive) SpawnFuryBloodBurst(hitEnemy.GlobalPosition);
+			}
 			targetsHit++;
 			if (isCritical)
 			{
 				_health?.Heal(finalDamage * (RunState.GetEffectTotal("CriticalLifeSteal.Multiplier") + RunState.ContextLifeSteal));
 			}
 			if (enemyNode is EnemyBasic enemy)
-				enemy.ApplyKnockback(enemyNode.GlobalPosition - player.GlobalPosition, GetAttackKnockback(knockback, attackType, enemy), finalDamage * WallImpactDamageMultiplier);
+				enemy.ApplyKnockback(enemyNode.GlobalPosition - player.GlobalPosition, GetAttackKnockback(knockback, attackType, enemy), finalDamage * EquippedWeapon.WallImpactDamageMultiplier);
 		}
 
 		return new HitResult(targetsHit, isCritical);
 	}
 
-	private HitResult DealCircularDamage(float damage, float knockback, float radius, PlayerAttackType attackType)
+	private HitResult DealCircularDamage(float damage, WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
+		var radius = attack.Range;
 		var targetsHit = 0;
-		var edgeForgiveness = attackType == PlayerAttackType.Quick
-			? HitboxEdgeForgiveness * QuickAttackHitboxScale
-			: HitboxEdgeForgiveness;
+		var edgeForgiveness = GetEdgeForgiveness(attackType);
 		var criticalChance = Mathf.Clamp(RunState.GetEffectTotal("CriticalChance.Flat") + RunState.ContextCriticalChance + (_blessings?.BonusCriticalChance() ?? 0.0f), 0, 1);
 		var isCritical = RunState.ConsumeGuaranteedCritical() || GD.Randf() < criticalChance;
 		var criticalMultiplier = 1.5f + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
@@ -403,20 +424,25 @@ public partial class PlayerCombat : Node
 				finalDamage = _blessings?.ModifyOutgoingDamage(finalDamage, special, attackType) ?? finalDamage;
 			}
 			var isBackstab = enemyNode is EnemyBasic backstabTarget && backstabTarget.IsAttackedFromBehind(player.GlobalPosition);
-			if (isBackstab) finalDamage *= BackstabDamageMultiplier;
+			if (isBackstab) finalDamage *= EquippedWeapon.BackstabDamageMultiplier;
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
 			var targetHealth = enemyNode.GetNodeOrNull<Health>("Health");
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (targetHealth != null && executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
 			targetHealth?.ApplyDamage(finalDamage, isCritical, isBackstab ? "Ataque pelas costas" : attackType == PlayerAttackType.Special ? EquippedSpecialName : EquippedWeapon.QuickAttack.Name);
-			if (enemyNode is EnemyBasic hitEnemy) _blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical, false, attackType == PlayerAttackType.Quick);
+			if (enemyNode is EnemyBasic hitEnemy)
+			{
+				hitEnemy.ApplyStagger(attack.StaggerDuration);
+				_blessings?.OnPlayerHit(hitEnemy, finalDamage, isCritical, attackType);
+				if (IsFuryActive) SpawnFuryBloodBurst(hitEnemy.GlobalPosition);
+			}
 			targetsHit++;
 			if (isCritical)
 			{
 				_health?.Heal(finalDamage * (RunState.GetEffectTotal("CriticalLifeSteal.Multiplier") + RunState.ContextLifeSteal));
 			}
 			if (enemyNode is EnemyBasic enemy)
-				enemy.ApplyKnockback(toEnemy.LengthSquared() > 0.001f ? toEnemy : _attackDirection, GetAttackKnockback(knockback, attackType, enemy), finalDamage * WallImpactDamageMultiplier);
+				enemy.ApplyKnockback(toEnemy.LengthSquared() > 0.001f ? toEnemy : _attackDirection, GetAttackKnockback(attack.Knockback, attackType, enemy), finalDamage * EquippedWeapon.WallImpactDamageMultiplier);
 		}
 
 		return new HitResult(targetsHit, isCritical);
@@ -428,7 +454,40 @@ public partial class PlayerCombat : Node
 		var artifactSpeed = 1.0f + RunState.GetEffectTotal("AttackSpeed.Multiplier")
 			+ RunState.GetEffectTotal("AttackSpeedMissingHealth.Multiplier") * missingHealth
 			+ RunState.ContextAttackSpeed + (_blessings?.BonusAttackSpeed() ?? 0.0f);
-		return Mathf.Max(GameTuning.GetAttackSpeedMultiplier() * artifactSpeed, 0.01f);
+		return Mathf.Max(GameTuning.GetAttackSpeedMultiplier() * EquippedWeapon.BasicAttackSpeedMultiplier * artifactSpeed, 0.01f);
+	}
+
+	public float GetCurrentBasicAttackDamage()
+	{
+		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1");
+		var currencyDamage = RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * CharacterSheet.BloodCoins;
+		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
+		var multiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier
+			* (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus)
+			* GameTuning.GetDamageMultiplier();
+		multiplier *= Mathf.Max(1.0f + RunState.GetEffectTotal("BasicAttackDamage.Multiplier"), 0.0f);
+		if (IsFuryActive)
+		{
+			var furyMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
+			furyMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
+			multiplier *= furyMultiplier * CharacterSheet.GetBloodcraftMultiplier();
+		}
+		return attack.Damage * multiplier;
+	}
+
+	public float GetCurrentBasicAttackInterval()
+	{
+		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1");
+		return Mathf.Max((attack.HitDelay + attack.Recovery) * GameTuning.GetAttackDelayMultiplier()
+			/ GetCurrentAttackSpeedMultiplier(), 0.08f);
+	}
+
+	private float GetAttackDelay(float baseDelay, PlayerAttackType attackType)
+	{
+		if (attackType != PlayerAttackType.Basic)
+			return Mathf.Max(baseDelay, 0.01f);
+
+		return Mathf.Max((baseDelay * GameTuning.GetAttackDelayMultiplier()) / GetCurrentAttackSpeedMultiplier(), 0.01f);
 	}
 
 	private readonly record struct HitResult(int TargetsHit, bool IsCritical);
@@ -436,13 +495,14 @@ public partial class PlayerCombat : Node
 	private float GetAttackKnockback(float knockback, PlayerAttackType attackType, EnemyBasic enemy)
 	{
 		if (attackType == PlayerAttackType.Special)
-			return knockback * SpecialAttackKnockbackMultiplier;
+			return knockback * EquippedWeapon.SpecialAttackKnockbackMultiplier;
 		if (attackType == PlayerAttackType.Quick)
-			return knockback * QuickAttackKnockbackMultiplier;
+			return knockback * EquippedWeapon.QuickAttackKnockbackMultiplier;
 		if (attackType != PlayerAttackType.Basic || enemy == null || enemy.Name.ToString().Contains("Boss"))
 			return knockback;
 		var archetypeMultiplier = enemy.Archetype == EnemyArchetype.Tank ? 0.5f : 1.0f;
-		return knockback * BasicAttackKnockbackMultiplier * archetypeMultiplier;
+		var comboMultiplier = _lightComboIndex == BasicCombo.Length - 1 ? 1.2f : 1.0f;
+		return knockback * EquippedWeapon.BasicAttackKnockbackMultiplier * archetypeMultiplier * comboMultiplier;
 	}
 
 	private void ConfigureAttackArea(WeaponAttackDefinition attack)
@@ -453,7 +513,14 @@ public partial class PlayerCombat : Node
 			_attackBox.Size = new Vector3(attack.Width, 1.1f, attack.Range);
 	}
 
-	private async void SpawnAttackSlash(WeaponAttackDefinition attack, bool isHeavy)
+	private float GetEdgeForgiveness(PlayerAttackType attackType)
+	{
+		return attackType == PlayerAttackType.Quick
+			? EquippedWeapon.HitboxEdgeForgiveness * EquippedWeapon.QuickAttackHitboxScale
+			: EquippedWeapon.HitboxEdgeForgiveness;
+	}
+
+	private async void SpawnAttackSlash(WeaponAttackDefinition attack, PlayerAttackType attackType, bool isHeavy)
 	{
 		var player = GetParent<Node3D>();
 		var fillMaterial = new StandardMaterial3D
@@ -479,9 +546,9 @@ public partial class PlayerCombat : Node
 		};
 		player.AddChild(indicator);
 
-		var visualRange = attack.Range + HitboxEdgeForgiveness;
-		AddArcMesh(indicator, "ArcFill", visualRange, AttackArcDegrees, fillMaterial, 0.075f);
-		AddArcMesh(indicator, "ArcEdge", visualRange, AttackArcDegrees, edgeMaterial, 0.12f, true);
+		var visualRange = attack.Range + GetEdgeForgiveness(attackType);
+		AddArcMesh(indicator, "ArcFill", visualRange, EquippedWeapon.AttackArcDegrees, fillMaterial, 0.075f);
+		AddArcMesh(indicator, "ArcEdge", visualRange, EquippedWeapon.AttackArcDegrees, edgeMaterial, 0.12f, true);
 
 		var tween = indicator.CreateTween();
 		indicator.Scale = new Vector3(0.9f, 1.0f, 0.85f);
@@ -491,7 +558,7 @@ public partial class PlayerCombat : Node
 		indicator.QueueFree();
 	}
 
-	private async void SpawnRadialAttackCircle(WeaponAttackDefinition attack)
+	private async void SpawnRadialAttackCircle(WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
 		var fillMaterial = new StandardMaterial3D
@@ -517,7 +584,7 @@ public partial class PlayerCombat : Node
 		};
 		player.AddChild(indicator);
 
-		var visualRadius = attack.Range + HitboxEdgeForgiveness;
+		var visualRadius = attack.Range + GetEdgeForgiveness(attackType);
 		var fill = new MeshInstance3D
 		{
 			Name = "CircleFill",
@@ -570,7 +637,7 @@ public partial class PlayerCombat : Node
 		indicator.QueueFree();
 	}
 
-	private async void SpawnThrustIndicator(WeaponAttackDefinition attack)
+	private async void SpawnThrustIndicator(WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
 		var material = new StandardMaterial3D
@@ -583,7 +650,8 @@ public partial class PlayerCombat : Node
 		};
 		var indicator = new Node3D { Name = "ThrustAttackIndicator" };
 		player.AddChild(indicator);
-		AddHitboxBox(indicator, "ThrustLine", new Vector3(attack.Width, 0.06f, attack.Range), new Vector3(0.0f, 0.1f, -attack.Range * 0.5f), material);
+		var visualRange = attack.Range + GetEdgeForgiveness(attackType);
+		AddHitboxBox(indicator, "ThrustLine", new Vector3(attack.Width, 0.06f, visualRange), new Vector3(0.0f, 0.1f, -visualRange * 0.5f), material);
 		indicator.Scale = new Vector3(0.55f, 1.0f, 0.35f);
 		var tween = indicator.CreateTween();
 		tween.TweenProperty(indicator, "scale", Vector3.One, 0.08f);
@@ -660,15 +728,100 @@ public partial class PlayerCombat : Node
 	{
 		IsFuryActive = true;
 		CurrentFury = 0.0f;
+		SetFuryVisualActive(true);
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
 
 		var duration = CompendiumTuning.GetFloat("attack.fury.duration", FuryDuration);
 		duration *= 1.0f + RunState.GetEffectTotal("FuryDuration.Multiplier");
 		duration *= _skills?.TemporaryEffectDurationMultiplier() ?? 1.0f;
 		await Wait(duration);
+		if (!IsInsideTree()) return;
 
 		IsFuryActive = false;
+		SetFuryVisualActive(false);
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
+	}
+
+	private void CreateFuryVisualOverlay()
+	{
+		_furyVisualLayer = new CanvasLayer
+		{
+			Name = "BestialFuryVisualLayer",
+			Layer = 1,
+			ProcessMode = ProcessModeEnum.Pausable
+		};
+		AddChild(_furyVisualLayer);
+
+		var shader = new Shader
+		{
+			Code = @"shader_type canvas_item;
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear;
+
+void fragment() {
+	vec4 source = texture(screen_texture, SCREEN_UV);
+	float gray = dot(source.rgb, vec3(0.299, 0.587, 0.114));
+	float blood_signal = source.r - max(source.g, source.b) * 1.12;
+	float preserve_red = smoothstep(0.075, 0.32, blood_signal);
+	vec3 monochrome = vec3(gray);
+	vec3 blood = vec3(max(source.r, gray * 0.72), source.g * 0.13, source.b * 0.13);
+	float vignette = smoothstep(0.82, 0.24, distance(SCREEN_UV, vec2(0.5)));
+	vec3 result = mix(monochrome, blood, preserve_red) * mix(0.72, 1.0, vignette);
+	COLOR = vec4(result, source.a);
+}"
+		};
+
+		_furyVisualOverlay = new ColorRect
+		{
+			Name = "BestialFuryGrayscale",
+			Color = Colors.White,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Material = new ShaderMaterial { Shader = shader },
+			Visible = false
+		};
+		_furyVisualOverlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		_furyVisualLayer.AddChild(_furyVisualOverlay);
+	}
+
+	private void SetFuryVisualActive(bool active)
+	{
+		if (_furyVisualOverlay != null)
+			_furyVisualOverlay.Visible = active;
+	}
+
+	private async void SpawnFuryBloodBurst(Vector3 position)
+	{
+		var scene = GetTree().CurrentScene;
+		if (scene == null) return;
+
+		var burst = new Node3D { Name = "BestialFuryBloodBurst" };
+		scene.AddChild(burst);
+		burst.GlobalPosition = position + Vector3.Up * 0.7f;
+		for (var i = 0; i < 7; i++)
+		{
+			var drop = new MeshInstance3D
+			{
+				Mesh = new SphereMesh { Radius = 0.055f + GD.Randf() * 0.045f, Height = 0.13f + GD.Randf() * 0.09f },
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = new Color(0.82f, 0.0f, 0.025f),
+					EmissionEnabled = true,
+					Emission = new Color(1.0f, 0.0f, 0.025f),
+					EmissionEnergyMultiplier = 3.2f,
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				}
+			};
+			burst.AddChild(drop);
+			var angle = Mathf.Tau * i / 7.0f + GD.Randf() * 0.4f;
+			var direction = new Vector3(Mathf.Cos(angle), (float)GD.RandRange(0.25, 0.85), Mathf.Sin(angle));
+			var tween = drop.CreateTween();
+			tween.TweenProperty(drop, "position", direction * (float)GD.RandRange(0.45, 0.9), 0.24f)
+				.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+			tween.Parallel().TweenProperty(drop, "scale", Vector3.One * 0.12f, 0.30f);
+			tween.Parallel().TweenProperty(drop, "transparency", 1.0f, 0.30f);
+		}
+
+		await ToSignal(GetTree().CreateTimer(0.34f), SceneTreeTimer.SignalName.Timeout);
+		if (IsInstanceValid(burst)) burst.QueueFree();
 	}
 
 	private async Task Wait(float seconds)
@@ -691,6 +844,10 @@ public partial class PlayerCombat : Node
 
 	private Vector3 GetMouseAttackDirection(Vector3? fallbackDirection = null)
 	{
+		var stickAim = GetControllerMoveAim();
+		if (stickAim.LengthSquared() > 0.12f)
+			return stickAim;
+
 		var player = GetParent<Node3D>();
 		var camera = GetViewport().GetCamera3D();
 		if (camera == null)
@@ -714,6 +871,21 @@ public partial class PlayerCombat : Node
 		return direction.LengthSquared() > 0.001f
 			? direction.Normalized()
 			: NormalizeFallback(fallbackDirection);
+	}
+
+	private static Vector3 GetControllerMoveAim()
+	{
+		var strongest = Vector2.Zero;
+		foreach (var device in Input.GetConnectedJoypads())
+		{
+			var candidate = new Vector2(
+				Input.GetJoyAxis(device, (JoyAxis)0),
+				Input.GetJoyAxis(device, (JoyAxis)1));
+			if (candidate.LengthSquared() > strongest.LengthSquared()) strongest = candidate;
+		}
+		if (strongest.LengthSquared() <= 0.12f) return Vector3.Zero;
+		return new Vector3(strongest.X, 0.0f, strongest.Y)
+			.Rotated(Vector3.Up, Mathf.DegToRad(45.0f)).Normalized();
 	}
 
 	private Vector3 NormalizeFallback(Vector3? fallbackDirection)
@@ -754,7 +926,8 @@ public partial class PlayerCombat : Node
 			CompendiumTuning.GetFloat($"{keyPrefix}.range", attack.Range) * GameTuning.GetAttackRangeMultiplier(),
 			CompendiumTuning.GetFloat($"{keyPrefix}.width", attack.Width),
 			attack.SlashTilt,
-			attack.Shape
+			attack.Shape,
+			CompendiumTuning.GetFloat($"{keyPrefix}.stagger", attack.StaggerDuration)
 		);
 	}
 

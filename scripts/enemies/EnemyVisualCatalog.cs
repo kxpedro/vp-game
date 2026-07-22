@@ -10,8 +10,6 @@ public static class EnemyVisualCatalog
             Godot.ResourceLoader.LoadThreadedRequest(GetBoss(mapIndex).ScenePath);
             return;
         }
-        Godot.ResourceLoader.LoadThreadedRequest(GetRegular(0).ScenePath);
-        Godot.ResourceLoader.LoadThreadedRequest(GetRegular(1).ScenePath);
     }
 
     public static Godot.PackedScene LoadScene(EnemyVisualDefinition definition)
@@ -29,14 +27,10 @@ public static class EnemyVisualCatalog
         return scene;
     }
 
-    public static EnemyVisualDefinition GetRegular(int variant) => variant % 2 == 0
-        ? new("res://3d/zombie_commoner.glb", 0.01f, "Take 001", 0.7f)
-        : new("res://3d/zombie_snapper.glb", 0.01f, "Take 001", 0.75f);
-
     public static EnemyVisualDefinition GetBoss(int mapIndex) => mapIndex switch
     {
         0 => new("res://3d/silver_dragonkin_mir4.glb", 1.0f, "Mon_BlackDragon31_Btl_Std01", 1.2f, true, 2.0f, 180.0f),
         1 => new("res://3d/invisible_women__marvel_rivals.glb", 1.45f, "Idle_C", 0.9f, false, 1.0f, 180.0f),
-        _ => GetRegular(mapIndex)
+        _ => GetBoss(0)
     };
 }

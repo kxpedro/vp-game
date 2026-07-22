@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/systems/RunManager.cs" id="1"]
 [ext_resource type="Script" path="res://scripts/camera/IsoCamera.cs" id="2"]
@@ -44,15 +44,27 @@ emission = Color(0.95, 0.01, 0.02, 1)
 emission_energy_multiplier = 2.0
 transparency = 1
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_portal_pillar"]
-top_radius = 0.08
-bottom_radius = 0.08
-height = 1.2
-radial_segments = 16
+[sub_resource type="BoxMesh" id="BoxMesh_portal_pillar"]
+size = Vector3(0.34, 2.7, 0.42)
+
+[sub_resource type="BoxMesh" id="BoxMesh_portal_lintel"]
+size = Vector3(2.64, 0.34, 0.42)
+
+[sub_resource type="BoxMesh" id="BoxMesh_portal_bar"]
+size = Vector3(0.11, 2.25, 0.15)
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_portal_area"]
 height = 2.0
 radius = 1.35
+
+[sub_resource type="Environment" id="ArenaEnvironment"]
+background_mode = 1
+background_color = Color(0.014, 0.012, 0.022, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.3, 0.34, 0.46, 1)
+ambient_light_energy = 0.44
+reflected_light_source = 2
+tonemap_mode = 2
 
 [node name="TestArena" type="Node3D"]
 script = ExtResource("1")
@@ -123,13 +135,33 @@ mesh = SubResource("CylinderMesh_portal")
 material_override = SubResource("StandardMaterial3D_portal")
 
 [node name="PillarA" type="MeshInstance3D" parent="ExitPortal"]
-position = Vector3(-0.75, 0.62, 0)
-mesh = SubResource("CylinderMesh_portal_pillar")
+position = Vector3(-1.15, 1.35, 0)
+mesh = SubResource("BoxMesh_portal_pillar")
 material_override = SubResource("StandardMaterial3D_portal")
 
 [node name="PillarB" type="MeshInstance3D" parent="ExitPortal"]
-position = Vector3(0.75, 0.62, 0)
-mesh = SubResource("CylinderMesh_portal_pillar")
+position = Vector3(1.15, 1.35, 0)
+mesh = SubResource("BoxMesh_portal_pillar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="Lintel" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 2.7, 0)
+mesh = SubResource("BoxMesh_portal_lintel")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="BarA" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(-0.55, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="BarB" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="BarC" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0.55, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
 material_override = SubResource("StandardMaterial3D_portal")
 
 [node name="PortalArea" type="Area3D" parent="ExitPortal"]
@@ -149,9 +181,15 @@ TargetPath = NodePath("../Player")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.872665, -0.610865, 0)
-light_energy = 1.35
+light_energy = 1.12
 shadow_enabled = true
+shadow_bias = 0.075
+shadow_normal_bias = 0.58
+shadow_blur = 1.45
+directional_shadow_max_distance = 34.0
+directional_shadow_blend_splits = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("ArenaEnvironment")
 
 [node name="HUD" parent="." instance=ExtResource("5")]

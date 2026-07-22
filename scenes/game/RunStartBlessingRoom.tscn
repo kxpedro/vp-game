@@ -1,0 +1,225 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/RunStartBlessingRoom.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/camera/IsoCamera.cs" id="4"]
+[ext_resource type="Script" path="res://scripts/systems/ScenePortal.cs" id="5"]
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(20, 0.3, 20)
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(20, 0.3, 20)
+
+[sub_resource type="StandardMaterial3D" id="StoneMaterial"]
+albedo_color = Color(0.09, 0.075, 0.105, 1)
+roughness = 0.92
+
+[sub_resource type="BoxShape3D" id="WallLongShape"]
+size = Vector3(20, 2.8, 0.45)
+
+[sub_resource type="BoxShape3D" id="WallShortShape"]
+size = Vector3(0.45, 2.8, 20)
+
+[sub_resource type="BoxMesh" id="WallLongMesh"]
+size = Vector3(20, 2.8, 0.45)
+
+[sub_resource type="BoxMesh" id="WallShortMesh"]
+size = Vector3(0.45, 2.8, 20)
+
+[sub_resource type="StandardMaterial3D" id="BloodMaterial"]
+albedo_color = Color(0.72, 0.01, 0.035, 1)
+emission_enabled = true
+emission = Color(1, 0.01, 0.035, 1)
+emission_energy_multiplier = 2.4
+roughness = 0.38
+
+[sub_resource type="CylinderMesh" id="FountainMesh"]
+top_radius = 1.15
+bottom_radius = 1.42
+height = 1.0
+radial_segments = 48
+
+[sub_resource type="CylinderShape3D" id="InteractionShape"]
+height = 2.5
+radius = 2.0
+
+[sub_resource type="StandardMaterial3D" id="PortalMaterial"]
+transparency = 1
+albedo_color = Color(0.72, 0.025, 0.06, 0.8)
+emission_enabled = true
+emission = Color(1, 0.01, 0.03, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="BoxMesh" id="PortalPillarMesh"]
+size = Vector3(0.34, 2.7, 0.42)
+
+[sub_resource type="BoxMesh" id="PortalLintelMesh"]
+size = Vector3(2.64, 0.34, 0.42)
+
+[sub_resource type="BoxMesh" id="PortalBarMesh"]
+size = Vector3(0.11, 2.25, 0.15)
+
+[sub_resource type="CylinderShape3D" id="PortalAreaShape"]
+height = 2.4
+radius = 1.45
+
+[sub_resource type="Environment" id="RoomEnvironment"]
+background_mode = 1
+background_color = Color(0.01, 0.004, 0.014, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.34, 0.18, 0.28, 1)
+ambient_light_energy = 0.42
+reflected_light_source = 2
+tonemap_mode = 2
+
+[node name="RunStartBlessingRoom" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Collision" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("FloorShape")
+
+[node name="Visual" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("FloorMesh")
+material_override = SubResource("StoneMaterial")
+
+[node name="NorthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.25, -10)
+
+[node name="Collision" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("WallLongShape")
+
+[node name="Visual" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("WallLongMesh")
+material_override = SubResource("StoneMaterial")
+
+[node name="SouthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.25, 10)
+
+[node name="Collision" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("WallLongShape")
+
+[node name="Visual" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("WallLongMesh")
+material_override = SubResource("StoneMaterial")
+
+[node name="WestWall" type="StaticBody3D" parent="."]
+position = Vector3(-10, 1.25, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="WestWall"]
+shape = SubResource("WallShortShape")
+
+[node name="Visual" type="MeshInstance3D" parent="WestWall"]
+mesh = SubResource("WallShortMesh")
+material_override = SubResource("StoneMaterial")
+
+[node name="EastWall" type="StaticBody3D" parent="."]
+position = Vector3(10, 1.25, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("WallShortShape")
+
+[node name="Visual" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("WallShortMesh")
+material_override = SubResource("StoneMaterial")
+
+[node name="Player" parent="." instance=ExtResource("2")]
+position = Vector3(0, 0.2, 7.2)
+
+[node name="BloodFountain" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.6, 0)
+mesh = SubResource("FountainMesh")
+material_override = SubResource("BloodMaterial")
+
+[node name="Title" type="Label3D" parent="BloodFountain"]
+position = Vector3(0, 1.55, 0)
+billboard = 1
+text = "Fonte da Primeira Herança"
+font_size = 34
+outline_size = 9
+modulate = Color(1, 0.12, 0.16, 1)
+
+[node name="Prompt" type="Label3D" parent="BloodFountain"]
+position = Vector3(0, 2.1, 0)
+billboard = 1
+text = "Interagir — revelar uma Bênção de Sangue"
+font_size = 26
+outline_size = 8
+visible = false
+
+[node name="InteractionArea" type="Area3D" parent="BloodFountain"]
+
+[node name="Collision" type="CollisionShape3D" parent="BloodFountain/InteractionArea"]
+position = Vector3(0, 0.65, 0)
+shape = SubResource("InteractionShape")
+
+[node name="FountainLight" type="OmniLight3D" parent="BloodFountain"]
+position = Vector3(0, 2.2, 0)
+light_color = Color(1, 0.04, 0.08, 1)
+light_energy = 4.0
+omni_range = 7.0
+
+[node name="ExitPortal" type="Node3D" parent="."]
+position = Vector3(0, 0.18, -7.9)
+
+[node name="PillarA" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(-1.15, 1.35, 0)
+mesh = SubResource("PortalPillarMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="PillarB" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(1.15, 1.35, 0)
+mesh = SubResource("PortalPillarMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="Lintel" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 2.7, 0)
+mesh = SubResource("PortalLintelMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="BarA" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(-0.55, 1.18, 0)
+mesh = SubResource("PortalBarMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="BarB" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 1.18, 0)
+mesh = SubResource("PortalBarMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="BarC" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0.55, 1.18, 0)
+mesh = SubResource("PortalBarMesh")
+material_override = SubResource("PortalMaterial")
+
+[node name="PortalArea" type="Area3D" parent="ExitPortal"]
+script = ExtResource("5")
+TargetScenePath = "res://scenes/game/TestArena.tscn"
+PromptText = "Interagir — entrar na primeira ala"
+StartsEnabled = false
+
+[node name="Collision" type="CollisionShape3D" parent="ExitPortal/PortalArea"]
+position = Vector3(0, 1, 0)
+shape = SubResource("PortalAreaShape")
+
+[node name="IsoCamera" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.408248, 0.57735, 0, 0.816497, 0.57735, -0.707107, -0.408248, 0.57735, 8, 10, 8)
+script = ExtResource("4")
+TargetPath = NodePath("../Player")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.872665, -0.610865, 0)
+light_color = Color(0.82, 0.66, 0.78, 1)
+light_energy = 0.92
+shadow_enabled = true
+shadow_bias = 0.08
+shadow_normal_bias = 0.6
+shadow_blur = 1.5
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("RoomEnvironment")
+
+[node name="HUD" parent="." instance=ExtResource("3")]

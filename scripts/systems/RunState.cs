@@ -18,6 +18,7 @@ public static class RunState
     public static bool IsBossRoom => CurrentRoom > CurrentMap.CommonRoomCount;
     public static bool IsFinalMap => CurrentMapIndex >= CampaignCatalog.Count - 1;
     public static bool IsCampaignComplete { get; private set; }
+    public static bool IsRunActive { get; private set; }
     private static bool _fatalProtectionConsumed;
     private static bool _skillFatalProtectionConsumed;
     private static int _skillRerollConsumedMap = -1;
@@ -32,6 +33,7 @@ public static class RunState
 
     public static void StartRun()
     {
+        IsRunActive = true;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
         IsCampaignComplete = false;
@@ -75,6 +77,7 @@ public static class RunState
         BloodBlessings.Clear();
         BlessingStacks.Clear();
         IsCampaignComplete = true;
+        IsRunActive = false;
         _skillFatalProtectionConsumed = false;
         _skillRerollConsumedMap = -1;
         CurrentMapIndex = 0;
@@ -91,6 +94,7 @@ public static class RunState
 
     public static void FailRun()
     {
+        IsRunActive = false;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
         IsCampaignComplete = false;
@@ -189,6 +193,28 @@ public static class RunState
                 definition.ExclusiveGroup.Equals(group, System.StringComparison.OrdinalIgnoreCase))
                 return blessing;
         return null;
+    }
+
+    public static bool TryUpgradeBloodBlessing(string blessingId, out BloodBlessingRecord upgradedBlessing)
+    {
+        upgradedBlessing = null;
+        for (var i = 0; i < BloodBlessings.Count; i++)
+        {
+            var current = BloodBlessings[i];
+            if (!current.Id.Equals(blessingId, System.StringComparison.OrdinalIgnoreCase) ||
+                !BloodBlessingCatalog.TryGetNextRarity(current.Rarity, out var nextRarity))
+                continue;
+
+            upgradedBlessing = current with
+            {
+                Rarity = nextRarity.DisplayName,
+                PowerMultiplier = nextRarity.PowerMultiplier
+            };
+            BloodBlessings[i] = upgradedBlessing;
+            RecalculateArtifactBonuses();
+            return true;
+        }
+        return false;
     }
 
     private static void ApplyBlessingEffects(BloodBlessingDefinition definition, float powerMultiplier)

@@ -10,14 +10,17 @@ public partial class PlayerController : CharacterBody3D
 	[Export] public float DodgeSpeed { get; set; } = 13.5f;
 	[Export] public float DodgeDuration { get; set; } = 0.22f;
 	[Export] public float DashAttackGraceSeconds { get; set; } = 0.5f;
+	[Export] public float DodgeCooldownSeconds { get; set; } = 0.18f;
 	[Export] public float MaxStamina { get; set; } = 100.0f;
 	[Export] public float StaminaRegenPerSecond { get; set; } = 28.0f;
 	[Export] public float DodgeCost { get; set; } = 28.0f;
+	[Export] public float DamageStaggerDuration { get; set; } = 0.24f;
 	[Export] public NodePath HealthPath { get; set; } = new("Health");
 
 	public float CurrentStamina { get; private set; }
 	public bool IsDodging => _dodgeTimeRemaining > 0.0f;
 	public bool CanDashAttack => IsDodging || _dashAttackGraceTimeRemaining > 0.0f;
+	public bool IsStaggered => _damageStaggerTimeRemaining > 0.0f;
 	public Vector3 DodgeDirection => _dodgeDirection;
 	public Vector3 LastMoveDirection => _lastMoveDirection;
 	public float DodgeAnimationSpeedMultiplier => _baseDodgeSpeed > 0.0f ? DodgeSpeed / _baseDodgeSpeed : 1.0f;
@@ -37,6 +40,8 @@ public partial class PlayerController : CharacterBody3D
 	private Vector3 _dodgeDirection = Vector3.Zero;
 	private float _dodgeTimeRemaining;
 	private float _dashAttackGraceTimeRemaining;
+	private float _dodgeCooldownTimeRemaining;
+	private float _damageStaggerTimeRemaining;
 
 	public override void _Ready()
 	{
@@ -63,6 +68,7 @@ public partial class PlayerController : CharacterBody3D
 			_health.SetCurrentHealth(_health.MaxHealth);
 
 		_health.HealthChanged += OnHealthChanged;
+		_health.Damaged += OnDamaged;
 		_health.Died += OnDied;
 		EmitSignal(SignalName.StaminaChanged, CurrentStamina, MaxStamina);
 	}
@@ -71,7 +77,11 @@ public partial class PlayerController : CharacterBody3D
 	{
 		GameTuning.Changed -= ApplyRuntimeTuning;
 		if (_health != null)
+		{
 			_health.HealthChanged -= OnHealthChanged;
+			_health.Damaged -= OnDamaged;
+			_health.Died -= OnDied;
+		}
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -81,9 +91,23 @@ public partial class PlayerController : CharacterBody3D
 			_animator?.SetMovementState(false, false, 0.0f);
 			return;
 		}
+		if (GetTree().GetFirstNodeInGroup("hud") is HUD hud && hud.IsGameplayInputBlocked())
+		{
+			Velocity = Vector3.Zero;
+			_animator?.SetMovementState(false, false, 0.0f);
+			return;
+		}
 
 		var deltaF = (float)delta;
 		RunState.Tick(deltaF);
+		_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - deltaF, 0.0f);
+		if (_damageStaggerTimeRemaining > 0.0f)
+		{
+			_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining - deltaF, 0.0f);
+			Velocity = Vector3.Zero;
+			_animator?.SetMovementState(false, false, 0.0f);
+			return;
+		}
 		if (_dashAttackGraceTimeRemaining > 0.0f)
 		{
 			_dashAttackGraceTimeRemaining = Mathf.Max(_dashAttackGraceTimeRemaining - deltaF, 0.0f);
@@ -117,14 +141,16 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		}
 
-		if (Input.IsActionJustPressed("dodge"))
+		if (Input.IsActionJustPressed("dodge") && _dodgeCooldownTimeRemaining <= 0.0f)
 		{
 			var perfectDodge = IsEnemyAttackThreatening();
+			var hasBufferedQuickAttack = Input.IsActionJustPressed("attack_light") || (_combat?.HasBufferedQuickAttack ?? false);
 			_combat?.CancelCurrentAttack();
-			if (Input.IsActionJustPressed("attack_light") && !(_combat?.IsPointerAttackBlocked() ?? false))
+			if (hasBufferedQuickAttack && !(_combat?.IsPointerAttackBlocked() ?? false))
 				_combat?.QueueQuickAttack();
 			_dodgeDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection : _lastMoveDirection;
-		_dodgeTimeRemaining = DodgeDuration;
+			_dodgeTimeRemaining = DodgeDuration;
+			_dodgeCooldownTimeRemaining = DodgeDuration + DodgeCooldownSeconds;
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();
@@ -241,6 +267,19 @@ public partial class PlayerController : CharacterBody3D
 		Velocity = Vector3.Zero;
 		_animator?.SetMovementState(false, false, 0.0f);
 		SetPhysicsProcess(false);
+	}
+
+	private void OnDamaged(float amount)
+	{
+		if (amount <= 0.0f || _health.IsDead || IsDodging)
+			return;
+
+		_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining, DamageStaggerDuration);
+		_dodgeTimeRemaining = 0.0f;
+		_dashAttackGraceTimeRemaining = 0.0f;
+		_combat?.CancelCurrentAttack();
+		Velocity = Vector3.Zero;
+		_animator?.SetMovementState(false, false, 0.0f);
 	}
 
 	private void RestoreSavedHealth()

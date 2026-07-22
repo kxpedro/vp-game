@@ -125,12 +125,12 @@ public partial class PlayerAnimator : Node
 
     public void PlayHeavyAttack()
     {
-        PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * CurrentAttackSpeed());
+        PlayOneShot(_heavyAttackAnimation, GetSpecialAttackDuration(), HeavyAttackAnimationSpeed);
     }
 
     public void PlayDashAttack()
     {
-        PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed * CurrentAttackSpeed());
+        PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed);
     }
 
     public void CancelOneShot()
@@ -160,7 +160,12 @@ public partial class PlayerAnimator : Node
 
     public float GetDashAttackDuration()
     {
-        return GetAnimationDuration(_heavyAttackAnimation, DashAttackAnimationSpeed * CurrentAttackSpeed(), false);
+        return GetAnimationDuration(_heavyAttackAnimation, DashAttackAnimationSpeed, false);
+    }
+
+    public float GetSpecialAttackDuration()
+    {
+        return GetAnimationDuration(_heavyAttackAnimation, HeavyAttackAnimationSpeed, false);
     }
 
     private float CurrentAttackSpeed() => _combat?.GetCurrentAttackSpeedMultiplier() ?? GameTuning.GetAttackSpeedMultiplier();

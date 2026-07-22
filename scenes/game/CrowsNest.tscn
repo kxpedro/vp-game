@@ -70,6 +70,15 @@ bottom_radius = 0.6
 height = 3.0
 radial_segments = 10
 
+[sub_resource type="Environment" id="CrowsNestEnvironment"]
+background_mode = 1
+background_color = Color(0.018, 0.014, 0.028, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.28, 0.32, 0.48, 1)
+ambient_light_energy = 0.52
+reflected_light_source = 2
+tonemap_mode = 2
+
 [node name="CrowsNest" type="Node3D"]
 
 [node name="CrossCrypt" type="Node3D" parent="."]
@@ -189,8 +198,8 @@ mesh = SubResource("PortalMesh")
 
 [node name="PortalArea" type="Area3D" parent="StartRunPortal"]
 script = ExtResource("4")
-TargetScenePath = "res://scenes/game/TestArena.tscn"
-PromptText = "E - subir aos Calaboucos de Armand"
+TargetScenePath = "res://scenes/game/RunStartBlessingRoom.tscn"
+PromptText = "Interagir — iniciar a run"
 PortalAction = 1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StartRunPortal/PortalArea"]
@@ -232,7 +241,15 @@ script = ExtResource("1")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.872665, -0.610865, 0)
 light_color = Color(0.78, 0.72, 0.82, 1)
-light_energy = 1.1
+light_energy = 0.96
 shadow_enabled = true
+shadow_bias = 0.08
+shadow_normal_bias = 0.62
+shadow_blur = 1.6
+directional_shadow_max_distance = 38.0
+directional_shadow_blend_splits = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("CrowsNestEnvironment")
 
 [node name="HUD" parent="." instance=ExtResource("3")]

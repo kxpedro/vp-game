@@ -14,7 +14,8 @@ public partial class CrowsNestCrypt : Node3D
         Vector2I.Up,
         Vector2I.Down,
         Vector2I.Left,
-        Vector2I.Right
+        Vector2I.Right,
+        new Vector2I(0, 2)
     };
 
     public override void _Ready()
@@ -36,6 +37,60 @@ public partial class CrowsNestCrypt : Node3D
             CreateFloor(room, floorMaterial);
             CreateBoundaryWalls(room, roomSet, wallMaterial);
         }
+
+        CreateTrainingHall();
+    }
+
+    private void CreateTrainingHall()
+    {
+        var center = new Vector3(0.0f, 0.0f, RoomSize * 2.0f);
+        var dummy = new TrainingDummy { Position = center };
+        dummy.AddChild(new CollisionShape3D
+        {
+            Name = "CollisionShape3D",
+            Position = new Vector3(0.0f, 0.8f, 0.0f),
+            Shape = new CapsuleShape3D { Radius = 0.52f, Height = 1.65f }
+        });
+        dummy.AddChild(new MeshInstance3D
+        {
+            Name = "Visual",
+            Position = new Vector3(0.0f, 0.82f, 0.0f),
+            Mesh = new CylinderMesh { TopRadius = 0.48f, BottomRadius = 0.58f, Height = 1.65f, RadialSegments = 20 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.48f, 0.32f, 0.16f),
+                Roughness = 0.96f
+            }
+        });
+        dummy.AddChild(new Health { Name = "Health", MaxHealth = 250000.0f });
+        AddChild(dummy);
+
+        var title = new Label3D
+        {
+            Name = "TrainingHallLabel",
+            Text = "SALA DE TREINAMENTO\nBoneco regenerativo",
+            Position = center + new Vector3(0.0f, 2.7f, 0.0f),
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 30,
+            OutlineSize = 8,
+            Modulate = new Color(0.86f, 0.68f, 0.34f)
+        };
+        AddChild(title);
+
+        var trainingMark = new MeshInstance3D
+        {
+            Name = "TrainingCircle",
+            Position = center + Vector3.Up * 0.025f,
+            Mesh = new TorusMesh { InnerRadius = 2.15f, OuterRadius = 2.28f, Rings = 48, RingSegments = 12 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.32f, 0.22f, 0.1f),
+                EmissionEnabled = true,
+                Emission = new Color(0.22f, 0.12f, 0.025f),
+                EmissionEnergyMultiplier = 0.45f
+            }
+        };
+        AddChild(trainingMark);
     }
 
     private void CreateFloor(Vector2I room, Material material)

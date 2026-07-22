@@ -53,7 +53,7 @@ public partial class Health : Node
 
     public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "Perigos do castelo")
     {
-        if (IsDead || IsInvincible || amount <= 0.0f)
+        if (GetTree()?.Paused == true || IsDead || IsInvincible || amount <= 0.0f)
             return;
 
         if (ShieldHits > 0)
@@ -123,6 +123,21 @@ public partial class Health : Node
         if (GetParent()?.IsInGroup("player") == true) RunState.NotifyPlayerHealed();
         GetParent()?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.OnHealed(amount, actual, overheal);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+    }
+
+    public void ForceDeath(string sourceName = "Destino selado")
+    {
+        if (IsDead)
+            return;
+
+        LastDamageWasCritical = false;
+        LastDamageSource = string.IsNullOrWhiteSpace(sourceName) ? "Destino selado" : sourceName;
+        LastDamageAmount = CurrentHealth;
+        CurrentHealth = 0.0f;
+        if (GetParent()?.IsInGroup("player") == true) RunState.NotifyPlayerDamaged();
+        EmitSignal(SignalName.Damaged, LastDamageAmount);
+        EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+        EmitSignal(SignalName.Died);
     }
 
     public void SetInvincible(bool isInvincible)

@@ -48,6 +48,22 @@ Versão do Documento: 1.0
 Autor: Pedro Henrique Rech Sarmento
 Data: 2022
 
+ADENDO DE IMPLEMENTAÇÃO — 22/07/2026
+
+Este GDD registra a visão original do projeto. Quando houver divergência entre os módulos históricos e o protótipo atual, prevalecem README.md, docs/initialization.md, docs/gameplay_systems.md e docs/room_generation.md.
+
+Estado atual resumido:
+
+* O protótipo aceita teclado/mouse e controles compatíveis com o mapeamento padrão do Godot. Menus usam d-pad ou analógico, X/A para confirmar e Círculo/B para voltar.
+* A arma funcional é a Espada Grande. Dano, velocidade do ataque básico, hitboxes, empurrão, stagger e cooldowns são definidos pela arma equipada.
+* O ataque básico possui combo de três golpes com reset em 1 segundo; o ataque rápido combina dash e golpe; o especial tem conjuração curta e cooldown de 1 segundo.
+* A run começa com uma sala bônus de bênção. Os mapas possuem 6, 8 e 10 salas comuns antes de seus bosses; uma Câmara de Hemomancia conecta mapas após bosses não finais.
+* Salas comuns usam três waves de 5 inimigos. Melee, ranged e tank usam, provisoriamente, cilindro ciano, prisma triangular rosa-choque e cubo amarelo.
+* O Ninho do Corvo inclui sala de treinamento, Fonte de Sangue, Baú de Artefatos e bancada de armas.
+* Existem quatro famílias de Bênçãos de Sangue e combinações Stirps. Há pelo menos quatro bênçãos diretamente ligadas a cada tipo de ataque: básico, rápido e especial.
+* A HUD foi reorganizada para controle, pausa segura, ficha completa, passivas permanentes, listas roláveis e mais de sete bênçãos equipadas.
+* O visual do jogador no protótipo é um cilindro azul; o antigo asset 3D e seu catálogo de animações permanecem apenas como referência arquivada.
+
 
 Sumário
 Módulo 1 - Projeto e Visão geral do Jogo        5
@@ -302,9 +318,8 @@ Outro recurso a ser explorado na ambientação é através de uma trilha sonora 
 
 
 Essenciais:
-* Combate: Virgil é um combatente habilidoso, possuindo perícia com diversas armas, porém estando limitado a somente quatro armas dentro do castelo: espada longa, espadas curtas duplas, besta repetidora e chicote. Sendo que pode levar somente uma delas consigo durante sua fuga. Com cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
-   * Espada longa: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
-   * Espadas curtas duplas: Conjunto de duas pequenas espadas, possibilitando um ataque rápido e movimentação rápida, porém dando menos dano do que o normal.
+* Combate: Virgil é um combatente habilidoso, possuindo perícia com diversas armas, porém estando limitado a três armas dentro do castelo: espada grande, besta repetidora e chicote. Sendo que pode levar somente uma delas consigo durante sua fuga. Com cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
+   * Espada grande: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
    * Besta repetidora: Uma besta com munição limitada a quatro disparos por vez, possibilitando ataque a longas e curtas distâncias, a velocidade de disparo e dano são razoáveis.
    * Chicote: Um chicote com um grande nível de poder, sua velocidade de ataque é razoável, causando muito dano em área e uma grande sequência de golpes combinados.
 * Recompensas das salas: Sempre que concluir uma sala do castelo, Virgil poderá escolher levar consigo um item como recompensa por concluir o desafio remanescente da sala, estes que são disponibilizados de forma randômica entre artefatos roubados, moedas de sangue e melhorias de atributos.
@@ -1237,8 +1252,7 @@ Combate
 
 O jogador vai usar o combate na maior parte do tempo dentro do jogo, tendo a possibilidade de interagir com diferentes equipamentos. Cada uma de suas armas possui dois tipos de ataque: ataque leve e ataque pesado, ambos possuindo combinações de ataques sequenciais.
 Exemplo de armas:
-Espada longa: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
-Espadas curtas duplas: Conjunto de duas pequenas espadas, possibilitando um ataque rápido e movimentação rápida, porém dando menos dano do que o normal.
+Espada grande: Uma espada grande e pesada, seus ataques ficam lentos porém o poder de destruição é alto.
 Besta repetidora: Uma besta com munição limitada a quatro disparos por vez, possibilitando ataque a longas e curtas distâncias, a velocidade de disparo e dano são razoáveis.
 Chicote: Um chicote com um grande nível de poder, sua velocidade de ataque é razoável, causando muito dano em área e uma grande sequência de golpes combinados.
 Habilidades Especiais

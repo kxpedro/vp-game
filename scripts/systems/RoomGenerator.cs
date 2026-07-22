@@ -9,10 +9,10 @@ public partial class RoomGenerator : Node3D
     [Export] public float EnemyBlockRadius { get; set; } = 1.05f;
     [Export] public float SpawnClearRadius { get; set; } = 3.0f;
     [Export] public int EnemySpawnWallPaddingCells { get; set; } = 2;
-    [Export] public bool ShowLayoutDebugLabels { get; set; } = true;
+    [Export] public bool ShowLayoutDebugLabels { get; set; } = false;
     [Export] public float EnemySpawnDelaySeconds { get; set; } = 5.0f;
     [Export] public float WaveIntervalSeconds { get; set; } = 15.0f;
-    [Export] public int EnemiesPerWave { get; set; } = 8;
+    [Export] public int EnemiesPerWave { get; set; } = 5;
     [Export] public int WaveCount { get; set; } = 3;
 
     public Vector3 PlayerSpawnPosition { get; private set; }
@@ -113,7 +113,7 @@ public partial class RoomGenerator : Node3D
         _exitCell = rooms[3];
 
         for (var i = 0; i < rooms.Length; i++)
-            AddRoom(rooms[i], 9, 9, GetRoomLoreLabel(i));
+            AddRoom(rooms[i], 9, 9);
     }
 
     private void BuildBossMap()
@@ -123,23 +123,8 @@ public partial class RoomGenerator : Node3D
         _rewardCell = new Vector2I(0, -5);
         _focusCell = Vector2I.Zero;
 
-        AddMainRoom(new Vector2I(0, 0), 21, 21, "Arena do chefe");
+        AddMainRoom(new Vector2I(0, 0), 21, 21);
     }
-
-    private static string GetRoomLoreLabel(int roomIndex) => (RunState.CurrentMapIndex, roomIndex) switch
-    {
-        (0, 0) => "Cela de Vigia",
-        (0, 1) => "Cripta dos Condenados",
-        (0, 2) => "Camara de Tortura",
-        (0, _) => "Portao para o Jardim",
-        (1, 0) => "Atrio do Jardim Sangrento",
-        (1, 1) => "Estufa Carmesim",
-        (1, 2) => "Patio das Rosas",
-        (1, _) => "Escadaria do Primeiro Andar",
-        (_, 0) => "Entrada da Ala Superior",
-        (_, 3) => "Escadaria Ascendente",
-        _ => "Comodo do Castelo"
-    };
 
     private void GenerateMapGeometry()
     {
@@ -191,7 +176,7 @@ public partial class RoomGenerator : Node3D
                     _pendingEnemyWaves.Add((
                         PickRandomWavePosition(),
                         EnemyTuningCatalog.Roll(_rng, RunState.CurrentMapIndex, progress),
-                        (EnemyArchetype)_rng.RandiRange(0, 2),
+                        RollEnemyArchetype(),
                         $"Wave{waveIndex + 1}_Enemy{enemyIndex + 1}"));
             }
         }
@@ -202,12 +187,35 @@ public partial class RoomGenerator : Node3D
         SpawnNextWave();
     }
 
+    private EnemyArchetype RollEnemyArchetype()
+    {
+        // Ranged used to be one third of the pool. Twenty percent fewer yields 26.67%,
+        // with the freed weight shared evenly between melee and tank enemies.
+        var roll = _rng.Randf();
+        if (roll < 0.266667f)
+            return EnemyArchetype.Ranged;
+        return roll < 0.633333f ? EnemyArchetype.Melee : EnemyArchetype.Tank;
+    }
+
     private Vector3 PickRandomWavePosition()
     {
         if (_enemySpawnCells.Count == 0)
             return Vector3.Zero;
-        var cell = _enemySpawnCells[_rng.RandiRange(0, _enemySpawnCells.Count - 1)];
-        return CellToWorld(cell) + new Vector3(_rng.RandfRange(-0.7f, 0.7f), 0, _rng.RandfRange(-0.7f, 0.7f));
+
+        var best = Vector3.Zero;
+        var bestClearance = -1.0f;
+        for (var attempt = 0; attempt < 18; attempt++)
+        {
+            var cell = _enemySpawnCells[_rng.RandiRange(0, _enemySpawnCells.Count - 1)];
+            var candidate = CellToWorld(cell) + new Vector3(_rng.RandfRange(-0.45f, 0.45f), 0, _rng.RandfRange(-0.45f, 0.45f));
+            var clearance = float.MaxValue;
+            foreach (var existing in _pendingEnemyWaves)
+                clearance = Mathf.Min(clearance, candidate.DistanceTo(existing.Position));
+            if (_pendingEnemyWaves.Count == 0 || clearance >= 2.35f)
+                return candidate;
+            if (clearance > bestClearance) { best = candidate; bestClearance = clearance; }
+        }
+        return best;
     }
 
     private async void SpawnNextWave()
@@ -243,10 +251,8 @@ public partial class RoomGenerator : Node3D
             enemy.Position = spawn.Position;
             AddChild(enemy);
             enemy.ConfigureVariant(spawn.Rarity, spawn.Archetype);
-            var visual = RunState.IsBossRoom
-                ? EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex)
-                : EnemyVisualCatalog.GetRegular(spawn.Name.GetHashCode());
-            enemy.ApplyPlaceholderVisual(visual);
+            if (RunState.IsBossRoom)
+                enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex));
             enemy.SetSpawnActive(false);
             spawnedEnemies.Add(enemy);
             // Model instantiation is deliberately spread over frames to avoid a spawn hitch.
@@ -559,21 +565,9 @@ public partial class RoomGenerator : Node3D
         }
     }
 
-    private void AddRoom(Vector2I center, int width, int height, string labelText)
-    {
-        AddRoom(center, width, height);
-        CreateLayoutDebugLabel(labelText, CellToWorld(center));
-    }
-
     private void AddMainRoom(Vector2I center, int width, int height)
     {
         AddRoom(center, width, height);
-    }
-
-    private void AddMainRoom(Vector2I center, int width, int height, string labelText)
-    {
-        AddMainRoom(center, width, height);
-        CreateLayoutDebugLabel(labelText, CellToWorld(center));
     }
 
     private Vector2I R(int x, int y)

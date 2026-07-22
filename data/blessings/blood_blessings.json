@@ -870,19 +870,20 @@
       "rarity": "Common",
       "weight": 90,
       "maxStacks": 6,
-      "description": "Inimigos pestilentos derrotados têm 12% de chance por nível de invocar um rato por 8 segundos.",
+      "description": "Inimigos sob efeito de Pestilência derrotados invocam um rato por 8 segundos. O limite simultâneo começa em 1 e aumenta em 1 por qualidade.",
       "flavorText": "Os menores servos recebem as maiores sobras.",
       "tags": [
         "orlok",
         "summon",
         "rat",
+        "minion",
         "pestilence"
       ],
       "effects": [
         {
-          "type": "RatSummonOnInfectedKillChance",
-          "operation": "AddFlat",
-          "value": 0.12,
+          "type": "RatSummonOnPestilentKill",
+          "operation": "SetBool",
+          "value": true,
           "duration": 8.0
         }
       ]
@@ -1090,6 +1091,82 @@
           "operation": "AddFlat",
           "value": 0.10,
           "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "dracul_sovereign_charge",
+      "name": "Investida Soberana",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 110,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "description": "Ataques rápidos causam 12% mais dano e convertem 6% do dano causado em vida.",
+      "flavorText": "O soberano não avança: o mundo é que recua diante dele.",
+      "tags": ["dracul", "quick_attack", "dash", "damage", "life_steal"],
+      "effects": [
+        {
+          "type": "QuickAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.12
+        },
+        {
+          "type": "QuickAttackLifeSteal",
+          "operation": "AddMultiplier",
+          "value": 0.06
+        }
+      ]
+    },
+    {
+      "id": "bathory_crimson_rush",
+      "name": "Ímpeto Carmesim",
+      "family": "Bathory",
+      "rarity": "Common",
+      "weight": 110,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "description": "Ataques rápidos causam 14% mais dano e têm 14% de chance de aplicar Sangramento por 4 segundos.",
+      "flavorText": "Bathory atravessa a presa e deixa a ferida correndo atrás dela.",
+      "tags": ["bathory", "quick_attack", "dash", "damage", "bleeding"],
+      "effects": [
+        {
+          "type": "QuickAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.14
+        },
+        {
+          "type": "QuickAttackBleedChance",
+          "operation": "AddFlat",
+          "value": 0.14,
+          "duration": 4.0,
+          "damagePerSecond": 6.0,
+          "maxStacks": 3
+        }
+      ]
+    },
+    {
+      "id": "orlok_plaguebound_dash",
+      "name": "Salto do Contágio",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 110,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "description": "Ataques rápidos causam 12% mais dano e têm 15% de chance de aplicar Pestilência por 5 segundos.",
+      "flavorText": "A peste não persegue. Ela já espera no destino.",
+      "tags": ["orlok", "quick_attack", "dash", "damage", "pestilence"],
+      "effects": [
+        {
+          "type": "QuickAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.12
+        },
+        {
+          "type": "QuickAttackPestilenceChance",
+          "operation": "AddFlat",
+          "value": 0.15,
+          "duration": 5.0
         }
       ]
     },
@@ -1344,6 +1421,77 @@
       ]
     },
     {
+      "id": "dracul_royal_exsanguination",
+      "name": "Exsanguinação Real",
+      "family": "Dracul",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "description": "O ataque especial causa 14% mais dano e converte 8% do dano causado em vida.",
+      "flavorText": "Cada golpe recolhe o tributo que a coroa considera devido.",
+      "tags": ["dracul", "special_attack", "damage", "life_steal"],
+      "effects": [
+        {
+          "type": "SpecialAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.14
+        },
+        {
+          "type": "SpecialAttackLifeSteal",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ]
+    },
+    {
+      "id": "orlok_miasmatic_rite",
+      "name": "Rito Miasmático",
+      "family": "Orlok",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "description": "O ataque especial causa 12% mais dano e tem 15% de chance de aplicar Pestilência por 6 segundos a cada inimigo atingido.",
+      "flavorText": "O círculo se fecha, e dentro dele até o ar adoece.",
+      "tags": ["orlok", "special_attack", "damage", "pestilence", "control"],
+      "effects": [
+        {
+          "type": "SpecialAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.12
+        },
+        {
+          "type": "SpecialAttackPestilenceChance",
+          "operation": "AddFlat",
+          "value": 0.15,
+          "duration": 6.0
+        }
+      ]
+    },
+    {
+      "id": "karnstein_enrapturing_finale",
+      "name": "Finale Arrebatador",
+      "family": "Karnstein",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "description": "O ataque especial causa 13% mais dano e tem 12% de chance de Encantar cada inimigo atingido por 4 segundos.",
+      "flavorText": "Ao fim da dança, até os sobreviventes imploram por mais.",
+      "tags": ["karnstein", "special_attack", "damage", "charm", "control"],
+      "effects": [
+        {
+          "type": "SpecialAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.13
+        },
+        {
+          "type": "SpecialAttackCharmChance",
+          "operation": "AddFlat",
+          "value": 0.12,
+          "duration": 4.0
+        }
+      ]
+    },
+    {
       "id": "bathory_sanguine_circle",
       "name": "Círculo da Condessa",
       "family": "Bathory",
@@ -1392,6 +1540,31 @@
           "type": "FuryDuration",
           "operation": "AddMultiplier",
           "value": 0.15
+        }
+      ]
+    },
+    {
+      "id": "stirps_crimson_pestilence_pool",
+      "name": "Charco da Peste Rubra",
+      "family": "Stirps",
+      "parentFamilies": ["Orlok", "Bathory"],
+      "rarity": "Stirps",
+      "weight": 90,
+      "maxStacks": 1,
+      "icon": "res://images/bloodBoons/orlok-bathory-stirps-icon.png",
+      "requiresAnyEffects": ["BasicAttackPestilence", "PestilenceChance", "BleedingAlsoPestilence"],
+      "description": "A explosão de um inimigo pestilento cria uma poça de sangue com o mesmo raio por 5 segundos. Inimigos dentro dela sofrem Sangramento.",
+      "flavorText": "A doença abre a ferida; a condessa impede que ela se feche.",
+      "tags": ["stirps", "orlok", "bathory", "pestilence", "blood_pool", "bleeding"],
+      "effects": [
+        {
+          "type": "PestilenceExplosionBloodPool",
+          "operation": "SetBool",
+          "value": true,
+          "duration": 5.0,
+          "bleedDuration": 3.0,
+          "bleedDamagePerSecond": 6.0,
+          "bleedMaxStacks": 3
         }
       ]
     },

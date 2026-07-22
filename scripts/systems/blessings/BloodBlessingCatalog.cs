@@ -6,6 +6,8 @@ using System.Text.Json;
 public static class BloodBlessingCatalog
 {
     private const string CatalogPath = "res://data/blessings/blood_blessings.json";
+    private const float StirpsFamilySelectionWeight = 0.45f;
+    private const float DirectAttackBlessingWeightMultiplier = 1.75f;
     private static readonly List<BloodBlessingDefinition> Definitions = new();
     private static readonly Dictionary<string, BloodBlessingDefinition> ById = new();
     private static readonly List<BloodBlessingFamily> Families = new();
@@ -15,6 +17,34 @@ public static class BloodBlessingCatalog
     public static IReadOnlyList<BloodBlessingDefinition> All { get { EnsureLoaded(); return Definitions; } }
     public static IReadOnlyList<BloodBlessingFamily> AllFamilies { get { EnsureLoaded(); return Families; } }
     public static IReadOnlyList<BloodBlessingRarity> AllRarities { get { EnsureLoaded(); return Rarities; } }
+
+    public static bool TryGetNextRarity(string currentRarity, out BloodBlessingRarity nextRarity)
+    {
+        EnsureLoaded();
+        nextRarity = null;
+        for (var i = 0; i < Rarities.Count; i++)
+        {
+            var rarity = Rarities[i];
+            if (!rarity.Id.Equals(currentRarity, StringComparison.OrdinalIgnoreCase) &&
+                !rarity.DisplayName.Equals(currentRarity, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (i + 1 >= Rarities.Count)
+                return false;
+            nextRarity = Rarities[i + 1];
+            return true;
+        }
+        return false;
+    }
+
+    public static int GetRarityLevel(string rarityName)
+    {
+        EnsureLoaded();
+        for (var i = 0; i < Rarities.Count; i++)
+            if (Rarities[i].Id.Equals(rarityName, StringComparison.OrdinalIgnoreCase) ||
+                Rarities[i].DisplayName.Equals(rarityName, StringComparison.OrdinalIgnoreCase))
+                return i + 1;
+        return 1;
+    }
 
     public static bool TryGet(string id, out BloodBlessingDefinition definition)
     {
@@ -60,7 +90,7 @@ public static class BloodBlessingCatalog
         }
         if (availableFamilies.Count == 0) availableFamilies.AddRange(fallbackFamilies);
         if (availableFamilies.Count == 0) return new List<BloodBlessingDefinition>();
-        selectedFamily = availableFamilies[rng.RandiRange(0, availableFamilies.Count - 1)];
+        selectedFamily = SelectFamily(rng, availableFamilies);
         var pool = new List<BloodBlessingDefinition>();
         foreach (var definition in Definitions)
             if (definition.Family.Equals(selectedFamily, StringComparison.OrdinalIgnoreCase) && IsEligible(definition))
@@ -96,16 +126,48 @@ public static class BloodBlessingCatalog
     private static BloodBlessingDefinition SelectWeighted(RandomNumberGenerator rng, List<BloodBlessingDefinition> pool)
     {
         var total = 0.0f;
-        foreach (var entry in pool) total += Mathf.Max(entry.Weight, 0);
+        foreach (var entry in pool) total += EffectiveSelectionWeight(entry);
         var roll = rng.RandfRange(0.0f, Mathf.Max(total, 0.01f));
         var cursor = 0.0f;
         var selected = pool[^1];
         foreach (var entry in pool)
         {
-            cursor += Mathf.Max(entry.Weight, 0);
+            cursor += EffectiveSelectionWeight(entry);
             if (roll <= cursor) { selected = entry; break; }
         }
         return selected;
+    }
+
+    private static float EffectiveSelectionWeight(BloodBlessingDefinition definition)
+    {
+        var multiplier = 1.0f;
+        foreach (var effect in definition.Effects)
+        {
+            if (!effect.Type.StartsWith("BasicAttack", StringComparison.OrdinalIgnoreCase) &&
+                !effect.Type.StartsWith("QuickAttack", StringComparison.OrdinalIgnoreCase) &&
+                !effect.Type.StartsWith("SpecialAttack", StringComparison.OrdinalIgnoreCase))
+                continue;
+            multiplier = DirectAttackBlessingWeightMultiplier;
+            break;
+        }
+        return Mathf.Max(definition.Weight, 0) * multiplier;
+    }
+
+    private static string SelectFamily(RandomNumberGenerator rng, List<string> families)
+    {
+        var totalWeight = 0.0f;
+        foreach (var family in families)
+            totalWeight += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? StirpsFamilySelectionWeight : 1.0f;
+
+        var roll = rng.RandfRange(0.0f, Mathf.Max(totalWeight, 0.01f));
+        var cursor = 0.0f;
+        foreach (var family in families)
+        {
+            cursor += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? StirpsFamilySelectionWeight : 1.0f;
+            if (roll <= cursor)
+                return family;
+        }
+        return families[^1];
     }
 
     private static void EnsureLoaded()

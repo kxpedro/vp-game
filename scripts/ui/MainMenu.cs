@@ -10,6 +10,7 @@ public partial class MainMenu : Control
 
     public override void _Ready()
     {
+        ControllerUiSupport.EnsureMappings();
         Theme = UIThemeFactory.Create();
         if (Localization.Instance != null) Localization.Instance.LanguageChanged += OnLanguageChanged;
         BuildInterface(); ShowPage(_main);
@@ -18,6 +19,14 @@ public partial class MainMenu : Control
     public override void _ExitTree()
     {
         if (Localization.Instance != null) Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (!@event.IsActionPressed("ui_cancel")) return;
+        if (_main?.Visible == true) return;
+        ShowPage(_main);
+        GetViewport().SetInputAsHandled();
     }
 
     private void BuildInterface()
@@ -95,7 +104,14 @@ public partial class MainMenu : Control
         slider.ValueChanged += value => { if (music) GlobalSettings.Instance?.SetMusicVolume((float)value); else GlobalSettings.Instance?.SetEffectsVolume((float)value); }; _options.AddChild(slider);
     }
 
-    private void ShowPage(Control page) { _showingOptions = page == _options; _main.Visible = page == _main; _slots.Visible = page == _slots; _options.Visible = page == _options; }
+    private void ShowPage(Control page)
+    {
+        _showingOptions = page == _options;
+        _main.Visible = page == _main;
+        _slots.Visible = page == _slots;
+        _options.Visible = page == _options;
+        ControllerUiSupport.FocusFirst(page);
+    }
 
     private void LoadSlot(int slot)
     {
