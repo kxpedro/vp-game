@@ -32,6 +32,18 @@ Conceitos antes ativos devem virar modificadores contínuos, reações automáti
 
 O catálogo usa `bossDropPowerMultiplier` sobre efeitos numéricos. Verificar se a multiplicação faz sentido para duração, contagem, chance e fatores inversos como `EnemyTimeScale`.
 
+## Recompensa de boss
+
+`RunManager.SpawnArtifact` instancia um `RoomArtifact` apresentado como Altar de Artefatos no ponto retornado por `RoomGenerator.GetArtifactSpawnPosition()`. A morte do boss não abre a oferta automaticamente:
+
+1. o altar surge com área, prompt e relíquia visual;
+2. o jogador entra na área e usa `interact`;
+3. `HUD.OpenArtifactOffer` pausa o jogo e sorteia três passivos;
+4. a escolha chama `RoomArtifact.Consume`;
+5. somente então `UnlockExitAfterReward` abre o portão.
+
+Preservar esse bloqueio ao alterar recompensas, reroll ou ausência de escolhas.
+
 ## Coleção e armadilhas
 
 - `ArtifactEffectRegistry` fornece somente texto amigável.

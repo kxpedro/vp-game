@@ -10,10 +10,57 @@ from pathlib import Path
 
 REQUIRED = {"id", "name", "family", "rarity", "weight", "maxStacks", "description", "flavorText", "tags", "effects"}
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*$")
+DIRECT_MOVESET_TAGS = {"basic_attack", "quick_attack", "special_attack", "bestial_fury"}
+DIRECT_MOVESET_GROUPS = {
+    "basic_attack": "basic_attack_status",
+    "quick_attack": "quick_attack_status",
+    "special_attack": "special_attack_status",
+    "bestial_fury": "bestial_fury_mode",
+}
 
 
 def project_root() -> Path:
     return Path(__file__).resolve().parents[4]
+
+
+def strip_json_comments(text: str) -> str:
+    """Remove // and /* */ comments while preserving quoted JSON strings."""
+    result: list[str] = []
+    index = 0
+    in_string = False
+    escaped = False
+    while index < len(text):
+        char = text[index]
+        next_char = text[index + 1] if index + 1 < len(text) else ""
+        if in_string:
+            result.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            result.append(char)
+            index += 1
+            continue
+        if char == "/" and next_char == "/":
+            index += 2
+            while index < len(text) and text[index] not in "\r\n":
+                index += 1
+            continue
+        if char == "/" and next_char == "*":
+            index += 2
+            while index + 1 < len(text) and text[index : index + 2] != "*/":
+                index += 1
+            index += 2
+            continue
+        result.append(char)
+        index += 1
+    return re.sub(r",\s*([}\]])", r"\1", "".join(result))
 
 
 def main() -> int:
@@ -22,7 +69,7 @@ def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
     try:
-        data = json.loads(catalog_path.read_text(encoding="utf-8-sig"))
+        data = json.loads(strip_json_comments(catalog_path.read_text(encoding="utf-8-sig")))
     except (OSError, json.JSONDecodeError) as exc:
         print(f"ERROR: cannot read {catalog_path}: {exc}")
         return 1
@@ -62,12 +109,41 @@ def main() -> int:
             seen.add(blessing_id)
         if blessing.get("family") not in families:
             errors.append(f"{label}.family must be declared in root.families ({', '.join(sorted(families))})")
-        if not isinstance(blessing.get("tags"), list):
+        tags = blessing.get("tags")
+        if not isinstance(tags, list):
             errors.append(f"{label}.tags must be an array")
         effects = blessing.get("effects")
         if not isinstance(effects, list) or not effects:
             errors.append(f"{label}.effects must be a non-empty array")
             continue
+        direct_by_tag = isinstance(tags, list) and bool(
+            DIRECT_MOVESET_TAGS.intersection(tag for tag in tags if isinstance(tag, str))
+        )
+        direct_by_effect = any(
+            isinstance(effect, dict)
+            and isinstance(effect.get("type"), str)
+            and (
+                effect["type"].startswith(("BasicAttack", "QuickAttack", "SpecialAttack", "Fury"))
+                or effect["type"] == "UnlockBestialFury"
+            )
+            for effect in effects
+        )
+        if (
+            blessing.get("family") != "Stirps"
+            and (direct_by_tag or direct_by_effect)
+            and str(blessing.get("rarity", "")).lower() != "common"
+        ):
+            errors.append(f"{blessing_id or label}: direct moveset blessings must use Common as their base rarity")
+        if blessing.get("family") != "Stirps" and isinstance(tags, list):
+            direct_tags = [tag for tag in tags if tag in DIRECT_MOVESET_GROUPS]
+            if len(direct_tags) > 1:
+                errors.append(f"{blessing_id or label}: direct moveset blessing must target only one attack type")
+            elif len(direct_tags) == 1:
+                required_group = DIRECT_MOVESET_GROUPS[direct_tags[0]]
+                if blessing.get("exclusiveGroup") != required_group:
+                    errors.append(
+                        f"{blessing_id or label}: {direct_tags[0]} must use exclusiveGroup {required_group!r}"
+                    )
         for effect_index, effect in enumerate(effects):
             effect_label = f"{label}.effects[{effect_index}]"
             if not isinstance(effect, dict):

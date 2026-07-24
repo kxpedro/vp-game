@@ -1,0 +1,4 @@
+interface:
+  display_name: "Criar ou Atualizar Boss"
+  short_description: "Cria bosses, fases, golpes e telegraphs"
+  default_prompt: "Use $vp-create-boss para criar ou atualizar um boss do Vampire's Prey."

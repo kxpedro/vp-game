@@ -18,9 +18,10 @@ Entregar um artefato passivo funcional de ponta a ponta. Artefatos não possuem 
 7. Confirmar aplicação em `RunState` e consumo por pelo menos um sistema real de gameplay.
 8. Registrar um nome legível em `ArtifactEffectRegistry` quando o efeito aparecer na HUD ou no compêndio.
 9. Confirmar que o Baú de Artefatos lista itens encontrados na run e descobertos permanentemente no save.
-10. Usar ícone existente somente quando placeholder for permitido. Para ícone novo, usar a skill de geração de imagens disponível.
-11. Executar `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` e `dotnet build VP0.1.csproj`.
-12. Informar cadastro, gatilho passivo, consumidor de runtime e testes.
+10. Para recompensa de boss, confirmar surgimento do Altar de Artefatos, abertura somente por interação, consumo após a escolha e desbloqueio posterior do portão.
+11. Usar ícone existente somente quando placeholder for permitido. Para ícone novo, usar a skill de geração de imagens disponível.
+12. Executar `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` e `dotnet build VP0.1.csproj`.
+13. Informar cadastro, gatilho passivo, consumidor de runtime e testes.
 
 ## Regras de conclusão
 

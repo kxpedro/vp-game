@@ -7,8 +7,10 @@ using System.Text.RegularExpressions;
 public partial class HUD : CanvasLayer
 {
 	private ProgressBar _healthBar;
+	private ProgressBar _barrierBar;
 	private Label _healthPointsLabel;
-	private Label _barrierLabel;
+	private Control _playerHudFrame;
+	private Control _playerStatus;
 	private Label _controlsHintLabel;
 	private Label _fpsLabel;
 	private ColorRect _damageFlash;
@@ -197,12 +199,6 @@ public partial class HUD : CanvasLayer
 		UpdateCriticalHealthIndicator((float)delta);
 		if (_fpsLabel != null)
 			_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
-		if (_barrierLabel != null && _runtimePlayerController != null)
-		{
-			var barrier = _runtimePlayerController.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
-			_barrierLabel.Visible = barrier?.HasBarrier == true;
-			_barrierLabel.Text = barrier == null ? "" : $"BARREIRA  {Mathf.CeilToInt(barrier.CurrentBarrier)}/{Mathf.CeilToInt(barrier.MaximumBarrier)}";
-		}
 	}
 
 	public bool IsGameplayInputBlocked()
@@ -231,7 +227,7 @@ public partial class HUD : CanvasLayer
 			Theme = UIThemeFactory.Create()
 		};
 		AddChild(root);
-		AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -132, 382, -18), 0.9f);
+		_playerHudFrame = AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -132, 382, -18), 0.9f);
 		AddHudPanel(root, "ResourceFrame", new Vector4(1, 0, 1, 0), new Vector4(-366, 18, -18, 140), 0.86f);
 		AddHudPanel(root, "LogFrame", new Vector4(1, 1, 1, 1), new Vector4(-410, -224, -18, -18), 0.58f);
 		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-330, 14, 330, 62), 0.82f);
@@ -248,6 +244,7 @@ public partial class HUD : CanvasLayer
 			OffsetRight = 366.0f,
 			OffsetBottom = -24.0f
 		};
+		_playerStatus = leftStatus;
 		root.AddChild(leftStatus);
 		_fpsLabel = new Label
 		{
@@ -256,10 +253,21 @@ public partial class HUD : CanvasLayer
 		};
 		root.AddChild(_fpsLabel);
 
+		var healthStack = new Control
+		{
+			Name = "HealthAndBarrier",
+			CustomMinimumSize = new Vector2(280.0f, 22.0f),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_barrierBar = CreateBar("Barreira", 100.0f);
+		_barrierBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		healthStack.AddChild(_barrierBar);
 		_healthBar = CreateBar("Vida", 100.0f);
+		_healthBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		healthStack.AddChild(_healthBar);
 		_furyBar = CreateBar("Furia", 100.0f);
 		ApplyHealthBarStyle();
-		leftStatus.AddChild(_healthBar);
+		leftStatus.AddChild(healthStack);
 		_healthPointsLabel = new Label
 		{
 			Text = "100/100", MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -270,13 +278,9 @@ public partial class HUD : CanvasLayer
 		};
 		_healthBar.AddChild(_healthPointsLabel);
 		leftStatus.AddChild(_furyBar);
-		_barrierLabel = new Label
-		{
-			Text = "BARREIRA  0/0", Visible = false,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			Modulate = new Color(0.45f, 0.82f, 1.0f)
-		};
-		leftStatus.AddChild(_barrierLabel);
+		var showCombatHud = !GetTree().CurrentScene.SceneFilePath.EndsWith("CrowsNest.tscn", StringComparison.OrdinalIgnoreCase);
+		_playerHudFrame.Visible = showCombatHud;
+		_playerStatus.Visible = showCombatHud;
 
 		_blessingHudList = new VBoxContainer
 		{
@@ -499,7 +503,7 @@ public partial class HUD : CanvasLayer
 		};
 	}
 
-	private static void AddHudPanel(Control root, string name, Vector4 anchors, Vector4 offsets, float alpha = 0.84f)
+	private static PanelContainer AddHudPanel(Control root, string name, Vector4 anchors, Vector4 offsets, float alpha = 0.84f)
 	{
 		var panel = new PanelContainer
 		{
@@ -509,6 +513,7 @@ public partial class HUD : CanvasLayer
 		};
 		panel.AddThemeStyleboxOverride("panel", UIThemeFactory.HudPanel(alpha));
 		root.AddChild(panel);
+		return panel;
 	}
 
 	private void ApplyHealthBarStyle()
@@ -523,7 +528,7 @@ public partial class HUD : CanvasLayer
 		};
 		var background = new StyleBoxFlat
 		{
-			BgColor = new Color(0.12f, 0.0f, 0.0f),
+			BgColor = Colors.Transparent,
 			CornerRadiusTopLeft = 3,
 			CornerRadiusTopRight = 3,
 			CornerRadiusBottomLeft = 3,
@@ -532,6 +537,22 @@ public partial class HUD : CanvasLayer
 
 		_healthBar.AddThemeStyleboxOverride("fill", fill);
 		_healthBar.AddThemeStyleboxOverride("background", background);
+		_barrierBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
+		{
+			BgColor = new Color(0.12f, 0.52f, 0.95f),
+			CornerRadiusTopLeft = 3,
+			CornerRadiusTopRight = 3,
+			CornerRadiusBottomLeft = 3,
+			CornerRadiusBottomRight = 3
+		});
+		_barrierBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
+		{
+			BgColor = new Color(0.12f, 0.0f, 0.0f),
+			CornerRadiusTopLeft = 3,
+			CornerRadiusTopRight = 3,
+			CornerRadiusBottomLeft = 3,
+			CornerRadiusBottomRight = 3
+		});
 	}
 
 	private void BindRuntimeNodes()
@@ -543,7 +564,9 @@ public partial class HUD : CanvasLayer
 		var health = player?.GetNodeOrNull<Health>("Health");
 		var controller = player as PlayerController;
 		var combat = player?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
+		var barrier = player?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
 		var runManager = GetTree().GetFirstNodeInGroup("run_manager") as RunManager;
+		_runtimePlayerController = controller;
 
 		if (health != null)
 		{
@@ -555,6 +578,11 @@ public partial class HUD : CanvasLayer
 			health.Damaged += OnPlayerDamaged;
 			health.Died += OnPlayerDied;
 		}
+		if (barrier != null)
+		{
+			barrier.BarrierChanged += OnBarrierChanged;
+			OnBarrierChanged(barrier.CurrentBarrier, barrier.MaximumBarrier);
+		}
 
 		if (combat != null)
 		{
@@ -563,8 +591,6 @@ public partial class HUD : CanvasLayer
 			_furyBar.Value = combat.CurrentFury;
 			combat.FuryChanged += OnFuryChanged;
 		}
-
-		_runtimePlayerController = controller;
 
 		if (runManager != null)
 		{
@@ -715,10 +741,34 @@ public partial class HUD : CanvasLayer
 
 	private void OnHealthChanged(float current, float max)
 	{
-		_healthBar.MaxValue = max;
-		_healthBar.Value = current;
+		UpdateCombinedHealthDisplay();
+	}
+
+	private void OnBarrierChanged(float current, float maximum)
+	{
+		UpdateCombinedHealthDisplay();
+	}
+
+	private void UpdateCombinedHealthDisplay()
+	{
+		if (_runtimeHealth == null || _healthBar == null || _barrierBar == null)
+			return;
+
+		var barrier = _runtimePlayerController?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+		var barrierCurrent = barrier?.CurrentBarrier ?? 0.0f;
+		var barrierMaximum = barrier?.MaximumBarrier ?? 0.0f;
+		var combinedMaximum = Mathf.Max(_runtimeHealth.MaxHealth + barrierMaximum, 1.0f);
+		_barrierBar.MaxValue = combinedMaximum;
+		_barrierBar.Value = Mathf.Min(_runtimeHealth.CurrentHealth + barrierCurrent, combinedMaximum);
+		_healthBar.MaxValue = combinedMaximum;
+		_healthBar.Value = _runtimeHealth.CurrentHealth;
 		if (_healthPointsLabel != null)
-			_healthPointsLabel.Text = $"{Mathf.RoundToInt(current)}/{Mathf.RoundToInt(max)}";
+		{
+			_healthPointsLabel.Text = barrierCurrent > 0.01f
+				? $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)} + {Mathf.CeilToInt(barrierCurrent)} / {Mathf.CeilToInt(_runtimeHealth.MaxHealth)}"
+				: $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)}/{Mathf.CeilToInt(_runtimeHealth.MaxHealth)}";
+			_healthPointsLabel.Modulate = barrierCurrent > 0.01f ? new Color(0.05f, 0.15f, 0.28f) : Colors.Black;
+		}
 	}
 
 	private void UpdateCriticalHealthIndicator(float delta)
@@ -742,9 +792,10 @@ public partial class HUD : CanvasLayer
 	private void OnFuryChanged(float current, float max, bool isActive)
 	{
 		_furyBar.MaxValue = max;
-		_furyBar.Value = isActive ? max : current;
+		_furyBar.Value = current;
+		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", 10.0f);
 		_furyBar.TooltipText = isActive
-			? "Furia Bestial ativa"
+			? $"Furia Bestial ativa: consome {furyDrainPerSecond:0.#} pontos por segundo e explode ao chegar a zero"
 			: RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f
 				? "Furia Bestial - pressione F quando a barra estiver cheia"
 				: "Furia Bestial bloqueada - encontre uma Bencao de Sangue compativel";
@@ -1979,13 +2030,23 @@ public partial class HUD : CanvasLayer
 
 	private static string FormatEffectKeywords(string text)
 	{
-		return Regex.Replace(text, @"\b(Sangramento|Sangrando|Pestilência|Pestilento|Pestilenta|Encanto|Encantar|Encantado|Encantada|Encantados|Encantadas)\b", match =>
+		return Regex.Replace(text, @"\b(Sangramento|Sangrando|Pestilência|Pestilento|Pestilenta|Encanto|Encantar|Encantado|Encantada|Encantados|Encantadas|Barreira|Fascínio|Hospedeiro|Hospedeiros|Interrompido|Interrompida|Ferida recuperável)\b", match =>
 		{
 			var lower = match.Value.ToLowerInvariant();
 			if (lower.StartsWith("sangr"))
 				return $"[hint=\"Causa dano periódico cumulativo em um único inimigo.\"][color=#ff4055]{match.Value}[/color][/hint]";
 			if (lower.StartsWith("pest"))
-				return $"[hint=\"Ao morrer, espalha a infecção para até 3 inimigos próximos; bônus podem aumentar esse limite.\"][color=#78d957]{match.Value}[/color][/hint]";
+				return $"[hint=\"Cada acúmulo aumenta o dano recebido; ao morrer, a infecção pode se espalhar.\"][color=#78d957]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("barreira"))
+				return $"[hint=\"Vida temporária consumida antes da vida normal.\"][color=#63c7ff]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("fasc"))
+				return $"[hint=\"Chefes e inimigos imunes a Encanto sofrem 25% mais dano.\"][color=#ff6fe8]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("hosp"))
+				return $"[hint=\"Recebem mais dano e espalham um acúmulo de Pestilência em área ao serem atingidos.\"][color=#b4ff6a]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("interromp"))
+				return $"[hint=\"Interrupção impede temporariamente a reação ou o ataque.\"][color=#ffd166]{match.Value}[/color][/hint]";
+			if (lower.StartsWith("ferida"))
+				return $"[hint=\"Parte do dano é restaurada gradualmente se você não sofrer outro golpe.\"][color=#ff9f9f]{match.Value}[/color][/hint]";
 			return $"[hint=\"O inimigo passa a atacar outros inimigos; sem alvo, vagueia pela sala.\"][color=#dd77ff]{match.Value}[/color][/hint]";
 		}, RegexOptions.IgnoreCase);
 	}
@@ -3010,7 +3071,7 @@ public partial class HUD : CanvasLayer
 			"res://images/generic.png"
 		);
 		AddCompendiumNumberEditor(fury, "Multiplicador de dano", "attack.fury.damage_multiplier", 1.75, 0.05, 20.0);
-		AddCompendiumNumberEditor(fury, "Duracao", "attack.fury.duration", 6.0, 0.1, 999.0);
+		AddCompendiumNumberEditor(fury, "Consumo por segundo", "attack.fury.drain_per_second", 10.0, 0.1, 999.0);
 		AddCompendiumNumberEditor(fury, "Furia maxima", "attack.fury.max_fury", 100.0);
 	}
 

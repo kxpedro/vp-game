@@ -27,7 +27,11 @@ Validação local:
 ```bash
 dotnet build VP0.1.sln --configuration Debug
 dotnet build VP0.1.sln --configuration Release
+py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py
+py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py
 ```
+
+Validar a estrutura das skills locais com o `quick_validate.py` da skill de sistema `skill-creator`. As skills versionadas atualmente são `vp-create-blood-blessing`, `vp-create-artifact`, `vp-create-player-skill`, `vp-create-enemy` e `vp-create-boss`.
 
 ## Export automatizado
 
@@ -75,6 +79,14 @@ Os dois itens são obrigatórios. Para distribuir um teste, compacte ambos no me
 - **Jogo funciona localmente, mas não em outra máquina:** confirmar que `data_VP0.1_windows_x86_64` foi enviado junto.
 
 ## Smoke test
+
+Para abrir as cenas principais no projeto sem janela:
+
+```powershell
+godot --headless --path . --quit-after 180 res://scenes/game/TestArena.tscn
+godot --headless --path . --quit-after 120 res://scenes/game/IntermissionChamber.tscn
+godot --headless --path . --quit-after 120 res://scenes/game/CrowsNest.tscn
+```
 
 Depois do export, o executável pode ser iniciado por poucos frames sem abrir janela:
 

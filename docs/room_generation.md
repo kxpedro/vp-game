@@ -18,33 +18,27 @@ Antes da primeira sala comum da run, `RunStartBlessingRoom.tscn` apresenta uma f
 Após cada boss não final, `IntermissionChamber.tscn` permite:
 
 - usar uma vez a fonte para recuperar 35% da vida máxima;
-- usar uma vez o Altar do Sacrifício para gastar 20% da vida máxima e elevar uma bênção equipada em uma raridade;
+- usar uma vez o Altar do Sacrifício para reduzir em 5% a vida máxima total da run e elevar uma bênção equipada em uma raridade;
 - comparar os efeitos atuais e futuros antes de confirmar o aprimoramento.
 
 ## Modelo de geração
 
 `RoomGenerator` mantém o piso navegável em `HashSet<Vector2I> _walkableCells`. Cada célula gera um tile de piso e paredes apenas nas bordas sem vizinho navegável.
 
-As cinco famílias de layout são:
+Salas comuns usam atualmente um mapa linear compacto com quatro regiões de 9 × 9 células:
 
-- `BranchingKeep`;
-- `LairWithVault`;
-- `CrossDungeon`;
-- `SplitHalls`;
-- `WindingCrypt`.
+- entrada em `(0, 12)`;
+- duas regiões intermediárias em `Y = 4` e `Y = -4`, cada uma com deslocamento horizontal aleatório de `-3`, `0` ou `3`;
+- região final/recompensa em `(0, -12)`.
 
-Antes da construção, cada layout recebe rotação em quartos de volta e pode ser espelhado. Depois, `RepairDisconnectedMapPieces()` garante a conectividade.
+O conjunto recebe rotação em quartos de volta e pode ser espelhado. Como as regiões de 9 × 9 se sobrepõem ou se tocam ao longo do eixo principal, o layout permanece conectado sem uma etapa posterior de reparo.
 
 ## Escala e composição
 
-- `CellSize = 1.64`;
-- `MainRoomScale = 2`;
-- `RegionSpacing = 2`;
-- salas principais usam `AddMainRoom`;
-- entradas, saídas, tesouros e becos usam `AddRoom`;
-- corredores são criados por `ConnectCells`;
-- existe 35% de chance de somente uma sala lateral procedural adicional;
-- becos sem saída continuam como pontos intencionais;
+- `CellSize = 1.45`;
+- `RegionSpacing = 1`;
+- salas comuns usam `AddRoom`;
+- a arena de boss usa `AddMainRoom` com 21 × 21 células;
 - o nome da ala não é desenhado sobre o mapa;
 - a antiga saída circular vermelha foi substituída por um portão legível.
 
@@ -78,9 +72,11 @@ Todos usam emissão e um halo na cor do arquétipo. Ranged dispara flechas emiss
 
 ## Salas de boss
 
-Salas de boss usam arena própria com pilares, entrada e portão final. Apenas um inimigo Legendary é planejado e depois configurado por `RunManager`, `BossCatalog` e `BossController`.
+Salas de boss usam arena própria de 21 × 21 células com pilares, entrada e portão final. Apenas um inimigo Legendary é planejado e depois configurado por `RunManager`, `BossCatalog` e `BossController`.
 
-O boss usa a barra de vida superior do HUD e não exibe barra aérea. Ao morrer, libera a escolha de artefato; a transição só prossegue depois da recompensa.
+O boss usa a barra de vida superior do HUD e não exibe barra aérea. Reposicionamentos especiais passam por `ClampToWalkableArea()` com margem de duas células para impedir que o boss termine fora da arena.
+
+Ao morrer, surge um Altar de Artefatos no ponto de recompensa. A oferta abre somente após interação e a transição só prossegue depois da escolha.
 
 ## Pontos de interesse
 
@@ -89,7 +85,7 @@ O gerador mantém posições para:
 - spawn do jogador;
 - portão de saída;
 - tesouro/artefato;
-- beco sem saída;
+- região central;
 - arena do boss.
 
 O portão permanece fechado durante o combate e, em salas comuns, continua bloqueado até o jogador escolher a Bênção de Sangue.
@@ -97,17 +93,16 @@ O portão permanece fechado durante o combate e, em salas comuns, continua bloqu
 ## Métodos centrais
 
 - `BuildMap()`;
+- `BuildCompactLinearMap()`;
 - `BuildBossMap()`;
 - `AddRoom()`;
 - `AddMainRoom()`;
-- `ConnectCells()`;
-- `AddProceduralSideRooms()`;
-- `RepairDisconnectedMapPieces()`;
 - `GenerateMapGeometry()`;
 - `BuildEnemySpawnCells()`;
 - `GenerateEnemies()`;
 - `SpawnNextWave()`;
-- `GetArtifactSpawnPosition()`.
+- `GetArtifactSpawnPosition()`;
+- `ClampToWalkableArea()`.
 
 ## Formato para novos templates
 
@@ -115,12 +110,12 @@ O portão permanece fechado durante o combate e, em salas comuns, continua bloqu
 Nome do template:
 Entrada:
 Saída:
-Salas principais:
-Salas laterais:
+Regiões:
+Deslocamentos:
 Tesouro:
-Becos sem saída:
 Conexões:
+Margem segura:
 Regras especiais:
 ```
 
-Ao adicionar um template, verificar visualmente rotação e espelhamento, conectividade, distância do spawn às paredes e aos demais inimigos, acesso ao portão e ausência de corredores órfãos.
+Ao adicionar um template, verificar visualmente rotação e espelhamento, conectividade, distância do spawn às paredes e aos demais inimigos, acesso ao portão e destinos seguros para teleporte/dash de bosses.

@@ -25,13 +25,15 @@ public partial class EnemyBasic : CharacterBody3D
     [Export] public float TacticalMoveSpeedMultiplier { get; set; } = 0.82f;
     [Export] public float AttackWidth { get; set; } = 1.25f;
     [Export] public float AttackDepthBonus { get; set; } = 0.75f;
-    [Export] public float ContactDamage { get; set; } = 7.0f;
+    [Export] public float ContactDamage { get; set; } = 0.05f;
     [Export] public float ContactDamageRange { get; set; } = 0.95f;
     [Export] public float ContactDamageCooldown { get; set; } = 0.8f;
     [Export] public float KnockbackResistance { get; set; } = 0.45f;
     [Export] public int MinBloodCoinsReward { get; set; } = 1;
     [Export] public int MaxBloodCoinsReward { get; set; } = 10;
     [Export] public float FuryOnDeath { get; set; } = 12.0f;
+    [Export] public int MaxPestilenceStacks { get; set; } = 5;
+    [Export] public float DamageTakenPerStatusStack { get; set; } = 0.05f;
     [Export] public NodePath HealthPath { get; set; } = new("Health");
     [Export] public NodePath VisualPath { get; set; } = new("Visual");
 
@@ -59,6 +61,8 @@ public partial class EnemyBasic : CharacterBody3D
     private Sprite3D _bleedingStatusIcon;
     private Sprite3D _pestilenceStatusIcon;
     private Sprite3D _charmedStatusIcon;
+    private Label3D _bleedingStackLabel;
+    private Label3D _pestilenceStackLabel;
     private Label3D _attackWarningLabel;
     private MeshInstance3D _attackTelegraph;
     private float _contactDamageTimer;
@@ -69,7 +73,8 @@ public partial class EnemyBasic : CharacterBody3D
     private float _fearTimer;
     private float _damageTakenBonus;
     private float _damageTakenTimer;
-    public float DamageTakenMultiplier => 1.0f + _damageTakenBonus;
+    public float DamageTakenMultiplier => 1.0f + _damageTakenBonus
+        + (_pestilenceStacks + _bleedingStacks) * DamageTakenPerStatusStack;
     public float HitTargetRadius { get; private set; } = 0.35f;
     private Node3D _importedVisual;
     private Vector3 _importedVisualBaseScale = Vector3.One;
@@ -99,11 +104,19 @@ public partial class EnemyBasic : CharacterBody3D
     private float _charmTimer;
     private float _charmAttackTimer;
     private bool _permanentCharm;
+    private bool _fascinated;
+    private EnemyBasic _charmLinkedEnemy;
+    private MeshInstance3D _charmLinkVisual;
+    private bool _pestilenceCloudTriggered;
     private string _legendaryName = "";
     private float _bossActionAnimationTimer;
     public bool IsPestilent => _pestilenceStacks > 0;
     public bool IsBleeding => _bleedingStacks > 0;
-    public int NegativeStatusCount => (IsPestilent ? 1 : 0) + (IsBleeding ? 1 : 0) + (IsCharmed ? 1 : 0) + (_fearTimer > 0.0f ? 1 : 0);
+    public int PestilenceStacks => _pestilenceStacks;
+    public int BleedingStacks => _bleedingStacks;
+    public bool IsFascinated => _fascinated;
+    public int NegativeStatusCount => (IsPestilent ? 1 : 0) + (IsBleeding ? 1 : 0)
+        + (IsCharmed || IsFascinated ? 1 : 0) + (_fearTimer > 0.0f ? 1 : 0);
     public bool IsPestilenceHost => _pestilenceStacks >= Mathf.RoundToInt(RunState.GetEffectParameter("DamageVsPlagueHost", "requiredStacks", 5));
     public bool IsCharmed => _permanentCharm || _charmTimer > 0.0f;
     public bool HasStaggerArmor => Name.ToString().Contains("Boss")
@@ -443,6 +456,7 @@ public partial class EnemyBasic : CharacterBody3D
         _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer - (float)delta, 0.0f);
         _rangedFleeTimer = Mathf.Max(_rangedFleeTimer - (float)delta, 0.0f);
         TickBlessingStatuses((float)delta);
+        UpdateCharmLinkVisual();
         _bossActionAnimationTimer = Mathf.Max(_bossActionAnimationTimer - (float)delta, 0.0f);
         if (_knockbackVelocity.LengthSquared() > 0.01f)
         {
@@ -595,9 +609,10 @@ public partial class EnemyBasic : CharacterBody3D
         if (IsPestilent) _pestilenceTimer = Mathf.Max(_pestilenceTimer, 3.0f);
         if (IsBleeding) _bleedingTimer = Mathf.Max(_bleedingTimer, 2.0f);
     }
-    public void ApplyPestilence(float seconds)
+    public void ApplyPestilence(float seconds, int maxStacks = -1)
     {
-        _pestilenceStacks = Mathf.Min(_pestilenceStacks + 1, 99);
+        var stackLimit = maxStacks > 0 ? maxStacks : MaxPestilenceStacks;
+        _pestilenceStacks = Mathf.Min(_pestilenceStacks + 1, Mathf.Max(stackLimit, 1));
         _pestilenceTimer = Mathf.Max(_pestilenceTimer, seconds);
         if (RunState.GetEffectTotal("PestilenceAlsoBleeds.Flat") > 0)
             ApplyBleeding(
@@ -622,16 +637,35 @@ public partial class EnemyBasic : CharacterBody3D
 
     public void ApplyCharm(float seconds, bool permanent)
     {
+        var charmImmune = Name.ToString().Contains("Boss") || Rarity == EnemyRarity.Legendary;
+        if (charmImmune)
+        {
+            if (permanent)
+                _fascinated = true;
+            UpdateStatusIcons();
+            return;
+        }
+
         _permanentCharm |= permanent;
         _charmTimer = Mathf.Max(_charmTimer, seconds);
         AddToGroup("charmed_enemies");
+        EnsureCharmLink();
         UpdateStatusIcons();
+    }
+
+    public bool TryTriggerPestilenceCloud()
+    {
+        if (_pestilenceCloudTriggered)
+            return false;
+        _pestilenceCloudTriggered = true;
+        return true;
     }
 
     private void TickBlessingStatuses(float delta)
     {
         if (!_permanentCharm) _charmTimer = Mathf.Max(_charmTimer - delta, 0.0f);
         if (!IsCharmed && IsInGroup("charmed_enemies")) RemoveFromGroup("charmed_enemies");
+        if (!IsCharmed) ClearCharmLink();
         if (_pestilenceStacks > 0)
         {
             _pestilenceTimer -= delta;
@@ -694,6 +728,104 @@ public partial class EnemyBasic : CharacterBody3D
         _player?.GetNodeOrNull<Health>("Health")?.Heal(damage * RunState.GetEffectTotal("HealFromCharmedDamage.Multiplier"));
     }
 
+    private void EnsureCharmLink()
+    {
+        if (!IsCharmed || RunState.GetEffectTotal("CharmDamageLink.Multiplier") <= 0.0f)
+        {
+            ClearCharmLink();
+            return;
+        }
+
+        if (IsInstanceValid(_charmLinkedEnemy) &&
+            !_charmLinkedEnemy.IsQueuedForDeletion() &&
+            _charmLinkedEnemy.GetNodeOrNull<Health>("Health")?.IsDead != true)
+            return;
+
+        _charmLinkedEnemy = null;
+        var closestDistance = float.PositiveInfinity;
+        foreach (var node in GetTree().GetNodesInGroup("enemies"))
+        {
+            if (node is not EnemyBasic candidate || candidate == this || candidate.IsCharmed)
+                continue;
+            var health = candidate.GetNodeOrNull<Health>("Health");
+            if (health == null || health.IsDead)
+                continue;
+            var distance = GlobalPosition.DistanceSquaredTo(candidate.GlobalPosition);
+            if (distance >= closestDistance)
+                continue;
+            closestDistance = distance;
+            _charmLinkedEnemy = candidate;
+        }
+
+        if (_charmLinkedEnemy == null)
+        {
+            if (_charmLinkVisual != null)
+                _charmLinkVisual.Visible = false;
+            return;
+        }
+        if (_charmLinkVisual != null)
+            return;
+
+        _charmLinkVisual = new MeshInstance3D
+        {
+            Name = "CharmDamageLink",
+            Mesh = new CylinderMesh
+            {
+                TopRadius = 0.028f,
+                BottomRadius = 0.028f,
+                Height = 1.0f,
+                RadialSegments = 12
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(1.0f, 0.03f, 0.58f, 0.88f),
+                EmissionEnabled = true,
+                Emission = new Color(1.0f, 0.0f, 0.52f),
+                EmissionEnergyMultiplier = 4.5f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                NoDepthTest = true
+            }
+        };
+        GetTree().CurrentScene?.AddChild(_charmLinkVisual);
+    }
+
+    private void UpdateCharmLinkVisual()
+    {
+        if (!IsCharmed || RunState.GetEffectTotal("CharmDamageLink.Multiplier") <= 0.0f)
+        {
+            ClearCharmLink();
+            return;
+        }
+
+        EnsureCharmLink();
+        if (_charmLinkVisual == null || !IsInstanceValid(_charmLinkedEnemy))
+            return;
+
+        var from = GlobalPosition + Vector3.Up * 0.9f;
+        var to = _charmLinkedEnemy.GlobalPosition + Vector3.Up * 0.9f;
+        var delta = to - from;
+        var distance = delta.Length();
+        if (distance <= 0.01f)
+        {
+            _charmLinkVisual.Visible = false;
+            return;
+        }
+
+        _charmLinkVisual.Visible = true;
+        var rotation = new Quaternion(Vector3.Up, delta / distance);
+        _charmLinkVisual.GlobalTransform = new Transform3D(new Basis(rotation), (from + to) * 0.5f);
+        _charmLinkVisual.Scale = new Vector3(1.0f, distance, 1.0f);
+    }
+
+    private void ClearCharmLink()
+    {
+        _charmLinkedEnemy = null;
+        if (_charmLinkVisual != null && IsInstanceValid(_charmLinkVisual))
+            _charmLinkVisual.QueueFree();
+        _charmLinkVisual = null;
+    }
+
     private void Patrol(float delta)
     {
         _patrolRetargetTimer -= delta;
@@ -726,7 +858,10 @@ public partial class EnemyBasic : CharacterBody3D
         if (_contactDamageTimer > 0.0f || distanceToPlayer > ContactDamageRange)
             return;
 
-        _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(ContactDamage, false, GetDisplayName());
+        _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(
+            Mathf.Max(AttackDamage * ContactDamage, 0.0f),
+            false,
+            $"{GetDisplayName()} (contato)");
         _contactDamageTimer = ContactDamageCooldown;
     }
 
@@ -943,6 +1078,7 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void OnDied()
     {
+        ClearCharmLink();
         foreach (var projectile in _ownedProjectiles)
             if (IsInstanceValid(projectile)) projectile.QueueFree();
         _ownedProjectiles.Clear();
@@ -1105,6 +1241,8 @@ public partial class EnemyBasic : CharacterBody3D
         _bleedingStatusIcon = CreateStatusIcon("BleedingStatusIcon", "res://images/effects/bleeding.png", -0.22f);
         _pestilenceStatusIcon = CreateStatusIcon("PestilenceStatusIcon", "res://images/effects/pestilence.png", 0.0f);
         _charmedStatusIcon = CreateStatusIcon("CharmedStatusIcon", "res://images/effects/enchanted.png", 0.22f);
+        _bleedingStackLabel = CreateStatusStackLabel("BleedingStackLabel", -0.17f, new Color(1.0f, 0.28f, 0.34f));
+        _pestilenceStackLabel = CreateStatusStackLabel("PestilenceStackLabel", 0.05f, new Color(0.48f, 0.92f, 0.34f));
         UpdateStatusIcons();
     }
 
@@ -1128,11 +1266,45 @@ public partial class EnemyBasic : CharacterBody3D
         return icon;
     }
 
+    private Label3D CreateStatusStackLabel(string name, float xPosition, Color color)
+    {
+        var label = new Label3D
+        {
+            Name = name,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 64,
+            PixelSize = 0.006f,
+            Modulate = color,
+            OutlineSize = 12,
+            OutlineModulate = Colors.Black,
+            NoDepthTest = true,
+            RenderPriority = 4,
+            Position = new Vector3(xPosition * 1.45f, _overheadHeight + 0.23f, 0.0f),
+            Visible = false
+        };
+        AddChild(label);
+        return label;
+    }
+
     private void UpdateStatusIcons()
     {
         if (_bleedingStatusIcon != null) _bleedingStatusIcon.Visible = IsBleeding;
         if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Visible = IsPestilent;
-        if (_charmedStatusIcon != null) _charmedStatusIcon.Visible = IsCharmed;
+        if (_charmedStatusIcon != null)
+        {
+            _charmedStatusIcon.Visible = IsCharmed || IsFascinated;
+            _charmedStatusIcon.Modulate = IsFascinated ? new Color(1.0f, 0.35f, 0.95f) : Colors.White;
+        }
+        if (_bleedingStackLabel != null)
+        {
+            _bleedingStackLabel.Visible = IsBleeding;
+            _bleedingStackLabel.Text = _bleedingStacks.ToString();
+        }
+        if (_pestilenceStackLabel != null)
+        {
+            _pestilenceStackLabel.Visible = IsPestilent;
+            _pestilenceStackLabel.Text = _pestilenceStacks.ToString();
+        }
     }
 
     private void CreateAttackTelegraph()
@@ -1214,6 +1386,8 @@ public partial class EnemyBasic : CharacterBody3D
         if (_bleedingStatusIcon != null) _bleedingStatusIcon.Position = new Vector3(-0.319f, _overheadHeight + 0.28f, 0.0f);
         if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Position = new Vector3(0.0f, _overheadHeight + 0.28f, 0.0f);
         if (_charmedStatusIcon != null) _charmedStatusIcon.Position = new Vector3(0.319f, _overheadHeight + 0.28f, 0.0f);
+        if (_bleedingStackLabel != null) _bleedingStackLabel.Position = new Vector3(-0.20f, _overheadHeight + 0.23f, 0.01f);
+        if (_pestilenceStackLabel != null) _pestilenceStackLabel.Position = new Vector3(0.12f, _overheadHeight + 0.23f, 0.01f);
         SetHealthBarMeshesVisible(_overheadHealthEnabled && _overheadHealthRevealed);
     }
 
@@ -1240,8 +1414,8 @@ public partial class EnemyBasic : CharacterBody3D
         {
             Text = $"{Mathf.RoundToInt(amount)}{reason}",
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = isCritical ? 108 : 76,
-            Modulate = isCritical ? new Color(1.0f, 0.82f, 0.08f) : Colors.White,
+            FontSize = isCritical ? 228 : 76,
+            Modulate = isCritical ? new Color(1.0f, 0.843f, 0.0f) : Colors.White,
             OutlineSize = 10,
             OutlineModulate = Colors.Black,
             Position = Vector3.Up * 1.8f

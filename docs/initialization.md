@@ -1,6 +1,6 @@
 # Contexto atual do projeto
 
-Snapshot técnico de Vampire's Prey em 2026-07-22. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
+Snapshot técnico de Vampire's Prey em 2026-07-23. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
 
 ## Visão do jogo
 
@@ -16,8 +16,8 @@ O objetivo atual é consolidar uma primeira versão jogável com combate respons
 4. Sobreviver a três waves de 5 inimigos em cada sala comum.
 5. Absorver o sangue da sala e escolher uma Bênção de Sangue.
 6. Avançar somente após confirmar a recompensa.
-7. Derrotar o boss e escolher um artefato passivo.
-8. Entre mapas, usar a Câmara de Hemomancia para curar ou aprimorar uma bênção mediante sacrifício de vida.
+7. Derrotar o boss, interagir com o Altar de Artefatos e escolher um artefato passivo.
+8. Entre mapas, usar a Câmara de Hemomancia para curar ou aprimorar uma bênção mediante redução permanente da vida máxima da run.
 9. Retornar ao hub após vitória final, morte ou desistência, preservando apenas a progressão permanente aplicável.
 
 ## Campanha e salas
@@ -26,8 +26,8 @@ O objetivo atual é consolidar uma primeira versão jogável com combate respons
 - O quarto mapa é reservado ao confronto final.
 - A sala bônus de bênção aparece apenas antes do primeiro mapa da run.
 - A Câmara de Hemomancia aparece após bosses não finais.
-- Salas comuns usam cinco famílias de layout, rotação, espelhamento e reparo de conectividade.
-- Existe 35% de chance de uma sala lateral adicional.
+- Salas comuns usam quatro regiões compactas de 9 × 9 células, com deslocamentos intermediários, rotação e espelhamento.
+- A arena de boss usa 21 × 21 células e restringe destinos de teleporte/dash a posições navegáveis.
 - Spawns respeitam margem das paredes e distância mínima de 2,35 unidades entre posições planejadas.
 - Cada sala comum agenda três waves de 5 inimigos, totalizando 15.
 - Ranged corresponde a aproximadamente 26,67% dos sorteios de arquétipo, redução de 20% sobre a distribuição anterior.
@@ -64,7 +64,10 @@ Estado atual:
 - dano recebido aplica stagger ao jogador;
 - inimigos comuns podem ser mantidos sob pressão de stagger, enquanto bosses e inimigos especiais protegidos possuem armadura de stagger;
 - hit-stop, câmera, sangue e números de dano reforçam o contato dos golpes;
-- Fúria Bestial aplica pós-processamento em preto e branco, preservando os vermelhos associados a sangue.
+- Fúria Bestial aplica pós-processamento em preto e branco, preservando os vermelhos associados a sangue;
+- Fúria cheia possui 100 pontos, consome 10 por segundo por padrão e explode com 15% do dano básico ao terminar;
+- críticos usam amarelo-ouro e números três vezes maiores;
+- barreira absorve dano antes da vida, perde 1 ponto por segundo e é zerada ao trocar de sala.
 
 ## Controles e pausa
 
@@ -82,14 +85,14 @@ Estado atual:
 
 ## Bênçãos de Sangue
 
-O catálogo `data/blessings/blood_blessings.json` contém 66 definições distribuídas entre Dracul, Bathory, Orlok, Karnstein e combinações Stirps.
+O catálogo `data/blessings/blood_blessings.json` contém 63 definições ativas: 15 Dracul, 15 Bathory, 14 Orlok, 15 Karnstein e 4 Stirps. O loader e o validador aceitam JSONC para preservar entradas comentadas fora do pool.
 
 - ofertas usam Common, Uncommon, Rare, Epic ou Legendary; Stirps possui regra própria;
 - valores numéricos escalam pela qualidade sorteada;
 - há ao menos uma bênção de cada família para ataque básico, rápido e especial;
 - bênçãos diretamente ligadas aos três tipos de ataque têm peso elevado;
 - bênçãos Stirps têm peso de família reduzido para 45% do peso das linhagens comuns;
-- grupos exclusivos de ataque básico e ataque rápido substituem a bênção equipada do mesmo grupo;
+- grupos exclusivos de ataque básico, ataque rápido, ataque especial e Fúria Bestial substituem a bênção equipada do mesmo grupo;
 - efeitos de ataque básico não são automaticamente repassados ao ataque rápido;
 - Dracul aplica roubo de vida;
 - Bathory aplica Sangramento e cria sinergias com poças de sangue;
@@ -98,6 +101,10 @@ O catálogo `data/blessings/blood_blessings.json` contém 66 definições distri
 - a Stirps de Orlok + Bathory cria uma poça de sangue no raio da explosão pestilenta e aplica Sangramento aos inimigos dentro dela;
 - cura excedente convertida em barreira, inclusive Reserva Imperial, passa pela API de overheal de `Health`;
 - a trilha visual de roubo de vida valida a árvore antes de alterar transformações globais.
+
+Sangramento e Pestilência possuem stacks visíveis; cada stack aumenta em 5% o dano recebido, e Sangramento também escala seu dano periódico. Encanto dura 5 segundos base, recebe multiplicadores externos, e Laço de Sangue desenha uma linha rosa entre alvos vinculados. A explosão de Briga de Amantes é rosa.
+
+Ferida Recuperável espera 2 segundos sem novo dano e restaura gradualmente durante 5 segundos. A escala atual é 20%/40%/70%/110%/140% nas cinco raridades e permanece marcada para rebalanceamento.
 
 A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato dura 8 segundos, usa um círculo verde-limão, captura a velocidade de movimento e o intervalo de ataque do jogador e causa 50% do dano básico. A capacidade simultânea é Common 1, Uncommon 2, Rare 3, Epic 4 e Legendary 5; aprimoramentos no altar atualizam essa capacidade.
 
@@ -112,8 +119,10 @@ A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato du
 - projéteis ranged são flechas emissivas maiores, mais lentas e de alcance prolongado; o retângulo de hitbox antecipada foi removido;
 - tank carrega o golpe por mais tempo e ataca com área e dano maiores;
 - dano geral dos inimigos foi reduzido em 10% na etapa de aplicação do dano;
+- contato corporal causa 5% do dano de ataque atual do inimigo;
 - o comportamento visual incorreto que fazia o primeiro boss crescer e ficar vermelho foi removido;
-- bosses e raridades altas mantêm resistências próprias de stagger e empurrão.
+- bosses e raridades altas mantêm resistências próprias de stagger e empurrão;
+- reposicionamentos do segundo boss são limitados à arena para evitar dashes fora do mapa.
 
 ## Recompensas, progressão e save
 
@@ -121,7 +130,7 @@ A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato du
 - atributos, moedas, skills, artefatos permanentes e loadouts são persistidos;
 - estado temporário da run fica em `RunState`;
 - Bênçãos de Sangue são temporárias;
-- artefatos são exclusivamente passivos e voltaram a ser oferecidos após bosses;
+- artefatos são exclusivamente passivos e são oferecidos em um altar interativo após bosses;
 - árvores Bestialis e Humanitas usam ranks máximos 5/3/1, pré-requisitos e custos crescentes;
 - passivas compradas na Fonte de Sangue aparecem na ficha do personagem com tooltip;
 - a Fonte de Sangue usa layout responsivo, lista rolável e botão de fechamento fora das descrições.
@@ -138,7 +147,11 @@ A maior parte da HUD é criada por código em `scripts/ui/HUD.cs`.
 - habilidades passivas permanentes também aparecem na ficha;
 - overlays recebem foco inicial para d-pad/analógico e respeitam confirmar/voltar;
 - o HUD permanece disponível na Câmara de Hemomancia;
+- a vida e a Fúria não aparecem no Ninho do Corvo;
+- a barreira aparece como extensão azul da barra de vida;
 - interfaces de Fonte de Sangue e Altar do Sacrifício são roláveis e responsivas.
+
+Na Câmara de Hemomancia, o Altar do Sacrifício reduz em 5% a vida máxima total da run para aprimorar uma bênção. A redução é cumulativa, persiste entre salas e é removida quando a run termina.
 
 ## Build e validação
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Criar ou Atualizar Inimigo"
+  short_description: "Cria e integra inimigos comuns no gameplay"
+  default_prompt: "Use $vp-create-enemy para criar ou atualizar um inimigo comum do Vampire's Prey."

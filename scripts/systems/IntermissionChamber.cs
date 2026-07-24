@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public partial class IntermissionChamber : Node3D
 {
     [Export] public float FountainHealFraction { get; set; } = 0.35f;
-    [Export] public float BlessingSacrificeFraction { get; set; } = 0.20f;
+    [Export] public float BlessingSacrificeFraction { get; set; } = 0.05f;
 
     private PlayerController _player;
     private Health _health;
@@ -188,13 +188,6 @@ public partial class IntermissionChamber : Node3D
 
     private void SacrificeForUpgrade(string blessingId)
     {
-        var sacrifice = _health.MaxHealth * BlessingSacrificeFraction;
-        if (_health.CurrentHealth <= sacrifice + 1.0f)
-        {
-            SetMessage($"Vida insuficiente: preserve ao menos 1 ponto após sacrificar {Mathf.CeilToInt(sacrifice)}.");
-            CloseUpgradeOverlay();
-            return;
-        }
         if (!RunState.TryUpgradeBloodBlessing(blessingId, out var upgraded))
         {
             SetMessage("Essa bênção não pode mais ser aprimorada.");
@@ -204,10 +197,13 @@ public partial class IntermissionChamber : Node3D
 
         CloseUpgradeOverlay();
         _player.ApplyRuntimeTuning();
+        var previousMaximum = _health.MaxHealth;
+        RunState.SacrificeMaxHealth(BlessingSacrificeFraction);
+        _player.ApplyRuntimeTuning();
         GetTree().CallGroup("hud", "RefreshBlessingDisplays");
-        _health.SetCurrentHealth(Mathf.Max(_health.CurrentHealth - sacrifice, 1.0f));
         _altarUsed = true;
-        SetMessage($"{upgraded.Name} ascendeu para {upgraded.Rarity}. O altar recebeu {Mathf.CeilToInt(sacrifice)} de vida.");
+        var sacrificedMaximum = Mathf.Max(previousMaximum - _health.MaxHealth, 0.0f);
+        SetMessage($"{upgraded.Name} ascendeu para {upgraded.Rarity}. O altar consumiu {sacrificedMaximum:0.#} de vida máxima.");
         RefreshPrompts();
     }
 

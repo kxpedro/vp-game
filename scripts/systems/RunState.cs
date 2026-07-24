@@ -8,6 +8,7 @@ public static class RunState
     public static float DamageMultiplier { get; private set; } = 1.0f;
     public static float MaxHealthBonus { get; private set; }
     public static float MaxHealthMultiplier => 1.0f + GetEffectTotal("MaxHealth.Multiplier");
+    public static float SacrificedMaxHealthMultiplier { get; private set; } = 1.0f;
     public static float SavedPlayerHealth { get; private set; } = -1.0f;
     private static readonly System.Collections.Generic.List<ArtifactRecord> TemporaryArtifacts = new();
     private static readonly System.Collections.Generic.List<BloodBlessingRecord> BloodBlessings = new();
@@ -45,6 +46,7 @@ public static class RunState
         BlessingStacks.Clear();
         DamageMultiplier = 1.0f;
         MaxHealthBonus = 0.0f;
+        SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
         ResetContextEffects();
@@ -84,6 +86,7 @@ public static class RunState
         CurrentRoom = 1;
         DamageMultiplier = 1.0f;
         MaxHealthBonus = 0.0f;
+        SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
         ResetContextEffects();
@@ -106,6 +109,7 @@ public static class RunState
         BlessingStacks.Clear();
         DamageMultiplier = 1.0f;
         MaxHealthBonus = 0.0f;
+        SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
         ResetContextEffects();
@@ -127,6 +131,11 @@ public static class RunState
     public static void AddMaxHealthBonus(float amount)
     {
         MaxHealthBonus += amount;
+    }
+
+    public static void SacrificeMaxHealth(float fraction)
+    {
+        SacrificedMaxHealthMultiplier *= System.Math.Clamp(1.0f - fraction, 0.01f, 1.0f);
     }
 
     public static void RecalculateArtifactBonuses()

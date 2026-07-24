@@ -177,7 +177,13 @@ public static class BloodBlessingCatalog
         if (!FileAccess.FileExists(CatalogPath)) { GD.PushError($"Blood blessing catalog not found: {CatalogPath}"); return; }
         try
         {
-            using var document = JsonDocument.Parse(FileAccess.GetFileAsString(CatalogPath));
+            using var document = JsonDocument.Parse(
+                FileAccess.GetFileAsString(CatalogPath),
+                new JsonDocumentOptions
+                {
+                    CommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true
+                });
             ReadRarities(document.RootElement);
             foreach (var element in document.RootElement.GetProperty("blessings").EnumerateArray())
             {

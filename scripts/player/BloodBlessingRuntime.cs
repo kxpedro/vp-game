@@ -6,6 +6,8 @@ public partial class BloodBlessingRuntime : Node
     [Signal]
     public delegate void BarrierChangedEventHandler(float current, float maximum);
 
+    [Export] public float BarrierDecayPerSecond { get; set; } = 1.0f;
+
     private Health _health;
     private float _barrier;
     private float _damageAfterHealTimer;
@@ -16,15 +18,22 @@ public partial class BloodBlessingRuntime : Node
     private float _bloodPoolBleedTimer;
     private int _recoverableDamageVersion;
     private bool _fatalCharmSacrificeUsed;
+    private int _trackedMapIndex;
+    private int _trackedRoom;
 
     public bool HasBarrier => _barrier > 0.01f;
     public float CurrentBarrier => _barrier;
-    public float MaximumBarrier => _health == null ? 0.0f : _health.MaxHealth * RunState.GetEffectParameter("OverhealToBarrier", "maxHealthCap", 0.15f);
+    public float MaximumBarrier => _health == null || RunState.GetEffectTotal("OverhealToBarrier.Multiplier") <= 0.0f
+        ? 0.0f
+        : _health.MaxHealth * RunState.GetEffectParameter("OverhealToBarrier", "maxHealthCap", 0.15f);
     public bool IsOnBlood { get; private set; }
 
     public override void _Ready()
     {
         _health = GetParent()?.GetNodeOrNull<Health>("Health");
+        _trackedMapIndex = RunState.CurrentMapIndex;
+        _trackedRoom = RunState.CurrentRoom;
+        ResetBarrier();
     }
 
     public override void _Process(double delta)
@@ -34,8 +43,32 @@ public partial class BloodBlessingRuntime : Node
         _damageReductionAfterHealTimer = Mathf.Max(_damageReductionAfterHealTimer - d, 0);
         _attackSpeedAfterHealTimer = Mathf.Max(_attackSpeedAfterHealTimer - d, 0);
         _criticalAfterDashTimer = Mathf.Max(_criticalAfterDashTimer - d, 0);
+        if (_trackedMapIndex != RunState.CurrentMapIndex || _trackedRoom != RunState.CurrentRoom)
+        {
+            _trackedMapIndex = RunState.CurrentMapIndex;
+            _trackedRoom = RunState.CurrentRoom;
+            ResetBarrier();
+        }
+        TickBarrierDecay(d);
         UpdateBloodPoolState(d);
         UpdateBloodPoolBleeding(d);
+    }
+
+    public void ResetBarrier()
+    {
+        _barrier = 0.0f;
+        EmitSignal(SignalName.BarrierChanged, _barrier, MaximumBarrier);
+    }
+
+    private void TickBarrierDecay(float delta)
+    {
+        if (_barrier <= 0.0f || BarrierDecayPerSecond <= 0.0f)
+            return;
+
+        var previous = _barrier;
+        _barrier = Mathf.Max(_barrier - BarrierDecayPerSecond * delta, 0.0f);
+        if (!Mathf.IsEqualApprox(previous, _barrier))
+            EmitSignal(SignalName.BarrierChanged, _barrier, MaximumBarrier);
     }
 
     public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, PlayerAttackType attackType)
@@ -50,7 +83,7 @@ public partial class BloodBlessingRuntime : Node
         if (HasBarrier) bonus += RunState.GetEffectTotal("DamageWhileBarrier.Multiplier");
         if (IsOnBlood) bonus += RunState.GetEffectTotal("DamageOnBlood.Multiplier");
         if (enemy?.IsPestilenceHost == true) bonus += RunState.GetEffectTotal("DamageVsPlagueHost.Multiplier");
-        if (enemy != null && enemy.Name.ToString().Contains("Boss") && RunState.GetEffectTotal("PermanentCharm.Flat") > 0) bonus += RunState.GetEffectTotal("FascinationDamageTaken.Multiplier");
+        if (enemy?.IsFascinated == true) bonus += RunState.GetEffectTotal("FascinationDamageTaken.Multiplier");
         var charmedCount = Mathf.Min(GetTree().GetNodeCountInGroup("charmed_enemies"), Mathf.RoundToInt(RunState.GetEffectParameter("DamagePerCharmedEnemy", "maxTargets", 5)));
         bonus += charmedCount * RunState.GetEffectTotal("DamagePerCharmedEnemy.Multiplier");
         return damage * Mathf.Max(1.0f + bonus, 0.0f);
@@ -135,7 +168,16 @@ public partial class BloodBlessingRuntime : Node
         var delay = RunState.GetEffectParameter("DamageToRecoverableHealth", "recoveryDelay", 2);
         await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
         if (version != _recoverableDamageVersion || _health.IsDead) return;
-        _health.Heal(recoverable);
+        var duration = Mathf.Max(RunState.GetEffectParameter("DamageToRecoverableHealth", "duration", 5), 0.1f);
+        const float recoveryStep = 0.25f;
+        var steps = Mathf.Max(Mathf.CeilToInt(duration / recoveryStep), 1);
+        var healingPerStep = recoverable / steps;
+        for (var step = 0; step < steps; step++)
+        {
+            await ToSignal(GetTree().CreateTimer(recoveryStep), SceneTreeTimer.SignalName.Timeout);
+            if (version != _recoverableDamageVersion || _health.IsDead) return;
+            _health.Heal(healingPerStep);
+        }
     }
 
     public bool TrySacrificeCharmedOnFatal(out float restoredHealth)
@@ -179,16 +221,14 @@ public partial class BloodBlessingRuntime : Node
         }
 
         if (critical && GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("CharmOnCriticalChance.Flat"), 0, 1))
-            enemy.ApplyCharm(RunState.GetEffectParameter("CharmOnCriticalChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+            enemy.ApplyCharm(GetCharmDuration("CharmOnCriticalChance"), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
         if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("PestilenceChance.Flat"), 0, 1))
             enemy.ApplyPestilence(RunState.GetEffectParameter("PestilenceChance", "duration", 5));
-        if (enemy.IsPestilenceHost && RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat") > 0)
-            SpreadPestilence(enemy, Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat")));
 
         if (isBasicAttack)
         {
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("BasicAttackCharmChance.Flat"), 0, 1))
-                enemy.ApplyCharm(RunState.GetEffectParameter("BasicAttackCharmChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+                enemy.ApplyCharm(GetCharmDuration("BasicAttackCharmChance"), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
             if (RunState.GetEffectTotal("BasicAttackPestilence.Flat") > 0)
                 enemy.ApplyPestilence(RunState.GetEffectParameter("BasicAttackPestilence", "duration", 5));
             if (RunState.GetEffectTotal("BasicAttackBleed.Flat") > 0)
@@ -200,7 +240,7 @@ public partial class BloodBlessingRuntime : Node
         else if (isQuickAttack)
         {
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("QuickAttackCharmChance.Flat"), 0, 1))
-                enemy.ApplyCharm(RunState.GetEffectParameter("QuickAttackCharmChance", "duration", 3), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+                enemy.ApplyCharm(GetCharmDuration("QuickAttackCharmChance"), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("QuickAttackBleedChance.Flat"), 0, 1))
                 enemy.ApplyBleeding(
                     RunState.GetEffectParameter("QuickAttackBleedChance", "duration", 4),
@@ -214,8 +254,16 @@ public partial class BloodBlessingRuntime : Node
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("SpecialAttackPestilenceChance.Flat"), 0, 1))
                 enemy.ApplyPestilence(RunState.GetEffectParameter("SpecialAttackPestilenceChance", "duration", 6));
             if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("SpecialAttackCharmChance.Flat"), 0, 1))
-                enemy.ApplyCharm(RunState.GetEffectParameter("SpecialAttackCharmChance", "duration", 4), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
+                enemy.ApplyCharm(GetCharmDuration("SpecialAttackCharmChance"), RunState.GetEffectTotal("PermanentCharm.Flat") > 0);
         }
+
+        if (enemy.IsPestilenceHost && RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat") > 0)
+            SpreadPestilence(
+                enemy,
+                Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadOnHostHit.Flat")),
+                RunState.GetEffectParameter("PestilenceSpreadOnHostHit", "radius", 4.5f),
+                allowExistingStacks: true);
+        TrySpawnPestilenceCloud(enemy);
 
         if (enemy.IsCharmed && RunState.GetEffectTotal("CharmedTargetBleed.Flat") > 0)
             enemy.ApplyBleeding(
@@ -251,7 +299,10 @@ public partial class BloodBlessingRuntime : Node
             if (RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier") > 0) DamageEnemiesNear(enemy.GlobalPosition, 2.5f, 32 * RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier"), enemy);
         }
         if (enemy.IsCharmed && RunState.GetEffectTotal("CharmedDeathExplosion.Multiplier") > 0)
+        {
             DamageEnemiesNear(enemy.GlobalPosition, 2.8f, 32 * RunState.GetEffectTotal("CharmedDeathExplosion.Multiplier"), enemy);
+            SpawnCharmedDeathExplosion(enemy.GlobalPosition, 2.8f);
+        }
     }
 
     private void SpawnSummonedRats(Vector3 position)
@@ -377,6 +428,13 @@ public partial class BloodBlessingRuntime : Node
         return GetParent()?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController")?.TemporaryEffectDurationMultiplier() ?? 1.0f;
     }
 
+    private float GetCharmDuration(string effectType)
+    {
+        return Mathf.Max(
+            RunState.GetEffectParameter(effectType, "duration", 5.0f) * TemporaryEffectDurationMultiplier(),
+            0.1f);
+    }
+
     private void SpawnBloodOrb(Vector3 position)
     {
         var orb = new BloodOrbPickup { HealMaxHealthRatio = RunState.GetEffectTotal("BloodOrbHealMaxHealth.Flat"), Position = position + Vector3.Up * 0.35f };
@@ -385,13 +443,13 @@ public partial class BloodBlessingRuntime : Node
         orb.AddChild(new CollisionShape3D { Shape = new SphereShape3D { Radius = 0.65f } });
     }
 
-    private void SpreadPestilence(EnemyBasic source, int targets, float radius = 7.0f)
+    private void SpreadPestilence(EnemyBasic source, int targets, float radius = 7.0f, bool allowExistingStacks = false)
     {
         if (targets <= 0) return;
         foreach (var node in GetTree().GetNodesInGroup("enemies"))
         {
             if (targets <= 0) break;
-            if (node is not EnemyBasic enemy || enemy == source || enemy.IsPestilent || enemy.GlobalPosition.DistanceTo(source.GlobalPosition) > radius) continue;
+            if (node is not EnemyBasic enemy || enemy == source || (!allowExistingStacks && enemy.IsPestilent) || enemy.GlobalPosition.DistanceTo(source.GlobalPosition) > radius) continue;
             var duration = RunState.GetEffectParameter(
                 "BasicAttackPestilence",
                 "duration",
@@ -400,10 +458,94 @@ public partial class BloodBlessingRuntime : Node
         }
     }
 
+    private void TrySpawnPestilenceCloud(EnemyBasic host)
+    {
+        var multiplier = RunState.GetEffectTotal("PestilenceCloudAtStacks.Multiplier");
+        var requiredStacks = Mathf.RoundToInt(RunState.GetEffectParameter("PestilenceCloudAtStacks", "requiredStacks", 3));
+        if (multiplier <= 0.0f || host.PestilenceStacks < requiredStacks || !host.TryTriggerPestilenceCloud())
+            return;
+
+        var combat = GetParent()?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
+        var damagePerSecond = (combat?.GetCurrentBasicAttackDamage() ?? 32.0f) * multiplier;
+        SpawnPestilenceCloud(
+            host.GlobalPosition,
+            damagePerSecond,
+            RunState.GetEffectParameter("PestilenceCloudAtStacks", "duration", 3.0f),
+            RunState.GetEffectParameter("PestilenceCloudAtStacks", "radius", 3.2f));
+    }
+
+    private async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
+    {
+        var scene = GetTree().CurrentScene;
+        if (scene == null) return;
+        var cloud = new MeshInstance3D
+        {
+            Name = "PestilenceCloud",
+            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.05f },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.28f, 0.78f, 0.12f, 0.2f),
+                EmissionEnabled = true,
+                Emission = new Color(0.25f, 0.85f, 0.08f),
+                EmissionEnergyMultiplier = 1.8f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+            }
+        };
+        scene.AddChild(cloud);
+        cloud.GlobalPosition = position + Vector3.Up * 0.04f;
+        var elapsed = 0.0f;
+        while (elapsed < duration && IsInsideTree() && GodotObject.IsInstanceValid(cloud))
+        {
+            foreach (var node in GetTree().GetNodesInGroup("enemies"))
+            {
+                if (node is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(position) > radius) continue;
+                enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(damagePerSecond, false, "Nuvem de Pestilência");
+            }
+            await ToSignal(GetTree().CreateTimer(1.0f), SceneTreeTimer.SignalName.Timeout);
+            elapsed += 1.0f;
+        }
+        if (GodotObject.IsInstanceValid(cloud))
+            cloud.QueueFree();
+    }
+
     private void DamageEnemiesNear(Vector3 position, float radius, float damage, EnemyBasic excluded)
     {
         foreach (var node in GetTree().GetNodesInGroup("enemies"))
             if (node is EnemyBasic enemy && enemy != excluded && enemy.GlobalPosition.DistanceTo(position) <= radius) enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage);
+    }
+
+    private async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
+    {
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null)
+            return;
+
+        var burst = new MeshInstance3D
+        {
+            Name = "CharmedDeathExplosion",
+            Mesh = new SphereMesh { Radius = radius, Height = radius * 2.0f, RadialSegments = 32, Rings = 16 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(1.0f, 0.04f, 0.58f, 0.34f),
+                EmissionEnabled = true,
+                Emission = new Color(1.0f, 0.0f, 0.48f),
+                EmissionEnergyMultiplier = 4.0f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+            },
+            Scale = Vector3.One * 0.08f
+        };
+        scene.AddChild(burst);
+        burst.GlobalPosition = position + Vector3.Up * 0.55f;
+        var tween = burst.CreateTween();
+        tween.TweenProperty(burst, "scale", Vector3.One, 0.16f)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(burst, "transparency", 1.0f, 0.28f);
+        await ToSignal(tween, Tween.SignalName.Finished);
+        if (IsInstanceValid(burst))
+            burst.QueueFree();
     }
 
     private async void SpawnPestilenceDeathBurst(Vector3 position, float radius)

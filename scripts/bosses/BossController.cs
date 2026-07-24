@@ -156,7 +156,7 @@ public partial class BossController : Node
         if (!CanContinue()) return;
         var angle = _rng.RandfRange(0.0f, Mathf.Tau);
         var offset = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * 5.2f;
-        _enemy.TeleportBoss(target.GlobalPosition + offset);
+        _enemy.TeleportBoss(ClampBossDestination(target.GlobalPosition + offset));
         _enemy.FaceCombatTarget();
         await StrikeAt(target.GlobalPosition, 1.55f, _enemy.AttackDamage * 0.65f, 0.35f, move.DisplayName);
     }
@@ -168,7 +168,7 @@ public partial class BossController : Node
         var origin = _enemy.GlobalPosition;
         var direction = FlatDirection(origin, target.GlobalPosition);
         var side = new Vector3(-direction.Z, 0.0f, direction.X) * (_rng.Randf() < 0.5f ? -1.0f : 1.0f);
-        _enemy.TeleportBoss(target.GlobalPosition + side * 4.8f);
+        _enemy.TeleportBoss(ClampBossDestination(target.GlobalPosition + side * 4.8f));
         await StrikeAt(origin, 1.8f, _enemy.AttackDamage * 0.55f, 0.38f, move.DisplayName);
         if (!CanContinue()) return;
         await ExecuteCharge(move, 7.0f, 0.38f);
@@ -321,6 +321,13 @@ public partial class BossController : Node
         var direction = to - from;
         direction.Y = 0.0f;
         return direction.LengthSquared() > 0.001f ? direction.Normalized() : Vector3.Forward;
+    }
+
+    private Vector3 ClampBossDestination(Vector3 destination)
+    {
+        return GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator roomGenerator
+            ? roomGenerator.ClampToWalkableArea(destination, 2)
+            : destination;
     }
 
     private bool CanContinue() => IsInsideTree() && IsInstanceValid(_enemy) && _health != null && !_health.IsDead;

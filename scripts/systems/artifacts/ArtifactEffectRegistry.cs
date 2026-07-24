@@ -38,7 +38,7 @@ public static class ArtifactEffectRegistry
         ["RatSummonOnPestilentKill"] = "Rato ao derrotar alvo pestilento",
         ["UnlockBestialFury"] = "Desbloqueia Furia Bestial (F)",
         ["FuryDamage"] = "Dano durante Furia Bestial",
-        ["FuryDuration"] = "Duracao da Furia Bestial"
+        ["FuryDuration"] = "Eficiencia da Furia Bestial"
     };
 
     public static string FriendlyName(string type) => Names.TryGetValue(type, out var name) ? name : SplitPascalCase(type);

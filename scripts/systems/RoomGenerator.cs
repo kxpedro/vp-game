@@ -87,6 +87,39 @@ public partial class RoomGenerator : Node3D
         return CellToWorld(_rewardCell) + new Vector3(_rng.RandfRange(-0.55f, 0.55f), 0.15f, _rng.RandfRange(-0.55f, 0.55f));
     }
 
+    public Vector3 ClampToWalkableArea(Vector3 position, int paddingCells = 1)
+    {
+        if (_walkableCells.Count == 0)
+            return position;
+
+        var requestedCell = WorldToCell(position);
+        var safeCell = requestedCell;
+        if (!_walkableCells.Contains(safeCell) || !HasWalkablePadding(safeCell, paddingCells))
+        {
+            var bestDistance = float.PositiveInfinity;
+            foreach (var candidate in _walkableCells)
+            {
+                if (!HasWalkablePadding(candidate, paddingCells))
+                    continue;
+                var distance = CellToWorld(candidate).DistanceSquaredTo(position);
+                if (distance >= bestDistance)
+                    continue;
+                bestDistance = distance;
+                safeCell = candidate;
+            }
+
+            if (float.IsPositiveInfinity(bestDistance))
+                safeCell = NearestWalkableCell(requestedCell);
+        }
+
+        var cellCenter = CellToWorld(safeCell);
+        var localLimit = CellSize * 0.32f;
+        return new Vector3(
+            cellCenter.X + Mathf.Clamp(position.X - cellCenter.X, -localLimit, localLimit),
+            position.Y,
+            cellCenter.Z + Mathf.Clamp(position.Z - cellCenter.Z, -localLimit, localLimit));
+    }
+
     private void BuildMap()
     {
         _walkableCells.Clear();

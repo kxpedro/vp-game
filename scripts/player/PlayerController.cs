@@ -210,7 +210,10 @@ public partial class PlayerController : CharacterBody3D
 		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
 		var maxHealthBonus = RunState.MaxHealthBonus + CharacterSheet.GetMaxHealthBonus() + (_skillController?.MaxHealthBonus() ?? 0.0f);
-		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus) * RunState.MaxHealthMultiplier * GameTuning.GetHealthMultiplier();
+		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus)
+			* RunState.MaxHealthMultiplier
+			* GameTuning.GetHealthMultiplier()
+			* RunState.SacrificedMaxHealthMultiplier;
 		_health?.SetMaxHealth(tunedMaxHealth, false);
 	}
 

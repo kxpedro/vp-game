@@ -298,32 +298,74 @@ public partial class RunManager : Node3D
     {
         var artifact = new RoomArtifact
         {
-            Name = "RoomArtifact",
+            Name = "BossArtifactAltar",
             Position = _roomGenerator?.GetArtifactSpawnPosition() ?? new Vector3(_rng.RandfRange(-5.0f, 5.0f), 0.35f, _rng.RandfRange(-5.0f, 5.0f)),
-            ArtifactName = "Artefato do Chefe"
+            ArtifactName = "Altar de Artefatos"
         };
         AddChild(artifact);
 
-        var visual = new MeshInstance3D
+        var altarMaterial = new StandardMaterial3D
         {
-            Mesh = new SphereMesh { Radius = 0.35f, Height = 0.7f },
+            AlbedoColor = new Color(0.11f, 0.075f, 0.09f),
+            Metallic = 0.55f,
+            Roughness = 0.42f,
+            EmissionEnabled = true,
+            Emission = new Color(0.34f, 0.0f, 0.08f),
+            EmissionEnergyMultiplier = 1.15f
+        };
+        artifact.AddChild(new MeshInstance3D
+        {
+            Name = "Pedestal",
+            Mesh = new CylinderMesh { TopRadius = 0.72f, BottomRadius = 0.9f, Height = 0.62f, RadialSegments = 8 },
+            MaterialOverride = altarMaterial,
+            Position = Vector3.Up * 0.31f
+        });
+        artifact.AddChild(new MeshInstance3D
+        {
+            Name = "AltarTop",
+            Mesh = new CylinderMesh { TopRadius = 0.82f, BottomRadius = 0.72f, Height = 0.18f, RadialSegments = 8 },
+            MaterialOverride = altarMaterial,
+            Position = Vector3.Up * 0.68f
+        });
+        var relic = new MeshInstance3D
+        {
+            Name = "ArtifactRelic",
+            Mesh = new SphereMesh { Radius = 0.28f, Height = 0.56f },
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(0.85f, 0.02f, 0.04f),
+                AlbedoColor = new Color(0.92f, 0.03f, 0.18f),
                 EmissionEnabled = true,
-                Emission = new Color(1.0f, 0.0f, 0.0f),
-                EmissionEnergyMultiplier = 1.8f
-            }
+                Emission = new Color(1.0f, 0.0f, 0.24f),
+                EmissionEnergyMultiplier = 3.4f
+            },
+            Position = Vector3.Up * 1.12f
         };
-        artifact.AddChild(visual);
+        artifact.AddChild(relic);
+        var pulse = relic.CreateTween().SetLoops();
+        pulse.TweenProperty(relic, "position:y", 1.28f, 0.7f)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.InOut);
+        pulse.TweenProperty(relic, "position:y", 1.12f, 0.7f)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.InOut);
+        artifact.AddChild(new Label3D
+        {
+            Name = "AltarTitle",
+            Text = "ALTAR DE ARTEFATOS",
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 36,
+            Modulate = new Color(1.0f, 0.68f, 0.76f),
+            OutlineSize = 8,
+            OutlineModulate = Colors.Black,
+            Position = Vector3.Up * 1.85f
+        });
 
         var collision = new CollisionShape3D
         {
-            Shape = new SphereShape3D { Radius = 1.1f },
-            Position = Vector3.Up * 0.3f
+            Shape = new CylinderShape3D { Radius = 1.25f, Height = 2.0f },
+            Position = Vector3.Up
         };
         artifact.AddChild(collision);
-        GetTree().CallGroup("hud", "OpenArtifactOffer", artifact);
     }
 
     private void CreateRoomLabel(string text)

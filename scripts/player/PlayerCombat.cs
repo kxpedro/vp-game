@@ -11,7 +11,9 @@ public partial class PlayerCombat : Node
 	[Export] public float ComboResetTime { get; set; } = 1.0f;
 	[Export] public float QuickAttackInputBufferSeconds { get; set; } = 0.32f;
 	[Export] public float MaxFury { get; set; } = 100.0f;
-	[Export] public float FuryDuration { get; set; } = 6.0f;
+	[Export] public float FuryDrainPerSecond { get; set; } = 10.0f;
+	[Export] public float FuryEndBurstDamageRatio { get; set; } = 0.15f;
+	[Export] public float FuryEndBurstRadius { get; set; } = 3.5f;
 	[Export] public float FuryDamageMultiplier { get; set; } = 1.75f;
 	[Export] public float AutoAimRadius { get; set; } = 4.25f;
 
@@ -69,6 +71,7 @@ public partial class PlayerCombat : Node
 		TickComboReset((float)delta);
 		_quickAttackInputBufferTimer = Mathf.Max(_quickAttackInputBufferTimer - (float)delta, 0.0f);
 		_specialAttackCooldownTimer = Mathf.Max(_specialAttackCooldownTimer - (float)delta, 0.0f);
+		TickBestialFury((float)delta);
 		if (_controller?.IsStaggered == true)
 			return;
 		if (GetTree().GetFirstNodeInGroup("hud") is HUD hud && hud.IsGameplayInputBlocked())
@@ -724,22 +727,53 @@ public partial class PlayerCombat : Node
 		return true;
 	}
 
-	private async void ActivateFury()
+	private void ActivateFury()
 	{
 		IsFuryActive = true;
-		CurrentFury = 0.0f;
+		CurrentFury = Mathf.Min(CurrentFury, MaxFury);
 		SetFuryVisualActive(true);
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
+	}
 
-		var duration = CompendiumTuning.GetFloat("attack.fury.duration", FuryDuration);
-		duration *= 1.0f + RunState.GetEffectTotal("FuryDuration.Multiplier");
-		duration *= _skills?.TemporaryEffectDurationMultiplier() ?? 1.0f;
-		await Wait(duration);
-		if (!IsInsideTree()) return;
+	private void TickBestialFury(float delta)
+	{
+		if (!IsFuryActive)
+			return;
 
+		var durationMultiplier = 1.0f + RunState.GetEffectTotal("FuryDuration.Multiplier");
+		durationMultiplier *= _skills?.TemporaryEffectDurationMultiplier() ?? 1.0f;
+		var baseDrainRate = CompendiumTuning.GetFloat("attack.fury.drain_per_second", FuryDrainPerSecond);
+		var drainRate = Mathf.Max(baseDrainRate / Mathf.Max(durationMultiplier, 0.05f), 0.01f);
+		CurrentFury = Mathf.Max(CurrentFury - drainRate * delta, 0.0f);
+		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
+		if (CurrentFury > 0.0f)
+			return;
+
+		EndBestialFury();
+	}
+
+	private void EndBestialFury()
+	{
 		IsFuryActive = false;
 		SetFuryVisualActive(false);
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
+		DealFuryEndBurst();
+	}
+
+	private void DealFuryEndBurst()
+	{
+		var player = GetParent<Node3D>();
+		var damage = GetCurrentBasicAttackDamage() * FuryEndBurstDamageRatio;
+		foreach (var node in GetTree().GetNodesInGroup("enemies"))
+		{
+			if (node is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(player.GlobalPosition) > FuryEndBurstRadius)
+				continue;
+			var finalDamage = damage * enemy.DamageTakenMultiplier;
+			enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(finalDamage, false, "Explosão final da Fúria Bestial");
+			enemy.ApplyKnockback(enemy.GlobalPosition - player.GlobalPosition, 2.5f, 0.0f);
+		}
+		SpawnFuryBloodBurst(player.GlobalPosition);
+		GetTree().CallGroup("hud", "AppendGameLog", $"A Fúria terminou com uma explosão de {Mathf.RoundToInt(damage)} de dano base.");
 	}
 
 	private void CreateFuryVisualOverlay()

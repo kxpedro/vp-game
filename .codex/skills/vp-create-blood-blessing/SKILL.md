@@ -17,21 +17,24 @@ Criar uma bênção temporária de run, coerente com a família e integrada dire
 6. Preferir tipos existentes. Para efeito novo, implementar o consumo no sistema correto e expor parâmetros via `BloodBlessingRuntime` ou `RunState`.
 7. Usar `UnlockBestialFury` quando a bênção habilitar o ataque em `F`. Sem esse efeito, a Fúria não pode ser usada.
 8. Para efeitos espaciais derivados de um golpe, reutilizar a área real do ataque. Uma poça do especial deve ter o mesmo tamanho do hitbox radial do especial.
-9. Adicionar a entrada preservando JSON válido, UTF-8, ID único em `snake_case` e família exatamente compatível.
+9. Adicionar a entrada preservando JSONC válido, UTF-8, ID único em `snake_case` e família exatamente compatível. Quando o pedido for retirar sem apagar, comentar o objeto inteiro.
 10. Confirmar que a primeira oferta da run sempre contém ao menos uma bênção com a tag `basic_attack`.
 11. Verificar oferta, exclusão de bênçãos já escolhidas, aplicação, feedback e reset ao iniciar outra run.
-12. Executar `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py` e `dotnet build VP0.1.csproj`.
-13. Informar valores Common/escalados, ataque afetado, integração e testes.
+12. Garantir exclusividade por tipo de ataque: bênçãos de ataque básico, rápido, especial e Fúria Bestial devem usar o `exclusiveGroup` reservado ao seu tipo e substituir a equipada anteriormente.
+13. Executar `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py` e `dotnet build VP0.1.csproj`.
+14. Informar valores Common/escalados, ataque afetado, integração e testes.
 
 ## Regras de conclusão
 
 - Não considerar uma entrada no JSON como efeito implementado.
 - Toda bênção deve interagir com ao menos um ataque do moveset ou uma consequência direta dele.
 - Manter cobertura para ataque básico, rápido, especial e Fúria Bestial.
+- Nunca permitir duas bênçãos equipadas para o mesmo tipo direto de ataque. Usar `basic_attack_status`, `quick_attack_status`, `special_attack_status` e `bestial_fury_mode`; a nova escolha substitui a anterior.
 - A primeira oferta deve continuar encontrando uma opção `basic_attack`.
 - Somente uma bênção pode desbloquear a Fúria por meio de `UnlockBestialFury`; nenhuma skill permanente substitui essa condição.
 - Não alterar `rarityScaling` global ou outras famílias sem pedido explícito.
 - Não prometer stacks múltiplos sem verificar a limitação atual do loader.
+- Ao alterar Barreira, Encanto, Sangramento, Pestilência, Hospedeiro ou Ferida Recuperável, verificar feedback na HUD, duração/reset e escala por raridade descritos na referência.
 - Tratar warnings de efeito sem referência C# como investigação obrigatória, salvo consumo genérico comprovado.
 - Manter o tema: Dracul enfatiza domínio/sangue; Bathory, cura/sangue derramado; Karnstein, sedução/agilidade; Orlok, doença/controle/risco.
 
