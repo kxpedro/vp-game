@@ -5,19 +5,15 @@ public partial class EnemyProjectile : Node3D
     public Vector3 Direction { get; set; } = Vector3.Forward;
     public Vector3 SpawnPosition { get; set; }
     public float Speed { get; set; } = 5.2f;
-    public float MaximumDistance { get; set; } = 22.0f;
     public float Damage { get; set; } = 10.0f;
     public string SourceName { get; set; } = "Disparo inimigo";
     public Rid OwnerRid { get; set; }
-
-    private Vector3 _origin;
 
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Pausable;
         AddToGroup("enemy_projectiles");
         GlobalPosition = SpawnPosition;
-        _origin = GlobalPosition;
         if (Direction.LengthSquared() > 0.001f)
             LookAt(GlobalPosition + Direction.Normalized(), Vector3.Up);
 
@@ -104,8 +100,6 @@ public partial class EnemyProjectile : Node3D
             QueueFree();
             return;
         }
-        if (GlobalPosition.DistanceTo(_origin) >= MaximumDistance)
-            QueueFree();
     }
 
     private static float SegmentDistanceToPlayer(Vector3 from, Vector3 to, Vector3 playerPosition)

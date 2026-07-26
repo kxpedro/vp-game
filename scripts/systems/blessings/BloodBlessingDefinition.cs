@@ -31,7 +31,25 @@ public sealed record BloodBlessingDefinition(
     BloodBlessingEffectDefinition[] Effects
 );
 
-public sealed record BloodBlessingRecord(string Id, string Name, int Stack, string Rarity = "Common", float PowerMultiplier = 1.0f);
+public static class BloodBlessingProgression
+{
+    public const int MaximumLevel = 10;
+    public const float BonusPerAdditionalLevel = 0.25f;
+
+    public static float GetLevelMultiplier(int level)
+        => 1.0f + (System.Math.Clamp(level, 1, MaximumLevel) - 1) * BonusPerAdditionalLevel;
+}
+
+public sealed record BloodBlessingRecord(
+    string Id,
+    string Name,
+    int Stack,
+    string Rarity = "Common",
+    float PowerMultiplier = 1.0f,
+    int Level = 1)
+{
+    public float EffectivePowerMultiplier => PowerMultiplier * BloodBlessingProgression.GetLevelMultiplier(Level);
+}
 
 public sealed record BloodBlessingOffer(BloodBlessingDefinition Definition, string Rarity, float PowerMultiplier);
 

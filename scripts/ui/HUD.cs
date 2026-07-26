@@ -15,10 +15,8 @@ public partial class HUD : CanvasLayer
 	private Label _fpsLabel;
 	private ColorRect _damageFlash;
 	private ColorRect _criticalHealthVignette;
-	private MinimapControl _minimap;
 	private RichTextLabel _gameLog;
 	private readonly Queue<string> _gameLogEntries = new();
-	private bool _minimapExpanded;
 	private ProgressBar _furyBar;
 	private Label _coinsLabel;
 	private Label _weaponLabel;
@@ -58,7 +56,6 @@ public partial class HUD : CanvasLayer
 	private Button _blessingRerollButton;
 	private readonly List<Button> _blessingChoiceButtons = new();
 	private int _focusedBlessingChoice;
-	private bool _bloodBlessingChoiceMandatory;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
 	private VBoxContainer _blessingHudList;
@@ -143,13 +140,6 @@ public partial class HUD : CanvasLayer
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Tab })
-		{
-			_minimapExpanded = !_minimapExpanded;
-			_minimap?.SetExpanded(_minimapExpanded);
-			GetViewport().SetInputAsHandled();
-			return;
-		}
 		if (@event.IsActionPressed("pause") && !_isGameOver)
 		{
 			if (!CloseTopmostOverlay())
@@ -292,10 +282,6 @@ public partial class HUD : CanvasLayer
 		};
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
-
-		_minimap = new MinimapControl { Name = "Minimap" };
-		root.AddChild(_minimap);
-		_minimap.SetExpanded(false);
 
 		_damageFlash = new ColorRect
 		{
@@ -1786,7 +1772,6 @@ public partial class HUD : CanvasLayer
 	private async void OpenBloodBlessingOfferInternal(bool mandatory)
 	{
 		if (_bloodBlessingOverlay == null) return;
-		_bloodBlessingChoiceMandatory = mandatory;
 		if (mandatory)
 		{
 			AppendGameLog("A fonte primordial revelou a primeira Bencao de Sangue desta run.");
@@ -1897,7 +1882,6 @@ public partial class HUD : CanvasLayer
 			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
 			AppendGameLog("Todas as bencaos unicas foram encontradas. Sangue convertido em 25 moedas.");
 			_bloodBlessingOverlay.Visible = false;
-			_bloodBlessingChoiceMandatory = false;
 			GetTree().Paused = false;
 			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
 			return;
@@ -1921,7 +1905,7 @@ public partial class HUD : CanvasLayer
 			var content = new RichTextLabel
 			{
 				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
-				Text = $"[font_size=22][b]{blessing.DisplayName}[/b] | {FormatBlessingLineage(blessing)} | {offer.Rarity}[/font_size]\n{FormatEffectKeywords(blessing.Description)}\n{FormatBloodBlessingEffects(blessing, offer.PowerMultiplier)}{replacementWarning}",
+				Text = $"[font_size=22][b]{blessing.DisplayName}[/b] | {FormatBlessingLineage(blessing)} | {offer.Rarity}[/font_size]\n{FormatEffectKeywords(FormatBloodBlessingDescription(blessing, offer.PowerMultiplier))}{replacementWarning}",
 				CustomMinimumSize = new Vector2(1040, 115),
 				MouseDefaultCursorShape = Control.CursorShape.PointingHand,
 				TooltipText = replaced != null ? $"Ao escolher, substitui {replaced.Name}." : FullBlessingTooltip(blessing, offer.Rarity, offer.PowerMultiplier)
@@ -2005,10 +1989,10 @@ public partial class HUD : CanvasLayer
 		var blessing = offer.Definition;
 		if (!RunState.AddBloodBlessing(offer)) return;
 		GetTree().CallGroup("player", "ApplyRuntimeTuning");
+		GetTree().CallGroup("audio_manager", "PlayEffect", "blessing_select");
 		AppendGameLog($"Bencao adquirida: {blessing.DisplayName} [{offer.Rarity}].");
 		ShowEnemyDefeatedToast($"{offer.Rarity}: {blessing.DisplayName}");
 		_bloodBlessingOverlay.Visible = false;
-		_bloodBlessingChoiceMandatory = false;
 		GetTree().Paused = false;
 		RefreshCharacterSheet();
 		RefreshBlessingHud();
@@ -2021,15 +2005,82 @@ public partial class HUD : CanvasLayer
 		for (var i = 0; i < blessing.Effects.Length; i++)
 		{
 			var effect = blessing.Effects[i];
-			var value = effect.BooleanValue ? 1.0f : effect.Value * powerMultiplier;
+			var value = effect.BooleanValue ? 1.0f : GetDisplayedBlessingValue(effect, effect.Value * powerMultiplier);
 			text += $"{ArtifactEffectRegistry.FriendlyName(effect.Type)} {FormatArtifactOperation(effect.Operation, value)}";
 			if (i < blessing.Effects.Length - 1) text += " | ";
 		}
 		return text;
 	}
 
+	private static string FormatBloodBlessingDescription(BloodBlessingDefinition blessing, float effectivePowerMultiplier)
+	{
+		var description = blessing.Description;
+		for (var i = 0; i < blessing.Effects.Length; i++)
+		{
+			var effect = blessing.Effects[i];
+			if (effect.BooleanValue || effect.Operation is "Set" or "SetBool")
+				continue;
+
+			var baseValue = CompendiumTuning.GetFloat($"blessing.{blessing.Id}.effect.{i}.value", effect.Value);
+			var percentValue = effect.Value * 100.0f;
+			var percentPattern = NumberPattern(percentValue) + @"\s*%";
+			var usesPercent = effect.Operation.Contains("Multiplier", StringComparison.OrdinalIgnoreCase)
+				|| effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase)
+				|| Regex.IsMatch(description, percentPattern, RegexOptions.IgnoreCase);
+			var sourcePattern = usesPercent ? percentPattern : NumberPattern(effect.Value);
+			var effectiveValue = GetDisplayedBlessingValue(effect, baseValue * effectivePowerMultiplier);
+			if (effect.Type == "MaxHealth" && effect.Operation == "AddFlat")
+				effectiveValue *= RunState.MaxHealthMultiplier * RunState.SacrificedMaxHealthMultiplier;
+			var replacement = usesPercent
+				? $"{FormatLocalizedNumber(effectiveValue * 100.0f)}%"
+				: FormatLocalizedNumber(effectiveValue);
+			description = ReplaceFirst(description, sourcePattern, replacement);
+		}
+		return description;
+	}
+
+	private static float GetDisplayedBlessingValue(BloodBlessingEffectDefinition effect, float value)
+	{
+		if (effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase))
+			return Mathf.Clamp(value, 0.0f, 1.0f);
+		if (effect.Type == "PestilenceSpreadTargets")
+			return Mathf.Round(value);
+		return value;
+	}
+
+	private static string NumberPattern(float value)
+	{
+		var invariant = value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+		return $@"(?<![\d.,]){Regex.Escape(invariant).Replace(@"\.", @"[.,]")}(?![\d.,])";
+	}
+
+	private static string FormatLocalizedNumber(float value)
+	{
+		return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',');
+	}
+
+	private static string ReplaceFirst(string text, string pattern, string replacement)
+	{
+		var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+		if (!match.Success)
+			return text;
+		return text[..match.Index] + replacement + text[(match.Index + match.Length)..];
+	}
+
 	private static string FormatEffectKeywords(string text)
 	{
+		text = Regex.Replace(text, @"\b(Ataques? básicos?|Ataques? rápidos?|Ataques? especiais?|Fúria Bestial)\b", match =>
+		{
+			var lower = match.Value.ToLowerInvariant();
+			if (lower.Contains("básic"))
+				return $"[hint=\"Ataque principal no botão esquerdo; encadeia o combo da arma equipada.\"][color=#ffd166][b]{match.Value}[/b][/color][/hint]";
+			if (lower.Contains("rápid"))
+				return $"[hint=\"Golpe executado ao atacar durante a janela da esquiva.\"][color=#72e6ff][b]{match.Value}[/b][/color][/hint]";
+			if (lower.Contains("especial"))
+				return $"[hint=\"Ataque da arma no Q; interrompe o combo básico e usa a forma especial da arma.\"][color=#d58cff][b]{match.Value}[/b][/color][/hint]";
+			return $"[hint=\"Estado ativado no F quando desbloqueado; consome a barra de Fúria para ampliar o poder ofensivo.\"][color=#ff4d5f][b]{match.Value}[/b][/color][/hint]";
+		}, RegexOptions.IgnoreCase);
+
 		return Regex.Replace(text, @"\b(Sangramento|Sangrando|Pestilência|Pestilento|Pestilenta|Encanto|Encantar|Encantado|Encantada|Encantados|Encantadas|Barreira|Fascínio|Hospedeiro|Hospedeiros|Interrompido|Interrompida|Ferida recuperável)\b", match =>
 		{
 			var lower = match.Value.ToLowerInvariant();
@@ -2051,9 +2102,9 @@ public partial class HUD : CanvasLayer
 		}, RegexOptions.IgnoreCase);
 	}
 
-	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier)
+	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier, int level = 1)
 	{
-		return $"{blessing.DisplayName} [{rarity}]\n{blessing.Description}\n{FormatBloodBlessingEffects(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
+		return $"{blessing.DisplayName} [{rarity}] — N{level}\n{FormatBloodBlessingDescription(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
 	}
 
 	private void RefreshBlessingHud()
@@ -2066,16 +2117,49 @@ public partial class HUD : CanvasLayer
 		{
 			var record = RunState.RunBlessings[i];
 			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
+			var iconContainer = new Control
+			{
+				CustomMinimumSize = new Vector2(44.0f, 44.0f),
+				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.EffectivePowerMultiplier, record.Level),
+				MouseFilter = Control.MouseFilterEnum.Pass,
+				MouseDefaultCursorShape = Control.CursorShape.Help
+			};
 			var icon = new TextureRect
 			{
 				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
-				CustomMinimumSize = new Vector2(44.0f, 44.0f),
+				AnchorRight = 1.0f,
+				AnchorBottom = 1.0f,
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier),
-				MouseDefaultCursorShape = Control.CursorShape.Help
+				MouseFilter = Control.MouseFilterEnum.Ignore
 			};
-			_blessingHudList.AddChild(icon);
+			iconContainer.AddChild(icon);
+			var blessingLevel = record.Level;
+			if (blessingLevel > 1)
+			{
+				var levelBadge = new Label
+				{
+					Text = $"N{blessingLevel}",
+					AnchorLeft = 1.0f,
+					AnchorTop = 1.0f,
+					AnchorRight = 1.0f,
+					AnchorBottom = 1.0f,
+					OffsetLeft = -24.0f,
+					OffsetTop = -18.0f,
+					OffsetRight = 1.0f,
+					OffsetBottom = 1.0f,
+					HorizontalAlignment = HorizontalAlignment.Center,
+					VerticalAlignment = VerticalAlignment.Center,
+					MouseFilter = Control.MouseFilterEnum.Ignore
+				};
+				levelBadge.AddThemeFontSizeOverride("font_size", 13);
+				levelBadge.AddThemeColorOverride("font_color", Colors.White);
+				levelBadge.AddThemeColorOverride("font_shadow_color", Colors.Black);
+				levelBadge.AddThemeConstantOverride("shadow_offset_x", 2);
+				levelBadge.AddThemeConstantOverride("shadow_offset_y", 2);
+				iconContainer.AddChild(levelBadge);
+			}
+			_blessingHudList.AddChild(iconContainer);
 		}
 
 		if (RunState.RunBlessings.Count <= visibleBlessingLimit)
@@ -2190,7 +2274,7 @@ public partial class HUD : CanvasLayer
 			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
 			var row = new HBoxContainer
 			{
-				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.PowerMultiplier),
+				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.EffectivePowerMultiplier, record.Level),
 				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
 			};
 			row.AddChild(new TextureRect
@@ -2201,7 +2285,7 @@ public partial class HUD : CanvasLayer
 			});
 			row.AddChild(new Label
 			{
-				Text = $"[{record.Rarity}] {record.Name}",
+				Text = $"[{record.Rarity}] {record.Name} — N{record.Level}",
 				VerticalAlignment = VerticalAlignment.Center,
 				AutowrapMode = TextServer.AutowrapMode.WordSmart,
 				SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -2276,7 +2360,7 @@ public partial class HUD : CanvasLayer
 		var latestStacks = new Dictionary<string, BloodBlessingRecord>();
 		foreach (var blessing in RunState.RunBlessings) latestStacks[blessing.Id] = blessing;
 		var text = "";
-		foreach (var blessing in latestStacks.Values) text += $"- [{blessing.Rarity}] {blessing.Name}\n";
+		foreach (var blessing in latestStacks.Values) text += $"- [{blessing.Rarity}] {blessing.Name} — N{blessing.Level}\n";
 		return text;
 	}
 
@@ -3335,15 +3419,8 @@ public partial class HUD : CanvasLayer
 		if (IsVisible(_artifactOfferOverlay)) { _artifactOfferOverlay.Visible = false; RefreshModalPause(); return true; }
 		if (IsVisible(_bloodBlessingOverlay))
 		{
-			if (_bloodBlessingChoiceMandatory)
-			{
-				_bloodBlessingStatusLabel.Text = "Escolha uma Bencao de Sangue para liberar a saida.";
-				FocusBlessingChoice(_focusedBlessingChoice);
-				return true;
-			}
-			_bloodBlessingOverlay.Visible = false;
-			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
-			RefreshModalPause();
+			_bloodBlessingStatusLabel.Text = "Escolha uma Bencao de Sangue para liberar a saida.";
+			FocusBlessingChoice(_focusedBlessingChoice);
 			return true;
 		}
 		if (IsVisible(_characterSheetOverlay)) { _characterSheetOverlay.Visible = false; RefreshModalPause(); return true; }

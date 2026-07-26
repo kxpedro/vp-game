@@ -1,6 +1,6 @@
 # Contexto atual do projeto
 
-Snapshot técnico de Vampire's Prey em 2026-07-23. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
+Snapshot técnico de Vampire's Prey em 2026-07-26. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
 
 ## Visão do jogo
 
@@ -13,7 +13,7 @@ O objetivo atual é consolidar uma primeira versão jogável com combate respons
 1. Escolher idioma e slot no menu principal.
 2. Preparar a run no Ninho do Corvo e, se desejado, testar o moveset na sala de treinamento.
 3. Entrar na sala bônus inicial e escolher uma bênção aleatória na fonte central.
-4. Sobreviver a três waves de 5 inimigos em cada sala comum.
+4. Sobreviver a quatro waves de 5 inimigos em cada sala comum.
 5. Absorver o sangue da sala e escolher uma Bênção de Sangue.
 6. Avançar somente após confirmar a recompensa.
 7. Derrotar o boss, interagir com o Altar de Artefatos e escolher um artefato passivo.
@@ -29,7 +29,7 @@ O objetivo atual é consolidar uma primeira versão jogável com combate respons
 - Salas comuns usam quatro regiões compactas de 9 × 9 células, com deslocamentos intermediários, rotação e espelhamento.
 - A arena de boss usa 21 × 21 células e restringe destinos de teleporte/dash a posições navegáveis.
 - Spawns respeitam margem das paredes e distância mínima de 2,35 unidades entre posições planejadas.
-- Cada sala comum agenda três waves de 5 inimigos, totalizando 15.
+- Cada sala comum agenda quatro waves de 5 inimigos, totalizando 20.
 - Ranged corresponde a aproximadamente 26,67% dos sorteios de arquétipo, redução de 20% sobre a distribuição anterior.
 - O portão de saída permanece bloqueado durante o combate e até a escolha da recompensa.
 - Os nomes das alas não são exibidos sobre os mapas gerados.
@@ -53,9 +53,11 @@ Estado atual:
 
 - base de 100 HP, com bônus legítimos aplicados posteriormente;
 - HP absoluto preservado entre salas e mapas da mesma run;
-- personagem provisório representado por um cilindro azul;
+- personagem usa `Knight_Male.gltf`, com idle, caminhada, corrida, esquiva e ataque;
 - Espada Grande é a arma funcional; IDs antigos de Espada Grande e Espadas Duplas migram para `longsword`;
+- o visual da arma é preso aos ossos das mãos e muda por evento ao equipar Espada Grande, Revolver Duplo ou Chicote;
 - dano, tempos, alcance, forma da hitbox, tolerância de borda, empurrão, stagger e cooldown especial pertencem à definição da arma;
+- cada golpe possui perfil de buffer, cancelamentos, mobilidade, assistência de mira e redirecionamento;
 - combo básico de três golpes reiniciado após 1 segundo sem sequência;
 - terceiro golpe básico com 20% mais empurrão que os golpes comuns do combo;
 - ataque rápido com buffer da combinação dash + ataque e sem herdar efeitos exclusivos do ataque básico;
@@ -67,7 +69,7 @@ Estado atual:
 - Fúria Bestial aplica pós-processamento em preto e branco, preservando os vermelhos associados a sangue;
 - Fúria cheia possui 100 pontos, consome 10 por segundo por padrão e explode com 15% do dano básico ao terminar;
 - críticos usam amarelo-ouro e números três vezes maiores;
-- barreira absorve dano antes da vida, perde 1 ponto por segundo e é zerada ao trocar de sala.
+- barreira absorve dano antes da vida, espera 8 segundos, perde 0,25 ponto por segundo e é zerada ao trocar de sala.
 
 ## Controles e pausa
 
@@ -89,6 +91,8 @@ O catálogo `data/blessings/blood_blessings.json` contém 63 definições ativas
 
 - ofertas usam Common, Uncommon, Rare, Epic ou Legendary; Stirps possui regra própria;
 - valores numéricos escalam pela qualidade sorteada;
+- raridade permanece fixa; níveis N1–N10 são aprimorados separadamente e acrescentam 25% por nível adicional;
+- chances são limitadas a 100% no runtime e na interface;
 - há ao menos uma bênção de cada família para ataque básico, rápido e especial;
 - bênçãos diretamente ligadas aos três tipos de ataque têm peso elevado;
 - bênçãos Stirps têm peso de família reduzido para 45% do peso das linhagens comuns;
@@ -106,22 +110,24 @@ Sangramento e Pestilência possuem stacks visíveis; cada stack aumenta em 5% o 
 
 Ferida Recuperável espera 2 segundos sem novo dano e restaura gradualmente durante 5 segundos. A escala atual é 20%/40%/70%/110%/140% nas cinco raridades e permanece marcada para rebalanceamento.
 
-A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato dura 8 segundos, usa um círculo verde-limão, captura a velocidade de movimento e o intervalo de ataque do jogador e causa 50% do dano básico. A capacidade simultânea é Common 1, Uncommon 2, Rare 3, Epic 4 e Legendary 5; aprimoramentos no altar atualizam essa capacidade.
+A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato dura 8 segundos, usa um pequeno cilindro físico, separa-se dos demais, captura a velocidade de movimento e o intervalo de ataque do jogador e causa 50% do dano básico. A capacidade simultânea-base é Common 1, Uncommon 2, Rare 3, Epic 4 e Legendary 5, com mais um por nível acima de N1.
 
 ## Inimigos e bosses
 
-- melee usa cilindro ciano;
-- ranged usa prisma triangular rosa-choque;
-- tank usa cubo amarelo;
-- os três arquétipos possuem brilho na cor correspondente e não recebem mais o vermelho genérico;
+- melee usa o modelo Ninja;
+- ranged usa o modelo Demon;
+- tank usa o modelo Orc;
+- bosses usam Dragon Evolved, Ghost Skull, Orc Skull e Blue Demon;
+- os modelos reproduzem idle, locomoção, ataque e reação a dano;
 - inimigos aparecem mais separados e o empurrão dos ataques do jogador está ativo;
 - ranged pode recuar ou buscar distância tática;
-- projéteis ranged são flechas emissivas maiores, mais lentas e de alcance prolongado; o retângulo de hitbox antecipada foi removido;
+- projéteis ranged são flechas emissivas maiores e mais lentas, permanecendo até colisão com jogador ou cenário; o retângulo de hitbox antecipada foi removido;
 - tank carrega o golpe por mais tempo e ataca com área e dano maiores;
 - dano geral dos inimigos foi reduzido em 10% na etapa de aplicação do dano;
 - contato corporal causa 5% do dano de ataque atual do inimigo;
 - o comportamento visual incorreto que fazia o primeiro boss crescer e ficar vermelho foi removido;
 - bosses e raridades altas mantêm resistências próprias de stagger e empurrão;
+- bosses recebem apenas 5% do empurrão e do impacto contra parede;
 - reposicionamentos do segundo boss são limitados à arena para evitar dashes fora do mapa.
 
 ## Recompensas, progressão e save
@@ -140,9 +146,10 @@ A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato du
 A maior parte da HUD é criada por código em `scripts/ui/HUD.cs`.
 
 - vida, stamina, fúria, arma, skills, moedas e estado do boss;
-- progresso da sala, aviso de wave, minimapa e log de combate;
+- progresso da sala, aviso de wave e log de combate; o minimapa e o atalho `Tab` foram removidos;
 - dicas permanentes de botões no topo foram removidas;
 - até sete bênçãos aparecem na faixa compacta; havendo mais, um `+` ocupa a linha inferior do último slot;
+- bênçãos aprimoradas mostram `N2` a `N10` ao lado do ícone;
 - a ficha do personagem pausa o jogo e abre uma coluna rolável com todas as bênçãos e descrições por hover/foco;
 - habilidades passivas permanentes também aparecem na ficha;
 - overlays recebem foco inicial para d-pad/analógico e respeitam confirmar/voltar;
@@ -151,7 +158,7 @@ A maior parte da HUD é criada por código em `scripts/ui/HUD.cs`.
 - a barreira aparece como extensão azul da barra de vida;
 - interfaces de Fonte de Sangue e Altar do Sacrifício são roláveis e responsivas.
 
-Na Câmara de Hemomancia, o Altar do Sacrifício reduz em 5% a vida máxima total da run para aprimorar uma bênção. A redução é cumulativa, persiste entre salas e é removida quando a run termina.
+Na Câmara de Hemomancia, o Altar do Sacrifício reduz em 5% a vida máxima total da run para elevar uma bênção em um nível sem mudar sua raridade. A redução é cumulativa, persiste entre salas e é removida quando a run termina.
 
 ## Build e validação
 

@@ -299,7 +299,7 @@
       "rarity": "Common",
       "weight": 100,
       "maxStacks": 6,
-      "description": "Inimigos derrotados têm 10% de chance por nível de gerar uma Gota de Sangue que cura 5% da vida máxima.",
+      "description": "Inimigos derrotados têm 10% de chance de gerar uma Gota de Sangue que cura 5% da vida máxima.",
       "flavorText": "Todo súdito paga ao soberano, mesmo após a morte.",
       "tags": [
         "dracul",
@@ -401,7 +401,7 @@
       "rarity": "Uncommon",
       "weight": 62,
       "maxStacks": 4,
-      "description": "Ao se curar ganha 15% de dano por nível durante 5 segundos.",
+      "description": "Ao se curar ganha 15% de dano durante 5 segundos.",
       "flavorText": "Cada gota devolvida desperta séculos de poder.",
       "tags": [
         "dracul",
@@ -425,7 +425,7 @@
       "rarity": "Uncommon",
       "weight": 58,
       "maxStacks": 4,
-      "description": "10% do excesso de cura por nível é convertido em barreira, limitada a 20% da vida máxima.",
+      "description": "10% do excesso de cura é convertido em barreira, limitada a 20% da vida máxima. Ela espera 8s antes de decair lentamente.",
       "flavorText": "Nada oferecido ao conde é desperdiçado.",
       "tags": [
         "dracul",
@@ -438,7 +438,9 @@
           "type": "OverhealToBarrier",
           "operation": "AddMultiplier",
           "value": 0.1,
-          "maxHealthCap": 0.2
+          "maxHealthCap": 0.2,
+          "decayDelay": 8.0,
+          "decayPerSecond": 0.25
         }
       ]
     },
@@ -473,7 +475,7 @@
       "rarity": "Rare",
       "weight": 36,
       "maxStacks": 2,
-      "description": "Ao atingir um inimigo com menos de 50% de vida, seus ataques ganham 10% de roubo de vida por nível.",
+      "description": "Ao atingir um inimigo com menos de 50% de vida, seus ataques ganham 10% de roubo de vida.",
       "flavorText": "A última taça é sempre a mais doce.",
       "tags": [
         "dracul",
@@ -497,7 +499,7 @@
       "rarity": "Rare",
       "weight": 32,
       "maxStacks": 2,
-      "description": "Enquanto possuir barreira, causa 15% mais dano por nível e não pode ser interrompido.",
+      "description": "Enquanto possuir barreira, causa 15% mais dano e não pode ser interrompido.",
       "flavorText": "O trono não se curva diante de lâminas menores.",
       "tags": [
         "dracul",
@@ -611,7 +613,7 @@
       "rarity": "Common",
       "weight": 95,
       "maxStacks": 6,
-      "description": "Enquanto estiver sobre sangue, ganha 10% de velocidade de movimento por nível.",
+      "description": "Enquanto estiver sobre sangue, ganha 10% de velocidade de movimento.",
       "flavorText": "Ela dança onde outros apenas sangram.",
       "tags": [
         "bathory",
@@ -680,7 +682,7 @@
       "rarity": "Uncommon",
       "weight": 62,
       "maxStacks": 4,
-      "description": "Poças de sangue ficam 25% maiores por nível e duram 2.5 segundos adicionais.",
+      "description": "Poças de sangue ficam 25% maiores e duram 2.5 segundos adicionais.",
       "flavorText": "Nenhuma gota deve escapar da banheira.",
       "tags": [
         "bathory",
@@ -867,7 +869,7 @@
       "rarity": "Common",
       "weight": 95,
       "maxStacks": 6,
-      "description": "A morte de um inimigo pestilento espalha pestilência para 1 alvo adicional.",
+      "description": "A morte de um inimigo pestilento já infecta até 3 inimigos próximos; Febre da Cripta acrescenta 1 alvo a essa explosão.",
       "flavorText": "A febre continua mesmo depois do último suspiro.",
       "tags": [
         "orlok",
@@ -889,7 +891,7 @@
       "rarity": "Common",
       "weight": 90,
       "maxStacks": 6,
-      "description": "Inimigos sob efeito de pestilência derrotados invocam um rato por 8 segundos. O limite simultâneo começa em 1 e aumenta em 1 por qualidade.",
+      "description": "Inimigos sob efeito de pestilência derrotados invocam um rato por 8 segundos. O limite simultâneo depende da raridade e aumenta em 1 a cada nível.",
       "flavorText": "Os menores servos recebem as maiores sobras.",
       "tags": [
         "orlok",
@@ -914,7 +916,7 @@
       "rarity": "Common",
       "weight": 86,
       "maxStacks": 6,
-      "description": "Inimigos com pestilência causam 5% menos dano por nível.",
+      "description": "Inimigos com pestilência causam 5% menos dano.",
       "flavorText": "A doença enfraquece antes de matar.",
       "tags": [
         "orlok",

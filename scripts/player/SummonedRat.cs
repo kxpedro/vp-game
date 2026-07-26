@@ -1,6 +1,6 @@
 using Godot;
 
-public partial class SummonedRat : Node3D
+public partial class SummonedRat : CharacterBody3D
 {
     public PlayerController OwnerPlayer { get; set; }
     public float LifetimeSeconds { get; set; } = 8.0f;
@@ -16,12 +16,20 @@ public partial class SummonedRat : Node3D
     public override void _Ready()
     {
         AddToGroup("summoned_rats");
+        CollisionLayer = 1u << 4;
+        CollisionMask = (1u << 4) | 1u;
         _lifetimeRemaining = Mathf.Max(LifetimeSeconds, 0.1f);
         _attackTimer = 0.0f;
+        AddChild(new CollisionShape3D
+        {
+            Name = "RatCollision",
+            Position = Vector3.Up * 0.08f,
+            Shape = new CylinderShape3D { Radius = 0.22f, Height = 0.16f }
+        });
         CreateVisual();
     }
 
-    public override void _Process(double delta)
+    public override void _PhysicsProcess(double delta)
     {
         var elapsed = (float)delta;
         _lifetimeRemaining -= elapsed;
@@ -37,7 +45,7 @@ public partial class SummonedRat : Node3D
 
         if (_target == null)
         {
-            FollowOwner(elapsed);
+            FollowOwner();
             return;
         }
 
@@ -45,7 +53,7 @@ public partial class SummonedRat : Node3D
         offset.Y = 0.0f;
         if (offset.Length() > AttackRange)
         {
-            GlobalPosition += offset.Normalized() * MovementSpeed * elapsed;
+            MoveRat(offset.Normalized());
             if (offset.LengthSquared() > 0.001f)
                 LookAt(GlobalPosition + offset.Normalized(), Vector3.Up);
             return;
@@ -82,12 +90,33 @@ public partial class SummonedRat : Node3D
             && !enemy.IsCharmed;
     }
 
-    private void FollowOwner(float delta)
+    private void FollowOwner()
     {
         var offset = OwnerPlayer.GlobalPosition - GlobalPosition;
         offset.Y = 0.0f;
-        if (offset.Length() <= 1.6f) return;
-        GlobalPosition += offset.Normalized() * MovementSpeed * 0.75f * delta;
+        if (offset.Length() <= 1.6f)
+        {
+            Velocity = Vector3.Zero;
+            return;
+        }
+        MoveRat(offset.Normalized(), 0.75f);
+    }
+
+    private void MoveRat(Vector3 desiredDirection, float speedMultiplier = 1.0f)
+    {
+        var separation = Vector3.Zero;
+        foreach (var node in GetTree().GetNodesInGroup("summoned_rats"))
+        {
+            if (node is not SummonedRat other || other == this) continue;
+            var away = GlobalPosition - other.GlobalPosition;
+            away.Y = 0.0f;
+            var distance = away.Length();
+            if (distance <= 0.001f || distance >= 0.65f) continue;
+            separation += away.Normalized() * (0.65f - distance) / 0.65f;
+        }
+        var direction = (desiredDirection + separation * 1.35f).Normalized();
+        Velocity = new Vector3(direction.X * MovementSpeed * speedMultiplier, 0.0f, direction.Z * MovementSpeed * speedMultiplier);
+        MoveAndSlide();
     }
 
     private void CreateVisual()

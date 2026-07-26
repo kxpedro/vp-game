@@ -6,10 +6,12 @@ public partial class BloodBlessingRuntime : Node
     [Signal]
     public delegate void BarrierChangedEventHandler(float current, float maximum);
 
-    [Export] public float BarrierDecayPerSecond { get; set; } = 1.0f;
+    [Export] public float BarrierDecayPerSecond { get; set; } = 0.25f;
+    [Export] public float BarrierDecayDelaySeconds { get; set; } = 8.0f;
 
     private Health _health;
     private float _barrier;
+    private float _barrierDecayDelayTimer;
     private float _damageAfterHealTimer;
     private float _damageReductionAfterHealTimer;
     private float _attackSpeedAfterHealTimer;
@@ -57,18 +59,38 @@ public partial class BloodBlessingRuntime : Node
     public void ResetBarrier()
     {
         _barrier = 0.0f;
+        _barrierDecayDelayTimer = 0.0f;
         EmitSignal(SignalName.BarrierChanged, _barrier, MaximumBarrier);
     }
 
     private void TickBarrierDecay(float delta)
     {
-        if (_barrier <= 0.0f || BarrierDecayPerSecond <= 0.0f)
+        if (_barrier <= 0.0f)
+            return;
+
+        _barrierDecayDelayTimer = Mathf.Max(_barrierDecayDelayTimer - delta, 0.0f);
+        if (_barrierDecayDelayTimer > 0.0f)
+            return;
+
+        var decayPerSecond = RunState.GetEffectParameter(
+            "OverhealToBarrier",
+            "decayPerSecond",
+            BarrierDecayPerSecond);
+        if (decayPerSecond <= 0.0f)
             return;
 
         var previous = _barrier;
-        _barrier = Mathf.Max(_barrier - BarrierDecayPerSecond * delta, 0.0f);
+        _barrier = Mathf.Max(_barrier - decayPerSecond * delta, 0.0f);
         if (!Mathf.IsEqualApprox(previous, _barrier))
             EmitSignal(SignalName.BarrierChanged, _barrier, MaximumBarrier);
+    }
+
+    private void RefreshBarrierDecayDelay()
+    {
+        _barrierDecayDelayTimer = RunState.GetEffectParameter(
+            "OverhealToBarrier",
+            "decayDelay",
+            BarrierDecayDelaySeconds);
     }
 
     public float ModifyOutgoingDamage(float damage, EnemyBasic enemy, PlayerAttackType attackType)
@@ -126,6 +148,8 @@ public partial class BloodBlessingRuntime : Node
         if (_barrier <= 0) return amount;
         var absorbed = Mathf.Min(_barrier, amount);
         _barrier -= absorbed;
+        if (_barrier > 0.0f)
+            RefreshBarrierDecayDelay();
         EmitSignal(SignalName.BarrierChanged, _barrier, MaximumBarrier);
         return amount - absorbed;
     }
@@ -148,7 +172,10 @@ public partial class BloodBlessingRuntime : Node
         if (overheal <= 0 || _health == null) return;
         var barrierRatio = RunState.GetEffectTotal("OverhealToBarrier.Multiplier");
         var barrierCap = _health.MaxHealth * RunState.GetEffectParameter("OverhealToBarrier", "maxHealthCap", 0.15f);
+        var previousBarrier = _barrier;
         _barrier = Mathf.Min(_barrier + overheal * barrierRatio, barrierCap);
+        if (_barrier > previousBarrier)
+            RefreshBarrierDecayDelay();
         EmitSignal(SignalName.BarrierChanged, _barrier, barrierCap);
         var permanentRate = RunState.GetEffectTotal("PermanentDamageFromOverheal.Multiplier");
         var unit = RunState.GetEffectParameter("PermanentDamageFromOverheal", "perOverhealMaxHealthPercent", 0.01f);
@@ -311,7 +338,7 @@ public partial class BloodBlessingRuntime : Node
         foreach (var blessing in RunState.RunBlessings)
         {
             if (blessing.Id != "orlok_rats_blessing") continue;
-            capacity = BloodBlessingCatalog.GetRarityLevel(blessing.Rarity);
+            capacity = BloodBlessingCatalog.GetSummonedRatCapacity(blessing);
             break;
         }
 

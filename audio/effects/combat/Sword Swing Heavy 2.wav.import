@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dnycr3mubm3bs"
+path="res://.godot/imported/Sword Swing Heavy 2.wav-8c3eac3fcdeb09212b68e3001afb3b07.sample"
+
+[deps]
+
+source_file="res://audio/effects/combat/Sword Swing Heavy 2.wav"
+dest_files=["res://.godot/imported/Sword Swing Heavy 2.wav-8c3eac3fcdeb09212b68e3001afb3b07.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

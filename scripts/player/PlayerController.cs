@@ -11,6 +11,7 @@ public partial class PlayerController : CharacterBody3D
 	[Export] public float DodgeDuration { get; set; } = 0.22f;
 	[Export] public float DashAttackGraceSeconds { get; set; } = 0.5f;
 	[Export] public float DodgeCooldownSeconds { get; set; } = 0.18f;
+	[Export] public float DodgeInputBufferSeconds { get; set; } = 0.28f;
 	[Export] public float MaxStamina { get; set; } = 100.0f;
 	[Export] public float StaminaRegenPerSecond { get; set; } = 28.0f;
 	[Export] public float DodgeCost { get; set; } = 28.0f;
@@ -41,6 +42,7 @@ public partial class PlayerController : CharacterBody3D
 	private float _dodgeTimeRemaining;
 	private float _dashAttackGraceTimeRemaining;
 	private float _dodgeCooldownTimeRemaining;
+	private float _dodgeInputBufferTimer;
 	private float _damageStaggerTimeRemaining;
 
 	public override void _Ready()
@@ -101,6 +103,9 @@ public partial class PlayerController : CharacterBody3D
 		var deltaF = (float)delta;
 		RunState.Tick(deltaF);
 		_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - deltaF, 0.0f);
+		_dodgeInputBufferTimer = Mathf.Max(_dodgeInputBufferTimer - deltaF, 0.0f);
+		if (Input.IsActionJustPressed("dodge"))
+			_dodgeInputBufferTimer = DodgeInputBufferSeconds;
 		if (_damageStaggerTimeRemaining > 0.0f)
 		{
 			_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining - deltaF, 0.0f);
@@ -141,11 +146,15 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		}
 
-		if (Input.IsActionJustPressed("dodge") && _dodgeCooldownTimeRemaining <= 0.0f)
+		if (_dodgeInputBufferTimer > 0.0f
+			&& _dodgeCooldownTimeRemaining <= 0.0f
+			&& (_combat?.CanCancelCurrentAttack(AttackCancelAction.Dodge) ?? true))
 		{
 			var perfectDodge = IsEnemyAttackThreatening();
 			var hasBufferedQuickAttack = Input.IsActionJustPressed("attack_light") || (_combat?.HasBufferedQuickAttack ?? false);
-			_combat?.CancelCurrentAttack();
+			if (_combat?.TryCancelCurrentAttack(AttackCancelAction.Dodge) == false)
+				return;
+			_dodgeInputBufferTimer = 0.0f;
 			if (hasBufferedQuickAttack && !(_combat?.IsPointerAttackBlocked() ?? false))
 				_combat?.QueueQuickAttack();
 			_dodgeDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection : _lastMoveDirection;
@@ -154,6 +163,7 @@ public partial class PlayerController : CharacterBody3D
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();
+			GetTree().CallGroup("audio_manager", "PlayEffect", "dodge");
 			if (perfectDodge)
 				_skillController?.OnPerfectDodge();
 			Velocity = _dodgeDirection * DodgeSpeed;
@@ -169,6 +179,7 @@ public partial class PlayerController : CharacterBody3D
 		speed *= 1.0f + RunState.GetEffectTotal("MoveSpeedMissingHealth.Multiplier") * missingHealth + RunState.ContextMoveSpeed;
 		speed *= _blessings?.MovementMultiplier() ?? 1.0f;
 		speed *= _skillController?.MovementMultiplier() ?? 1.0f;
+		speed *= _combat?.CurrentMovementMultiplier ?? 1.0f;
 
 		Velocity = moveDirection * speed;
 		_animator?.SetMovementState(moveDirection.LengthSquared() > 0.001f, !isWalking, speed);
@@ -209,12 +220,12 @@ public partial class PlayerController : CharacterBody3D
 		MaxStamina = _baseMaxStamina + CharacterSheet.GetMaxStaminaBonus();
 		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
-		var maxHealthBonus = RunState.MaxHealthBonus + CharacterSheet.GetMaxHealthBonus() + (_skillController?.MaxHealthBonus() ?? 0.0f);
-		var tunedMaxHealth = (_baseMaxHealth + maxHealthBonus)
+		var attributeHealthBonus = CharacterSheet.GetMaxHealthBonus() + (_skillController?.MaxHealthBonus() ?? 0.0f);
+		var tunedMaxHealth = ((_baseMaxHealth + attributeHealthBonus) * GameTuning.GetHealthMultiplier()
+			+ RunState.MaxHealthBonus)
 			* RunState.MaxHealthMultiplier
-			* GameTuning.GetHealthMultiplier()
 			* RunState.SacrificedMaxHealthMultiplier;
-		_health?.SetMaxHealth(tunedMaxHealth, false);
+		_health?.SetMaxHealthPreservingMissingHealth(tunedMaxHealth);
 	}
 
 	public void ConsumeDashAttackGrace()

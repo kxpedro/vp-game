@@ -153,7 +153,7 @@ public static class RunState
 
         foreach (var blessing in BloodBlessings)
             if (BloodBlessingCatalog.TryGet(blessing.Id, out var definition))
-                ApplyBlessingEffects(definition, blessing.PowerMultiplier);
+                ApplyBlessingEffects(definition, blessing.EffectivePowerMultiplier);
     }
 
     public static void AddTemporaryArtifact(ArtifactRecord artifact)
@@ -211,13 +211,12 @@ public static class RunState
         {
             var current = BloodBlessings[i];
             if (!current.Id.Equals(blessingId, System.StringComparison.OrdinalIgnoreCase) ||
-                !BloodBlessingCatalog.TryGetNextRarity(current.Rarity, out var nextRarity))
+                current.Level >= BloodBlessingProgression.MaximumLevel)
                 continue;
 
             upgradedBlessing = current with
             {
-                Rarity = nextRarity.DisplayName,
-                PowerMultiplier = nextRarity.PowerMultiplier
+                Level = current.Level + 1
             };
             BloodBlessings[i] = upgradedBlessing;
             RecalculateArtifactBonuses();
@@ -237,6 +236,11 @@ public static class RunState
         var defaultValue = effect.BooleanValue ? 1.0f : effect.Value;
         var amount = CompendiumTuning.GetFloat($"blessing.{blessingId}.effect.{effectIndex}.value", defaultValue);
         if (!effect.BooleanValue) amount *= powerMultiplier;
+        if (effect.Type == "MaxHealth" && effect.Operation == "AddFlat")
+        {
+            AddMaxHealthBonus(amount);
+            return;
+        }
         var suffix = effect.Operation.Contains("Multiplier") ? ".Multiplier" : ".Flat";
         AddEffectTotal(effect.Type + suffix, amount);
         foreach (var parameter in effect.NumberParameters)
@@ -356,7 +360,10 @@ public static class RunState
 
     private static void AddEffectTotal(string key, float value)
     {
-        EffectTotals[key] = GetEffectTotal(key) + value;
+        var total = GetEffectTotal(key) + value;
+        if (key.Contains("Chance", System.StringComparison.OrdinalIgnoreCase))
+            total = System.Math.Clamp(total, 0.0f, 1.0f);
+        EffectTotals[key] = total;
     }
 
     private static void SetEffectParameterMaximum(string effectType, string parameter, float value)

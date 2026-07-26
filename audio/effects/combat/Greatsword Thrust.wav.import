@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://bsbgnn1kswgnd"
+path="res://.godot/imported/Greatsword Thrust.wav-807be4db6673eeca8e17f425f01ac38d.sample"
+
+[deps]
+
+source_file="res://audio/effects/combat/Greatsword Thrust.wav"
+dest_files=["res://.godot/imported/Greatsword Thrust.wav-807be4db6673eeca8e17f425f01ac38d.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

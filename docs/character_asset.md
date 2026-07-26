@@ -1,6 +1,26 @@
-# Character Asset
+# Assets de personagem
 
-> **Estado atual (2026-07-22):** o modelo `character.glb` não é usado pelo jogador na build de gameplay. Virgil está representado provisoriamente por um cilindro azul criado em `PlayerAnimator`. O catálogo abaixo é mantido como referência para uma futura retomada do rig e de suas animações.
+## Modelo atual
+
+Desde 2026-07-26, o jogador usa `res://assets/characters/quaternius_ultimate_animated_character/Knight_Male.gltf`, do Ultimate Animated Character Pack de Quaternius (CC0 1.0).
+
+Animações conectadas em `Player.tscn`:
+
+| Estado | Animação |
+| --- | --- |
+| Parado | `Idle` |
+| Caminhada | `Walk` |
+| Corrida | `Run` |
+| Esquiva | `Roll` |
+| Ataques da Espada Grande | `SwordSlash` |
+
+`PlayerAnimator` remove root motion de posição para que `PlayerController` continue autoritativo sobre deslocamento e colisão.
+
+`PlayerWeaponVisual` encontra o esqueleto importado, cria `BoneAttachment3D` em `Fist.R` e `Fist.L` e instancia o modelo correspondente à arma equipada. A Espada Grande preserva o pivô original do cabo; não se deve recentralizar os bounds do modelo, pois isso prende o meio da lâmina à mão.
+
+## Asset legado arquivado
+
+O modelo `res://3d/character.glb` não é usado pelo jogador na build atual. O catálogo abaixo é mantido como referência caso seu rig seja retomado.
 
 Arquivo: `res://3d/character.glb`
 

@@ -39,6 +39,113 @@ public partial class CrowsNestCrypt : Node3D
         }
 
         CreateTrainingHall();
+        CreateImportedDecorations();
+    }
+
+    private void CreateImportedDecorations()
+    {
+        const string root = "res://assets/environment/quaternius_medieval_dungeon/";
+
+        PlaceDecoration(root + "Carpet.fbx", "CentralCarpet", new Vector3(0.0f, 0.02f, 0.0f), 6.4f);
+        PlaceDecoration(root + "Entrance.fbx", "RunPortalArch", new Vector3(0.0f, 0.0f, -12.3f), 4.8f);
+        PlaceDecoration(root + "Chest.fbx", "ArtifactChestVisual", new Vector3(10.0f, 0.68f, 0.0f), 1.7f, -90.0f);
+        PlaceDecoration(root + "Book_Open.fbx", "WeaponLoreBook", new Vector3(-10.0f, 0.69f, 0.0f), 0.62f, 90.0f);
+        PlaceDecoration(root + "Bones.fbx", "CryptBonesWest", new Vector3(-3.15f, 0.02f, 10.15f), 1.7f, 18.0f);
+        PlaceDecoration(root + "Bones.fbx", "CryptBonesEast", new Vector3(3.2f, 0.02f, 10.1f), 1.45f, -24.0f);
+        PlaceDecoration(root + "Barrel.fbx", "SupplyBarrelA", new Vector3(-7.7f, 0.0f, -2.8f), 1.05f, 8.0f);
+        PlaceDecoration(root + "Barrel.fbx", "SupplyBarrelB", new Vector3(-8.65f, 0.0f, -2.45f), 0.92f, -11.0f);
+
+        PlaceDecoration(root + "Candelabrum_Tall.fbx", "CandelabrumNW", new Vector3(-3.3f, 0.0f, -3.25f), 2.25f);
+        PlaceDecoration(root + "Candelabrum_Tall.fbx", "CandelabrumNE", new Vector3(3.3f, 0.0f, -3.25f), 2.25f);
+        PlaceDecoration(root + "Candelabrum_Tall.fbx", "CandelabrumSW", new Vector3(-3.3f, 0.0f, 3.25f), 2.25f);
+        PlaceDecoration(root + "Candelabrum_Tall.fbx", "CandelabrumSE", new Vector3(3.3f, 0.0f, 3.25f), 2.25f);
+
+        PlaceDecoration(root + "Torch_Wall.fbx", "WestWallTorch", new Vector3(-4.72f, 1.15f, 0.0f), 1.3f, 90.0f);
+        PlaceDecoration(root + "Torch_Wall.fbx", "EastWallTorch", new Vector3(4.72f, 1.15f, 0.0f), 1.3f, -90.0f);
+
+        CreateCandleLight("CandleLightNW", new Vector3(-3.3f, 2.0f, -3.25f));
+        CreateCandleLight("CandleLightNE", new Vector3(3.3f, 2.0f, -3.25f));
+        CreateCandleLight("CandleLightSW", new Vector3(-3.3f, 2.0f, 3.25f));
+        CreateCandleLight("CandleLightSE", new Vector3(3.3f, 2.0f, 3.25f));
+    }
+
+    private void PlaceDecoration(
+        string scenePath,
+        string nodeName,
+        Vector3 position,
+        float targetLargestDimension,
+        float yawDegrees = 0.0f)
+    {
+        var scene = ResourceLoader.Load<PackedScene>(scenePath);
+        if (scene == null)
+        {
+            GD.PushWarning($"Decoracao 3D nao importada: {scenePath}");
+            return;
+        }
+
+        var instance = scene.Instantiate<Node3D>();
+        instance.Name = nodeName;
+        instance.Position = position;
+        instance.RotationDegrees = new Vector3(0.0f, yawDegrees, 0.0f);
+        AddChild(instance);
+
+        if (!TryGetVisualBounds(instance, out var minimum, out var maximum))
+            return;
+
+        var size = maximum - minimum;
+        var largestDimension = Mathf.Max(size.X, Mathf.Max(size.Y, size.Z));
+        if (largestDimension > 0.001f)
+            instance.Scale *= targetLargestDimension / largestDimension;
+
+        if (TryGetVisualBounds(instance, out var normalizedMinimum, out _))
+            instance.GlobalPosition += Vector3.Up * (position.Y - normalizedMinimum.Y);
+    }
+
+    private void CreateCandleLight(string nodeName, Vector3 position)
+    {
+        AddChild(new OmniLight3D
+        {
+            Name = nodeName,
+            Position = position,
+            LightColor = new Color(1.0f, 0.32f, 0.08f),
+            LightEnergy = 1.2f,
+            OmniRange = 4.8f,
+            ShadowEnabled = false
+        });
+    }
+
+    private static bool TryGetVisualBounds(Node root, out Vector3 minimum, out Vector3 maximum)
+    {
+        minimum = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        maximum = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        var foundMesh = false;
+
+        foreach (var candidate in root.FindChildren("*", "MeshInstance3D", true, false))
+        {
+            if (candidate is not MeshInstance3D mesh || mesh.Mesh == null)
+                continue;
+
+            var bounds = mesh.GetAabb();
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var localPoint = bounds.Position + new Vector3(
+                    (corner & 1) == 0 ? 0.0f : bounds.Size.X,
+                    (corner & 2) == 0 ? 0.0f : bounds.Size.Y,
+                    (corner & 4) == 0 ? 0.0f : bounds.Size.Z);
+                var worldPoint = mesh.GlobalTransform * localPoint;
+                minimum = new Vector3(
+                    Mathf.Min(minimum.X, worldPoint.X),
+                    Mathf.Min(minimum.Y, worldPoint.Y),
+                    Mathf.Min(minimum.Z, worldPoint.Z));
+                maximum = new Vector3(
+                    Mathf.Max(maximum.X, worldPoint.X),
+                    Mathf.Max(maximum.Y, worldPoint.Y),
+                    Mathf.Max(maximum.Z, worldPoint.Z));
+                foundMesh = true;
+            }
+        }
+
+        return foundMesh;
     }
 
     private void CreateTrainingHall()

@@ -19,7 +19,7 @@ As ações de gameplay ficam em `project.godot`. `ControllerUiSupport` complemen
 
 No controle, movimento e mira compartilham o analógico esquerdo. O ataque rápido é produzido por dash + ataque básico e possui buffer para aceitar os inputs em sequência rápida.
 
-Na interface, d-pad e analógico navegam, `X`/`A` confirma e `Círculo`/`B` volta. `Esc` fecha a camada superior antes de alternar a pausa. Esse fluxo vale para menu principal, pausa, ficha, ofertas de bênção, Fonte de Sangue, baú, altar e compêndio.
+Na interface, d-pad e analógico navegam, `X`/`A` confirma e `Círculo`/`B` volta. `Esc` fecha a camada superior antes de alternar a pausa. Ofertas de Bênção de Sangue são a exceção: não podem ser fechadas por nenhum botão e exigem uma escolha antes da continuação da run.
 
 ## Pausa e segurança de estado
 
@@ -31,15 +31,19 @@ Na interface, d-pad e analógico navegam, `X`/`A` confirma e `Círculo`/`B` volt
 
 ## Espada Grande
 
-`WeaponDefinition` concentra os dados da arma: ataques do combo, dano, delay de impacto, recovery, stagger, alcance, largura, forma, tolerância da hitbox, empurrão, multiplicadores posicionais, lunge e recarga especial.
+`WeaponDefinition` concentra os dados da arma: ataques do combo, dano, delay de impacto, recovery, stagger, alcance, largura, forma, tolerância da hitbox, empurrão, multiplicadores posicionais, lunge e recarga especial. `AttackControlProfile` acrescenta uma matriz por golpe com buffer, cancelamento por esquiva/especial, mobilidade durante startup/recovery, assistência de mira e redirecionamento no impacto.
 
-A arma funcional preserva o ID interno `longsword`, mas é apresentada como **Espada Grande**. IDs antigos `greatsword` e `dual_blades` migram para ela. A antiga Espada Grande placeholder e Espadas Duplas foram removidas; Revolver Duplo e Chicote continuam reservados para expansão.
+A arma funcional preserva o ID interno `longsword`, mas é apresentada como **Espada Grande**. IDs antigos `greatsword` e `dual_blades` migram para ela. A antiga Espada Grande placeholder e Espadas Duplas foram removidas; Revolver Duplo e Chicote continuam reservados para expansão. Os três IDs já possuem modelos registrados em `WeaponVisualCatalog`.
+
+`PlayerWeaponVisual` escuta `WeaponLoadout.EquippedWeaponChanged`, cria sockets nos ossos `Fist.R` e `Fist.L` e troca o modelo carregado junto com o equipamento. Os modelos mantêm o pivô original do ponto de empunhadura; a Espada Grande fica presa pelo cabo e acompanha as animações do personagem.
 
 ### Ataque básico
 
 - combo de três golpes, reiniciado após 1 segundo sem sequência;
+- cada golpe possui buffer, cancelamentos, restrição de movimento e assistência de mira próprios;
 - bônus de velocidade de ataque altera somente hit delay e recovery deste ataque;
 - terceiro golpe com empurrão 20% maior que o padrão do combo;
+- a estocada final usa recovery de 0,12 segundo e pode ser cancelada mais cedo;
 - detecção combina forma do ataque, raio físico do alvo e tolerância de borda;
 - efeitos exclusivos do básico não são reutilizados pelo ataque rápido.
 
@@ -76,19 +80,22 @@ A arma funcional preserva o ID interno `longsword`, mas é apresentada como **Es
 - bênçãos diretas de Fúria usam `bestial_fury_mode` e substituem a equipada anteriormente;
 - o pós-processamento dessatura o mundo e preserva vermelhos associados a sangue.
 
-Hits criam partículas de sangue; flash, hit-stop, números, câmera e formas de alcance foram alinhados à hitbox efetiva. Críticos usam amarelo-ouro e fonte três vezes maior que o número comum.
+Hits criam partículas de sangue; flash, hit-stop, números, câmera e formas de alcance foram alinhados à hitbox efetiva. Ataques pelas costas e impactos contra parede possuem cores, partículas, marcadores e sons próprios. Críticos usam amarelo-ouro e fonte três vezes maior que o número comum.
+
+O áudio diferencia os dois cortes laterais, estocada, rodopio, queda especial e impacto no chão. Acertos selecionam variações carnais por tipo de golpe; bloqueios, parede e esquiva usam conjuntos separados, com pequena variação de pitch.
 
 ## Inimigos
 
-Os inimigos básicos não usam mais modelos importados. A representação geométrica atual prioriza leitura:
+Os inimigos básicos usam modelos animados do pacote Ultimate Monsters:
 
-- melee: cilindro ciano;
-- ranged: prisma triangular rosa-choque;
-- tank: cubo amarelo;
-- halo e emissão repetem a cor do arquétipo;
-- o antigo tingimento vermelho genérico foi removido.
+- melee: Ninja;
+- ranged: Demon;
+- tank: Orc;
+- bosses: Dragon Evolved, Ghost Skull, Orc Skull e Blue Demon;
+- escala é normalizada em relação à altura do jogador;
+- idle, locomoção, ataque e reação a hit usam animações do asset, com root motion removido para manter a física autoritativa.
 
-O dano aplicado pelos inimigos recebeu redução de 10%. Spawns usam 5 unidades por wave e procuram preservar distância mínima entre posições.
+O dano aplicado pelos inimigos recebeu redução de 10%. Spawns usam 5 unidades por wave, quatro waves por sala, aviso de 3 segundos e intervalo-base de 9 segundos. As posições procuram preservar distância mínima entre inimigos.
 
 Encostar no corpo de um inimigo causa, a cada cooldown de contato, 5% do dano de ataque atual daquele inimigo. O boneco de treinamento mantém esse dano desabilitado.
 
@@ -96,7 +103,8 @@ Encostar no corpo de um inimigo causa, a cada cooldown de contato, 5% do dano de
 
 - participação reduzida em 20% sobre a distribuição anterior;
 - pode recuar e tenta recuperar a distância preferencial;
-- dispara flechas emissivas maiores, mais lentas e de curso prolongado;
+- dispara flechas emissivas maiores e mais lentas;
+- o projétil não expira por distância nem desaparece quando seu atirador morre; permanece até atingir jogador, parede ou obstáculo;
 - projéteis pausam junto do jogo;
 - a caixa que antecipava a hitbox foi removida, mantendo apenas o aviso de preparação.
 
@@ -109,12 +117,17 @@ Encostar no corpo de um inimigo causa, a cada cooldown de contato, 5% do dano de
 
 - reposicionamentos de `kinetic_shift` e `mirror_dash` são projetados para uma célula navegável com margem de duas células das paredes;
 - investidas continuam usando colisão física e telegraph linear;
+- bosses recebem somente 5% do empurrão e do dano de impacto contra parede;
 - após a morte, surge um Altar de Artefatos na arena;
 - a oferta só abre quando o jogador entra na área e interage; o portão permanece bloqueado até a escolha.
 
 ## Bênçãos de Sangue
 
 Existem 63 definições ativas: 15 Dracul, 15 Bathory, 14 Orlok, 15 Karnstein e 4 Stirps. `giant_slayer` e `bathory_scarlet_steps` permanecem preservadas como comentários JSONC; `orlok_contagious_demise` não está no pool atual. Dracul, Bathory, Orlok e Karnstein possuem opções diretamente ligadas a ataque básico, rápido e especial. Essas bênçãos têm peso superior; a seleção da família Stirps usa peso 0,45 contra 1,0 das linhagens comuns.
+
+Raridade e nível são independentes. A raridade é sorteada uma vez e determina `PowerMultiplier`; toda bênção começa em N1 e pode chegar a N10. Cada nível adicional soma 25% ao efeito já escalado pela raridade. Consumidores de gameplay usam `EffectivePowerMultiplier`. Chance é limitada a 100% na agregação, nas descrições e nas prévias.
+
+As descrições das ofertas substituem o valor-base pelo valor efetivo da raridade, sem exibir uma segunda linha redundante de “Efeito”. Termos de ataque básico, rápido, especial e Fúria Bestial são destacados e explicados por hover/foco.
 
 ### Exclusividade por ataque
 
@@ -146,16 +159,18 @@ O validador exige raridade-base Common e o grupo exclusivo correto para bênçã
 ### Bênção dos Ratos
 
 - somente a morte de inimigos sob Pestilência dispara a invocação;
-- cada rato dura 8 segundos e usa um pequeno círculo verde-limão;
+- cada rato dura 8 segundos e usa um pequeno cilindro verde-limão;
+- `CharacterBody3D`, colisão cilíndrica e força de separação impedem a sobreposição física entre ratos;
 - movimento e intervalo de ataque são capturados do jogador ao invocar;
 - dano é 50% do ataque básico do jogador;
-- capacidade simultânea: Common 1, Uncommon 2, Rare 3, Epic 4 e Legendary 5;
-- aprimorar a raridade no altar atualiza a capacidade imediatamente.
+- capacidade simultânea-base: Common 1, Uncommon 2, Rare 3, Epic 4 e Legendary 5;
+- cada nível acima de N1 acrescenta mais um rato à capacidade.
 
 ### Correções de runtime
 
 - cura excedente convertida em barreira usa o overheal reportado por `Health`, corrigindo Reserva Imperial e equivalentes;
-- a barreira perde 1 ponto por segundo, é zerada na troca de sala e aparece como segmento azul junto da vida;
+- a barreira espera 8 segundos depois de ser obtida ou parcialmente consumida, então perde 0,25 ponto por segundo; é zerada na troca de sala e aparece como segmento azul junto da vida;
+- Sangue Espesso recalcula a vida máxima preservando os pontos que já faltavam, atualiza imediatamente o sinal da HUD e exibe na descrição o ganho efetivo após os multiplicadores ativos;
 - a trilha de roubo de vida entra na árvore antes de receber `GlobalPosition`, evitando `!is_inside_tree()`;
 - artefatos voltaram a ser oferecidos após bosses por meio do altar interativo.
 
@@ -164,7 +179,9 @@ O validador exige raridade-base Common e o grupo exclusivo correto para bênçã
 ## HUD e ficha
 
 - HUD redistribuída para reduzir sobreposição; dicas fixas do topo removidas;
+- minimapa removido da HUD e atalho `Tab` desativado;
 - faixa compacta com até sete bênçãos e um `+` abaixo do último slot quando houver mais;
+- ícones exibem `N2` a `N10`; N1 fica implícito, e a ficha mostra nível e raridade separadamente;
 - ficha em `C` com coluna rolável para todas as bênçãos e descrições por hover/foco;
 - passivas permanentes da Fonte de Sangue visíveis com descrição;
 - ficha pausa o jogo;
@@ -188,9 +205,10 @@ O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` r
 `IntermissionChamber.tscn` aparece depois de bosses não finais.
 
 - Fonte: recupera 35% da vida máxima, uma vez por passagem;
-- Altar: reduz em 5% a vida máxima total da run e eleva uma bênção em uma raridade;
+- Altar: reduz em 5% a vida máxima total da run e eleva uma bênção em um nível, preservando a raridade;
 - a redução persiste entre salas e é cumulativa (`100 → 95 → 90,25`), sendo removida ao terminar a run;
-- lista rolável mostra qualidade atual, próxima qualidade e comparação dos efeitos;
+- lista rolável mostra `N atual → próximo N` e compara os valores efetivos;
+- nível máximo: N10; cada aprimoramento acrescenta 25% do valor-base escalado pela raridade;
 - cada serviço pode ser usado uma vez;
 - HUD e ficha continuam disponíveis.
 
@@ -201,12 +219,15 @@ O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` r
 - `scripts/ui/HUD.cs`;
 - `scripts/player/PlayerCombat.cs`;
 - `scripts/player/PlayerController.cs`;
+- `scripts/player/PlayerWeaponVisual.cs`;
 - `scripts/player/BloodBlessingRuntime.cs`;
 - `scripts/enemies/EnemyBasic.cs`;
 - `scripts/enemies/EnemyProjectile.cs`;
 - `scripts/player/SummonedRat.cs`;
 - `scripts/systems/weapons/WeaponDefinition.cs`;
 - `scripts/systems/weapons/WeaponCatalog.cs`;
+- `scripts/systems/weapons/WeaponVisualCatalog.cs`;
+- `scripts/systems/AudioManager.cs`;
 - `scripts/systems/RunState.cs`;
 - `scripts/systems/RunManager.cs`;
 - `scripts/systems/RoomGenerator.cs`;

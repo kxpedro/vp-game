@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://ldapoo1a2nmu"
+path="res://.godot/imported/Sword Hit Heavy.ogg-267eb41cdf51951c6c67d53ea9c3291c.oggvorbisstr"
+
+[deps]
+
+source_file="res://audio/effects/combat/Sword Hit Heavy.ogg"
+dest_files=["res://.godot/imported/Sword Hit Heavy.ogg-267eb41cdf51951c6c67d53ea9c3291c.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

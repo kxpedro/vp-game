@@ -112,7 +112,7 @@ public partial class IntermissionChamber : Node3D
 
         var eligible = new List<BloodBlessingRecord>();
         foreach (var blessing in RunState.RunBlessings)
-            if (BloodBlessingCatalog.TryGetNextRarity(blessing.Rarity, out _))
+            if (blessing.Level < BloodBlessingProgression.MaximumLevel)
                 eligible.Add(blessing);
         if (eligible.Count == 0)
         {
@@ -123,12 +123,11 @@ public partial class IntermissionChamber : Node3D
         foreach (var child in _upgradeChoices.GetChildren()) child.QueueFree();
         foreach (var blessing in eligible)
         {
-            BloodBlessingCatalog.TryGetNextRarity(blessing.Rarity, out var nextRarity);
-            var preview = BuildUpgradePreview(blessing, nextRarity);
+            var preview = BuildUpgradePreview(blessing);
             var choice = new Button
             {
-                Text = $"{blessing.Name}  •  {blessing.Rarity} → {nextRarity.DisplayName}\n{preview}",
-                TooltipText = BuildUpgradeTooltip(blessing, nextRarity, preview),
+                Text = $"{blessing.Name}  •  {blessing.Rarity}  •  N{blessing.Level} → N{blessing.Level + 1}\n{preview}",
+                TooltipText = BuildUpgradeTooltip(blessing, preview),
                 Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(600.0f, 76.0f + Mathf.Max(0, preview.Split('\n').Length - 1) * 22.0f)
             };
@@ -141,7 +140,7 @@ public partial class IntermissionChamber : Node3D
         ControllerUiSupport.FocusFirst(_upgradeOverlay);
     }
 
-    private static string BuildUpgradePreview(BloodBlessingRecord record, BloodBlessingRarity nextRarity)
+    private static string BuildUpgradePreview(BloodBlessingRecord record)
     {
         if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
             return "Efeitos indisponíveis para comparação.";
@@ -149,8 +148,8 @@ public partial class IntermissionChamber : Node3D
         var lines = new List<string>();
         if (record.Id == "orlok_rats_blessing")
         {
-            var currentCapacity = BloodBlessingCatalog.GetRarityLevel(record.Rarity);
-            var nextCapacity = BloodBlessingCatalog.GetRarityLevel(nextRarity.DisplayName);
+            var currentCapacity = BloodBlessingCatalog.GetSummonedRatCapacity(record);
+            var nextCapacity = BloodBlessingCatalog.GetSummonedRatCapacity(record with { Level = record.Level + 1 });
             lines.Add($"Ratos simultâneos: {currentCapacity} → {nextCapacity}");
         }
 
@@ -160,8 +159,16 @@ public partial class IntermissionChamber : Node3D
             if (record.Id == "orlok_rats_blessing" && effect.Type == "RatSummonOnPestilentKill")
                 continue;
             var baseValue = CompendiumTuning.GetFloat($"blessing.{record.Id}.effect.{i}.value", effect.BooleanValue ? 1.0f : effect.Value);
-            var currentValue = effect.BooleanValue ? baseValue : baseValue * record.PowerMultiplier;
-            var nextValue = effect.BooleanValue ? baseValue : baseValue * nextRarity.PowerMultiplier;
+            var currentValue = effect.BooleanValue ? baseValue : baseValue * record.EffectivePowerMultiplier;
+            var nextValue = effect.BooleanValue
+                ? baseValue
+                : baseValue * record.PowerMultiplier * BloodBlessingProgression.GetLevelMultiplier(record.Level + 1);
+            if (effect.Type == "MaxHealth" && effect.Operation == "AddFlat")
+            {
+                var activeHealthMultiplier = RunState.MaxHealthMultiplier * RunState.SacrificedMaxHealthMultiplier;
+                currentValue *= activeHealthMultiplier;
+                nextValue *= activeHealthMultiplier;
+            }
             var currentText = FormatUpgradeValue(effect, currentValue);
             var nextText = FormatUpgradeValue(effect, nextValue);
             lines.Add($"{ArtifactEffectRegistry.FriendlyName(effect.Type)}: {currentText} → {nextText}");
@@ -170,17 +177,21 @@ public partial class IntermissionChamber : Node3D
         return lines.Count > 0 ? string.Join("\n", lines) : "Esta melhoria não altera valores numéricos.";
     }
 
-    private static string BuildUpgradeTooltip(BloodBlessingRecord record, BloodBlessingRarity nextRarity, string preview)
+    private static string BuildUpgradeTooltip(BloodBlessingRecord record, string preview)
     {
         if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
             return preview;
-        return $"{definition.DisplayName}\n{definition.Description}\n\n{record.Rarity} → {nextRarity.DisplayName}\n{preview}";
+        return $"{definition.DisplayName} [{record.Rarity}]\nN{record.Level} → N{record.Level + 1}\n\n{preview}";
     }
 
     private static string FormatUpgradeValue(BloodBlessingEffectDefinition effect, float value)
     {
         if (effect.Operation is "Set" or "SetBool")
             return value > 0.0f ? "ativo" : "inativo";
+        if (effect.Type.Contains("Chance", System.StringComparison.OrdinalIgnoreCase))
+            value = Mathf.Clamp(value, 0.0f, 1.0f);
+        if (effect.Type == "PestilenceSpreadTargets")
+            value = Mathf.Round(value);
         if (effect.Operation.Contains("Multiplier") || effect.Type.Contains("Chance"))
             return $"{value * 100:+0.##;-0.##;0}%";
         return $"{value:+0.##;-0.##;0}";
@@ -203,7 +214,8 @@ public partial class IntermissionChamber : Node3D
         GetTree().CallGroup("hud", "RefreshBlessingDisplays");
         _altarUsed = true;
         var sacrificedMaximum = Mathf.Max(previousMaximum - _health.MaxHealth, 0.0f);
-        SetMessage($"{upgraded.Name} ascendeu para {upgraded.Rarity}. O altar consumiu {sacrificedMaximum:0.#} de vida máxima.");
+        GetTree().CallGroup("audio_manager", "PlayEffect", "blessing_upgrade");
+        SetMessage($"{upgraded.Name} foi aprimorada para N{upgraded.Level}. A raridade {upgraded.Rarity} foi preservada; o altar consumiu {sacrificedMaximum:0.#} de vida máxima.");
         RefreshPrompts();
     }
 

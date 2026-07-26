@@ -18,7 +18,7 @@ Antes da primeira sala comum da run, `RunStartBlessingRoom.tscn` apresenta uma f
 Após cada boss não final, `IntermissionChamber.tscn` permite:
 
 - usar uma vez a fonte para recuperar 35% da vida máxima;
-- usar uma vez o Altar do Sacrifício para reduzir em 5% a vida máxima total da run e elevar uma bênção equipada em uma raridade;
+- usar uma vez o Altar do Sacrifício para reduzir em 5% a vida máxima total da run e elevar uma bênção equipada em um nível, preservando a raridade;
 - comparar os efeitos atuais e futuros antes de confirmar o aprimoramento.
 
 ## Modelo de geração
@@ -39,17 +39,18 @@ O conjunto recebe rotação em quartos de volta e pode ser espelhado. Como as re
 - `RegionSpacing = 1`;
 - salas comuns usam `AddRoom`;
 - a arena de boss usa `AddMainRoom` com 21 × 21 células;
+- detalhes de piso e o portão usam modelos do Kenney Modular Dungeon Kit, apenas como camada visual sem alterar a colisão procedural;
 - o nome da ala não é desenhado sobre o mapa;
 - a antiga saída circular vermelha foi substituída por um portão legível.
 
 ## Spawns e waves
 
-- três waves por sala comum;
-- 5 inimigos por wave, totalizando 15 planejados;
+- quatro waves por sala comum;
+- 5 inimigos por wave, totalizando 20 planejados;
 - primeira wave iniciada ao carregar a sala;
-- intervalo máximo entre inícios de wave: 15 segundos;
+- intervalo-base entre inícios de wave: 9 segundos;
 - uma nova wave também pode começar antes caso todos os inimigos atuais sejam derrotados;
-- telegraph de spawn: 5 segundos;
+- telegraph de spawn: 3 segundos;
 - inimigos são instanciados um por frame para reduzir hitch;
 - waves podem coexistir quando o intervalo se esgota;
 - a sala só termina quando não restam inimigos nem spawns pendentes;
@@ -62,13 +63,13 @@ A raridade é sorteada usando mapa e progresso dentro dele. O primeiro mapa não
 
 ## Arquétipos e leitura visual
 
-| Arquétipo | Geometria provisória | Cor | Comportamento distinto |
+| Arquétipo | Modelo atual | Leitura | Comportamento distinto |
 | --- | --- | --- | --- |
-| Melee | Cilindro | Ciano | Persegue e pressiona a curta distância |
-| Ranged | Prisma triangular | Rosa-choque | Mantém distância e pode recuar |
-| Tank | Cubo | Amarelo | Mais vida, windup maior e ataque ampliado |
+| Melee | Ninja | Silhueta humanoide ágil | Persegue e pressiona a curta distância |
+| Ranged | Demon | Silhueta demoníaca leve | Mantém distância e pode recuar |
+| Tank | Orc | Silhueta larga e pesada | Mais vida, windup maior e ataque ampliado |
 
-Todos usam emissão e um halo na cor do arquétipo. Ranged dispara flechas emissivas mais lentas e de curso longo. O indicador `!` de preparação permanece, mas a antiga caixa que revelava a hitbox do projétil não é exibida.
+Todos usam animações de idle, locomoção, ataque e hit reaction. Ranged dispara flechas emissivas mais lentas que continuam em cena até colisão. O indicador `!` de preparação permanece, mas a antiga caixa que revelava a hitbox do projétil não é exibida.
 
 ## Salas de boss
 

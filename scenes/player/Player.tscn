@@ -6,6 +6,8 @@
 [ext_resource type="Script" path="res://scripts/player/PlayerSkillController.cs" id="4"]
 [ext_resource type="Script" path="res://scripts/player/PlayerAnimator.cs" id="6"]
 [ext_resource type="Script" path="res://scripts/player/BloodBlessingRuntime.cs" id="8"]
+[ext_resource type="PackedScene" path="res://assets/characters/quaternius_ultimate_animated_character/Knight_Male.gltf" id="9"]
+[ext_resource type="Script" path="res://scripts/player/PlayerWeaponVisual.cs" id="10"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
 radius = 0.35
@@ -14,20 +16,6 @@ height = 1.55
 [sub_resource type="BoxShape3D" id="BoxShape3D_attack"]
 size = Vector3(1.75, 1.1, 1.55)
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_player"]
-top_radius = 0.42
-bottom_radius = 0.42
-height = 1.55
-radial_segments = 32
-
-[sub_resource type="StandardMaterial3D" id="PlayerBlueMaterial"]
-albedo_color = Color(0.06, 0.28, 0.9, 1)
-roughness = 0.56
-metallic = 0.08
-emission_enabled = true
-emission = Color(0.025, 0.08, 0.34, 1)
-emission_energy_multiplier = 0.35
-
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1")
 
@@ -35,10 +23,9 @@ script = ExtResource("1")
 position = Vector3(0, 0.775, 0)
 shape = SubResource("CapsuleShape3D_player")
 
-[node name="CharacterModel" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.775, 0)
-mesh = SubResource("CylinderMesh_player")
-material_override = SubResource("PlayerBlueMaterial")
+[node name="CharacterModel" parent="." instance=ExtResource("9")]
+rotation = Vector3(0, 3.14159, 0)
+scale = Vector3(0.5, 0.5, 0.5)
 
 [node name="AttackArea" type="Area3D" parent="."]
 position = Vector3(0, 0.75, -1.18)
@@ -60,6 +47,15 @@ script = ExtResource("4")
 
 [node name="PlayerAnimator" type="Node" parent="."]
 script = ExtResource("6")
+IdleAnimation = "Idle"
+WalkAnimation = "Walk"
+RunAnimation = "Run"
+DodgeAnimation = "Roll"
+LightAttackAnimation = "SwordSlash"
+HeavyAttackAnimation = "SwordSlash"
+
+[node name="PlayerWeaponVisual" type="Node" parent="."]
+script = ExtResource("10")
 
 [node name="BloodBlessingRuntime" type="Node" parent="."]
 script = ExtResource("8")

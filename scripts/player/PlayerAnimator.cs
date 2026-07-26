@@ -301,9 +301,18 @@ public partial class PlayerAnimator : Node
                 continue;
 
             var path = animation.TrackGetPath(i).ToString();
-            if (path.EndsWith(":root"))
+            if (IsRootMotionTrack(path))
                 animation.RemoveTrack(i);
         }
+    }
+
+    private static bool IsRootMotionTrack(string path)
+    {
+        var separator = path.LastIndexOf(':');
+        var trackName = separator >= 0 ? path[(separator + 1)..] : path;
+        return trackName.Equals("root", System.StringComparison.OrdinalIgnoreCase)
+            || trackName.Equals("rootnode", System.StringComparison.OrdinalIgnoreCase)
+            || trackName.Equals("bone", System.StringComparison.OrdinalIgnoreCase);
     }
 
     private bool HasAnimation(string animationName)

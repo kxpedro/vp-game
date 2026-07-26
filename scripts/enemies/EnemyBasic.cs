@@ -82,7 +82,9 @@ public partial class EnemyBasic : CharacterBody3D
     private Tween _importedHitTween;
     private AnimationPlayer _importedAnimationPlayer;
     private string _importedIdleAnimation = "";
-    private readonly List<Node> _ownedProjectiles = new();
+    private string _importedWalkAnimation = "";
+    private string _importedAttackAnimation = "";
+    private string _importedHitAnimation = "";
     private int _hitFeedbackVersion;
     private float _hitStunTimer;
     private float _pendingWallImpactDamage;
@@ -148,10 +150,10 @@ public partial class EnemyBasic : CharacterBody3D
         };
         _warningMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1.0f, 0.02f, 0.0f, 0.48f),
+            AlbedoColor = new Color(1.0f, 0.08f, 0.015f, 0.22f),
             EmissionEnabled = true,
-            Emission = new Color(1.0f, 0.0f, 0.0f),
-            EmissionEnergyMultiplier = 1.9f,
+            Emission = new Color(1.0f, 0.035f, 0.0f),
+            EmissionEnergyMultiplier = 1.35f,
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha
         };
         _health.Damaged += OnDamaged;
@@ -304,11 +306,17 @@ public partial class EnemyBasic : CharacterBody3D
         HitTargetRadius = definition.CombatRadius;
         if (_visual != null) _visual.Visible = false;
         if (GetNodeOrNull<Node3D>("Eye") is { } eye) eye.Visible = false;
-        PlayImportedAnimation(_importedVisual, definition.IdleAnimation);
         _importedIdleAnimation = definition.IdleAnimation;
+        _importedWalkAnimation = definition.WalkAnimation;
+        _importedAttackAnimation = definition.AttackAnimation;
+        _importedHitAnimation = definition.HitAnimation;
         _importedAnimationPlayer = FindImportedAnimationPlayer(_importedVisual);
         if (_importedAnimationPlayer != null)
+        {
+            StripImportedRootMotionTracks(_importedAnimationPlayer);
             _importedAnimationPlayer.AnimationFinished += OnImportedAnimationFinished;
+            PlayImportedAnimation(_importedVisual, _importedIdleAnimation);
+        }
         CaptureImportedVisualBaseline();
         UpdateOverheadHeight();
     }
@@ -326,28 +334,8 @@ public partial class EnemyBasic : CharacterBody3D
     public void PlayBossMoveAnimation(string moveId, int phase)
     {
         if (_importedAnimationPlayer == null || !Name.ToString().Contains("Boss")) return;
-        var secondBoss = RunState.CurrentMapIndex == 1;
-        var animation = secondBoss
-            ? moveId switch
-            {
-                "psionic_volley" => phase >= 2 ? "105031_PsionicStrike_02" : "105031_PsionicStrike_01",
-                "kinetic_shift" => "105041_Shield",
-                "force_outbreak" => "105051_Outbreak",
-                "mirror_dash" => "105011_Primary_01",
-                "singularity" => "105051_Outbreak",
-                _ => "105011_Primary_01"
-            }
-            : moveId switch
-            {
-                "claw_combo" => "Mon_BlackDragon31_Btl_Atk01",
-                "tail_sweep" => "Mon_BlackDragon31_Btl_Skl03",
-                "dragon_volley" => "Mon_BlackDragon31_Btl_Skl07",
-                "blood_charge" => "Mon_BlackDragon31_Btl_Skl03",
-                "meteor_requiem" => "Mon_BlackDragon31_Btl_Skl08",
-                _ => "Mon_BlackDragon31_Btl_Atk02"
-            };
-        if (!_importedAnimationPlayer.HasAnimation(animation)) return;
-        _importedAnimationPlayer.Play(animation, 0.08, 1.25f + (phase - 1) * 0.12f);
+        if (!_importedAnimationPlayer.HasAnimation(_importedAttackAnimation)) return;
+        _importedAnimationPlayer.Play(_importedAttackAnimation, 0.08, 1.25f + (phase - 1) * 0.12f);
         _bossActionAnimationTimer = 0.7f;
     }
 
@@ -363,6 +351,30 @@ public partial class EnemyBasic : CharacterBody3D
         foreach (var child in root.GetChildren())
             if (FindImportedAnimationPlayer(child) is { } found) return found;
         return null;
+    }
+
+    private static void StripImportedRootMotionTracks(AnimationPlayer player)
+    {
+        foreach (var animationName in player.GetAnimationList())
+        {
+            if (!player.HasAnimation(animationName))
+                continue;
+
+            var animation = player.GetAnimation(animationName);
+            for (var trackIndex = animation.GetTrackCount() - 1; trackIndex >= 0; trackIndex--)
+            {
+                if (animation.TrackGetType(trackIndex) != Animation.TrackType.Position3D)
+                    continue;
+
+                var path = animation.TrackGetPath(trackIndex).ToString();
+                var separator = path.LastIndexOf(':');
+                var trackName = separator >= 0 ? path[(separator + 1)..] : path;
+                if (trackName.Equals("root", System.StringComparison.OrdinalIgnoreCase)
+                    || trackName.Equals("rootnode", System.StringComparison.OrdinalIgnoreCase)
+                    || trackName.Equals("bone", System.StringComparison.OrdinalIgnoreCase))
+                    animation.RemoveTrack(trackIndex);
+            }
+        }
     }
 
     private void MatchImportedVisualToPlayerHeight(float heightMultiplier)
@@ -550,7 +562,7 @@ public partial class EnemyBasic : CharacterBody3D
             chaseDirection = new Vector3(-chaseDirection.Z * _avoidanceSide, 0, chaseDirection.X * _avoidanceSide).Normalized();
         }
         Velocity = chaseDirection * MoveSpeed * _slowMultiplier;
-        PlayBossLocomotionAnimation(true);
+        PlayImportedLocomotionAnimation(true);
         MoveAndSlide();
         if (GetSlideCollisionCount() > 0 && _alternatePathTimer <= 0)
         {
@@ -592,7 +604,7 @@ public partial class EnemyBasic : CharacterBody3D
         }
 
         Velocity = direction * MoveSpeed * TacticalMoveSpeedMultiplier * _slowMultiplier;
-        PlayBossLocomotionAnimation(true);
+        PlayImportedLocomotionAnimation(true);
         MoveAndSlide();
         if (GetSlideCollisionCount() > 0)
         {
@@ -848,6 +860,7 @@ public partial class EnemyBasic : CharacterBody3D
         var direction = toTarget.Normalized();
         LookAt(GlobalPosition + direction, Vector3.Up);
         Velocity = direction * PatrolSpeed;
+        PlayImportedLocomotionAnimation(true);
         MoveAndSlide();
     }
 
@@ -917,8 +930,9 @@ public partial class EnemyBasic : CharacterBody3D
         if (direction.LengthSquared() <= 0.001f)
             return;
 
-        _knockbackVelocity = direction.Normalized() * force * KnockbackResistance;
-        _pendingWallImpactDamage = Mathf.Max(wallImpactDamage, 0.0f);
+        var bossResistance = Name.ToString().Contains("Boss") ? 0.05f : 1.0f;
+        _knockbackVelocity = direction.Normalized() * force * KnockbackResistance * bossResistance;
+        _pendingWallImpactDamage = Mathf.Max(wallImpactDamage * bossResistance, 0.0f);
     }
 
     public void ApplyStagger(float duration)
@@ -972,9 +986,15 @@ public partial class EnemyBasic : CharacterBody3D
         var attackSequence = ++_attackSequenceVersion;
         LockAttackDirection();
         ShowAttackTelegraph();
+        PlayImportedActionAnimation(_importedAttackAnimation, 1.16f);
         await Wait(AttackWindup);
         if (attackSequence != _attackSequenceVersion) return;
         HideAttackTelegraph();
+        if (!_health.IsDead && Archetype != EnemyArchetype.Ranged)
+        {
+            GetTree().CallGroup("audio_manager", "PlayEffect", "enemy_attack");
+            SpawnAttackImpact();
+        }
 
         if (!_health.IsDead && _player != null && Archetype == EnemyArchetype.Ranged && CanSeePlayer())
         {
@@ -982,7 +1002,6 @@ public partial class EnemyBasic : CharacterBody3D
         }
         else if (!_health.IsDead && _player != null && IsPlayerInsideLockedAttack())
         {
-            SpawnAttackImpact();
             var normalPenalty = Rarity == EnemyRarity.Normal ? 1.0f + RunState.GetEffectTotal("DamageTakenFromNormal.Multiplier") : 1.0f;
             var infectedPenalty = IsPestilent ? 1.0f + RunState.GetEffectTotal("InfectedEnemyDamage.Multiplier") : 1.0f;
             _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage * normalPenalty * Mathf.Max(infectedPenalty, 0.1f), false, GetDisplayName());
@@ -1067,21 +1086,16 @@ public partial class EnemyBasic : CharacterBody3D
             SpawnPosition = origin,
             Direction = direction,
             Speed = 5.2f,
-            MaximumDistance = 22.0f,
             Damage = AttackDamage,
             SourceName = GetDisplayName(),
             OwnerRid = GetRid()
         };
         GetTree().CurrentScene.AddChild(projectile);
-        _ownedProjectiles.Add(projectile);
     }
 
     private void OnDied()
     {
         ClearCharmLink();
-        foreach (var projectile in _ownedProjectiles)
-            if (IsInstanceValid(projectile)) projectile.QueueFree();
-        _ownedProjectiles.Clear();
         if (!RunState.IsBossRoom) SpawnBloodEssence();
         GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.OnEnemyKilled(this);
         GetTree().CallGroup("run_manager", "QueueEnemyDefeat", RollBloodCoinsReward());
@@ -1132,15 +1146,36 @@ public partial class EnemyBasic : CharacterBody3D
 
     private async void OnDamaged(float amount)
     {
-        if (amount <= 0) { SpawnAlertMarker(); return; }
+        if (amount <= 0)
+        {
+            SpawnCombatMarker("BLOQUEADO", new Color(0.72f, 0.86f, 1.0f));
+            SpawnHitImpact(new Color(0.62f, 0.78f, 1.0f), 1.25f);
+            GetTree().CallGroup("audio_manager", "PlayEffect", "armor_block");
+            return;
+        }
         if (_overheadHealthEnabled)
         {
             _overheadHealthRevealed = true;
             SetHealthBarMeshesVisible(true);
         }
         SpawnDamageNumber(amount);
-        SpawnHitImpact();
+        if (_health.LastDamageSource == "Ataque pelas costas")
+        {
+            SpawnHitImpact(new Color(0.95f, 0.08f, 0.32f), 1.45f);
+            GetTree().CallGroup("audio_manager", "PlayEffect", "hit_backstab");
+        }
+        else if (_health.LastDamageSource == "Impacto contra parede")
+        {
+            SpawnHitImpact(new Color(1.0f, 0.42f, 0.08f), 1.65f);
+            GetTree().CallGroup("audio_manager", "PlayEffect", "wall_impact");
+        }
+        else
+        {
+            SpawnHitImpact();
+        }
         FlashImportedVisual();
+        if (!_isAttacking && !_bossActionLocked)
+            PlayImportedActionAnimation(_importedHitAnimation, 1.3f);
         if (Archetype == EnemyArchetype.Ranged && GD.Randf() < 0.42f)
         {
             _rangedFleeTimer = Mathf.Max(_rangedFleeTimer, (float)GD.RandRange(1.25f, 2.35f));
@@ -1179,25 +1214,62 @@ public partial class EnemyBasic : CharacterBody3D
             if (IsInstanceValid(pair.Key)) pair.Key.MaterialOverride = pair.Value;
     }
 
-    private async void SpawnHitImpact()
+    private async void SpawnHitImpact(Color? contextColor = null, float sizeMultiplier = 1.0f)
     {
+        var color = contextColor ?? new Color(1, 0.3f, 0.04f);
+        var impactMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(color.R, color.G, color.B, 0.84f),
+            EmissionEnabled = true,
+            Emission = color,
+            EmissionEnergyMultiplier = 3.0f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+        };
         var impact = new MeshInstance3D
         {
-            Mesh = new SphereMesh { Radius = 0.22f, Height = 0.44f },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(1, 0.82f, 0.3f, 0.82f), EmissionEnabled = true,
-                Emission = new Color(1, 0.3f, 0.04f), EmissionEnergyMultiplier = 3.0f,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
-            },
+            Mesh = new SphereMesh { Radius = 0.22f * sizeMultiplier, Height = 0.44f * sizeMultiplier },
+            MaterialOverride = impactMaterial,
             Position = Vector3.Up * 1.0f
         };
         AddChild(impact);
+        for (var index = 0; index < 7; index++)
+        {
+            var angle = Mathf.Tau * index / 7.0f + (float)GD.RandRange(-0.18f, 0.18f);
+            var spark = new MeshInstance3D
+            {
+                Mesh = new SphereMesh { Radius = 0.035f, Height = 0.07f, RadialSegments = 8, Rings = 4 },
+                MaterialOverride = impactMaterial,
+                Position = Vector3.Up * 1.0f
+            };
+            AddChild(spark);
+            var destination = spark.Position + new Vector3(Mathf.Cos(angle), (float)GD.RandRange(-0.2f, 0.45f), Mathf.Sin(angle)) * 0.75f * sizeMultiplier;
+            var sparkTween = spark.CreateTween();
+            sparkTween.TweenProperty(spark, "position", destination, 0.16f);
+            sparkTween.Parallel().TweenProperty(spark, "transparency", 1.0f, 0.16f);
+            sparkTween.TweenCallback(Callable.From(spark.QueueFree));
+        }
         var tween = impact.CreateTween();
         tween.TweenProperty(impact, "scale", Vector3.One * 1.8f, 0.08f);
         tween.Parallel().TweenProperty(impact, "transparency", 1.0f, 0.14f);
         await ToSignal(tween, Tween.SignalName.Finished);
         impact.QueueFree();
+    }
+
+    private void SpawnCombatMarker(string text, Color color)
+    {
+        var label = new Label3D
+        {
+            Text = text,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            FontSize = 64,
+            Modulate = color,
+            OutlineSize = 10,
+            OutlineModulate = Colors.Black,
+            Position = Vector3.Up * 2.05f
+        };
+        AddChild(label);
+        AnimateDamageNumber(label);
     }
 
     private void OnHealthChanged(float currentHealth, float maxHealth)
@@ -1391,14 +1463,21 @@ public partial class EnemyBasic : CharacterBody3D
         SetHealthBarMeshesVisible(_overheadHealthEnabled && _overheadHealthRevealed);
     }
 
-    private void PlayBossLocomotionAnimation(bool moving)
+    private void PlayImportedLocomotionAnimation(bool moving)
     {
-        if (_importedAnimationPlayer == null || !Name.ToString().Contains("Boss") || _bossActionAnimationTimer > 0.0f) return;
-        var animation = RunState.CurrentMapIndex == 1
-            ? (moving ? "Run_Fwd_C" : "Idle_C")
-            : (moving ? "Mon_BlackDragon31_Btl_Run01" : "Mon_BlackDragon31_Btl_Std01");
+        if (_importedAnimationPlayer == null || _isAttacking || _bossActionAnimationTimer > 0.0f) return;
+        var animation = moving && !string.IsNullOrWhiteSpace(_importedWalkAnimation)
+            ? _importedWalkAnimation
+            : _importedIdleAnimation;
         if (_importedAnimationPlayer.HasAnimation(animation) && _importedAnimationPlayer.CurrentAnimation != animation)
-            _importedAnimationPlayer.Play(animation, 0.12, RunState.CurrentMapIndex == 1 ? 1.35f : 1.05f);
+            _importedAnimationPlayer.Play(animation, 0.12, moving ? 1.2f : 1.0f);
+    }
+
+    private void PlayImportedActionAnimation(string animation, float speed)
+    {
+        if (_importedAnimationPlayer == null || string.IsNullOrWhiteSpace(animation) || !_importedAnimationPlayer.HasAnimation(animation))
+            return;
+        _importedAnimationPlayer.Play(animation, 0.06, speed);
     }
 
     private void SpawnDamageNumber(float amount)
@@ -1517,22 +1596,53 @@ public partial class EnemyBasic : CharacterBody3D
     private async void SpawnAttackImpact()
     {
         var attackDepth = AttackRange + AttackDepthBonus;
-        var impact = new MeshInstance3D
+        var material = new StandardMaterial3D
         {
-            Name = "AttackImpact",
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(AttackWidth + 0.2f, 0.06f, attackDepth + 0.1f)
-            },
-            MaterialOverride = _warningMaterial,
-            Position = new Vector3(0.0f, 0.08f, -0.35f - attackDepth * 0.5f)
+            AlbedoColor = new Color(1.0f, 0.22f, 0.03f, 0.82f),
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.04f, 0.0f),
+            EmissionEnergyMultiplier = 3.2f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
         };
-        AddChild(impact);
+        if (Archetype == EnemyArchetype.Tank)
+        {
+            var shockwave = new MeshInstance3D
+            {
+                Name = "TankAttackShockwave",
+                Mesh = new CylinderMesh { TopRadius = AttackWidth * 0.32f, BottomRadius = AttackWidth * 0.42f, Height = 0.07f, RadialSegments = 32 },
+                MaterialOverride = material,
+                Position = new Vector3(0.0f, 0.08f, -attackDepth * 0.45f)
+            };
+            AddChild(shockwave);
+            var shockwaveTween = shockwave.CreateTween();
+            shockwaveTween.TweenProperty(shockwave, "scale", new Vector3(2.2f, 1.0f, 2.2f), 0.16f);
+            shockwaveTween.Parallel().TweenProperty(shockwave, "transparency", 1.0f, 0.18f);
+            await ToSignal(shockwaveTween, Tween.SignalName.Finished);
+            shockwave.QueueFree();
+            return;
+        }
 
-        var tween = impact.CreateTween();
-        tween.TweenProperty(impact, "scale", new Vector3(1.18f, 1.0f, 1.12f), 0.1f);
-        await ToSignal(tween, Tween.SignalName.Finished);
-        impact.QueueFree();
+        var slashRoot = new Node3D { Name = "MeleeAttackSlash" };
+        AddChild(slashRoot);
+        for (var index = 0; index < 5; index++)
+        {
+            var normalized = index / 4.0f;
+            var streak = new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = new Vector3(0.055f, 0.075f, attackDepth * (0.62f + normalized * 0.16f)) },
+                MaterialOverride = material,
+                Position = new Vector3(0.0f, 0.22f + normalized * 0.035f, -attackDepth * 0.42f),
+                RotationDegrees = new Vector3(0.0f, Mathf.Lerp(-28.0f, 28.0f, normalized), Mathf.Lerp(-8.0f, 8.0f, normalized)),
+                Scale = new Vector3(0.2f, 1.0f, 0.25f)
+            };
+            slashRoot.AddChild(streak);
+            var streakTween = streak.CreateTween();
+            streakTween.TweenProperty(streak, "scale", Vector3.One, 0.075f).SetDelay(index * 0.012f);
+            streakTween.TweenProperty(streak, "transparency", 1.0f, 0.10f);
+        }
+        await Wait(0.2f);
+        if (IsInstanceValid(slashRoot)) slashRoot.QueueFree();
     }
 
     private async void AnimateDamageNumber(Label3D label)

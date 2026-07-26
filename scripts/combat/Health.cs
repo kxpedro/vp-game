@@ -51,10 +51,25 @@ public partial class Health : Node
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }
 
+    public void SetMaxHealthPreservingMissingHealth(float maxHealth)
+    {
+        var previousMaximum = MaxHealth;
+        var previousCurrent = CurrentHealth;
+        var missingHealth = Mathf.Max(previousMaximum - previousCurrent, 0.0f);
+        MaxHealth = maxHealth;
+        CurrentHealth = maxHealth >= previousMaximum
+            ? Mathf.Clamp(MaxHealth - missingHealth, 0.0f, MaxHealth)
+            : Mathf.Clamp(previousCurrent, 0.0f, MaxHealth);
+        EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+    }
+
     public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "Perigos do castelo")
     {
         if (GetTree()?.Paused == true || IsDead || IsInvincible || amount <= 0.0f)
             return;
+
+        LastDamageWasCritical = isCritical;
+        LastDamageSource = string.IsNullOrWhiteSpace(sourceName) ? "Perigos do castelo" : sourceName;
 
         if (ShieldHits > 0)
         {
@@ -62,9 +77,6 @@ public partial class Health : Node
             EmitSignal(SignalName.Damaged, 0.0f);
             return;
         }
-
-        LastDamageWasCritical = isCritical;
-        LastDamageSource = string.IsNullOrWhiteSpace(sourceName) ? "Perigos do castelo" : sourceName;
 
         var blessingRuntime = GetParent()?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
         amount = blessingRuntime?.AbsorbBarrierAndReduceDamage(amount) ?? amount;

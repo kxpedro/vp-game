@@ -12,6 +12,36 @@ public enum WeaponAttackShape
     Radial
 }
 
+public enum PlayerAttackPhase
+{
+    None,
+    Startup,
+    Recovery
+}
+
+public enum AttackCancelAction
+{
+    Dodge,
+    Special
+}
+
+public sealed record AttackControlProfile(
+    float InputBufferSeconds = 0.20f,
+    bool DodgeCancelsStartup = true,
+    float DodgeCancelRecoveryStart = 0.0f,
+    bool SpecialCancelsStartup = false,
+    float SpecialCancelRecoveryStart = 0.45f,
+    float StartupMovementMultiplier = 0.35f,
+    float RecoveryMovementMultiplier = 0.65f,
+    float AimAssistRadius = 4.25f,
+    float AimAssistConeDegrees = 30.0f,
+    float AimAssistStrength = 0.65f,
+    float RetargetAtImpactStrength = 0.18f
+)
+{
+    public static AttackControlProfile Default { get; } = new();
+}
+
 public sealed record WeaponAttackDefinition(
     string Name,
     float Damage,
@@ -22,7 +52,8 @@ public sealed record WeaponAttackDefinition(
     float Width,
     float SlashTilt,
     WeaponAttackShape Shape = WeaponAttackShape.Arc,
-    float StaggerDuration = 0.24f
+    float StaggerDuration = 0.24f,
+    AttackControlProfile Control = null
 );
 
 public sealed record WeaponDefinition(

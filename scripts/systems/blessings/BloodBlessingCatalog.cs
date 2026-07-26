@@ -46,6 +46,13 @@ public static class BloodBlessingCatalog
         return 1;
     }
 
+    public static int GetSummonedRatCapacity(BloodBlessingRecord record)
+    {
+        var rarityCapacity = GetRarityLevel(record.Rarity);
+        var levelBonus = System.Math.Clamp(record.Level, 1, BloodBlessingProgression.MaximumLevel) - 1;
+        return System.Math.Max(rarityCapacity + levelBonus, 1);
+    }
+
     public static bool TryGet(string id, out BloodBlessingDefinition definition)
     {
         EnsureLoaded();
@@ -245,10 +252,7 @@ public static class BloodBlessingCatalog
 
     private static string NormalizeDescription(string description)
     {
-        // Blessings are unique; their numeric power scales with the rolled quality, not with a nonexistent level.
-        return description
-            .Replace(" por nível", " (valor base; aumenta com a qualidade)", StringComparison.OrdinalIgnoreCase)
-            .Replace(" por nivel", " (valor base; aumenta com a qualidade)", StringComparison.OrdinalIgnoreCase);
+        return description;
     }
 
     private static BloodBlessingEffectDefinition ParseEffect(JsonElement effect)

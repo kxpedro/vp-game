@@ -10,10 +10,10 @@ public partial class RoomGenerator : Node3D
     [Export] public float SpawnClearRadius { get; set; } = 3.0f;
     [Export] public int EnemySpawnWallPaddingCells { get; set; } = 2;
     [Export] public bool ShowLayoutDebugLabels { get; set; } = false;
-    [Export] public float EnemySpawnDelaySeconds { get; set; } = 5.0f;
-    [Export] public float WaveIntervalSeconds { get; set; } = 15.0f;
+    [Export] public float EnemySpawnDelaySeconds { get; set; } = 3.0f;
+    [Export] public float WaveIntervalSeconds { get; set; } = 9.0f;
     [Export] public int EnemiesPerWave { get; set; } = 5;
-    [Export] public int WaveCount { get; set; } = 3;
+    [Export] public int WaveCount { get; set; } = 4;
 
     public Vector3 PlayerSpawnPosition { get; private set; }
     public Vector3 ExitPortalPosition { get; private set; }
@@ -24,6 +24,9 @@ public partial class RoomGenerator : Node3D
     private const float FloorHeight = 0.22f;
     private const float WallHeight = 2.35f;
     private const int RegionSpacing = 1;
+    private const string DungeonFloorDetailPath = "res://assets/environment/kenney_modular_dungeon/floor_detail.glb";
+    private const string DungeonFloorDetailAltPath = "res://assets/environment/kenney_modular_dungeon/floor_detail_a.glb";
+    private const string DungeonGatePath = "res://assets/environment/kenney_modular_dungeon/gate.glb";
 
     private readonly RandomNumberGenerator _rng = new();
     private readonly HashSet<Vector2I> _walkableCells = new();
@@ -169,6 +172,57 @@ public partial class RoomGenerator : Node3D
 
         if (RunState.IsBossRoom)
             AddBossPillars();
+
+        AddImportedDungeonDetails();
+    }
+
+    private void AddImportedDungeonDetails()
+    {
+        var floorDetail = ResourceLoader.Load<PackedScene>(DungeonFloorDetailPath);
+        var floorDetailAlt = ResourceLoader.Load<PackedScene>(DungeonFloorDetailAltPath);
+        if (floorDetail != null && floorDetailAlt != null)
+        {
+            foreach (var cell in _walkableCells)
+            {
+                var hash = unchecked(cell.X * 73856093 ^ cell.Y * 19349663);
+                if ((hash & int.MaxValue) % 7 != 0)
+                    continue;
+
+                var source = ((hash & int.MaxValue) / 7) % 2 == 0 ? floorDetail : floorDetailAlt;
+                var detail = source.Instantiate<Node3D>();
+                detail.Name = $"DungeonFloorDetail_{cell.X}_{cell.Y}";
+                detail.Position = CellToWorld(cell) + Vector3.Up * 0.015f;
+                detail.Scale = Vector3.One * (CellSize * 0.49f);
+                detail.Rotation = new Vector3(0.0f, Mathf.Pi * ((hash & 3) * 0.5f), 0.0f);
+                AddChild(detail);
+                ApplyImportedMaterial(detail, _floorMaterial);
+            }
+        }
+
+        var gateScene = ResourceLoader.Load<PackedScene>(DungeonGatePath);
+        if (gateScene == null)
+            return;
+
+        var gate = gateScene.Instantiate<Node3D>();
+        gate.Name = "DungeonExitGateVisual";
+        gate.Position = CellToWorld(_exitCell);
+        gate.Scale = Vector3.One * 0.9f;
+        AddChild(gate);
+        ApplyImportedMaterial(gate, _wallMaterial);
+
+        var towardRoom = CellToWorld(_focusCell) - gate.Position;
+        towardRoom.Y = 0.0f;
+        if (towardRoom.LengthSquared() > 0.001f)
+            gate.LookAt(gate.GlobalPosition + towardRoom.Normalized(), Vector3.Up);
+    }
+
+    private static void ApplyImportedMaterial(Node3D root, Material material)
+    {
+        if (root is MeshInstance3D rootMesh)
+            rootMesh.MaterialOverride = material;
+        foreach (var child in root.FindChildren("*", "MeshInstance3D", true, false))
+            if (child is MeshInstance3D mesh)
+                mesh.MaterialOverride = material;
     }
 
     private void GeneratePointsOfInterest()
@@ -286,6 +340,8 @@ public partial class RoomGenerator : Node3D
             enemy.ConfigureVariant(spawn.Rarity, spawn.Archetype);
             if (RunState.IsBossRoom)
                 enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex));
+            else
+                enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetEnemy(spawn.Archetype));
             enemy.SetSpawnActive(false);
             spawnedEnemies.Add(enemy);
             // Model instantiation is deliberately spread over frames to avoid a spawn hitch.
