@@ -12,11 +12,14 @@ Animações conectadas em `Player.tscn`:
 | Caminhada | `Walk` |
 | Corrida | `Run` |
 | Esquiva | `Roll` |
-| Ataques da Espada Grande | `SwordSlash` |
+| Cortes da Espada Grande | `SwordSlash` |
+| Estocada final | `Punch` |
 
 `PlayerAnimator` remove root motion de posição para que `PlayerController` continue autoritativo sobre deslocamento e colisão.
 
-`PlayerWeaponVisual` encontra o esqueleto importado, cria `BoneAttachment3D` em `Fist.R` e `Fist.L` e instancia o modelo correspondente à arma equipada. A Espada Grande preserva o pivô original do cabo; não se deve recentralizar os bounds do modelo, pois isso prende o meio da lâmina à mão.
+`PlayerWeaponVisual` encontra o esqueleto importado, cria `BoneAttachment3D` em `Fist.R` e `Fist.L` e instancia o modelo correspondente à arma equipada. A Espada Grande preserva o pivô original do cabo; não se deve recentralizar os bounds do modelo, pois isso prende o meio da lâmina à mão. O visual fica oculto durante idle e locomoção e aparece apenas enquanto `PlayerCombat.IsAttacking` estiver ativo.
+
+Para evitar dessincronização entre modelo, hit e janela de controle, `PlayerCombat` fornece a duração total de startup + recovery ao `PlayerAnimator`. O clipe escolhido ajusta sua velocidade para caber nessa duração; ataques em linha selecionam a animação de estocada.
 
 ## Asset legado arquivado
 

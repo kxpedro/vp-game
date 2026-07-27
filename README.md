@@ -8,7 +8,7 @@ Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientaç�
 
 - suporte a teclado/mouse e controles compatíveis com o mapeamento padrão do Godot, incluindo DualSense e controles Xbox;
 - navegação completa de menus por direcional ou analógico, confirmação por `X`/`A` e retorno por `Círculo`/`B`;
-- Espada Grande como arma funcional e visível nas mãos do personagem, com combo básico de três golpes, ataque rápido, ataque especial e Fúria Bestial;
+- Espada Grande como arma funcional, exibida nas mãos durante os ataques, com combo básico de três golpes, ataque rápido, ataque especial e Fúria Bestial;
 - controles de ataque definidos por golpe: buffer, cancelamentos, recuperação, mobilidade, assistência de mira e redirecionamento no impacto;
 - atributos de combate definidos pela arma equipada: dano, tempos, alcance, hitbox, empurrão, stagger e recargas;
 - 63 Bênçãos de Sangue ativas: 15 Dracul, 15 Bathory, 14 Orlok, 15 Karnstein e 4 Stirps;
@@ -17,7 +17,7 @@ Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientaç�
 - campanha com 6, 8 e 10 salas comuns nos três primeiros mapas, além do confronto final;
 - primeira sala bônus da run, Câmara de Hemomancia entre mapas e sala de treinamento no Ninho do Corvo;
 - recompensas de Bênção de Sangue após salas comuns e Altar de Artefatos interativo após bosses;
-- HUD responsiva sem minimapa, com ficha, bênçãos, níveis de aprimoramento, passivas, pausa, compêndio e barreira azul integrada à vida;
+- HUD minimalista sem minimapa, com molduras discretas, cursor temático, ficha, bênçãos, níveis de aprimoramento, passivas, pausa, compêndio e barreira azul integrada à vida;
 - personagem, inimigos, bosses, armas e partes dos cenários usam assets 3D externos com origem e licença registradas;
 - áudio de combate diferencia cortes, estocada, rodopio, batida no chão, impacto corporal, ataque pelas costas, parede e esquiva;
 - três slots de save, progressão permanente Bestialis/Humanitas e configurações globais;
@@ -92,13 +92,15 @@ A vida atual é preservada entre salas e mapas. Ao morrer ou desistir, a run tem
 
 A Espada Grande é a arma jogável atual. Saves antigos que referenciam `greatsword` ou `dual_blades` são migrados para o identificador funcional `longsword`. Revolver Duplo e Chicote permanecem como entradas de expansão sem moveset definitivo.
 
+O modelo da arma fica oculto durante idle e locomoção e aparece somente enquanto um ataque está em execução. A duração das animações é sincronizada com startup + recovery do golpe; a estocada final usa uma animação distinta.
+
 O combo básico reinicia após 1 segundo sem continuação, e o terceiro golpe empurra 20% além do empurrão padrão do combo. Cada golpe possui perfil próprio de buffer, janela de cancelamento, recuperação, mobilidade e assistência de mira; a estocada final libera o jogador mais cedo. O ataque rápido aceita buffer da combinação dash + ataque. O ataque especial sai rapidamente, mas possui 1 segundo de recarga. Modificadores de velocidade de ataque afetam somente o ataque básico, sem acelerar dash, ataque rápido, especial ou Fúria Bestial.
 
 Com 100 pontos acumulados, a Fúria Bestial consome 10 pontos por segundo e dura 10 segundos antes de causar uma explosão final de 15% do dano básico em área. Efeitos externos podem alterar essa duração. A barreira absorve dano antes da vida, aguarda 8 segundos após obtenção ou consumo, perde 0,25 ponto por segundo e é zerada ao trocar de sala.
 
 As habilidades permanentes ficam em `data/skills/skills.json` e são compradas na Fonte de Sangue. As Bênçãos de Sangue ficam em `data/blessings/blood_blessings.json` e duram apenas durante a run. Artefatos em `data/artifacts/artifacts.json` são exclusivamente passivos.
 
-Raridade e nível de bênção são progressões independentes. A raridade sorteada determina a base; toda bênção começa no nível 1 e pode chegar ao nível 10. Cada nível adicional aumenta em 25% os valores escaláveis daquela raridade. Chances são limitadas a 100% tanto na lógica quanto na interface.
+Raridade e nível de bênção são progressões independentes. A raridade sorteada determina a base; toda bênção começa no nível 1 e pode chegar ao nível 10. Cada nível adicional aumenta em 25% os valores escaláveis daquela raridade. Chances são limitadas a 100% tanto na lógica quanto na interface. No Altar do Sacrifício, até três bênçãos elegíveis são sorteadas e apresentadas no mesmo formato visual das ofertas de bênção.
 
 ## Estrutura do projeto
 

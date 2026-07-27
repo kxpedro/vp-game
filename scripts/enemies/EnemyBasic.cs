@@ -1111,23 +1111,53 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void SpawnBloodEssence()
     {
-        var essence = new MeshInstance3D
+        var essence = new Node3D
         {
             Name = "BloodEssence",
-            Mesh = new SphereMesh { Radius = 0.11f, Height = 0.22f },
+            Position = GlobalPosition + Vector3.Up * 0.68f
+        };
+        var visual = new Node3D { Name = "EssenceVisual" };
+        essence.AddChild(visual);
+        visual.AddChild(new MeshInstance3D
+        {
+            Name = "BloodDrop",
+            Mesh = new SphereMesh { Radius = 0.105f, Height = 0.25f, RadialSegments = 16, Rings = 8 },
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(0.95f, 0.01f, 0.04f), EmissionEnabled = true,
-                Emission = new Color(1, 0, 0), EmissionEnergyMultiplier = 2.8f
+                AlbedoColor = new Color(0.58f, 0.008f, 0.025f, 0.92f),
+                EmissionEnabled = true,
+                Emission = new Color(0.72f, 0.0f, 0.035f),
+                EmissionEnergyMultiplier = 1.35f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                Roughness = 0.2f
             },
-            Position = GlobalPosition + Vector3.Up * 0.65f
-        };
+            Scale = new Vector3(0.72f, 1.3f, 0.72f)
+        });
+        visual.AddChild(new MeshInstance3D
+        {
+            Name = "BloodGlint",
+            Mesh = new SphereMesh { Radius = 0.035f, Height = 0.07f, RadialSegments = 12, Rings = 6 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(1.0f, 0.24f, 0.28f, 0.72f),
+                EmissionEnabled = true,
+                Emission = new Color(1.0f, 0.04f, 0.08f),
+                EmissionEnergyMultiplier = 2.0f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+            },
+            Position = new Vector3(-0.035f, 0.055f, -0.055f)
+        });
         GetTree().CurrentScene.AddChild(essence);
         essence.AddToGroup("blood_essences");
-        var tween = essence.CreateTween();
+        var tween = visual.CreateTween();
         tween.SetLoops();
-        tween.TweenProperty(essence, "position:y", essence.Position.Y + 0.22f, 0.45f);
-        tween.TweenProperty(essence, "position:y", essence.Position.Y, 0.45f);
+        tween.TweenProperty(visual, "position:y", 0.16f, 0.55f)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.InOut);
+        tween.TweenProperty(visual, "position:y", 0.0f, 0.55f)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.InOut);
     }
 
     private int RollBloodCoinsReward()

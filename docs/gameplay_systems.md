@@ -35,7 +35,9 @@ Na interface, d-pad e analógico navegam, `X`/`A` confirma e `Círculo`/`B` volt
 
 A arma funcional preserva o ID interno `longsword`, mas é apresentada como **Espada Grande**. IDs antigos `greatsword` e `dual_blades` migram para ela. A antiga Espada Grande placeholder e Espadas Duplas foram removidas; Revolver Duplo e Chicote continuam reservados para expansão. Os três IDs já possuem modelos registrados em `WeaponVisualCatalog`.
 
-`PlayerWeaponVisual` escuta `WeaponLoadout.EquippedWeaponChanged`, cria sockets nos ossos `Fist.R` e `Fist.L` e troca o modelo carregado junto com o equipamento. Os modelos mantêm o pivô original do ponto de empunhadura; a Espada Grande fica presa pelo cabo e acompanha as animações do personagem.
+`PlayerWeaponVisual` escuta `WeaponLoadout.EquippedWeaponChanged`, cria sockets nos ossos `Fist.R` e `Fist.L` e troca o modelo carregado junto com o equipamento. Os modelos mantêm o pivô original do ponto de empunhadura; a Espada Grande fica presa pelo cabo e acompanha as animações do personagem. O modelo equipado permanece oculto em idle, caminhada e corrida, tornando-se visível apenas durante um ataque.
+
+`PlayerAnimator` sincroniza a velocidade do clipe com a duração efetiva de startup + recovery informada por `PlayerCombat`. Cortes, ataque rápido e especial deixam de tocar com uma duração independente da janela de combate, e golpes em linha usam uma animação própria de estocada.
 
 ### Ataque básico
 
@@ -74,6 +76,7 @@ A arma funcional preserva o ID interno `longsword`, mas é apresentada como **Es
 ## Fúria Bestial e feedback de hit
 
 - requer uma bênção com `UnlockBestialFury`;
+- não acumula pontos e não exibe sua barra enquanto essa bênção não estiver equipada;
 - acumula até 100 pontos e consome 10 pontos por segundo por padrão, resultando em 10 segundos de duração-base;
 - `FuryDuration` e efeitos permanentes de duração continuam alterando a taxa efetiva de consumo;
 - ao chegar a zero, causa em área 15% do dano básico atual;
@@ -156,6 +159,8 @@ O validador exige raridade-base Common e o grupo exclusivo correto para bênçã
 
 `stirps_crimson_pestilence_pool` faz a explosão de um cadáver pestilento criar uma poça com o mesmo raio por 5 segundos. Inimigos dentro dela recebem Sangramento por uma duração-base de 3 segundos.
 
+As poças usam uma malha irregular de baixo brilho, com uma camada interna sutil, e ocorrências próximas são mescladas para evitar sobreposição visual excessiva. A explosão de Pestilência segue a mesma linguagem: mancha orgânica no chão, veios radiais e esporos projetados, sem alterar o raio usado pela lógica de propagação.
+
 ### Bênção dos Ratos
 
 - somente a morte de inimigos sob Pestilência dispara a invocação;
@@ -174,11 +179,14 @@ O validador exige raridade-base Common e o grupo exclusivo correto para bênçã
 - a trilha de roubo de vida entra na árvore antes de receber `GlobalPosition`, evitando `!is_inside_tree()`;
 - artefatos voltaram a ser oferecidos após bosses por meio do altar interativo.
 
+Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue composta, abandona o movimento de espera sem disputar a transformação principal e percorre uma espiral até o jogador. Partículas em coordenadas globais formam o rastro e um pulso de condensação conclui a absorção antes da oferta obrigatória.
+
 `bathory_immortal_beauty` converte dano em Ferida Recuperável após 2 segundos sem novo golpe e restaura durante 5 segundos. Pela escala atual, recupera 20%/40%/70%/110%/140% em Common/Uncommon/Rare/Epic/Legendary; Epic e Legendary ainda são pontos explícitos de rebalanceamento.
 
 ## HUD e ficha
 
-- HUD redistribuída para reduzir sobreposição; dicas fixas do topo removidas;
+- HUD redistribuída em um estilo minimalista, usando apenas painel e divisor discretos do Kenney UI Pack; dicas fixas do topo removidas;
+- cursor global substituído por ponteiro e manopla temáticos do Kenney Cursor Pack;
 - minimapa removido da HUD e atalho `Tab` desativado;
 - faixa compacta com até sete bênçãos e um `+` abaixo do último slot quando houver mais;
 - ícones exibem `N2` a `N10`; N1 fica implícito, e a ficha mostra nível e raridade separadamente;
@@ -188,6 +196,7 @@ O validador exige raridade-base Common e o grupo exclusivo correto para bênçã
 - Fonte de Sangue usa scroll e layout responsivo, sem botão fechar sobre o texto;
 - HUD permanece disponível na Câmara de Hemomancia;
 - vida e Fúria ficam ocultas no Ninho do Corvo;
+- a barra de Fúria também fica oculta durante a run até existir uma bênção que desbloqueie Fúria Bestial;
 - barreira é representada em azul como extensão do total de vida, sem label separado.
 
 ## Salas especiais
@@ -206,8 +215,9 @@ O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` r
 
 - Fonte: recupera 35% da vida máxima, uma vez por passagem;
 - Altar: reduz em 5% a vida máxima total da run e eleva uma bênção em um nível, preservando a raridade;
+- a oferta do altar sorteia até três bênçãos elegíveis e reutiliza o layout de cards da escolha de bênçãos; se houver menos de três, mostra somente as disponíveis;
 - a redução persiste entre salas e é cumulativa (`100 → 95 → 90,25`), sendo removida ao terminar a run;
-- lista rolável mostra `N atual → próximo N` e compara os valores efetivos;
+- cada card mostra ícone, raridade, `N atual → próximo N` e compara os valores efetivos;
 - nível máximo: N10; cada aprimoramento acrescenta 25% do valor-base escalado pela raridade;
 - cada serviço pode ser usado uma vez;
 - HUD e ficha continuam disponíveis.

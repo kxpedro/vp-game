@@ -410,44 +410,129 @@ public partial class BloodBlessingRuntime : Node
         var radius = baseRadius * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
         var baseDuration = durationOverride > 0.0f ? durationOverride : RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4);
         var duration = (baseDuration + RunState.GetEffectTotal("BloodPoolDuration.Flat")) * TemporaryEffectDurationMultiplier();
+        var expiresAt = Time.GetTicksMsec() / 1000.0 + duration;
+        if (TryMergeBloodPool(position, radius, expiresAt, causesBleeding))
+            return;
+
         var pool = new Node3D { Name = "BloodPool" };
         GetTree().CurrentScene.AddChild(pool);
-        pool.GlobalPosition = position + Vector3.Up * 0.035f;
+        pool.GlobalPosition = position + Vector3.Up * 0.025f;
         pool.AddToGroup("blood_pools");
         pool.SetMeta("radius", radius);
         pool.SetMeta("causes_bleeding", causesBleeding);
+        pool.SetMeta("expires_at", expiresAt);
+        var random = new RandomNumberGenerator
+        {
+            Seed = (ulong)Mathf.Abs(Mathf.RoundToInt(position.X * 73856093.0f)
+                ^ Mathf.RoundToInt(position.Z * 19349663.0f)
+                ^ (int)(Time.GetTicksMsec() & 0x7fffffff))
+        };
         var bloodMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.62f, 0.0f, 0.025f, 0.76f),
-            EmissionEnabled = true,
-            Emission = new Color(0.72f, 0.0f, 0.025f),
-            EmissionEnergyMultiplier = 1.75f,
+            AlbedoColor = causesBleeding
+                ? new Color(0.24f, 0.015f, 0.025f, 0.72f)
+                : new Color(0.31f, 0.008f, 0.018f, 0.68f),
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled
         };
         var surface = new MeshInstance3D
         {
-            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.045f, RadialSegments = 64 },
-            MaterialOverride = bloodMaterial
+            Name = "OrganicSurface",
+            Mesh = CreateOrganicPoolMesh(radius, random, 24, 0.22f),
+            MaterialOverride = bloodMaterial,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
         };
         pool.AddChild(surface);
-        var rim = new MeshInstance3D
+        var sheen = new MeshInstance3D
         {
-            Mesh = new TorusMesh { InnerRadius = radius * 0.94f, OuterRadius = radius, Rings = 64 },
+            Name = "SubtleSheen",
+            Mesh = CreateOrganicPoolMesh(radius * 0.56f, random, 18, 0.24f),
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(1.0f, 0.015f, 0.04f, 0.86f), EmissionEnabled = true,
-                Emission = new Color(0.95f, 0.0f, 0.03f), EmissionEnergyMultiplier = 2.4f,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+                AlbedoColor = new Color(0.58f, 0.025f, 0.035f, 0.18f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled
             },
-            Position = Vector3.Up * 0.035f
+            Position = new Vector3(radius * 0.16f, 0.008f, -radius * 0.12f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
         };
-        pool.AddChild(rim);
-        var pulse = rim.CreateTween().SetLoops();
-        pulse.TweenProperty(rim, "scale", Vector3.One * 1.035f, 0.55f);
-        pulse.TweenProperty(rim, "scale", Vector3.One * 0.985f, 0.55f);
-        await ToSignal(GetTree().CreateTimer(duration), SceneTreeTimer.SignalName.Timeout);
-        if (IsInstanceValid(pool)) pool.QueueFree();
+        pool.AddChild(sheen);
+
+        pool.Scale = new Vector3(0.86f, 1.0f, 0.86f);
+        pool.CreateTween().TweenProperty(pool, "scale", Vector3.One, 0.22f)
+            .SetTrans(Tween.TransitionType.Sine)
+            .SetEase(Tween.EaseType.Out);
+
+        while (IsInstanceValid(pool))
+        {
+            var remaining = (double)pool.GetMeta("expires_at", expiresAt) - Time.GetTicksMsec() / 1000.0;
+            if (remaining <= 0.0)
+                break;
+            await ToSignal(GetTree().CreateTimer(Mathf.Min((float)remaining, 0.25f)), SceneTreeTimer.SignalName.Timeout);
+        }
+        if (!IsInstanceValid(pool))
+            return;
+
+        var fade = pool.CreateTween().SetParallel();
+        fade.TweenProperty(surface, "transparency", 1.0f, 0.28f);
+        fade.TweenProperty(sheen, "transparency", 1.0f, 0.28f);
+        fade.TweenProperty(pool, "scale", new Vector3(0.94f, 1.0f, 0.94f), 0.28f);
+        await ToSignal(fade, Tween.SignalName.Finished);
+        if (IsInstanceValid(pool))
+            pool.QueueFree();
+    }
+
+    private bool TryMergeBloodPool(Vector3 position, float radius, double expiresAt, bool causesBleeding)
+    {
+        foreach (var node in GetTree().GetNodesInGroup("blood_pools"))
+        {
+            if (node is not Node3D existing)
+                continue;
+            var existingRadius = (float)existing.GetMeta("radius", 1.8f);
+            if (radius > existingRadius * 1.15f
+                || existing.GlobalPosition.DistanceTo(position) > Mathf.Min(radius, existingRadius) * 0.72f)
+                continue;
+
+            var currentExpiry = (double)existing.GetMeta("expires_at", expiresAt);
+            existing.SetMeta("expires_at", Mathf.Max(currentExpiry, expiresAt));
+            if (causesBleeding)
+                existing.SetMeta("causes_bleeding", true);
+            return true;
+        }
+        return false;
+    }
+
+    private static ArrayMesh CreateOrganicPoolMesh(
+        float radius,
+        RandomNumberGenerator random,
+        int segments,
+        float irregularity)
+    {
+        var points = new Vector3[segments];
+        var phase = random.RandfRange(0.0f, Mathf.Tau);
+        for (var i = 0; i < segments; i++)
+        {
+            var angle = Mathf.Tau * i / segments;
+            var broadWave = Mathf.Sin(angle * 3.0f + phase) * irregularity * 0.45f;
+            var jitter = random.RandfRange(-irregularity, irregularity);
+            var pointRadius = radius * (1.0f + broadWave + jitter);
+            points[i] = new Vector3(Mathf.Cos(angle) * pointRadius, 0.0f, Mathf.Sin(angle) * pointRadius);
+        }
+
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+        for (var i = 0; i < segments; i++)
+        {
+            surface.SetNormal(Vector3.Up);
+            surface.AddVertex(Vector3.Zero);
+            surface.SetNormal(Vector3.Up);
+            surface.AddVertex(points[(i + 1) % segments]);
+            surface.SetNormal(Vector3.Up);
+            surface.AddVertex(points[i]);
+        }
+        return surface.Commit();
     }
 
     private float TemporaryEffectDurationMultiplier()
@@ -577,33 +662,147 @@ public partial class BloodBlessingRuntime : Node
 
     private async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
     {
-        var burst = new MeshInstance3D
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null)
+            return;
+
+        var random = new RandomNumberGenerator
+        {
+            Seed = (ulong)Mathf.Abs(Mathf.RoundToInt(position.X * 92837111.0f)
+                ^ Mathf.RoundToInt(position.Z * 689287499.0f)
+                ^ (int)(Time.GetTicksMsec() & 0x7fffffff))
+        };
+        var burst = new Node3D
         {
             Name = "PestilenceDeathBurst",
-            Mesh = new CylinderMesh
-            {
-                TopRadius = radius,
-                BottomRadius = radius,
-                Height = 0.035f,
-                RadialSegments = 64
-            },
+            Position = position + Vector3.Up * 0.035f
+        };
+        scene.AddChild(burst);
+
+        var groundMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.16f, 0.28f, 0.055f, 0.38f),
+            EmissionEnabled = true,
+            Emission = new Color(0.18f, 0.38f, 0.045f),
+            EmissionEnergyMultiplier = 0.65f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled
+        };
+        var stain = new MeshInstance3D
+        {
+            Name = "OrganicContagionStain",
+            Mesh = CreateOrganicPoolMesh(radius, random, 24, 0.24f),
+            MaterialOverride = groundMaterial,
+            Scale = new Vector3(0.08f, 1.0f, 0.08f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+        };
+        burst.AddChild(stain);
+        var veins = new MeshInstance3D
+        {
+            Name = "PestilenceVeins",
+            Mesh = CreatePestilenceVeinMesh(radius, random),
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(0.2f, 0.8f, 0.18f, 0.28f),
+                AlbedoColor = new Color(0.42f, 0.62f, 0.12f, 0.56f),
                 EmissionEnabled = true,
-                Emission = new Color(0.12f, 0.72f, 0.08f),
-                EmissionEnergyMultiplier = 1.8f,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+                Emission = new Color(0.34f, 0.6f, 0.08f),
+                EmissionEnergyMultiplier = 1.1f,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled
             },
-            Position = position + Vector3.Up * 0.04f,
-            Scale = Vector3.One * 0.1f
+            Position = Vector3.Up * 0.009f,
+            Scale = new Vector3(0.08f, 1.0f, 0.08f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
         };
-        GetTree().CurrentScene.AddChild(burst);
-        var tween = burst.CreateTween();
-        tween.TweenProperty(burst, "scale", Vector3.One, 0.18f);
-        tween.TweenProperty(burst, "transparency", 1.0f, 0.22f);
-        await ToSignal(tween, Tween.SignalName.Finished);
-        if (IsInstanceValid(burst)) burst.QueueFree();
+        burst.AddChild(veins);
+
+        var sporeMaterial = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.42f, 0.68f, 0.14f, 0.78f),
+            EmissionEnabled = true,
+            Emission = new Color(0.34f, 0.66f, 0.09f),
+            EmissionEnergyMultiplier = 1.25f,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+        };
+        var sporeMesh = new SphereMesh { Radius = 0.07f, Height = 0.14f, RadialSegments = 10, Rings = 5 };
+        var sporeCount = Mathf.Clamp(Mathf.RoundToInt(radius * 2.2f), 8, 14);
+        for (var i = 0; i < sporeCount; i++)
+        {
+            var angle = random.RandfRange(0.0f, Mathf.Tau);
+            var outward = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle));
+            var spore = new MeshInstance3D
+            {
+                Name = $"PestilenceSpore{i + 1}",
+                Mesh = sporeMesh,
+                MaterialOverride = sporeMaterial,
+                Position = Vector3.Up * random.RandfRange(0.08f, 0.3f),
+                Scale = Vector3.One * random.RandfRange(0.45f, 1.05f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+            };
+            burst.AddChild(spore);
+            var destination = outward * random.RandfRange(radius * 0.28f, radius * 0.88f)
+                + Vector3.Up * random.RandfRange(0.45f, 1.45f);
+            var sporeTween = spore.CreateTween().SetParallel();
+            sporeTween.TweenProperty(spore, "position", destination, random.RandfRange(0.32f, 0.48f))
+                .SetTrans(Tween.TransitionType.Quad)
+                .SetEase(Tween.EaseType.Out);
+            sporeTween.TweenProperty(spore, "transparency", 1.0f, 0.46f).SetDelay(0.08f);
+            sporeTween.TweenProperty(spore, "scale", Vector3.One * 0.08f, 0.46f);
+        }
+
+        var expansion = burst.CreateTween().SetParallel();
+        expansion.TweenProperty(stain, "scale", Vector3.One, 0.2f)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        expansion.TweenProperty(veins, "scale", Vector3.One, 0.16f)
+            .SetTrans(Tween.TransitionType.Back)
+            .SetEase(Tween.EaseType.Out);
+        expansion.TweenProperty(stain, "transparency", 1.0f, 0.34f).SetDelay(0.16f);
+        expansion.TweenProperty(veins, "transparency", 1.0f, 0.3f).SetDelay(0.18f);
+        await ToSignal(GetTree().CreateTimer(0.58f), SceneTreeTimer.SignalName.Timeout);
+        if (IsInstanceValid(burst))
+            burst.QueueFree();
+    }
+
+    private static ArrayMesh CreatePestilenceVeinMesh(float radius, RandomNumberGenerator random)
+    {
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+        var veinCount = Mathf.Clamp(Mathf.RoundToInt(radius * 1.7f), 6, 11);
+        for (var i = 0; i < veinCount; i++)
+        {
+            var angle = Mathf.Tau * i / veinCount + random.RandfRange(-0.22f, 0.22f);
+            var direction = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle));
+            var perpendicular = new Vector3(-direction.Z, 0.0f, direction.X);
+            var length = radius * random.RandfRange(0.48f, 0.96f);
+            var middle = direction * length * 0.48f + perpendicular * random.RandfRange(-radius * 0.12f, radius * 0.12f);
+            var end = direction * length + perpendicular * random.RandfRange(-radius * 0.08f, radius * 0.08f);
+            var startWidth = radius * random.RandfRange(0.018f, 0.036f);
+            AddFlatQuad(surface, perpendicular * startWidth, -perpendicular * startWidth,
+                middle - perpendicular * startWidth * 0.58f, middle + perpendicular * startWidth * 0.58f);
+            AddFlatQuad(surface, middle + perpendicular * startWidth * 0.58f, middle - perpendicular * startWidth * 0.58f,
+                end - perpendicular * startWidth * 0.12f, end + perpendicular * startWidth * 0.12f);
+        }
+        return surface.Commit();
+    }
+
+    private static void AddFlatQuad(SurfaceTool surface, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+    {
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(a);
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(b);
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(c);
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(a);
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(c);
+        surface.SetNormal(Vector3.Up);
+        surface.AddVertex(d);
     }
 
     private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)

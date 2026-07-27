@@ -2,6 +2,9 @@ using Godot;
 
 public static class UIThemeFactory
 {
+    public const string SimplePanelPath = "res://assets/ui/kenney_hud/simple_panel.png";
+    public const string SimpleDividerPath = "res://assets/ui/kenney_hud/simple_divider.png";
+
     public static Theme Create()
     {
         var theme = new Theme { DefaultFontSize = 17 };
@@ -20,12 +23,12 @@ public static class UIThemeFactory
         theme.SetConstant("outline_size", "Label", 3);
         theme.SetColor("font_outline_color", "Label", new Color(0.02f, 0.005f, 0.008f, 0.9f));
 
-        theme.SetStylebox("normal", "Button", Box(new Color(0.075f, 0.025f, 0.035f, 0.96f), new Color(0.34f, 0.12f, 0.15f), 1));
-        theme.SetStylebox("hover", "Button", Box(new Color(0.16f, 0.035f, 0.05f, 0.98f), gold, 2));
-        theme.SetStylebox("pressed", "Button", Box(new Color(0.26f, 0.025f, 0.045f, 1.0f), new Color(0.95f, 0.2f, 0.18f), 2));
-        theme.SetStylebox("focus", "Button", Box(Colors.Transparent, gold, 2));
+        theme.SetStylebox("normal", "Button", Box(new Color(0.055f, 0.025f, 0.032f, 0.96f), new Color(0.22f, 0.16f, 0.17f), 1, 4));
+        theme.SetStylebox("hover", "Button", Box(new Color(0.11f, 0.035f, 0.045f, 0.98f), gold.Darkened(0.22f), 1, 4));
+        theme.SetStylebox("pressed", "Button", Box(new Color(0.17f, 0.025f, 0.038f, 1.0f), new Color(0.72f, 0.16f, 0.17f), 1, 4));
+        theme.SetStylebox("focus", "Button", Box(Colors.Transparent, gold.Darkened(0.15f), 1, 4));
         theme.SetStylebox("disabled", "Button", Box(new Color(0.035f, 0.025f, 0.03f, 0.8f), new Color(0.12f, 0.1f, 0.11f), 1));
-        theme.SetStylebox("panel", "PanelContainer", Box(new Color(0.025f, 0.012f, 0.018f, 0.94f), new Color(0.42f, 0.15f, 0.17f), 2, 10));
+        theme.SetStylebox("panel", "PanelContainer", Box(new Color(0.016f, 0.011f, 0.014f, 0.94f), new Color(0.19f, 0.13f, 0.14f), 1, 4));
         theme.SetStylebox("normal", "LineEdit", Box(new Color(0.025f, 0.015f, 0.02f, 1), new Color(0.32f, 0.18f, 0.18f), 1));
         theme.SetStylebox("normal", "OptionButton", Box(new Color(0.06f, 0.025f, 0.035f, 1), new Color(0.42f, 0.18f, 0.18f), 1));
         theme.SetStylebox("hover", "OptionButton", Box(new Color(0.13f, 0.035f, 0.05f, 1), gold, 2));
@@ -34,7 +37,49 @@ public static class UIThemeFactory
         return theme;
     }
 
-    public static StyleBoxFlat HudPanel(float alpha = 0.84f) => Box(new Color(0.018f, 0.008f, 0.012f, alpha), new Color(0.42f, 0.10f, 0.13f, 0.9f), 1, 8);
+    public static StyleBoxFlat HudPanel(float alpha = 0.84f) => Box(
+        new Color(0.012f, 0.009f, 0.011f, alpha),
+        new Color(0.28f, 0.16f, 0.17f, 0.72f),
+        1,
+        4);
+
+    public static StyleBoxFlat ChoiceCard(Color accent, float alpha = 0.98f) => Box(
+        new Color(0.022f, 0.006f, 0.012f, alpha),
+        accent,
+        3,
+        2);
+
+    public static NinePatchRect AddSimpleFrame(
+        Control parent,
+        string name,
+        Vector4 anchors,
+        Vector4 offsets,
+        Color tint,
+        int patchMargin = 10)
+    {
+        var frame = new NinePatchRect
+        {
+            Name = name,
+            Texture = ResourceLoader.Load<Texture2D>(SimplePanelPath),
+            AnchorLeft = anchors.X,
+            AnchorTop = anchors.Y,
+            AnchorRight = anchors.Z,
+            AnchorBottom = anchors.W,
+            OffsetLeft = offsets.X,
+            OffsetTop = offsets.Y,
+            OffsetRight = offsets.Z,
+            OffsetBottom = offsets.W,
+            PatchMarginLeft = patchMargin,
+            PatchMarginTop = patchMargin,
+            PatchMarginRight = patchMargin,
+            PatchMarginBottom = patchMargin,
+            DrawCenter = true,
+            Modulate = tint,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        parent.AddChild(frame);
+        return frame;
+    }
 
     private static StyleBoxFlat Box(Color background, Color border, int borderWidth, int radius = 7)
     {

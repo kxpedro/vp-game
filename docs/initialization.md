@@ -1,6 +1,6 @@
 # Contexto atual do projeto
 
-Snapshot técnico de Vampire's Prey em 2026-07-26. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
+Snapshot técnico de Vampire's Prey em 2026-07-27. Este arquivo é o ponto de entrada para futuras sessões de desenvolvimento.
 
 ## Visão do jogo
 
@@ -55,7 +55,8 @@ Estado atual:
 - HP absoluto preservado entre salas e mapas da mesma run;
 - personagem usa `Knight_Male.gltf`, com idle, caminhada, corrida, esquiva e ataque;
 - Espada Grande é a arma funcional; IDs antigos de Espada Grande e Espadas Duplas migram para `longsword`;
-- o visual da arma é preso aos ossos das mãos e muda por evento ao equipar Espada Grande, Revolver Duplo ou Chicote;
+- o visual da arma é preso aos ossos das mãos, muda por evento ao equipar Espada Grande, Revolver Duplo ou Chicote e só aparece durante ataques;
+- a velocidade dos clipes de ataque é sincronizada com startup + recovery; a estocada final usa uma animação distinta;
 - dano, tempos, alcance, forma da hitbox, tolerância de borda, empurrão, stagger e cooldown especial pertencem à definição da arma;
 - cada golpe possui perfil de buffer, cancelamentos, mobilidade, assistência de mira e redirecionamento;
 - combo básico de três golpes reiniciado após 1 segundo sem sequência;
@@ -67,6 +68,7 @@ Estado atual:
 - inimigos comuns podem ser mantidos sob pressão de stagger, enquanto bosses e inimigos especiais protegidos possuem armadura de stagger;
 - hit-stop, câmera, sangue e números de dano reforçam o contato dos golpes;
 - Fúria Bestial aplica pós-processamento em preto e branco, preservando os vermelhos associados a sangue;
+- Fúria só acumula e aparece na HUD quando uma bênção com `UnlockBestialFury` estiver equipada;
 - Fúria cheia possui 100 pontos, consome 10 por segundo por padrão e explode com 15% do dano básico ao terminar;
 - críticos usam amarelo-ouro e números três vezes maiores;
 - barreira absorve dano antes da vida, espera 8 segundos, perde 0,25 ponto por segundo e é zerada ao trocar de sala.
@@ -103,6 +105,8 @@ O catálogo `data/blessings/blood_blessings.json` contém 63 definições ativas
 - Orlok aplica Pestilência e pode invocar ratos ao derrotar hospedeiros pestilentos;
 - Karnstein aplica Encanto, fazendo inimigos atacarem aliados;
 - a Stirps de Orlok + Bathory cria uma poça de sangue no raio da explosão pestilenta e aplica Sangramento aos inimigos dentro dela;
+- poças próximas são mescladas e usam uma superfície orgânica irregular; explosões pestilentas acrescentam veios e esporos sem alterar a área lógica;
+- Sanguis Purgatis conduz gotas em espiral até o jogador, com rastro de partículas e pulso final antes da oferta;
 - cura excedente convertida em barreira, inclusive Reserva Imperial, passa pela API de overheal de `Health`;
 - a trilha visual de roubo de vida valida a árvore antes de alterar transformações globais.
 
@@ -145,7 +149,8 @@ A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato du
 
 A maior parte da HUD é criada por código em `scripts/ui/HUD.cs`.
 
-- vida, stamina, fúria, arma, skills, moedas e estado do boss;
+- vida, fúria condicional, arma, skills, moedas e estado do boss;
+- painéis e divisores discretos do Kenney UI Pack e cursores globais do Kenney Cursor Pack;
 - progresso da sala, aviso de wave e log de combate; o minimapa e o atalho `Tab` foram removidos;
 - dicas permanentes de botões no topo foram removidas;
 - até sete bênçãos aparecem na faixa compacta; havendo mais, um `+` ocupa a linha inferior do último slot;
@@ -156,7 +161,8 @@ A maior parte da HUD é criada por código em `scripts/ui/HUD.cs`.
 - o HUD permanece disponível na Câmara de Hemomancia;
 - a vida e a Fúria não aparecem no Ninho do Corvo;
 - a barreira aparece como extensão azul da barra de vida;
-- interfaces de Fonte de Sangue e Altar do Sacrifício são roláveis e responsivas.
+- a Fonte de Sangue permanece rolável e responsiva;
+- o Altar do Sacrifício sorteia até três bênçãos elegíveis e as apresenta no mesmo layout de cards da oferta de bênçãos.
 
 Na Câmara de Hemomancia, o Altar do Sacrifício reduz em 5% a vida máxima total da run para elevar uma bênção em um nível sem mudar sua raridade. A redução é cumulativa, persiste entre salas e é removida quando a run termina.
 

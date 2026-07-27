@@ -9,6 +9,7 @@ public partial class PlayerAnimator : Node
     [Export] public string DodgeAnimation { get; set; } = "Rig|Roll";
     [Export] public string LightAttackAnimation { get; set; } = "Rig|Sword_Attack";
     [Export] public string HeavyAttackAnimation { get; set; } = "Rig|Sword_Attack_RM";
+    [Export] public string ThrustAttackAnimation { get; set; } = "Punch";
     [Export] public float OneShotLockSeconds { get; set; } = 0.52f;
     [Export] public float IdleAnimationSpeed { get; set; } = 1.0f;
     [Export] public float WalkAnimationSpeed { get; set; } = 1.0f;
@@ -35,6 +36,7 @@ public partial class PlayerAnimator : Node
     private string _dodgeAnimation = "";
     private string _lightAttackAnimation = "";
     private string _heavyAttackAnimation = "";
+    private string _thrustAttackAnimation = "";
     private float _oneShotLockTimer;
     private bool _isMoving;
     private bool _isRunning;
@@ -115,22 +117,22 @@ public partial class PlayerAnimator : Node
         PlayOneShot(_dodgeAnimation, GetAnimationDuration(_dodgeAnimation, DodgeAnimationSpeed * dashSpeed, true), DodgeAnimationSpeed * dashSpeed);
     }
 
-    public void PlayLightAttack(int comboIndex)
+    public void PlayLightAttack(int comboIndex, float combatDuration, WeaponAttackShape attackShape)
     {
-        if (comboIndex % 2 == 0)
-            PlayOneShot(_lightAttackAnimation, GetLightAttackDuration(), LightAttackAnimationSpeed * CurrentAttackSpeed());
-        else
-            PlayOneShot(_heavyAttackAnimation, GetHeavyAttackDuration(), HeavyAttackAnimationSpeed * CurrentAttackSpeed());
+        var animation = attackShape == WeaponAttackShape.Line
+            ? _thrustAttackAnimation
+            : comboIndex % 2 == 0 ? _lightAttackAnimation : _heavyAttackAnimation;
+        PlaySyncedOneShot(animation, combatDuration);
     }
 
-    public void PlayHeavyAttack()
+    public void PlayHeavyAttack(float combatDuration)
     {
-        PlayOneShot(_heavyAttackAnimation, GetSpecialAttackDuration(), HeavyAttackAnimationSpeed);
+        PlaySyncedOneShot(_heavyAttackAnimation, combatDuration);
     }
 
-    public void PlayDashAttack()
+    public void PlayDashAttack(float combatDuration)
     {
-        PlayOneShot(_heavyAttackAnimation, GetDashAttackDuration(), DashAttackAnimationSpeed);
+        PlaySyncedOneShot(_heavyAttackAnimation, combatDuration);
     }
 
     public void CancelOneShot()
@@ -186,6 +188,7 @@ public partial class PlayerAnimator : Node
         _dodgeAnimation = ResolveAnimationName(DodgeAnimation);
         _lightAttackAnimation = ResolveAnimationName(LightAttackAnimation);
         _heavyAttackAnimation = ResolveAnimationName(HeavyAttackAnimation);
+        _thrustAttackAnimation = ResolveAnimationName(ThrustAttackAnimation);
     }
 
     private void PlayLoop(string animationName, float speedScale)
@@ -212,6 +215,18 @@ public partial class PlayerAnimator : Node
         _oneShotAnimation = animationName;
         _oneShotLockTimer = lockSeconds;
         _animationPlayer.Play(animationName, OneShotBlendSeconds, speedScale);
+    }
+
+    private void PlaySyncedOneShot(string animationName, float combatDuration)
+    {
+        if (!HasAnimation(animationName))
+            return;
+
+        var duration = Mathf.Max(combatDuration, 0.01f);
+        var animationLength = Mathf.Max(GetAnimationLength(animationName), 0.01f);
+        var globalSpeed = Mathf.Max(GameTuning.GetAnimationSpeedMultiplier(), 0.01f);
+        var synchronizedSpeed = animationLength / (duration * globalSpeed);
+        PlayOneShot(animationName, duration, synchronizedSpeed);
     }
 
     private float GetAnimationDuration(string animationName, float speedScale, bool clampToFullLength)

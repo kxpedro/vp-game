@@ -10,6 +10,8 @@ public partial class PlayerWeaponVisual : Node
     private BoneAttachment3D _leftSocket;
     private Node3D _rightWeapon;
     private Node3D _leftWeapon;
+    private PlayerCombat _combat;
+    private bool _weaponVisible;
 
     public override void _Ready()
     {
@@ -23,8 +25,14 @@ public partial class PlayerWeaponVisual : Node
 
         _rightSocket = CreateSocket(skeleton, "WeaponSocketRight", RightHandBone);
         _leftSocket = CreateSocket(skeleton, "WeaponSocketLeft", LeftHandBone);
+        _combat = GetParent()?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
         WeaponLoadout.EquippedWeaponChanged += RefreshVisual;
         RefreshVisual(WeaponLoadout.EquippedWeaponId);
+    }
+
+    public override void _Process(double delta)
+    {
+        SetWeaponVisibility(_combat?.IsAttacking == true);
     }
 
     public override void _ExitTree()
@@ -59,6 +67,19 @@ public partial class PlayerWeaponVisual : Node
                 definition.LeftPosition,
                 definition.LeftRotationDegrees,
                 "EquippedWeaponLeft");
+        SetWeaponVisibility(_combat?.IsAttacking == true, true);
+    }
+
+    private void SetWeaponVisibility(bool visible, bool force = false)
+    {
+        if (!force && _weaponVisible == visible)
+            return;
+
+        _weaponVisible = visible;
+        if (_rightWeapon != null && IsInstanceValid(_rightWeapon))
+            _rightWeapon.Visible = visible;
+        if (_leftWeapon != null && IsInstanceValid(_leftWeapon))
+            _leftWeapon.Visible = visible;
     }
 
     private static Node3D CreateWeapon(

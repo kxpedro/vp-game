@@ -19,6 +19,8 @@ public partial class PlayerCombat : Node
 
 	public float CurrentFury { get; private set; }
 	public bool IsFuryActive { get; private set; }
+	public bool IsAttacking => _isAttacking;
+	public bool IsFuryUnlocked => RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f;
 	public bool IsAttackFacingLocked => _isAttacking;
 	public bool IsQuickAttacking { get; private set; }
 	public Vector3 AttackFacingDirection => _attackDirection;
@@ -87,6 +89,7 @@ public partial class PlayerCombat : Node
 		_specialAttackCooldownTimer = Mathf.Max(_specialAttackCooldownTimer - elapsed, 0.0f);
 		if (CurrentAttackPhase != PlayerAttackPhase.None)
 			_attackPhaseElapsed += elapsed;
+		RefreshFuryLockState();
 		TickBestialFury(elapsed);
 		if (_controller?.IsStaggered == true)
 			return;
@@ -107,7 +110,7 @@ public partial class PlayerCombat : Node
 
 	public void AddFury(float amount)
 	{
-		if (IsFuryActive)
+		if (!IsFuryUnlocked || IsFuryActive)
 			return;
 
 		MaxFury = GetTunedMaxFury();
@@ -221,10 +224,13 @@ public partial class PlayerCombat : Node
 		_attackDirection = GetAssistedAttackDirection(GetMouseAttackDirection(), attack);
 		FaceAttackDirection();
 		ConfigureAttackArea(attack);
+		var hitDelay = GetAttackDelay(attack.HitDelay, attackType);
+		var recoveryDelay = GetAttackDelay(attack.Recovery, attackType);
+		var animationDuration = hitDelay + recoveryDelay;
 		if (attackType == PlayerAttackType.Special)
-			_animator?.PlayHeavyAttack();
+			_animator?.PlayHeavyAttack(animationDuration);
 		else
-			_animator?.PlayLightAttack(_lightComboIndex);
+			_animator?.PlayLightAttack(_lightComboIndex, animationDuration, attack.Shape);
 		var heavySwing = attackType == PlayerAttackType.Special
 			|| (attackType == PlayerAttackType.Basic && _lightComboIndex == BasicCombo.Length - 1);
 		var swingEffect = attackType == PlayerAttackType.Special
@@ -237,7 +243,6 @@ public partial class PlayerCombat : Node
 			};
 		GetTree().CallGroup("audio_manager", "PlayEffect", swingEffect);
 
-		var hitDelay = GetAttackDelay(attack.HitDelay, attackType);
 		SetAttackPhase(PlayerAttackPhase.Startup, hitDelay);
 		await Wait(hitDelay);
 		if (!IsCurrentAttack(attackGeneration))
@@ -283,7 +288,6 @@ public partial class PlayerCombat : Node
 		if (attackType == PlayerAttackType.Special)
 			_blessings?.OnSpecialAttack(GetParent<Node3D>().GlobalPosition, attack.Range, attack.Shape);
 
-		var recoveryDelay = GetAttackDelay(attack.Recovery, attackType);
 		SetAttackPhase(PlayerAttackPhase.Recovery, recoveryDelay);
 		await Wait(recoveryDelay);
 		if (!IsCurrentAttack(attackGeneration))
@@ -331,9 +335,10 @@ public partial class PlayerCombat : Node
 		_attackDirection = GetAssistedAttackDirection(NormalizeFallback(dashDirection), attack);
 		FaceAttackDirection();
 		ConfigureAttackArea(attack);
-		_animator?.PlayDashAttack();
-		GetTree().CallGroup("audio_manager", "PlayEffect", "attack_quick");
 		var quickHitDelay = Mathf.Max(attack.HitDelay, 0.04f);
+		var recoveryDelay = Mathf.Max(attack.Recovery, 0.01f);
+		_animator?.PlayDashAttack(quickHitDelay + recoveryDelay);
+		GetTree().CallGroup("audio_manager", "PlayEffect", "attack_quick");
 		SetAttackPhase(PlayerAttackPhase.Startup, quickHitDelay);
 		await Wait(quickHitDelay);
 		if (!IsCurrentAttack(attackGeneration)) return;
@@ -354,7 +359,6 @@ public partial class PlayerCombat : Node
 			GetTree().CallGroup("audio_manager", "PlayEffect", "hit_spin");
 		CombatFeedback.Instance?.PlayPlayerHit(dashHit.TargetsHit, dashHit.IsCritical, true);
 
-		var recoveryDelay = Mathf.Max(attack.Recovery, 0.01f);
 		SetAttackPhase(PlayerAttackPhase.Recovery, recoveryDelay);
 		await Wait(recoveryDelay);
 		if (!IsCurrentAttack(attackGeneration))
@@ -837,6 +841,8 @@ public partial class PlayerCombat : Node
 
 	public bool TryActivateFury()
 	{
+		if (!IsFuryUnlocked)
+			return false;
 		MaxFury = GetTunedMaxFury();
 		if (IsFuryActive || CurrentFury < MaxFury)
 			return false;
@@ -868,6 +874,17 @@ public partial class PlayerCombat : Node
 			return;
 
 		EndBestialFury();
+	}
+
+	private void RefreshFuryLockState()
+	{
+		if (IsFuryUnlocked || (!IsFuryActive && CurrentFury <= 0.0f))
+			return;
+
+		IsFuryActive = false;
+		CurrentFury = 0.0f;
+		SetFuryVisualActive(false);
+		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, false);
 	}
 
 	private void EndBestialFury()

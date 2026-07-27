@@ -15,6 +15,11 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 - Detalhes de piso e portão do [Modular Dungeon Kit](https://kenney.nl/assets/modular-dungeon-kit), por Kenney — CC0 1.0.
 - Barris, ossos, livro, candelabros, carpete, baú, entrada e tochas do [Modular Medieval Dungeon](https://quaternius.com/packs/medievaldungeon.html), por Quaternius — CC0 1.0.
 
+## Interface
+
+- `simple_panel.png` e `simple_divider.png` do [UI Pack](https://kenney.nl/assets/ui-pack), por Kenney — CC0 1.0.
+- `cursor_pointer.png` e `cursor_gauntlet.png` do [Cursor Pack](https://kenney.nl/assets/cursor-pack), por Kenney — CC0 1.0.
+
 ## Armas
 
 - `Whip` by Poly by Google, downloaded from

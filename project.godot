@@ -22,6 +22,7 @@ GlobalSettings="*res://scripts/systems/GlobalSettings.cs"
 AudioManager="*res://scripts/systems/AudioManager.cs"
 SaveGameManager="*res://scripts/systems/SaveGameManager.cs"
 CombatFeedback="*res://scripts/systems/CombatFeedback.cs"
+GameCursor="*res://scripts/ui/GameCursor.cs"
 
 [display]
 

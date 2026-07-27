@@ -15,6 +15,9 @@ public partial class IntermissionChamber : Node3D
     private Label _statusLabel;
     private ColorRect _upgradeOverlay;
     private VBoxContainer _upgradeChoices;
+    private Label _upgradeStatusLabel;
+    private readonly List<string> _upgradeOfferIds = new();
+    private readonly RandomNumberGenerator _upgradeRng = new();
     private bool _insideFountain;
     private bool _insideAltar;
     private bool _fountainUsed;
@@ -23,6 +26,7 @@ public partial class IntermissionChamber : Node3D
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
+        _upgradeRng.Randomize();
         ControllerUiSupport.EnsureMappings();
         _player = GetNode<PlayerController>("Player");
         _player.ProcessMode = ProcessModeEnum.Pausable;
@@ -120,21 +124,73 @@ public partial class IntermissionChamber : Node3D
             return;
         }
 
-        foreach (var child in _upgradeChoices.GetChildren()) child.QueueFree();
-        foreach (var blessing in eligible)
+        if (_upgradeOfferIds.Count == 0)
         {
-            var preview = BuildUpgradePreview(blessing);
-            var choice = new Button
+            for (var i = eligible.Count - 1; i > 0; i--)
             {
-                Text = $"{blessing.Name}  •  {blessing.Rarity}  •  N{blessing.Level} → N{blessing.Level + 1}\n{preview}",
-                TooltipText = BuildUpgradeTooltip(blessing, preview),
-                Alignment = HorizontalAlignment.Left,
-                CustomMinimumSize = new Vector2(600.0f, 76.0f + Mathf.Max(0, preview.Split('\n').Length - 1) * 22.0f)
-            };
-            choice.Pressed += () => SacrificeForUpgrade(blessing.Id);
-            _upgradeChoices.AddChild(choice);
+                var swapIndex = _upgradeRng.RandiRange(0, i);
+                (eligible[i], eligible[swapIndex]) = (eligible[swapIndex], eligible[i]);
+            }
+            for (var i = 0; i < Mathf.Min(3, eligible.Count); i++)
+                _upgradeOfferIds.Add(eligible[i].Id);
         }
 
+        foreach (var child in _upgradeChoices.GetChildren())
+        {
+            _upgradeChoices.RemoveChild(child);
+            child.QueueFree();
+        }
+        var renderedOffers = 0;
+        foreach (var blessingId in _upgradeOfferIds)
+        {
+            var blessing = eligible.Find(record => record.Id == blessingId);
+            if (blessing == null)
+                continue;
+            var preview = BuildUpgradePreview(blessing);
+            BloodBlessingCatalog.TryGet(blessing.Id, out var definition);
+            var card = new PanelContainer
+            {
+                CustomMinimumSize = new Vector2(1080.0f, 135.0f),
+                MouseDefaultCursorShape = Control.CursorShape.PointingHand
+            };
+            card.AddThemeStyleboxOverride("panel", UIThemeFactory.ChoiceCard(BlessingRarityColor(blessing.Rarity)));
+            var row = new HBoxContainer();
+            if (definition != null)
+            {
+                row.AddChild(new TextureRect
+                {
+                    Texture = ResourceLoader.Load<Texture2D>(definition.IconPath),
+                    CustomMinimumSize = new Vector2(92.0f, 92.0f),
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    MouseFilter = Control.MouseFilterEnum.Ignore
+                });
+            }
+            row.AddChild(new RichTextLabel
+            {
+                BbcodeEnabled = true,
+                FitContent = true,
+                ScrollActive = false,
+                Text = $"[font_size=22][b]{blessing.Name}[/b] | {blessing.Rarity} | N{blessing.Level} → N{blessing.Level + 1}[/font_size]\n{preview}",
+                TooltipText = BuildUpgradeTooltip(blessing, preview),
+                CustomMinimumSize = new Vector2(790.0f, 120.0f),
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            });
+            var choose = new Button
+            {
+                Text = "Aprimorar",
+                CustomMinimumSize = new Vector2(145.0f, 82.0f),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+            };
+            var capturedId = blessing.Id;
+            choose.Pressed += () => SacrificeForUpgrade(capturedId);
+            row.AddChild(choose);
+            card.AddChild(row);
+            _upgradeChoices.AddChild(card);
+            renderedOffers++;
+        }
+
+        _upgradeStatusLabel.Text = $"O altar revelou {renderedOffers} bênção(ões). Escolha uma para aprimorar sem alterar sua raridade.";
         _upgradeOverlay.Visible = true;
         GetTree().Paused = true;
         ControllerUiSupport.FocusFirst(_upgradeOverlay);
@@ -197,6 +253,16 @@ public partial class IntermissionChamber : Node3D
         return $"{value:+0.##;-0.##;0}";
     }
 
+    private static Color BlessingRarityColor(string rarity) => rarity.ToLowerInvariant() switch
+    {
+        "stirps" => new Color(1.0f, 0.08f, 0.22f),
+        "uncommon" => new Color(0.2f, 0.9f, 0.3f),
+        "rare" => new Color(0.2f, 0.48f, 1.0f),
+        "epic" => new Color(0.68f, 0.25f, 0.95f),
+        "legendary" => new Color(1.0f, 0.48f, 0.08f),
+        _ => Colors.White
+    };
+
     private void SacrificeForUpgrade(string blessingId)
     {
         if (!RunState.TryUpgradeBloodBlessing(blessingId, out var upgraded))
@@ -243,47 +309,73 @@ public partial class IntermissionChamber : Node3D
         {
             Name = "BlessingUpgradeOverlay",
             ProcessMode = ProcessModeEnum.Always,
-            Color = new Color(0.018f, 0.0f, 0.025f, 0.94f),
+            Theme = UIThemeFactory.Create(),
+            Color = new Color(0.012f, 0.0f, 0.018f, 0.96f),
             AnchorRight = 1.0f, AnchorBottom = 1.0f,
             Visible = false
         };
         layer.AddChild(_upgradeOverlay);
-        var panel = new VBoxContainer
+        var altarPanel = new ColorRect
         {
             AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
-            OffsetLeft = -310.0f, OffsetTop = -250.0f, OffsetRight = 310.0f, OffsetBottom = 250.0f,
-            Alignment = BoxContainer.AlignmentMode.Center
+            OffsetLeft = -620.0f, OffsetTop = -340.0f, OffsetRight = 620.0f, OffsetBottom = 340.0f,
+            Color = new Color(0.025f, 0.0f, 0.008f, 0.98f)
         };
-        _upgradeOverlay.AddChild(panel);
-        panel.AddChild(new Label
+        _upgradeOverlay.AddChild(altarPanel);
+        UIThemeFactory.AddSimpleFrame(
+            altarPanel,
+            "AltarFrame",
+            new Vector4(0.0f, 0.0f, 1.0f, 1.0f),
+            Vector4.Zero,
+            new Color(0.12f, 0.055f, 0.07f, 0.96f),
+            12);
+
+        var title = new Label
         {
             Text = "ALTAR DO SACRIFÍCIO",
+            AnchorRight = 1.0f,
+            OffsetTop = 18.0f,
+            OffsetBottom = 58.0f,
             HorizontalAlignment = HorizontalAlignment.Center,
-            CustomMinimumSize = new Vector2(0.0f, 46.0f)
-        });
-        panel.AddChild(new Label
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        title.AddThemeFontSizeOverride("font_size", 27);
+        altarPanel.AddChild(title);
+        _upgradeStatusLabel = new Label
         {
-            Text = "Sacrifique 20% da vida máxima para elevar uma bênção em uma raridade.",
+            Text = $"Sacrifique {BlessingSacrificeFraction * 100.0f:0.#}% da vida máxima para aprimorar o nível de uma bênção.",
+            AnchorRight = 1.0f,
+            OffsetTop = 62.0f,
+            OffsetBottom = 108.0f,
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(560.0f, 62.0f)
-        });
-        var choiceScroll = new ScrollContainer
-        {
-            CustomMinimumSize = new Vector2(610.0f, 285.0f),
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled
+            MouseFilter = Control.MouseFilterEnum.Ignore
         };
-        panel.AddChild(choiceScroll);
+        altarPanel.AddChild(_upgradeStatusLabel);
         _upgradeChoices = new VBoxContainer
         {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            OffsetLeft = 56.0f,
+            OffsetTop = 120.0f,
+            OffsetRight = 1184.0f,
+            OffsetBottom = 585.0f,
+            Alignment = BoxContainer.AlignmentMode.Center
         };
-        choiceScroll.AddChild(_upgradeChoices);
-        var close = new Button { Text = "Voltar", CustomMinimumSize = new Vector2(180.0f, 42.0f) };
+        _upgradeChoices.AddThemeConstantOverride("separation", 14);
+        altarPanel.AddChild(_upgradeChoices);
+        var close = new Button
+        {
+            Text = "Voltar",
+            AnchorLeft = 1.0f,
+            AnchorTop = 1.0f,
+            AnchorRight = 1.0f,
+            AnchorBottom = 1.0f,
+            OffsetLeft = -238.0f,
+            OffsetTop = -70.0f,
+            OffsetRight = -58.0f,
+            OffsetBottom = -28.0f
+        };
         close.Pressed += CloseUpgradeOverlay;
-        panel.AddChild(close);
+        altarPanel.AddChild(close);
     }
 
     private void SetMessage(string message)

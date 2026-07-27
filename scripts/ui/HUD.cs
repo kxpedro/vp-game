@@ -58,7 +58,7 @@ public partial class HUD : CanvasLayer
 	private int _focusedBlessingChoice;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
-	private VBoxContainer _blessingHudList;
+	private HBoxContainer _blessingHudList;
 	private Control _pauseOverlay;
 	private VBoxContainer _pauseMainMenu;
 	private VBoxContainer _pauseTuningPage;
@@ -217,10 +217,9 @@ public partial class HUD : CanvasLayer
 			Theme = UIThemeFactory.Create()
 		};
 		AddChild(root);
-		_playerHudFrame = AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -132, 382, -18), 0.9f);
-		AddHudPanel(root, "ResourceFrame", new Vector4(1, 0, 1, 0), new Vector4(-366, 18, -18, 140), 0.86f);
-		AddHudPanel(root, "LogFrame", new Vector4(1, 1, 1, 1), new Vector4(-410, -224, -18, -18), 0.58f);
-		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-330, 14, 330, 62), 0.82f);
+		_playerHudFrame = AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -142, 430, -18), 0.9f);
+		AddHudPanel(root, "ResourceFrame", new Vector4(0, 0, 0, 0), new Vector4(18, 18, 310, 118), 0.78f);
+		AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-280, 14, 280, 58), 0.72f);
 
 		var leftStatus = new VBoxContainer
 		{
@@ -229,24 +228,36 @@ public partial class HUD : CanvasLayer
 			AnchorTop = 1.0f,
 			AnchorRight = 0.0f,
 			AnchorBottom = 1.0f,
-			OffsetLeft = 32.0f,
-			OffsetTop = -116.0f,
-			OffsetRight = 366.0f,
-			OffsetBottom = -24.0f
+			OffsetLeft = 34.0f,
+			OffsetTop = -128.0f,
+			OffsetRight = 414.0f,
+			OffsetBottom = -28.0f
 		};
 		_playerStatus = leftStatus;
 		root.AddChild(leftStatus);
+		var playerHeader = new Label
+		{
+			Text = "VIRGIL",
+			HorizontalAlignment = HorizontalAlignment.Left,
+			CustomMinimumSize = new Vector2(360.0f, 22.0f),
+			Modulate = new Color(0.82f, 0.72f, 0.62f)
+		};
+		playerHeader.AddThemeFontSizeOverride("font_size", 13);
+		leftStatus.AddChild(playerHeader);
 		_fpsLabel = new Label
 		{
 			Name = "FpsCounter", Text = "FPS: 0",
-			OffsetLeft = 16, OffsetTop = 14, OffsetRight = 130, OffsetBottom = 42
+			AnchorLeft = 1.0f, AnchorRight = 1.0f,
+			OffsetLeft = -116, OffsetTop = 16, OffsetRight = -22, OffsetBottom = 42,
+			HorizontalAlignment = HorizontalAlignment.Right,
+			Modulate = new Color(1.0f, 1.0f, 1.0f, 0.48f)
 		};
 		root.AddChild(_fpsLabel);
 
 		var healthStack = new Control
 		{
 			Name = "HealthAndBarrier",
-			CustomMinimumSize = new Vector2(280.0f, 22.0f),
+			CustomMinimumSize = new Vector2(360.0f, 22.0f),
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		_barrierBar = CreateBar("Barreira", 100.0f);
@@ -256,30 +267,35 @@ public partial class HUD : CanvasLayer
 		_healthBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 		healthStack.AddChild(_healthBar);
 		_furyBar = CreateBar("Furia", 100.0f);
+		_furyBar.Visible = false;
 		ApplyHealthBarStyle();
 		leftStatus.AddChild(healthStack);
 		_healthPointsLabel = new Label
 		{
 			Text = "100/100", MouseFilter = Control.MouseFilterEnum.Ignore,
-			Position = new Vector2(0, -1), Size = new Vector2(280, 22),
+			Position = new Vector2(0, -1), Size = new Vector2(360, 22),
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
-			Modulate = Colors.Black
+			Modulate = Colors.White
 		};
+		_healthPointsLabel.AddThemeColorOverride("font_shadow_color", Colors.Black);
+		_healthPointsLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+		_healthPointsLabel.AddThemeConstantOverride("shadow_offset_y", 2);
 		_healthBar.AddChild(_healthPointsLabel);
 		leftStatus.AddChild(_furyBar);
 		var showCombatHud = !GetTree().CurrentScene.SceneFilePath.EndsWith("CrowsNest.tscn", StringComparison.OrdinalIgnoreCase);
 		_playerHudFrame.Visible = showCombatHud;
 		_playerStatus.Visible = showCombatHud;
 
-		_blessingHudList = new VBoxContainer
+		_blessingHudList = new HBoxContainer
 		{
 			Name = "BlessingHudList",
-			AnchorLeft = 0.0f, AnchorTop = 0.5f, AnchorRight = 0.0f, AnchorBottom = 0.5f,
-			OffsetLeft = 18.0f, OffsetTop = -190.0f, OffsetRight = 78.0f, OffsetBottom = 190.0f,
+			AnchorLeft = 0.5f, AnchorTop = 1.0f, AnchorRight = 0.5f, AnchorBottom = 1.0f,
+			OffsetLeft = -246.0f, OffsetTop = -66.0f, OffsetRight = 246.0f, OffsetBottom = -18.0f,
 			Alignment = BoxContainer.AlignmentMode.Center,
 			MouseFilter = Control.MouseFilterEnum.Pass
 		};
+		_blessingHudList.AddThemeConstantOverride("separation", 8);
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
 
@@ -303,10 +319,10 @@ public partial class HUD : CanvasLayer
 		_gameLog = new RichTextLabel
 		{
 			Name = "GameLog", AnchorLeft = 1, AnchorTop = 1, AnchorRight = 1, AnchorBottom = 1,
-			OffsetLeft = -396, OffsetTop = -212, OffsetRight = -30, OffsetBottom = -30,
+			OffsetLeft = -382, OffsetTop = -132, OffsetRight = -24, OffsetBottom = -24,
 			BbcodeEnabled = true, FitContent = false, ScrollActive = false,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
-			Modulate = new Color(1, 1, 1, 0.82f)
+			Modulate = new Color(1, 1, 1, 0.55f)
 		};
 		root.AddChild(_gameLog);
 		AppendGameLog("Interface iniciada.");
@@ -314,28 +330,28 @@ public partial class HUD : CanvasLayer
 		var resourcePanel = new VBoxContainer
 		{
 			Name = "ResourcePanel",
-			AnchorLeft = 1.0f,
+			AnchorLeft = 0.0f,
 			AnchorTop = 0.0f,
-			AnchorRight = 1.0f,
+			AnchorRight = 0.0f,
 			AnchorBottom = 0.0f,
-			OffsetLeft = -330.0f,
-			OffsetTop = 24.0f,
-			OffsetRight = -24.0f,
-			OffsetBottom = 120.0f
+			OffsetLeft = 32.0f,
+			OffsetTop = 27.0f,
+			OffsetRight = 294.0f,
+			OffsetBottom = 108.0f
 		};
 		root.AddChild(resourcePanel);
 		_coinsLabel = new Label
 		{
 			Name = "BloodCoinsLabel",
 			Text = Localization.TextFormat("hud.blood_coins", 0),
-			HorizontalAlignment = HorizontalAlignment.Right
+			HorizontalAlignment = HorizontalAlignment.Left
 		};
 		resourcePanel.AddChild(_coinsLabel);
 		_weaponLabel = new Label
 		{
 			Name = "EquippedWeaponLabel",
 			Text = $"Arma: {WeaponLoadout.EquippedWeapon.DisplayName}",
-			HorizontalAlignment = HorizontalAlignment.Right
+			HorizontalAlignment = HorizontalAlignment.Left
 		};
 		resourcePanel.AddChild(_weaponLabel);
 
@@ -343,7 +359,7 @@ public partial class HUD : CanvasLayer
 		{
 			Name = "EnemyProgressLabel",
 			Text = Localization.TextFormat("hud.enemies", 0, 0),
-			HorizontalAlignment = HorizontalAlignment.Right
+			HorizontalAlignment = HorizontalAlignment.Left
 		};
 		resourcePanel.AddChild(_enemyProgressLabel);
 
@@ -353,13 +369,31 @@ public partial class HUD : CanvasLayer
 			Text = "",
 			AnchorLeft = 0.5f,
 			AnchorRight = 0.5f,
-			OffsetLeft = -360.0f,
-			OffsetTop = 18.0f,
-			OffsetRight = 360.0f,
-			OffsetBottom = 44.0f,
+			OffsetLeft = -258.0f,
+			OffsetTop = 19.0f,
+			OffsetRight = 258.0f,
+			OffsetBottom = 49.0f,
 			HorizontalAlignment = HorizontalAlignment.Center
 		};
+		_roomLabel.AddThemeFontSizeOverride("font_size", 17);
+		_roomLabel.AddThemeColorOverride("font_color", new Color(0.86f, 0.78f, 0.68f));
 		root.AddChild(_roomLabel);
+		var roomDivider = new TextureRect
+		{
+			Name = "RoomDivider",
+			Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimpleDividerPath),
+			AnchorLeft = 0.5f,
+			AnchorRight = 0.5f,
+			OffsetLeft = -190.0f,
+			OffsetTop = 52.0f,
+			OffsetRight = 190.0f,
+			OffsetBottom = 56.0f,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.Scale,
+			Modulate = new Color(0.55f, 0.46f, 0.42f, 0.44f),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		root.AddChild(roomDivider);
 		_controlsHintLabel = new Label
 		{
 			Name = "ControlsHint",
@@ -376,7 +410,7 @@ public partial class HUD : CanvasLayer
 
 		_bossHealthPanel = new VBoxContainer
 		{
-			Name = "BossHealthPanel", AnchorLeft = 0.18f, AnchorTop = 0.07f, AnchorRight = 0.82f, AnchorBottom = 0.07f,
+			Name = "BossHealthPanel", AnchorLeft = 0.22f, AnchorTop = 0.075f, AnchorRight = 0.78f, AnchorBottom = 0.075f,
 			OffsetBottom = 78, Visible = false
 		};
 		root.AddChild(_bossHealthPanel);
@@ -483,7 +517,7 @@ public partial class HUD : CanvasLayer
 			Name = label,
 			MaxValue = maxValue,
 			Value = maxValue,
-			CustomMinimumSize = new Vector2(280.0f, 22.0f),
+			CustomMinimumSize = new Vector2(360.0f, 22.0f),
 			ShowPercentage = false,
 			TooltipText = label
 		};
@@ -539,6 +573,22 @@ public partial class HUD : CanvasLayer
 			CornerRadiusBottomLeft = 3,
 			CornerRadiusBottomRight = 3
 		});
+		_furyBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
+		{
+			BgColor = new Color(0.94f, 0.37f, 0.04f),
+			BorderColor = new Color(1.0f, 0.72f, 0.2f),
+			BorderWidthTop = 1,
+			BorderWidthBottom = 1
+		});
+		_furyBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
+		{
+			BgColor = new Color(0.09f, 0.025f, 0.012f),
+			BorderColor = new Color(0.33f, 0.12f, 0.04f),
+			BorderWidthLeft = 1,
+			BorderWidthTop = 1,
+			BorderWidthRight = 1,
+			BorderWidthBottom = 1
+		});
 	}
 
 	private void BindRuntimeNodes()
@@ -576,6 +626,7 @@ public partial class HUD : CanvasLayer
 			_furyBar.MaxValue = combat.MaxFury;
 			_furyBar.Value = combat.CurrentFury;
 			combat.FuryChanged += OnFuryChanged;
+			RefreshFuryVisibility();
 		}
 
 		if (runManager != null)
@@ -753,7 +804,7 @@ public partial class HUD : CanvasLayer
 			_healthPointsLabel.Text = barrierCurrent > 0.01f
 				? $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)} + {Mathf.CeilToInt(barrierCurrent)} / {Mathf.CeilToInt(_runtimeHealth.MaxHealth)}"
 				: $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)}/{Mathf.CeilToInt(_runtimeHealth.MaxHealth)}";
-			_healthPointsLabel.Modulate = barrierCurrent > 0.01f ? new Color(0.05f, 0.15f, 0.28f) : Colors.Black;
+			_healthPointsLabel.Modulate = barrierCurrent > 0.01f ? new Color(0.72f, 0.9f, 1.0f) : Colors.White;
 		}
 	}
 
@@ -779,12 +830,20 @@ public partial class HUD : CanvasLayer
 	{
 		_furyBar.MaxValue = max;
 		_furyBar.Value = current;
+		RefreshFuryVisibility();
 		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", 10.0f);
 		_furyBar.TooltipText = isActive
 			? $"Furia Bestial ativa: consome {furyDrainPerSecond:0.#} pontos por segundo e explode ao chegar a zero"
 			: RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f
 				? "Furia Bestial - pressione F quando a barra estiver cheia"
 				: "Furia Bestial bloqueada - encontre uma Bencao de Sangue compativel";
+	}
+
+	private void RefreshFuryVisibility()
+	{
+		if (_furyBar == null)
+			return;
+		_furyBar.Visible = RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f;
 	}
 
 	private void OnBloodCoinsChanged(int amount)
@@ -1781,35 +1840,196 @@ public partial class HUD : CanvasLayer
 		GetTree().Paused = false;
 		_bloodAbsorptionOverlay.Visible = true;
 		_bloodAbsorptionOverlay.Modulate = Colors.White;
+		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
 		_bloodAbsorptionLabel.Text = "SANGUIS PURGATUS";
 		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
 		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
+		var essences = new List<Node3D>();
+		var startingPositions = new List<Vector3>();
+		var spiralPhases = new List<float>();
 		foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
 		{
-			if (node is not Node3D essence) continue;
-			var tween = essence.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-			tween.TweenProperty(essence, "scale", Vector3.One * 0.08f, 5.05f);
+			if (node is not Node3D essence)
+				continue;
+			essences.Add(essence);
+			startingPositions.Add(essence.GlobalPosition);
+			spiralPhases.Add((float)GD.RandRange(0.0, Mathf.Tau));
+			AttachSanguisTrail(essence);
 		}
 		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.65f);
-		screenTween.TweenInterval(4.15f);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.65f);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.4f);
+		screenTween.TweenInterval(2.55f);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.5f);
+		var vignetteTween = _bloodAbsorptionOverlay.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.11f, 0.5f);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 2.35f);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.0f, 0.55f);
+
+		const float absorptionDuration = 3.45f;
 		var elapsed = 0.0f;
-		while (elapsed < 5.05f && player != null && IsInstanceValid(player))
+		while (elapsed < absorptionDuration && player != null && IsInstanceValid(player))
 		{
 			var delta = Mathf.Max((float)GetProcessDeltaTime(), 0.001f);
-			var destination = player.GlobalPosition + Vector3.Up;
-			var followWeight = 1.0f - Mathf.Exp(-3.8f * delta);
-			foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
-				if (node is Node3D essence) essence.GlobalPosition = essence.GlobalPosition.Lerp(destination, followWeight);
+			var destination = player.GlobalPosition + Vector3.Up * 0.95f;
+			for (var i = 0; i < essences.Count; i++)
+			{
+				var essence = essences[i];
+				if (!IsInstanceValid(essence))
+					continue;
+
+				var delay = Mathf.Min(i * 0.024f, 0.42f);
+				var progress = Mathf.Clamp((elapsed - delay) / Mathf.Max(absorptionDuration - delay, 0.1f), 0.0f, 1.0f);
+				var eased = progress * progress * (3.0f - 2.0f * progress);
+				var start = startingPositions[i];
+				var planar = destination - start;
+				planar.Y = 0.0f;
+				var direction = planar.LengthSquared() > 0.001f ? planar.Normalized() : Vector3.Forward;
+				var tangent = new Vector3(-direction.Z, 0.0f, direction.X);
+				var distance = start.DistanceTo(destination);
+				var spiralRadius = Mathf.Sin(progress * Mathf.Pi)
+					* Mathf.Min(distance * 0.22f, 1.35f)
+					* (1.0f - progress * 0.28f);
+				var angle = spiralPhases[i] + progress * Mathf.Tau * 2.25f;
+				var spiralOffset = tangent * Mathf.Cos(angle) * spiralRadius
+					+ Vector3.Up * Mathf.Sin(angle) * spiralRadius * 0.48f;
+				essence.GlobalPosition = start.Lerp(destination, eased) + spiralOffset;
+				essence.Scale = Vector3.One * Mathf.Lerp(1.0f, 0.055f, Mathf.Pow(progress, 1.65f));
+			}
 			elapsed += delta;
 			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		}
-		await ToSignal(GetTree().CreateTimer(0.5f, true), SceneTreeTimer.SignalName.Timeout);
-		foreach (var node in GetTree().GetNodesInGroup("blood_essences")) node.QueueFree();
+		if (player != null && IsInstanceValid(player))
+			SpawnSanguisArrivalPulse(player.GlobalPosition + Vector3.Up * 0.92f);
+		await ToSignal(GetTree().CreateTimer(0.42f, true), SceneTreeTimer.SignalName.Timeout);
+		foreach (var essence in essences)
+			if (IsInstanceValid(essence))
+				essence.QueueFree();
 		_bloodAbsorptionOverlay.Visible = false;
 		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bencao de Sangue.");
 		BuildBloodBlessingChoices();
+	}
+
+	private static void AttachSanguisTrail(Node3D essence)
+	{
+		var moteMaterial = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0.34f, 0.008f, 0.018f, 0.72f),
+			EmissionEnabled = true,
+			Emission = new Color(0.28f, 0.004f, 0.012f),
+			EmissionEnergyMultiplier = 0.85f,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+		};
+		var particleMaterial = new ParticleProcessMaterial
+		{
+			EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Sphere,
+			EmissionSphereRadius = 0.045f,
+			Gravity = new Vector3(0.0f, -0.08f, 0.0f),
+			InitialVelocityMin = 0.01f,
+			InitialVelocityMax = 0.09f,
+			ScaleMin = 0.35f,
+			ScaleMax = 1.0f,
+			Color = new Color(0.72f, 0.035f, 0.05f, 0.78f)
+		};
+		var trail = new GpuParticles3D
+		{
+			Name = "SanguisTrail",
+			Amount = 14,
+			Lifetime = 0.52f,
+			Randomness = 0.62f,
+			LocalCoords = false,
+			ProcessMaterial = particleMaterial,
+			DrawPass1 = new SphereMesh
+			{
+				Radius = 0.026f,
+				Height = 0.052f,
+				RadialSegments = 6,
+				Rings = 3,
+				Material = moteMaterial
+			},
+			VisibilityAabb = new Aabb(new Vector3(-2.0f, -2.0f, -2.0f), Vector3.One * 4.0f)
+		};
+		essence.AddChild(trail);
+		trail.Emitting = true;
+	}
+
+	private async void SpawnSanguisArrivalPulse(Vector3 position)
+	{
+		var scene = GetTree().CurrentScene;
+		if (scene == null)
+			return;
+
+		var root = new Node3D { Name = "SanguisArrivalPulse" };
+		scene.AddChild(root);
+		root.GlobalPosition = position;
+		var pulseMaterial = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0.32f, 0.006f, 0.018f, 0.26f),
+			EmissionEnabled = true,
+			Emission = new Color(0.22f, 0.003f, 0.01f),
+			EmissionEnergyMultiplier = 0.8f,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+		};
+		var pulse = new MeshInstance3D
+		{
+			Name = "AbsorptionPulse",
+			Mesh = new SphereMesh
+			{
+				Radius = 0.42f,
+				Height = 0.84f,
+				RadialSegments = 16,
+				Rings = 8,
+				Material = pulseMaterial
+			},
+			Scale = Vector3.One * 0.08f
+		};
+		root.AddChild(pulse);
+		var pulseTween = root.CreateTween().SetParallel();
+		pulseTween.TweenProperty(pulse, "scale", Vector3.One * 1.55f, 0.38f)
+			.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+		pulseTween.TweenProperty(pulse, "transparency", 1.0f, 0.38f)
+			.SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+
+		var random = new RandomNumberGenerator();
+		random.Randomize();
+		for (var i = 0; i < 11; i++)
+		{
+			var angle = random.RandfRange(0.0f, Mathf.Tau);
+			var radius = random.RandfRange(0.22f, 0.68f);
+			var start = new Vector3(Mathf.Cos(angle) * radius, random.RandfRange(-0.3f, 0.34f), Mathf.Sin(angle) * radius);
+			var moteMaterial = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0.5f, 0.01f, 0.025f, 0.82f),
+				EmissionEnabled = true,
+				Emission = new Color(0.38f, 0.006f, 0.018f),
+				EmissionEnergyMultiplier = 0.9f,
+				Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			};
+			var mote = new MeshInstance3D
+			{
+				Mesh = new SphereMesh
+				{
+					Radius = random.RandfRange(0.018f, 0.036f),
+					Height = random.RandfRange(0.04f, 0.085f),
+					RadialSegments = 6,
+					Rings = 3,
+					Material = moteMaterial
+				},
+				Position = start
+			};
+			root.AddChild(mote);
+			var moteTween = root.CreateTween().SetParallel();
+			moteTween.TweenProperty(mote, "position", Vector3.Zero, random.RandfRange(0.18f, 0.3f))
+				.SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.In);
+			moteTween.TweenProperty(mote, "scale", Vector3.One * 0.08f, 0.3f);
+			moteTween.TweenProperty(mote, "transparency", 1.0f, 0.32f);
+		}
+
+		await ToSignal(GetTree().CreateTimer(0.48f), SceneTreeTimer.SignalName.Timeout);
+		if (IsInstanceValid(root))
+			root.QueueFree();
 	}
 
 	private void BuildBloodBlessingOverlay(Control root)
@@ -1822,6 +2042,13 @@ public partial class HUD : CanvasLayer
 			Visible = false, ProcessMode = ProcessModeEnum.Always
 		};
 		root.AddChild(_bloodBlessingOverlay);
+		UIThemeFactory.AddSimpleFrame(
+			_bloodBlessingOverlay,
+			"BlessingChoiceFrame",
+			new Vector4(0.0f, 0.0f, 1.0f, 1.0f),
+			Vector4.Zero,
+			new Color(0.12f, 0.055f, 0.07f, 0.96f),
+			12);
 		_bloodAbsorptionOverlay = new ColorRect
 		{
 			Name = "BloodAbsorptionOverlay", Color = Colors.Transparent,
@@ -1900,8 +2127,7 @@ public partial class HUD : CanvasLayer
 				CustomMinimumSize = new Vector2(1080, 125),
 				MouseDefaultCursorShape = Control.CursorShape.PointingHand
 			};
-			var border = new StyleBoxFlat { BgColor = new Color(0.035f, 0.01f, 0.015f, 0.96f), BorderColor = BlessingRarityColor(offer.Rarity), BorderWidthLeft = 4, BorderWidthTop = 4, BorderWidthRight = 4, BorderWidthBottom = 4, CornerRadiusTopLeft = 8, CornerRadiusTopRight = 8, CornerRadiusBottomLeft = 8, CornerRadiusBottomRight = 8 };
-			card.AddThemeStyleboxOverride("panel", border);
+			card.AddThemeStyleboxOverride("panel", UIThemeFactory.ChoiceCard(BlessingRarityColor(offer.Rarity)));
 			var content = new RichTextLabel
 			{
 				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
@@ -2110,6 +2336,7 @@ public partial class HUD : CanvasLayer
 	private void RefreshBlessingHud()
 	{
 		if (_blessingHudList == null) return;
+		RefreshFuryVisibility();
 		foreach (var child in _blessingHudList.GetChildren()) child.QueueFree();
 		const int visibleBlessingLimit = 7;
 		var visibleCount = Mathf.Min(RunState.RunBlessings.Count, visibleBlessingLimit);
@@ -2124,11 +2351,21 @@ public partial class HUD : CanvasLayer
 				MouseFilter = Control.MouseFilterEnum.Pass,
 				MouseDefaultCursorShape = Control.CursorShape.Help
 			};
+			iconContainer.AddChild(new TextureRect
+			{
+				Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimplePanelPath),
+				AnchorRight = 1.0f,
+				AnchorBottom = 1.0f,
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.Scale,
+				Modulate = new Color(0.12f, 0.08f, 0.09f, 0.72f),
+				MouseFilter = Control.MouseFilterEnum.Ignore
+			});
 			var icon = new TextureRect
 			{
 				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
-				AnchorRight = 1.0f,
-				AnchorBottom = 1.0f,
+				AnchorRight = 1.0f, AnchorBottom = 1.0f,
+				OffsetLeft = 4.0f, OffsetTop = 4.0f, OffsetRight = -4.0f, OffsetBottom = -4.0f,
 				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
 				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 				MouseFilter = Control.MouseFilterEnum.Ignore
