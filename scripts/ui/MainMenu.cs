@@ -5,6 +5,7 @@ public partial class MainMenu : Control
 	private VBoxContainer _main;
 	private VBoxContainer _slots;
 	private VBoxContainer _options;
+	private VBoxContainer _credits;
 
 	private bool _showingOptions;
 
@@ -31,20 +32,83 @@ public partial class MainMenu : Control
 
 	private void BuildInterface()
 	{
-		var background = new ColorRect { Color = new Color(0.012f, 0.004f, 0.009f), AnchorRight = 1, AnchorBottom = 1 }; AddChild(background);
-		var veil = new ColorRect { Color = new Color(0.18f, 0.0f, 0.025f, 0.18f), AnchorLeft = 0.18f, AnchorRight = 0.82f, AnchorBottom = 1 }; AddChild(veil);
-		var title = new Label { Text = Localization.Text("game.title"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 90, OffsetRight = 350, OffsetBottom = 160, HorizontalAlignment = HorizontalAlignment.Center };
-		title.AddThemeFontSizeOverride("font_size", 54); title.Modulate = new Color(0.9f, 0.72f, 0.38f); AddChild(title);
-		var subtitle = new Label { Text = Localization.Text("game.subtitle"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 158, OffsetRight = 350, OffsetBottom = 194, HorizontalAlignment = HorizontalAlignment.Center, Modulate = new Color(0.68f, 0.57f, 0.5f) }; AddChild(subtitle);
-		_main = CreatePage(); _slots = CreatePage(); _options = CreatePage();
+		AddChild(new ColorRect { Color = new Color(0.006f, 0.002f, 0.005f), AnchorRight = 1, AnchorBottom = 1 });
+		AddChild(BuildBackdropGlow());
+		var emblem = new TextureRect
+		{
+			Texture = ResourceLoader.Load<Texture2D>("res://icon.png"),
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -64, OffsetTop = 48, OffsetRight = 64, OffsetBottom = 176,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			Modulate = new Color(1, 1, 1, 0.92f)
+		};
+		AddChild(emblem);
+		var title = new Label { Text = Localization.Text("game.title"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 184, OffsetRight = 350, OffsetBottom = 250, HorizontalAlignment = HorizontalAlignment.Center };
+		title.AddThemeFontSizeOverride("font_size", 54); title.Modulate = new Color(0.9f, 0.72f, 0.38f);
+		title.AddThemeColorOverride("font_shadow_color", new Color(0.35f, 0.0f, 0.03f, 0.85f));
+		title.AddThemeConstantOverride("shadow_offset_x", 0); title.AddThemeConstantOverride("shadow_offset_y", 4); title.AddThemeConstantOverride("shadow_outline_size", 10);
+		AddChild(title);
+		var subtitle = new Label { Text = Localization.Text("game.subtitle"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 248, OffsetRight = 350, OffsetBottom = 280, HorizontalAlignment = HorizontalAlignment.Center, Modulate = new Color(0.68f, 0.57f, 0.5f) }; AddChild(subtitle);
+		var divider = new TextureRect
+		{
+			Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimpleDividerPath),
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -220, OffsetTop = 288, OffsetRight = 220, OffsetBottom = 292,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.Scale,
+			Modulate = new Color(0.62f, 0.2f, 0.18f, 0.7f)
+		};
+		AddChild(divider);
+		_main = CreatePage(); _slots = CreatePage(); _options = CreatePage(); _credits = CreatePage();
 		AddMenuButton(_main, Localization.Text("menu.play"), () => ShowPage(_slots));
 		AddMenuButton(_main, Localization.Text("menu.options"), () => ShowPage(_options));
+		AddMenuButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits));
 		AddMenuButton(_main, Localization.Text("menu.quit"), () => GetTree().Quit());
 		BuildSlotsPage();
+		BuildCreditsPage();
 		_options.AddChild(new Label { Text = Localization.Text("options.title"), HorizontalAlignment = HorizontalAlignment.Center });
 		AddLanguageOption(); AddResolutionOption(); AddVolumeOption("options.volume_music", true); AddVolumeOption("options.volume_effects", false);
 		AddMenuButton(_options, Localization.Text("menu.back"), () => ShowPage(_main));
 	}
+
+	private static TextureRect BuildBackdropGlow()
+	{
+		var gradient = new Gradient();
+		gradient.SetColor(0, new Color(0.34f, 0.02f, 0.05f, 0.55f));
+		gradient.SetColor(1, new Color(0.0f, 0.0f, 0.0f, 0.0f));
+		return new TextureRect
+		{
+			Texture = new GradientTexture2D
+			{
+				Gradient = gradient, Width = 512, Height = 512,
+				Fill = GradientTexture2D.FillEnum.Radial,
+				FillFrom = new Vector2(0.5f, 0.42f), FillTo = new Vector2(1.05f, 0.95f)
+			},
+			AnchorRight = 1, AnchorBottom = 1,
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.Scale,
+			MouseFilter = MouseFilterEnum.Ignore
+		};
+	}
+
+	private void BuildCreditsPage()
+	{
+		_credits.AddChild(new Label { Text = Localization.Text("credits.title"), HorizontalAlignment = HorizontalAlignment.Center });
+		var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(600, 300), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+		var text = new RichTextLabel
+		{
+			BbcodeEnabled = true, FitContent = true, SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			Text = $"[center][b]{Localization.Text("credits.created_by")}[/b]\nPedro Henrique Rech Sarmento\n\n[b]{Localization.Text("credits.third_party")}[/b][/center]\n" + ThirdPartyCredits
+		};
+		scroll.AddChild(text);
+		_credits.AddChild(scroll);
+		AddMenuButton(_credits, Localization.Text("menu.back"), () => ShowPage(_main));
+	}
+
+	// Atribuicoes exigidas pelas licencas (CC BY 3.0 e OGA-BY 3.0) e cortesia aos pacotes CC0. Detalhes em CREDITS.md.
+	private const string ThirdPartyCredits =
+		"• Whip by Poly by Google (poly.pizza) — CC BY 3.0\n" +
+		"• Additional Sound FX by Will Leamon — \"Fleshy Fight Sounds\" (OpenGameArt) — OGA-BY 3.0\n" +
+		"• Swishes Sound Pack by artisticdude (OpenGameArt) — CC0\n" +
+		"• 20 Sword Sound Effects by StarNinjas (OpenGameArt) — CC0\n" +
+		"• Ultimate Animated Character, Ultimate Monsters, Modular Medieval Dungeon, Modular Weapons e Revolver by Quaternius — CC0\n" +
+		"• Modular Dungeon Kit, UI Pack e Cursor Pack by Kenney — CC0";
 
 	private VBoxContainer CreatePage()
 	{
@@ -110,6 +174,7 @@ public partial class MainMenu : Control
 		_main.Visible = page == _main;
 		_slots.Visible = page == _slots;
 		_options.Visible = page == _options;
+		_credits.Visible = page == _credits;
 		ControllerUiSupport.FocusFirst(page);
 	}
 

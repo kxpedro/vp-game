@@ -18,24 +18,6 @@ public static class BloodBlessingCatalog
     public static IReadOnlyList<BloodBlessingFamily> AllFamilies { get { EnsureLoaded(); return Families; } }
     public static IReadOnlyList<BloodBlessingRarity> AllRarities { get { EnsureLoaded(); return Rarities; } }
 
-    public static bool TryGetNextRarity(string currentRarity, out BloodBlessingRarity nextRarity)
-    {
-        EnsureLoaded();
-        nextRarity = null;
-        for (var i = 0; i < Rarities.Count; i++)
-        {
-            var rarity = Rarities[i];
-            if (!rarity.Id.Equals(currentRarity, StringComparison.OrdinalIgnoreCase) &&
-                !rarity.DisplayName.Equals(currentRarity, StringComparison.OrdinalIgnoreCase))
-                continue;
-            if (i + 1 >= Rarities.Count)
-                return false;
-            nextRarity = Rarities[i + 1];
-            return true;
-        }
-        return false;
-    }
-
     public static int GetRarityLevel(string rarityName)
     {
         EnsureLoaded();

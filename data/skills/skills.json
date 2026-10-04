@@ -572,7 +572,7 @@
                     "id": "humanitas.collector_eye",
                     "presentation": {
                         "name": "Ás das Relíquias",
-                        "description": "Aumenta em 5 pontos percentuais por nivel a chance de encontrar um artefato apos derrotar um chefe.",
+                        "description": "Aumenta em 5 pontos percentuais por nivel a chance de o Altar de Artefatos oferecer uma quarta opcao apos derrotar um chefe.",
                         "flavorText": "No baralho do castelo, Virgil sempre guarda um ás na manga.",
                         "metalReference": "Motörhead — Ace of Spades",
                         "iconText": "AR",

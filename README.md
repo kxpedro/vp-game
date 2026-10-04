@@ -106,13 +106,11 @@ Raridade e nível de bênção são progressões independentes. A raridade sorte
 
 ```text
 .codex/      skills locais e validadores dos catálogos
-3d/          modelos e rigs 3D mantidos no projeto
 assets/      pacotes externos com licença e origem registradas
 audio/       músicas, ambientes e efeitos sonoros
 data/        skills, bênçãos, artefatos e localização
 docs/        documentação técnica
 images/      interface, ícones e efeitos
-references/  referências conceituais e artísticas
 scenes/      cenas do Godot
 scripts/     código C# de gameplay e sistemas
 ```

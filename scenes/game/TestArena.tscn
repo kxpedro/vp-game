@@ -62,9 +62,32 @@ background_mode = 1
 background_color = Color(0.014, 0.012, 0.022, 1)
 ambient_light_source = 3
 ambient_light_color = Color(0.3, 0.34, 0.46, 1)
-ambient_light_energy = 0.44
-reflected_light_source = 2
+ambient_light_energy = 0.57
+reflected_light_source = 1
 tonemap_mode = 2
+glow_enabled = true
+glow_normalized = false
+glow_intensity = 0.9
+glow_strength = 1.1
+glow_bloom = 0.04
+glow_hdr_threshold = 1.0
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 1.6
+fog_enabled = true
+fog_light_color = Color(0.09, 0.05, 0.1, 1)
+fog_density = 0.006
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.08
+
+[sub_resource type="StandardMaterial3D" id="PortalFrameMaterial"]
+albedo_color = Color(0.16, 0.12, 0.13, 1)
+roughness = 0.84
+emission_enabled = true
+emission = Color(0.45, 0.02, 0.04, 1)
+emission_energy_multiplier = 0.18
 
 [node name="TestArena" type="Node3D"]
 script = ExtResource("1")
@@ -137,17 +160,17 @@ material_override = SubResource("StandardMaterial3D_portal")
 [node name="PillarA" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(-1.15, 1.35, 0)
 mesh = SubResource("BoxMesh_portal_pillar")
-material_override = SubResource("StandardMaterial3D_portal")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="PillarB" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(1.15, 1.35, 0)
 mesh = SubResource("BoxMesh_portal_pillar")
-material_override = SubResource("StandardMaterial3D_portal")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="Lintel" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(0, 2.7, 0)
 mesh = SubResource("BoxMesh_portal_lintel")
-material_override = SubResource("StandardMaterial3D_portal")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="BarA" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(-0.55, 1.18, 0)

@@ -43,14 +43,6 @@ public partial class Health : Node
             EmitSignal(SignalName.Died);
     }
 
-    public void SetMaxHealthPreservingRatio(float maxHealth)
-    {
-        var ratio = MaxHealth > 0.0f ? CurrentHealth / MaxHealth : 1.0f;
-        MaxHealth = maxHealth;
-        CurrentHealth = Mathf.Clamp(MaxHealth * ratio, 0.0f, MaxHealth);
-        EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
-    }
-
     public void SetMaxHealthPreservingMissingHealth(float maxHealth)
     {
         var previousMaximum = MaxHealth;

@@ -14,3 +14,7 @@ obj/
 *.user
 .DS_Store
 Thumbs.db
+
+# Material arquivado fora do projeto (modelos de referencia e capturas de outros jogos)
+/3d/
+/references/

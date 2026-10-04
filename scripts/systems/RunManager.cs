@@ -16,7 +16,6 @@ public partial class RunManager : Node3D
 
     [Export] public NodePath ExitPortalPath { get; set; } = new("ExitPortal");
     [Export] public NodePath RoomGeneratorPath { get; set; } = new("RoomGenerator");
-    [Export] public float ArtifactSpawnChance { get; set; } = 1.0f;
 
     public int BloodCoins { get; private set; }
     public int LastBloodCoinsReward { get; private set; }
@@ -128,19 +127,6 @@ public partial class RunManager : Node3D
         GetTree().CallGroup("hud", "NotifyBloodCoinsRewarded", amount, BloodCoins);
     }
 
-    public void NotifyEnemyDefeated()
-    {
-        if (IsRoomCleared)
-            return;
-
-        DefeatedEnemies = Mathf.Min(DefeatedEnemies + 1, TotalEnemies);
-        EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
-        GetTree().CallGroup("hud", "NotifyEnemyDefeated", DefeatedEnemies, TotalEnemies, LastBloodCoinsReward);
-
-        if (TotalEnemies > 0 && DefeatedEnemies >= TotalEnemies)
-            CompleteRoom();
-    }
-
     private void CompleteRoom()
     {
         IsRoomCleared = true;
@@ -191,6 +177,8 @@ public partial class RunManager : Node3D
         CreateRoomLabel($"{RunState.CurrentMap.Name} - Sala {RunState.CurrentRoom}/{RunState.CurrentMap.CommonRoomCount}");
     }
 
+    private static readonly StringName CommonTuningAppliedMeta = "common_tuning_applied";
+
     private void ApplyCommonEnemyTuning(Godot.Collections.Array<Node> enemies)
     {
         var globalRoom = GetGlobalRoomNumber();
@@ -199,8 +187,10 @@ public partial class RunManager : Node3D
 
         for (var i = 0; i < enemies.Count; i++)
         {
-            if (enemies[i] is not EnemyBasic enemy)
+            // Cada inimigo recebe o tuning uma unica vez; sobreviventes de waves anteriores nao sao curados nem acelerados de novo.
+            if (enemies[i] is not EnemyBasic enemy || enemy.HasMeta(CommonTuningAppliedMeta))
                 continue;
+            enemy.SetMeta(CommonTuningAppliedMeta, true);
 
             enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
             var archetypeDamage = enemy.Archetype == EnemyArchetype.Tank ? 1.52f : enemy.Archetype == EnemyArchetype.Ranged ? 0.8f : 1.0f;
@@ -255,7 +245,7 @@ public partial class RunManager : Node3D
             }
         }
 
-        CreateRoomLabel($"Chefe de {RunState.CurrentMap.Name} - {RunState.CurrentMap.BossId}");
+        CreateRoomLabel($"Chefe de {RunState.CurrentMap.Name} - {BossCatalog.Get(RunState.CurrentMapIndex).DisplayName}");
     }
 
     private void ConfigureExitPortal()
@@ -350,6 +340,7 @@ public partial class RunManager : Node3D
             .SetEase(Tween.EaseType.InOut);
         artifact.AddChild(new Label3D
         {
+            PixelSize = 0.0085f,
             Name = "AltarTitle",
             Text = "ALTAR DE ARTEFATOS",
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -372,6 +363,7 @@ public partial class RunManager : Node3D
     {
         var label = new Label3D
         {
+            PixelSize = 0.0085f,
             Name = "RoomTitle",
             Text = text,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -413,9 +405,10 @@ public partial class RunManager : Node3D
         _scenePortal?.SetPortalEnabled(isOpen);
         var material = isOpen ? _openPortalMaterial : _lockedPortalMaterial;
 
+        // Pilares e lintel sao moldura de pedra; so as barras indicam se a saida esta liberada.
         foreach (var child in _exitPortal.GetChildren())
         {
-            if (child is MeshInstance3D mesh)
+            if (child is MeshInstance3D mesh && mesh.Name.ToString().StartsWith("Bar"))
                 mesh.MaterialOverride = material;
         }
     }
