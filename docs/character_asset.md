@@ -23,9 +23,9 @@ Para evitar dessincronização entre modelo, hit e janela de controle, `PlayerCo
 
 ## Asset legado arquivado
 
-O modelo `res://3d/character.glb` não é usado pelo jogador na build atual. O catálogo abaixo é mantido como referência caso seu rig seja retomado.
+O modelo `character.glb` não é usado pelo jogador na build atual e foi movido para fora do projeto (`../vp-0.1-arquivo/3d/`). O catálogo abaixo é mantido como referência caso seu rig seja retomado.
 
-Arquivo: `res://3d/character.glb`
+Arquivo arquivado: `../vp-0.1-arquivo/3d/character.glb`
 
 O arquivo contem 45 animacoes. A numeracao abaixo segue a lista enviada pelo usuario
 e parece ser 1-based; entre parenteses esta o indice 0-based interno do GLB e o nome

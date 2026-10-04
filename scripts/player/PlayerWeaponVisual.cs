@@ -40,11 +40,6 @@ public partial class PlayerWeaponVisual : Node
         WeaponLoadout.EquippedWeaponChanged -= RefreshVisual;
     }
 
-    public void SetDisplayedWeapon(string weaponId)
-    {
-        RefreshVisual(weaponId);
-    }
-
     private void RefreshVisual(string weaponId)
     {
         ClearWeapon(ref _rightWeapon);

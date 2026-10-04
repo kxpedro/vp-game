@@ -26,6 +26,7 @@ public partial class ArtifactChest : Area3D
     {
         _promptLabel = new Label3D
         {
+            PixelSize = 0.0085f,
             Name = "PromptLabel",
             Text = PromptText,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,

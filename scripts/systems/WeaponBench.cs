@@ -12,6 +12,7 @@ public partial class WeaponBench : Area3D
         BodyExited += body => SetInside(body, false);
         _promptLabel = new Label3D
         {
+            PixelSize = 0.0085f,
             Text = PromptText,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             FontSize = 34,

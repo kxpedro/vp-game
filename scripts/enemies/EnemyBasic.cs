@@ -613,9 +613,6 @@ public partial class EnemyBasic : CharacterBody3D
         }
     }
 
-    public void ApplyTimedSlow(float multiplier, float seconds) { _slowMultiplier = Mathf.Clamp(multiplier, 0.05f, 1); _slowTimer = Mathf.Max(_slowTimer, seconds); }
-    public void ApplyFear(float seconds) { _fearTimer = Mathf.Max(_fearTimer, seconds); }
-    public void ApplyDamageTakenDebuff(float bonus, float seconds) { _damageTakenBonus = Mathf.Max(_damageTakenBonus, bonus); _damageTakenTimer = Mathf.Max(_damageTakenTimer, seconds); }
     public void RefreshPlayerHitStatuses()
     {
         if (IsPestilent) _pestilenceTimer = Mathf.Max(_pestilenceTimer, 3.0f);

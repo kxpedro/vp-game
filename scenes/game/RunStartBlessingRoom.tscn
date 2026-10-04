@@ -5,16 +5,13 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/camera/IsoCamera.cs" id="4"]
 [ext_resource type="Script" path="res://scripts/systems/ScenePortal.cs" id="5"]
+[ext_resource type="Material" path="res://assets/materials/dungeon_stone.tres" id="stone"]
 
 [sub_resource type="BoxShape3D" id="FloorShape"]
 size = Vector3(20, 0.3, 20)
 
 [sub_resource type="BoxMesh" id="FloorMesh"]
 size = Vector3(20, 0.3, 20)
-
-[sub_resource type="StandardMaterial3D" id="StoneMaterial"]
-albedo_color = Color(0.09, 0.075, 0.105, 1)
-roughness = 0.92
 
 [sub_resource type="BoxShape3D" id="WallLongShape"]
 size = Vector3(20, 2.8, 0.45)
@@ -32,7 +29,7 @@ size = Vector3(0.45, 2.8, 20)
 albedo_color = Color(0.72, 0.01, 0.035, 1)
 emission_enabled = true
 emission = Color(1, 0.01, 0.035, 1)
-emission_energy_multiplier = 2.4
+emission_energy_multiplier = 0.9
 roughness = 0.38
 
 [sub_resource type="CylinderMesh" id="FountainMesh"]
@@ -70,9 +67,43 @@ background_mode = 1
 background_color = Color(0.01, 0.004, 0.014, 1)
 ambient_light_source = 3
 ambient_light_color = Color(0.34, 0.18, 0.28, 1)
-ambient_light_energy = 0.42
-reflected_light_source = 2
+ambient_light_energy = 0.55
+reflected_light_source = 1
 tonemap_mode = 2
+glow_enabled = true
+glow_normalized = false
+glow_intensity = 0.9
+glow_strength = 1.1
+glow_bloom = 0.04
+glow_hdr_threshold = 1.0
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 1.6
+fog_enabled = true
+fog_light_color = Color(0.09, 0.05, 0.1, 1)
+fog_density = 0.006
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.08
+
+[sub_resource type="StandardMaterial3D" id="FountainStoneMaterial"]
+albedo_color = Color(0.13, 0.1, 0.11, 1)
+roughness = 0.86
+metallic_specular = 0.3
+
+[sub_resource type="CylinderMesh" id="BloodSurfaceMesh"]
+top_radius = 0.989
+bottom_radius = 0.989
+height = 0.04
+radial_segments = 48
+
+[sub_resource type="StandardMaterial3D" id="PortalFrameMaterial"]
+albedo_color = Color(0.16, 0.12, 0.13, 1)
+roughness = 0.84
+emission_enabled = true
+emission = Color(0.45, 0.02, 0.04, 1)
+emission_energy_multiplier = 0.18
 
 [node name="RunStartBlessingRoom" type="Node3D"]
 script = ExtResource("1")
@@ -84,7 +115,7 @@ shape = SubResource("FloorShape")
 
 [node name="Visual" type="MeshInstance3D" parent="Floor"]
 mesh = SubResource("FloorMesh")
-material_override = SubResource("StoneMaterial")
+material_override = ExtResource("stone")
 
 [node name="NorthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.25, -10)
@@ -94,7 +125,7 @@ shape = SubResource("WallLongShape")
 
 [node name="Visual" type="MeshInstance3D" parent="NorthWall"]
 mesh = SubResource("WallLongMesh")
-material_override = SubResource("StoneMaterial")
+material_override = ExtResource("stone")
 
 [node name="SouthWall" type="StaticBody3D" parent="."]
 position = Vector3(0, 1.25, 10)
@@ -104,7 +135,7 @@ shape = SubResource("WallLongShape")
 
 [node name="Visual" type="MeshInstance3D" parent="SouthWall"]
 mesh = SubResource("WallLongMesh")
-material_override = SubResource("StoneMaterial")
+material_override = ExtResource("stone")
 
 [node name="WestWall" type="StaticBody3D" parent="."]
 position = Vector3(-10, 1.25, 0)
@@ -114,7 +145,7 @@ shape = SubResource("WallShortShape")
 
 [node name="Visual" type="MeshInstance3D" parent="WestWall"]
 mesh = SubResource("WallShortMesh")
-material_override = SubResource("StoneMaterial")
+material_override = ExtResource("stone")
 
 [node name="EastWall" type="StaticBody3D" parent="."]
 position = Vector3(10, 1.25, 0)
@@ -124,7 +155,7 @@ shape = SubResource("WallShortShape")
 
 [node name="Visual" type="MeshInstance3D" parent="EastWall"]
 mesh = SubResource("WallShortMesh")
-material_override = SubResource("StoneMaterial")
+material_override = ExtResource("stone")
 
 [node name="Player" parent="." instance=ExtResource("2")]
 position = Vector3(0, 0.2, 7.2)
@@ -132,9 +163,15 @@ position = Vector3(0, 0.2, 7.2)
 [node name="BloodFountain" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0.6, 0)
 mesh = SubResource("FountainMesh")
+material_override = SubResource("FountainStoneMaterial")
+
+[node name="BloodSurface" type="MeshInstance3D" parent="BloodFountain"]
+position = Vector3(0, 0.512, 0)
+mesh = SubResource("BloodSurfaceMesh")
 material_override = SubResource("BloodMaterial")
 
 [node name="Title" type="Label3D" parent="BloodFountain"]
+pixel_size = 0.0085
 position = Vector3(0, 1.55, 0)
 billboard = 1
 text = "Fonte da Primeira Herança"
@@ -143,6 +180,7 @@ outline_size = 9
 modulate = Color(1, 0.12, 0.16, 1)
 
 [node name="Prompt" type="Label3D" parent="BloodFountain"]
+pixel_size = 0.0085
 position = Vector3(0, 2.1, 0)
 billboard = 1
 text = "Interagir — revelar uma Bênção de Sangue"
@@ -168,17 +206,17 @@ position = Vector3(0, 0.18, -7.9)
 [node name="PillarA" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(-1.15, 1.35, 0)
 mesh = SubResource("PortalPillarMesh")
-material_override = SubResource("PortalMaterial")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="PillarB" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(1.15, 1.35, 0)
 mesh = SubResource("PortalPillarMesh")
-material_override = SubResource("PortalMaterial")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="Lintel" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(0, 2.7, 0)
 mesh = SubResource("PortalLintelMesh")
-material_override = SubResource("PortalMaterial")
+material_override = SubResource("PortalFrameMaterial")
 
 [node name="BarA" type="MeshInstance3D" parent="ExitPortal"]
 position = Vector3(-0.55, 1.18, 0)

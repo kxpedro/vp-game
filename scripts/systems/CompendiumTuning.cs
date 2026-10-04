@@ -4,8 +4,6 @@ public static class CompendiumTuning
 {
     private static readonly Dictionary<string, double> NumberOverrides = new();
 
-    public static int OverrideCount => NumberOverrides.Count;
-
     public static void SetNumber(string key, double value)
     {
         NumberOverrides[key] = value;

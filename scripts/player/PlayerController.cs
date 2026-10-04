@@ -261,12 +261,6 @@ public partial class PlayerController : CharacterBody3D
 		_dashAttackGraceTimeRemaining = DashAttackGraceSeconds;
 	}
 
-	private void SpendStamina(float amount)
-	{
-		CurrentStamina = Mathf.Max(CurrentStamina - amount, 0.0f);
-		EmitSignal(SignalName.StaminaChanged, CurrentStamina, MaxStamina);
-	}
-
 	private void RegenerateStamina(float delta)
 	{
 		var previous = CurrentStamina;

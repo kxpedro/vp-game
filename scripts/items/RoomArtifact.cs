@@ -45,6 +45,7 @@ public partial class RoomArtifact : Area3D
     {
         _promptLabel = new Label3D
         {
+            PixelSize = 0.0085f,
             Name = "PromptLabel",
             Text = $"E / X (A) - invocar recompensa no {ArtifactName}",
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,

@@ -20,16 +20,10 @@ public partial class CrowsNestCrypt : Node3D
 
     public override void _Ready()
     {
-        var floorMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.075f, 0.07f, 0.082f),
-            Roughness = 0.96f
-        };
-        var wallMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.13f, 0.115f, 0.135f),
-            Roughness = 0.93f
-        };
+        // Mesma pedra das salas fixas; as paredes recebem um tom um pouco mais claro para separar do piso.
+        var floorMaterial = ResourceLoader.Load<StandardMaterial3D>(StoneMaterialPath);
+        var wallMaterial = (StandardMaterial3D)floorMaterial.Duplicate();
+        wallMaterial.AlbedoColor = new Color(1.45f, 1.35f, 1.45f);
         var roomSet = new HashSet<Vector2I>(_crossRooms);
 
         foreach (var room in _crossRooms)
@@ -41,6 +35,8 @@ public partial class CrowsNestCrypt : Node3D
         CreateTrainingHall();
         CreateImportedDecorations();
     }
+
+    private const string StoneMaterialPath = "res://assets/materials/dungeon_stone.tres";
 
     private void CreateImportedDecorations()
     {
@@ -114,7 +110,7 @@ public partial class CrowsNestCrypt : Node3D
         });
     }
 
-    private static bool TryGetVisualBounds(Node root, out Vector3 minimum, out Vector3 maximum)
+    internal static bool TryGetVisualBounds(Node root, out Vector3 minimum, out Vector3 maximum)
     {
         minimum = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         maximum = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
@@ -174,9 +170,10 @@ public partial class CrowsNestCrypt : Node3D
 
         var title = new Label3D
         {
+            PixelSize = 0.0085f,
             Name = "TrainingHallLabel",
             Text = "SALA DE TREINAMENTO\nBoneco regenerativo",
-            Position = center + new Vector3(0.0f, 2.7f, 0.0f),
+            Position = center + new Vector3(-1.8f, 2.9f, -1.8f),
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             FontSize = 30,
             OutlineSize = 8,

@@ -53,11 +53,6 @@ public static class CharacterSheet
         SaveGameManager.RequestAutosave();
     }
 
-    public static void AddAttribute(CharacterAttribute attribute, int amount)
-    {
-        SetAttribute(attribute, GetAttribute(attribute) + amount);
-    }
-
     public static void AddBloodCoins(int amount)
     {
         BloodCoins = System.Math.Max(BloodCoins + amount, 0);
@@ -235,9 +230,9 @@ public static class CharacterSheet
     {
         ResetPermanentProgress();
         BloodCoins = System.Math.Max(data.BloodCoins, 0);
-        foreach (var pair in data.Attributes)
+        foreach (var pair in data.Attributes ?? new Dictionary<string, int>())
             if (System.Enum.TryParse<CharacterAttribute>(pair.Key, out var attribute)) Attributes[attribute] = pair.Value;
-        foreach (var pair in data.SkillRanks)
+        foreach (var pair in data.SkillRanks ?? new Dictionary<string, int>())
         {
             if (!SkillCatalog.TryGet(pair.Key, out var definition)) continue;
             var maxRank = CompendiumTuning.GetInt($"{definition.Id}.max_rank", definition.MaxRank);
@@ -245,8 +240,9 @@ public static class CharacterSheet
             if (rank > 0) SkillRanks[pair.Key] = rank;
         }
         Artifacts.AddRange(data.Artifacts ?? new List<ArtifactRecord>());
-        for (var i = 0; i < EquippedArtifactSlots.Length && i < data.EquippedArtifacts.Length; i++) EquippedArtifactSlots[i] = data.EquippedArtifacts[i] ?? "";
-        WeaponLoadout.Equip(data.EquippedWeaponId);
+        var equippedArtifacts = data.EquippedArtifacts ?? System.Array.Empty<string>();
+        for (var i = 0; i < EquippedArtifactSlots.Length && i < equippedArtifacts.Length; i++) EquippedArtifactSlots[i] = equippedArtifacts[i] ?? "";
+        WeaponLoadout.Equip(data.EquippedWeaponId ?? "longsword");
     }
 
     public static void ResetPermanentProgress()

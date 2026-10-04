@@ -3,7 +3,6 @@ using Godot;
 public partial class AudioManager : Node
 {
     private AudioStreamPlayer _music;
-    private AudioStreamPlayer _effects;
     private float _effectsVolumeDb = -3.0f;
     private string _currentTrack = "";
     private ulong _suppressedSceneId;
@@ -13,8 +12,7 @@ public partial class AudioManager : Node
         AddToGroup("audio_manager");
         ProcessMode = ProcessModeEnum.Always;
         _music = new AudioStreamPlayer { Name = "Music", VolumeDb = -10 };
-        _effects = new AudioStreamPlayer { Name = "Effects", VolumeDb = -3, MaxPolyphony = 8 };
-        AddChild(_music); AddChild(_effects);
+        AddChild(_music);
         GlobalSettings.Instance?.ApplyAudio();
     }
 
@@ -30,7 +28,12 @@ public partial class AudioManager : Node
                 ? "res://audio/ambience/Hub.mp3"
             : RunState.IsBossRoom
                 ? RunState.CurrentMapIndex == 1 ? "res://audio/boss/Floor 2 - Boss Theme.mp3" : "res://audio/boss/Floor 1 - Boss Theme.mp3"
-                : RunState.CurrentMapIndex == 1 ? "res://audio/ambience/Floor 2.mp3" : "res://audio/ambience/Floor 1.mp3";
+                : RunState.CurrentMapIndex switch
+                {
+                    0 => "res://audio/ambience/Floor 1.mp3",
+                    1 => "res://audio/ambience/Floor 2.mp3",
+                    _ => "res://audio/ambience/Floor 3.mp3"
+                };
         PlayMusic(desired);
     }
 
@@ -96,7 +99,6 @@ public partial class AudioManager : Node
     public void SetEffectsVolume(float percent)
     {
         _effectsVolumeDb = PercentToDb(percent);
-        _effects.VolumeDb = _effectsVolumeDb;
     }
     public void SetPaused(bool paused) => _music.StreamPaused = paused;
     public void StopBossMusic()

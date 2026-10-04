@@ -5,11 +5,7 @@ public partial class RoomGenerator : Node3D
 {
     [Export] public PackedScene EnemyScene { get; set; }
     [Export] public int EnemyBlocksPerRoom { get; set; } = 2;
-    [Export] public int EnemiesPerBlock { get; set; } = 5;
-    [Export] public float EnemyBlockRadius { get; set; } = 1.05f;
-    [Export] public float SpawnClearRadius { get; set; } = 3.0f;
     [Export] public int EnemySpawnWallPaddingCells { get; set; } = 2;
-    [Export] public bool ShowLayoutDebugLabels { get; set; } = false;
     [Export] public float EnemySpawnDelaySeconds { get; set; } = 3.0f;
     [Export] public float WaveIntervalSeconds { get; set; } = 9.0f;
     [Export] public int EnemiesPerWave { get; set; } = 5;
@@ -27,12 +23,12 @@ public partial class RoomGenerator : Node3D
     private const string DungeonFloorDetailPath = "res://assets/environment/kenney_modular_dungeon/floor_detail.glb";
     private const string DungeonFloorDetailAltPath = "res://assets/environment/kenney_modular_dungeon/floor_detail_a.glb";
     private const string DungeonGatePath = "res://assets/environment/kenney_modular_dungeon/gate.glb";
+    private const string WallTorchPath = "res://assets/environment/quaternius_medieval_dungeon/Torch_Wall.fbx";
 
     private readonly RandomNumberGenerator _rng = new();
     private readonly HashSet<Vector2I> _walkableCells = new();
     private readonly HashSet<Vector2I> _roomCells = new();
     private readonly List<Vector2I> _enemySpawnCells = new();
-    private readonly List<Vector2I> _usedEnemyBlockCells = new();
     private readonly List<Vector3> _reservedPositions = new();
 
     private Vector2I _entranceCell = new(0, 3);
@@ -43,6 +39,8 @@ public partial class RoomGenerator : Node3D
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
     private StandardMaterial3D _markerMaterial;
+    private readonly Dictionary<Vector3, BoxMesh> _boxMeshCache = new();
+    private readonly Dictionary<Vector3, BoxShape3D> _boxShapeCache = new();
     private int _layoutQuarterTurns;
     private bool _layoutMirror;
     private readonly List<(Vector3 Position, EnemyRarity Rarity, EnemyArchetype Archetype, string Name)> _pendingEnemyWaves = new();
@@ -174,6 +172,7 @@ public partial class RoomGenerator : Node3D
             AddBossPillars();
 
         AddImportedDungeonDetails();
+        AddTorchLights();
     }
 
     private void AddImportedDungeonDetails()
@@ -208,7 +207,6 @@ public partial class RoomGenerator : Node3D
         gate.Position = CellToWorld(_exitCell);
         gate.Scale = Vector3.One * 0.9f;
         AddChild(gate);
-        ApplyImportedMaterial(gate, _wallMaterial);
 
         var towardRoom = CellToWorld(_focusCell) - gate.Position;
         towardRoom.Y = 0.0f;
@@ -371,93 +369,6 @@ public partial class RoomGenerator : Node3D
         return marker;
     }
 
-    private Vector3 PickEnemyBlockCenter()
-    {
-        if (_enemySpawnCells.Count == 0)
-            return Vector3.Zero;
-
-        var cell = PickSpreadOutEnemyCell();
-        _enemySpawnCells.Remove(cell);
-        _usedEnemyBlockCells.Add(cell);
-        return CellToWorld(cell);
-    }
-
-    private Vector2I PickSpreadOutEnemyCell()
-    {
-        if (_usedEnemyBlockCells.Count == 0)
-            return PickBestFirstEnemyCell();
-
-        var bestCell = _enemySpawnCells[0];
-        var bestScore = -1.0f;
-
-        foreach (var candidate in _enemySpawnCells)
-        {
-            var score = DistanceToClosestUsedBlock(candidate);
-            score += GetSpawnClearanceScore(candidate) * 1.5f;
-            score += _rng.RandfRange(0.0f, 0.35f);
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestCell = candidate;
-            }
-        }
-
-        return bestCell;
-    }
-
-    private Vector2I PickBestFirstEnemyCell()
-    {
-        var bestCell = _enemySpawnCells[0];
-        var bestScore = -1.0f;
-
-        foreach (var candidate in _enemySpawnCells)
-        {
-            var score = GetSpawnClearanceScore(candidate);
-            score += candidate.DistanceSquaredTo(_entranceCell) * 0.01f;
-            score += _rng.RandfRange(0.0f, 0.35f);
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestCell = candidate;
-            }
-        }
-
-        return bestCell;
-    }
-
-    private float DistanceToClosestUsedBlock(Vector2I candidate)
-    {
-        var bestDistance = float.MaxValue;
-        var candidatePosition = CellToWorld(candidate);
-
-        foreach (var usedCell in _usedEnemyBlockCells)
-        {
-            var distance = candidatePosition.DistanceTo(CellToWorld(usedCell));
-            if (distance < bestDistance)
-                bestDistance = distance;
-        }
-
-        return bestDistance;
-    }
-
-    private Vector3 PickPositionNearBlock(Vector3 blockCenter)
-    {
-        for (var i = 0; i < 8; i++)
-        {
-            var angle = _rng.RandfRange(0.0f, Mathf.Tau);
-            var radius = _rng.RandfRange(0.15f, EnemyBlockRadius);
-            var candidate = blockCenter + new Vector3(Mathf.Cos(angle) * radius, 0.0f, Mathf.Sin(angle) * radius);
-            var cell = WorldToCell(candidate);
-
-            if (_walkableCells.Contains(cell))
-                return candidate;
-        }
-
-        return blockCenter;
-    }
-
     private void BuildEnemySpawnCells()
     {
         _enemySpawnCells.Clear();
@@ -536,24 +447,6 @@ public partial class RoomGenerator : Node3D
         return true;
     }
 
-    private float GetSpawnClearanceScore(Vector2I cell)
-    {
-        var score = 0.0f;
-
-        for (var radius = 1; radius <= 4; radius++)
-        {
-            if (!HasWalkablePadding(cell, radius))
-                break;
-
-            score += 1.0f;
-        }
-
-        if (_roomCells.Contains(cell))
-            score += 2.0f;
-
-        return score;
-    }
-
     private void ApplySceneAnchors()
     {
         var playerSpawn = CellToWorld(_entranceCell);
@@ -582,16 +475,18 @@ public partial class RoomGenerator : Node3D
         };
         AddChild(body);
 
+        var size = new Vector3(CellSize, FloorHeight, CellSize);
         var collision = new CollisionShape3D
         {
-            Shape = new BoxShape3D { Size = new Vector3(CellSize, FloorHeight, CellSize) }
+            Shape = GetSharedBoxShape(size)
         };
         body.AddChild(collision);
 
         var visual = new MeshInstance3D
         {
-            Mesh = new BoxMesh { Size = new Vector3(CellSize, FloorHeight, CellSize) },
-            MaterialOverride = _floorMaterial
+            Mesh = GetSharedBoxMesh(size),
+            MaterialOverride = _floorMaterial,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
         };
         body.AddChild(visual);
     }
@@ -618,16 +513,36 @@ public partial class RoomGenerator : Node3D
 
         var collision = new CollisionShape3D
         {
-            Shape = new BoxShape3D { Size = size }
+            Shape = GetSharedBoxShape(size)
         };
         body.AddChild(collision);
 
         var visual = new MeshInstance3D
         {
-            Mesh = new BoxMesh { Size = size },
+            Mesh = GetSharedBoxMesh(size),
             MaterialOverride = _wallMaterial
         };
         body.AddChild(visual);
+    }
+
+    private BoxMesh GetSharedBoxMesh(Vector3 size)
+    {
+        if (!_boxMeshCache.TryGetValue(size, out var mesh))
+        {
+            mesh = new BoxMesh { Size = size };
+            _boxMeshCache[size] = mesh;
+        }
+        return mesh;
+    }
+
+    private BoxShape3D GetSharedBoxShape(Vector3 size)
+    {
+        if (!_boxShapeCache.TryGetValue(size, out var shape))
+        {
+            shape = new BoxShape3D { Size = size };
+            _boxShapeCache[size] = shape;
+        }
+        return shape;
     }
 
     private void AddBossPillars()
@@ -746,6 +661,7 @@ public partial class RoomGenerator : Node3D
 
         var label = new Label3D
         {
+            PixelSize = 0.0085f,
             Name = $"{labelText.Replace(" ", "")}Label",
             Text = labelText,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -754,25 +670,6 @@ public partial class RoomGenerator : Node3D
             OutlineSize = 8,
             OutlineModulate = Colors.Black,
             Position = position + Vector3.Up * 0.75f
-        };
-        AddChild(label);
-    }
-
-    private void CreateLayoutDebugLabel(string labelText, Vector3 position, float height = 0.9f)
-    {
-        if (!ShowLayoutDebugLabels)
-            return;
-
-        var label = new Label3D
-        {
-            Name = $"{labelText.Replace(" ", "")}DebugLabel",
-            Text = labelText,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 26,
-            Modulate = Colors.White,
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = position + Vector3.Up * height
         };
         AddChild(label);
     }
@@ -806,16 +703,8 @@ public partial class RoomGenerator : Node3D
 
     private void BuildMaterials()
     {
-        _floorMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.09f, 0.085f, 0.095f),
-            Roughness = 0.9f
-        };
-        _wallMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.18f, 0.16f, 0.18f),
-            Roughness = 0.92f
-        };
+        _floorMaterial = BuildStoneMaterial(new Color(0.055f, 0.045f, 0.055f), new Color(0.13f, 0.1f, 0.105f), 0.45f, 1201);
+        _wallMaterial = BuildStoneMaterial(new Color(0.1f, 0.08f, 0.095f), new Color(0.2f, 0.16f, 0.17f), 0.6f, 2203);
         _markerMaterial = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.7f, 0.05f, 0.05f, 0.65f),
@@ -824,5 +713,131 @@ public partial class RoomGenerator : Node3D
             EmissionEnergyMultiplier = 0.8f,
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha
         };
+    }
+
+    private static readonly Dictionary<int, (ImageTexture Albedo, ImageTexture Normal)> StoneTextureCache = new();
+
+    private static StandardMaterial3D BuildStoneMaterial(Color dark, Color light, float uvScale, int seed)
+    {
+        var (albedo, normal) = GetStoneTextures(dark, light, seed);
+        return new StandardMaterial3D
+        {
+            AlbedoTexture = albedo,
+            NormalEnabled = true,
+            NormalScale = 0.6f,
+            NormalTexture = normal,
+            Roughness = 0.88f,
+            Uv1Triplanar = true,
+            Uv1Scale = Vector3.One * uvScale
+        };
+    }
+
+    private static (ImageTexture Albedo, ImageTexture Normal) GetStoneTextures(Color dark, Color light, int seed)
+    {
+        if (StoneTextureCache.TryGetValue(seed, out var cached))
+            return cached;
+
+        const int size = 128;
+        var noise = new FastNoiseLite { NoiseType = FastNoiseLite.NoiseTypeEnum.Cellular, Seed = seed, Frequency = 0.06f };
+        var height = noise.GetSeamlessImage(size, size);
+        height.Convert(Image.Format.Rgba8);
+
+        var albedo = Image.CreateEmpty(size, size, true, Image.Format.Rgba8);
+        for (var y = 0; y < size; y++)
+        {
+            for (var x = 0; x < size; x++)
+                albedo.SetPixel(x, y, dark.Lerp(light, height.GetPixel(x, y).R));
+        }
+        albedo.GenerateMipmaps();
+
+        var normal = (Image)height.Duplicate();
+        normal.BumpMapToNormalMap(6.0f);
+        normal.GenerateMipmaps();
+
+        cached = (ImageTexture.CreateFromImage(albedo), ImageTexture.CreateFromImage(normal));
+        StoneTextureCache[seed] = cached;
+        return cached;
+    }
+
+    private void AddWallTorchModel(PackedScene torchScene, Vector3 wallPosition, Vector2I wallSide, int index)
+    {
+        var torch = torchScene.Instantiate<Node3D>();
+        torch.Name = $"WallTorch_{index}";
+        torch.Position = wallPosition + Vector3.Up * 1.2f;
+        torch.Rotation = new Vector3(0.0f, Mathf.Atan2(-wallSide.X, -wallSide.Y), 0.0f);
+        AddChild(torch);
+
+        if (!CrowsNestCrypt.TryGetVisualBounds(torch, out var minimum, out var maximum))
+            return;
+        var size = maximum - minimum;
+        var largest = Mathf.Max(size.X, Mathf.Max(size.Y, size.Z));
+        if (largest > 0.001f)
+            torch.Scale *= 1.1f / largest;
+    }
+
+    private void AddTorchLights()
+    {
+        const int maxLights = 8;
+        const float minSpacing = 4.5f;
+        var placed = new List<Vector3>();
+        var torchScene = ResourceLoader.Load<PackedScene>(WallTorchPath);
+        var candidates = new List<Vector2I>(_walkableCells);
+        // Ordem pseudoaleatoria estavel para espalhar as tochas pela sala inteira.
+        candidates.Sort((a, b) => (unchecked(a.X * 73856093 ^ a.Y * 19349663) & int.MaxValue).CompareTo(unchecked(b.X * 73856093 ^ b.Y * 19349663) & int.MaxValue));
+
+        foreach (var cell in candidates)
+        {
+            if (placed.Count >= maxLights)
+                break;
+
+            var wallSide = Vector2I.Zero;
+            foreach (var dir in new[] { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right })
+            {
+                if (!_walkableCells.Contains(cell + dir))
+                {
+                    wallSide = dir;
+                    break;
+                }
+            }
+            if (wallSide == Vector2I.Zero)
+                continue;
+
+            var position = CellToWorld(cell) + new Vector3(wallSide.X, 0.0f, wallSide.Y) * (CellSize * 0.32f) + Vector3.Up * 1.7f;
+            var tooClose = false;
+            foreach (var other in placed)
+            {
+                if (other.DistanceTo(position) < minSpacing)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose)
+                continue;
+
+            placed.Add(position);
+            if (torchScene != null)
+                AddWallTorchModel(torchScene, CellToWorld(cell) + new Vector3(wallSide.X, 0.0f, wallSide.Y) * (CellSize * 0.5f - 0.16f), wallSide, placed.Count);
+            AddChild(new OmniLight3D
+            {
+                Name = $"TorchLight_{placed.Count}",
+                Position = position,
+                LightColor = new Color(1.0f, 0.55f, 0.28f),
+                LightEnergy = 2.6f,
+                OmniRange = 6.5f,
+                OmniAttenuation = 1.4f,
+                ShadowEnabled = false
+            });
+        }
+
+        AddChild(new OmniLight3D
+        {
+            Name = "ExitGlowLight",
+            Position = CellToWorld(_exitCell) + Vector3.Up * 1.4f,
+            LightColor = new Color(0.95f, 0.12f, 0.1f),
+            LightEnergy = 1.4f,
+            OmniRange = 4.0f,
+            ShadowEnabled = false
+        });
     }
 }

@@ -15,7 +15,6 @@ public static class RunState
     private static readonly System.Collections.Generic.Dictionary<string, int> BlessingStacks = new();
 
     public static MapDefinition CurrentMap => CampaignCatalog.Get(CurrentMapIndex);
-    public static int RoomsBeforeBoss => CurrentMap.CommonRoomCount + 1;
     public static bool IsBossRoom => CurrentRoom > CurrentMap.CommonRoomCount;
     public static bool IsFinalMap => CurrentMapIndex >= CampaignCatalog.Count - 1;
     public static bool IsCampaignComplete { get; private set; }
@@ -342,9 +341,7 @@ public static class RunState
     public static float ContextMoveSpeed => _moveOnHitBonus + _temporaryMoveSpeed;
     public static float ContextCriticalChance => _temporaryCriticalChance;
     public static float ContextCriticalDamage => _temporaryCriticalDamage;
-    public static void GrantGuaranteedCritical() => _guaranteedCritical = true;
     public static bool ConsumeGuaranteedCritical() { var value = _guaranteedCritical; _guaranteedCritical = false; return value; }
-    public static void AddTemporaryBuff(string type, float value, float seconds = 8) { if (type == "MoveSpeed") _temporaryMoveSpeed += value; if (type == "CriticalChance") _temporaryCriticalChance += value; if (type == "CriticalDamage") _temporaryCriticalDamage += value; _temporaryBuffTimer = MathfMax(_temporaryBuffTimer, seconds); }
     public static void AddPermanentBlessingDamage(float value) => BlessingPermanentDamage += MathfMax(value, 0);
     public static void AddRoomBlessingDamage(float value) => BlessingRoomDamage += MathfMax(value, 0);
 

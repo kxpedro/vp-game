@@ -55,7 +55,8 @@ public partial class IntermissionChamber : Node3D
 
     public override void _Process(double delta)
     {
-        if (_upgradeOverlay?.Visible == true || !Input.IsActionJustPressed("interact"))
+        // ProcessMode e Always por causa do overlay; com o jogo pausado (menu de pausa) a interacao fica bloqueada.
+        if (_upgradeOverlay?.Visible == true || GetTree().Paused || !Input.IsActionJustPressed("interact"))
             return;
 
         if (_insideFountain)

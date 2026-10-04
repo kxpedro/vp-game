@@ -40,3 +40,19 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 Attribution: “Additional Sound FX by Will Leamon”.
 
 Os nomes dos arquivos foram adaptados às funções de runtime. A relação detalhada está em `audio/effects/combat/CC0_SOURCES.md`.
+
+## Exibição no jogo
+
+As atribuições exigidas pelas licenças CC BY 3.0 (Whip) e OGA-BY 3.0 (Will Leamon) aparecem na tela **Créditos** do menu principal (`scripts/ui/MainMenu.cs`, `ThirdPartyCredits`). Ao adicionar um asset com licença que exija atribuição, atualize também essa lista.
+
+## Origem ainda não registrada
+
+Os arquivos abaixo estão no projeto sem `SOURCE.md` nem licença documentada. Antes de distribuir o jogo, registre autoria e licença de cada um (ou substitua por material próprio/CC0):
+
+- Músicas: `audio/ambience/*.mp3` (Floor 1–3, Game Over, Hub, Main Menu Theme) e `audio/boss/*.mp3`.
+- Efeitos: `audio/effects/Boss Defeated.mp3`, `Death.mp3`, `Treasure.mp3`.
+- Imagens: `images/bloodBoons/*`, `images/effects/*`, `images/inventory/*`, `images/generic.png` e `icon.png`.
+
+## Material arquivado
+
+Os modelos de referência (`3d/`) e as capturas de outros jogos (`references/`) foram retirados do projeto e do controle de versão; ficam fora da pasta do jogo, em `../vp-0.1-arquivo/`. Eles incluíam modelos de jogos comerciais que não podem ser redistribuídos e não devem voltar ao repositório.

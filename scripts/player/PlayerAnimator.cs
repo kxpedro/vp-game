@@ -111,12 +111,6 @@ public partial class PlayerAnimator : Node
             PlayLoop(_walkAnimation, ComputeMovementPlaybackSpeed(false));
     }
 
-    public void PlayDodge()
-    {
-        var dashSpeed = (_player as PlayerController)?.DodgeAnimationSpeedMultiplier ?? 1.0f;
-        PlayOneShot(_dodgeAnimation, GetAnimationDuration(_dodgeAnimation, DodgeAnimationSpeed * dashSpeed, true), DodgeAnimationSpeed * dashSpeed);
-    }
-
     public void PlayLightAttack(int comboIndex, float combatDuration, WeaponAttackShape attackShape)
     {
         var animation = attackShape == WeaponAttackShape.Line
