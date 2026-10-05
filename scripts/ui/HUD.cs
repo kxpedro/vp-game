@@ -6,22 +6,11 @@ using System.Text.RegularExpressions;
 
 public partial class HUD : CanvasLayer
 {
-	private ProgressBar _healthBar;
-	private ProgressBar _barrierBar;
-	private Label _healthPointsLabel;
 	private Control _playerHudFrame;
-	private Control _playerStatus;
-	private Label _controlsHintLabel;
 	private Label _fpsLabel;
 	private PanelContainer _roomFrame;
-	private Tween _toastTween;
-	private TextureRect _roomDivider;
 	private bool _roomFrameAlwaysVisible;
-	private ColorRect _damageFlash;
-	private ColorRect _criticalHealthVignette;
-	private RichTextLabel _gameLog;
 	private readonly Queue<string> _gameLogEntries = new();
-	private ProgressBar _furyBar;
 	private Label _coinsLabel;
 	private Label _weaponLabel;
 	private Control _weaponBenchOverlay;
@@ -29,9 +18,6 @@ public partial class HUD : CanvasLayer
 	private Label _enemyProgressLabel;
 	private Label _roomLabel;
 	private Control _bossHealthPanel;
-	private ProgressBar _bossHealthBar;
-	private Label _bossHealthLabel;
-	private Label _enemyDefeatedToast;
 	private Control _roomClearBanner;
 	private Control _characterSheetOverlay;
 	private VBoxContainer _characterBlessingsColumn;
@@ -112,14 +98,27 @@ public partial class HUD : CanvasLayer
 	private Vector2 _lastBloodFountainMousePosition;
 	private Vector2 _skillTreePan = Vector2.Zero;
 	private float _criticalHealthPulse;
+	private Func<bool> _legacyPauseSource;
+	private Func<bool> _legacyAudioPauseSource;
 
 	public override void _Ready()
 	{
+		// Debug: --ui-preview/--ui-lang/--ui-device (sem argumento, nada acontece). Antes do layout por causa do idioma.
+		UiPreview.Attach(this);
 		ControllerUiSupport.EnsureMappings();
 		AddToGroup("hud");
 		ProcessMode = ProcessModeEnum.Always;
 		BuildLayout();
+		// Overlays ainda fora da UiModalStack entram na pausa por esta fonte.
+		_legacyPauseSource = IsLegacyPauseRequested;
+		_legacyAudioPauseSource = IsLegacyAudioPauseRequested;
+		UiModalStack.RegisterPauseSource(_legacyPauseSource, _legacyAudioPauseSource);
 		CallDeferred(nameof(BindRuntimeNodes));
+	}
+
+	public override void _ExitTree()
+	{
+		UiModalStack.UnregisterPauseSource(_legacyPauseSource);
 	}
 
 	public override void _Input(InputEvent @event)
@@ -195,7 +194,6 @@ public partial class HUD : CanvasLayer
 		{
 			var showRoomFrame = _roomFrameAlwaysVisible || !string.IsNullOrEmpty(_roomLabel.Text);
 			_roomFrame.Visible = showRoomFrame;
-			_roomDivider.Visible = showRoomFrame;
 		}
 		if (_fpsLabel != null && _fpsLabel.Visible)
 			_fpsLabel.Text = $"FPS: {Engine.GetFramesPerSecond()}";
@@ -203,7 +201,8 @@ public partial class HUD : CanvasLayer
 
 	public bool IsGameplayInputBlocked()
 	{
-		return IsVisible(_weaponBenchOverlay)
+		return UiModalStack.AnyOpen
+			|| IsVisible(_weaponBenchOverlay)
 			|| IsVisible(_characterSheetOverlay)
 			|| IsVisible(_bloodFountainOverlay)
 			|| IsVisible(_artifactChestOverlay)
@@ -215,5 +214,144 @@ public partial class HUD : CanvasLayer
 			|| IsVisible(_skillDescriptionPopup);
 	}
 
+	// Mesmos flags que RefreshModalPause usava antes da pilha (Fonte, Baú e Bancada não pausam).
+	private bool IsLegacyPauseRequested()
+	{
+		return _isGameOver
+			|| IsVisible(_pauseOverlay)
+			|| IsVisible(_characterSheetOverlay)
+			|| IsVisible(_compendiumOverlay)
+			|| IsVisible(_artifactOfferOverlay)
+			|| IsVisible(_bloodBlessingOverlay);
+	}
+
+	// Música: mesmas telas, mas o game over pausa só a árvore (a música de game over continua).
+	private bool IsLegacyAudioPauseRequested()
+	{
+		return !_isGameOver && IsLegacyPauseRequested();
+	}
+
 	private static bool IsVisible(Control control) => control != null && control.Visible;
+
+	// Pré-visualização (debug, ver UiPreview.cs): abre a tela pedida com dados fictícios. False = nome desconhecido.
+	internal bool OpenPreviewScreen(string screen, string tab, Node dataParent)
+	{
+		switch (screen)
+		{
+			case "hud_combat":
+				PreviewHudCombat();
+				return true;
+			case "critical_health":
+				PreviewCriticalHealth();
+				return true;
+			case "damage_flash":
+				PreviewDamageFlash();
+				return true;
+			case "damage_number":
+				PreviewDamageNumber();
+				return true;
+			case "blessing_bar":
+				PreviewBlessingBar();
+				return true;
+			case "event_log":
+				PreviewEventLog();
+				return true;
+			case "character_sheet":
+				if (!IsVisible(_characterSheetOverlay))
+					ToggleCharacterSheet();
+				return true;
+			case "blood_fountain":
+				OpenBloodFountain();
+				return true;
+			case "skill_popup":
+				OpenBloodFountain();
+				if (SkillCatalog.All.Count > 0)
+					ShowSkillDescription(SkillCatalog.All[0]);
+				return true;
+			case "artifact_chest":
+				OpenArtifactChest();
+				return true;
+			case "artifact_offer":
+				// Sem RoomArtifact: escolher só coleta na run volátil, nada é consumido no mundo.
+				OpenArtifactOffer(null);
+				return true;
+			case "blessing_offer":
+				// Caminho obrigatório: abre direto, sem a animação de absorção.
+				OpenMandatoryBloodBlessingOffer();
+				return true;
+			case "weapon_bench":
+				OpenWeaponBench();
+				return true;
+			case "pause":
+				PauseGame();
+				return true;
+			case "options":
+				PauseGame();
+				ShowPausePage(_optionsPage);
+				return true;
+			case "tuning":
+				PauseGame();
+				ShowPausePage(_pauseTuningPage);
+				return true;
+			case "compendium":
+				_selectedCompendiumTab = ResolvePreviewCompendiumTab(tab);
+				OpenCompendium();
+				return true;
+			case "game_over":
+				ShowPreviewGameOver();
+				return true;
+			case "room_clear":
+				ShowRoomClearBanner();
+				return true;
+			case "toast":
+				PreviewToasts();
+				return true;
+			case "wave_warning":
+				NotifyWaveIncoming(5, 3.0f);
+				return true;
+			case "boss_bar":
+				BindPreviewBoss(dataParent);
+				return true;
+		}
+		return false;
+	}
+
+	private string ResolvePreviewCompendiumTab(string tab)
+	{
+		if (string.IsNullOrEmpty(tab))
+			return _selectedCompendiumTab;
+		foreach (var tabId in _compendiumTabButtons.Keys)
+			if (string.Equals(tabId, tab, StringComparison.OrdinalIgnoreCase))
+				return tabId;
+		GD.PushWarning($"UiPreview: aba '{tab}' inexistente. Use: {string.Join(", ", _compendiumTabButtons.Keys)}.");
+		return _selectedCompendiumTab;
+	}
+
+	// Igual a OnPlayerDied, sem áudio, log nem jogador real (causa fictícia).
+	private void ShowPreviewGameOver()
+	{
+		_isGameOver = true;
+		_gameOverSubtitle.Text = "Virgil foi derrotado por: Lorde Corvo. Último golpe: 42 de dano.";
+		if (_artifactOfferOverlay != null)
+			_artifactOfferOverlay.Visible = false;
+		if (_bloodBlessingOverlay != null)
+			_bloodBlessingOverlay.Visible = false;
+		if (_compendiumOverlay != null)
+			_compendiumOverlay.Visible = false;
+		_pauseOverlay.Visible = false;
+		_gameOverOverlay.Visible = true;
+		ControllerUiSupport.FocusFirst(_gameOverOverlay);
+		RefreshModalPause();
+	}
+
+	// Chefe fictício: nó com Health (60% de vida) filho do nó de preview.
+	private void BindPreviewBoss(Node dataParent)
+	{
+		var boss = new Node { Name = "PreviewBoss" };
+		var health = new Health { Name = "Health", MaxHealth = 1200.0f };
+		boss.AddChild(health);
+		(dataParent ?? this).AddChild(boss);
+		health.SetCurrentHealth(720.0f);
+		BindBoss(boss, BossCatalog.Get(RunState.CurrentMapIndex).DisplayName);
+	}
 }

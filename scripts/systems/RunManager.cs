@@ -152,6 +152,8 @@ public partial class RunManager : Node3D
         if (_exitPortal == null) return;
         ConfigureExitPortal();
         SetPortalOpen(true);
+        // HUD: título secundário "Sala limpa" → "Portal aberto" + toast (HUD.Notifications.cs, NotifyPortalOpened).
+        GetTree().CallGroup("hud", "NotifyPortalOpened");
         var tween = _exitPortal.CreateTween();
         _exitPortal.Scale = Vector3.One * 0.78f;
         tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);

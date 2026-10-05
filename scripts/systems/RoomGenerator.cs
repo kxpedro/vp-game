@@ -269,7 +269,11 @@ public partial class RoomGenerator : Node3D
         _nextWaveEnemyIndex = 0;
         _waveCountdown = 0.0f;
         AddToGroup("enemy_waves_remaining");
-        SpawnNextWave();
+        // Marca o spawn como pendente já aqui para o RunManager._Ready não configurar a sala vazia,
+        // mas adia o disparo da 1ª wave para depois dos _Ready da cena: o HUD (irmão posterior)
+        // ainda não está no grupo "hud" e perderia o aviso "Próxima onda".
+        AddToGroup("enemy_spawn_pending");
+        CallDeferred(MethodName.SpawnNextWave);
     }
 
     private EnemyArchetype RollEnemyArchetype()

@@ -383,8 +383,8 @@ public partial class HUD
 	{
 		RunState.FailRun();
 		SaveGameManager.RequestAutosave();
-		GetTree().Paused = false;
-		GetTree().CallGroup("audio_manager", "SetPaused", false);
+		UiModalStack.Clear();
+		UiModalStack.ApplyPause(false);
 		GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
 	}
 
@@ -394,23 +394,23 @@ public partial class HUD
 			return;
 
 		_pauseOverlay.Visible = false;
-		GetTree().Paused = false;
-		GetTree().CallGroup("audio_manager", "SetPaused", false);
+		UiModalStack.ApplyPause(false);
 		_runtimeHealth.SetInvincible(false);
 		_runtimeHealth.ForceDeath("Desistência da run");
 	}
 
 	private void RestartCurrentScene()
 	{
-		GetTree().Paused = false;
+		UiModalStack.Clear();
+		UiModalStack.ApplyPause(false);
 		GetTree().ReloadCurrentScene();
 	}
 
 	private void ReturnToMainMenu()
 	{
 		SaveGameManager.RequestAutosave();
-		GetTree().Paused = false;
-		GetTree().CallGroup("audio_manager", "SetPaused", false);
+		UiModalStack.Clear();
+		UiModalStack.ApplyPause(false);
 		GetTree().ChangeSceneToFile("res://scenes/ui/MainMenu.tscn");
 	}
 
@@ -435,6 +435,8 @@ public partial class HUD
 
 	private bool CloseTopmostOverlay()
 	{
+		// Telas migradas para a pilha modal fecham primeiro; depois segue a cadeia legada.
+		if (UiModalStack.CancelTop()) return true;
 		if (IsVisible(_skillDescriptionPopup)) { _skillDescriptionPopup.Visible = false; return true; }
 		if (IsVisible(_compendiumOverlay)) { _compendiumOverlay.Visible = false; RefreshModalPause(); return true; }
 		if (IsVisible(_pauseOverlay) && (IsVisible(_pauseTuningPage) || IsVisible(_optionsPage)))
@@ -459,19 +461,13 @@ public partial class HUD
 
 	private void SetModalPause(bool paused)
 	{
-		GetTree().CallGroup("audio_manager", "SetPaused", paused);
-		GetTree().Paused = paused;
+		UiModalStack.ApplyPause(paused);
 	}
 
+	// Pilha modal + fonte legada (IsLegacyPauseRequested, em HUD.cs).
 	private void RefreshModalPause()
 	{
-		var paused = _isGameOver
-			|| IsVisible(_pauseOverlay)
-			|| IsVisible(_characterSheetOverlay)
-			|| IsVisible(_compendiumOverlay)
-			|| IsVisible(_artifactOfferOverlay)
-			|| IsVisible(_bloodBlessingOverlay);
-		SetModalPause(paused);
+		UiModalStack.RefreshPause();
 	}
 
 	private void SavePauseTuning()

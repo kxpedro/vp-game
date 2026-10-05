@@ -4,8 +4,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+// HUD em jogo — painel do jogador, recursos, título da sala, barra do chefe e feedback de dano (guia de UI §4.2, §6, §8.1–8.4, §8.7).
 public partial class HUD
 {
+	private const float CriticalHealthRatio = 0.3f;
+	private const float DamageFlashPeak = 0.45f;
+	private const float CriticalVignetteCap = 0.55f;
+	private const float VignetteCap = 0.70f;
+
+	private Control _hudRoot;
+	private TextureRect _edgeVignette;
+	private Tween _damageFlashTween;
+	private float _damageFlashAmount;
+	private float _lastVignetteAlpha = -1.0f;
+	private int _damageNumberStep;
+	private float _lastDamageNumberTime = -1.0f;
+	private float _hudClock;
+	private UiResourceBar _healthResourceBar;
+	private UiResourceBar _furyResourceBar;
+	private UiResourceBar _bossResourceBar;
+	private string _bossDisplayName;
+	private Control _roomTitleGroup;
+	private Label _roomProgressSeparator;
+	private PanelContainer _resourceFrame;
+	// Debug (previews): congela o painel do jogador com dados fictícios; critical < 0 = sem vida crítica forçada.
+	private bool _statusPreviewActive;
+	private float _previewHealthRatio = -1.0f;
+
 	private void BuildLayout()
 	{
 		var root = new Control
@@ -13,85 +38,36 @@ public partial class HUD
 			Name = "Root",
 			AnchorRight = 1.0f,
 			AnchorBottom = 1.0f,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
 			Theme = UIThemeFactory.Create()
 		};
 		AddChild(root);
-		_playerHudFrame = AddHudPanel(root, "PlayerFrame", new Vector4(0, 1, 0, 1), new Vector4(18, -142, 430, -18), 0.9f);
-		AddHudPanel(root, "ResourceFrame", new Vector4(0, 0, 0, 0), new Vector4(18, 18, 310, 118), 0.78f);
-		_roomFrame = AddHudPanel(root, "RoomFrame", new Vector4(0.5f, 0, 0.5f, 0), new Vector4(-280, 14, 280, 58), 0.72f);
+		_hudRoot = root;
 
-		var leftStatus = new VBoxContainer
-		{
-			Name = "PlayerStatus",
-			AnchorLeft = 0.0f,
-			AnchorTop = 1.0f,
-			AnchorRight = 0.0f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = 34.0f,
-			OffsetTop = -128.0f,
-			OffsetRight = 414.0f,
-			OffsetBottom = -28.0f
-		};
-		_playerStatus = leftStatus;
-		root.AddChild(leftStatus);
-		var playerHeader = new Label
-		{
-			Text = "VIRGIL",
-			HorizontalAlignment = HorizontalAlignment.Left,
-			CustomMinimumSize = new Vector2(360.0f, 22.0f),
-			Modulate = new Color(0.82f, 0.72f, 0.62f)
-		};
-		playerHeader.AddThemeFontSizeOverride("font_size", 13);
-		leftStatus.AddChild(playerHeader);
+		// Vinheta de borda (§6): primeiro filho = abaixo de todos os painéis, acima do mundo. Miolo transparente.
+		_edgeVignette = UiComponents.EdgeVignette(root);
+
+		BuildPlayerPanel(root);
+		BuildResourcePanel(root);
+		BuildRoomTitle(root);
+
 		_fpsLabel = new Label
 		{
 			Name = "FpsCounter", Text = "FPS: 0",
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
 			AnchorLeft = 1.0f, AnchorRight = 1.0f,
-			OffsetLeft = -116, OffsetTop = 16, OffsetRight = -22, OffsetBottom = 42,
+			OffsetLeft = -140, OffsetTop = UiMetrics.SafeMargin, OffsetRight = -UiMetrics.SafeMargin, OffsetBottom = UiMetrics.SafeMargin + 22,
 			HorizontalAlignment = HorizontalAlignment.Right,
-			Modulate = new Color(1.0f, 1.0f, 1.0f, 0.48f),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
 			Visible = OS.IsDebugBuild()
 		};
 		root.AddChild(_fpsLabel);
-
-		var healthStack = new Control
-		{
-			Name = "HealthAndBarrier",
-			CustomMinimumSize = new Vector2(360.0f, 22.0f),
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		_barrierBar = CreateBar("Barreira", 100.0f);
-		_barrierBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-		healthStack.AddChild(_barrierBar);
-		_healthBar = CreateBar("Vida", 100.0f);
-		_healthBar.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-		healthStack.AddChild(_healthBar);
-		_furyBar = CreateBar("Furia", 100.0f);
-		_furyBar.Visible = false;
-		ApplyHealthBarStyle();
-		leftStatus.AddChild(healthStack);
-		_healthPointsLabel = new Label
-		{
-			Text = "100/100", MouseFilter = Control.MouseFilterEnum.Ignore,
-			Position = new Vector2(0, -1), Size = new Vector2(360, 22),
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center,
-			Modulate = Colors.White
-		};
-		_healthPointsLabel.AddThemeColorOverride("font_shadow_color", Colors.Black);
-		_healthPointsLabel.AddThemeConstantOverride("shadow_offset_x", 2);
-		_healthPointsLabel.AddThemeConstantOverride("shadow_offset_y", 2);
-		_healthBar.AddChild(_healthPointsLabel);
-		leftStatus.AddChild(_furyBar);
-		var showCombatHud = !GetTree().CurrentScene.SceneFilePath.EndsWith("CrowsNest.tscn", StringComparison.OrdinalIgnoreCase);
-		_playerHudFrame.Visible = showCombatHud;
-		_playerStatus.Visible = showCombatHud;
 
 		_blessingHudList = new HBoxContainer
 		{
 			Name = "BlessingHudList",
 			AnchorLeft = 0.5f, AnchorTop = 1.0f, AnchorRight = 0.5f, AnchorBottom = 1.0f,
-			OffsetLeft = -246.0f, OffsetTop = -66.0f, OffsetRight = 246.0f, OffsetBottom = -18.0f,
+			OffsetLeft = -246.0f, OffsetTop = -72.0f, OffsetRight = 246.0f, OffsetBottom = -UiMetrics.SafeMargin,
 			Alignment = BoxContainer.AlignmentMode.Center,
 			MouseFilter = Control.MouseFilterEnum.Pass
 		};
@@ -99,152 +75,14 @@ public partial class HUD
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
 
-		_damageFlash = new ColorRect
-		{
-			Name = "DamageFlash", Color = new Color(0.9f, 0, 0, 0),
-			AnchorRight = 1, AnchorBottom = 1,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		root.AddChild(_damageFlash);
-		_criticalHealthVignette = new ColorRect
-		{
-			Name = "CriticalHealthVignette",
-			Color = new Color(0.75f, 0.0f, 0.025f, 0.0f),
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		root.AddChild(_criticalHealthVignette);
+		BuildBossBar(root);
 
-		_gameLog = new RichTextLabel
-		{
-			Name = "GameLog", AnchorLeft = 1, AnchorTop = 1, AnchorRight = 1, AnchorBottom = 1,
-			OffsetLeft = -382, OffsetTop = -132, OffsetRight = -24, OffsetBottom = -24,
-			BbcodeEnabled = true, FitContent = false, ScrollActive = false, ScrollFollowing = true,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			Modulate = new Color(1, 1, 1, 0.55f)
-		};
-		root.AddChild(_gameLog);
-
-		var resourcePanel = new VBoxContainer
-		{
-			Name = "ResourcePanel",
-			AnchorLeft = 0.0f,
-			AnchorTop = 0.0f,
-			AnchorRight = 0.0f,
-			AnchorBottom = 0.0f,
-			OffsetLeft = 32.0f,
-			OffsetTop = 27.0f,
-			OffsetRight = 294.0f,
-			OffsetBottom = 108.0f
-		};
-		root.AddChild(resourcePanel);
-		_coinsLabel = new Label
-		{
-			Name = "BloodCoinsLabel",
-			Text = Localization.TextFormat("hud.blood_coins", 0),
-			HorizontalAlignment = HorizontalAlignment.Left
-		};
-		resourcePanel.AddChild(_coinsLabel);
-		_weaponLabel = new Label
-		{
-			Name = "EquippedWeaponLabel",
-			Text = $"Arma: {WeaponLoadout.EquippedWeapon.DisplayName}",
-			HorizontalAlignment = HorizontalAlignment.Left
-		};
-		resourcePanel.AddChild(_weaponLabel);
-
-		_enemyProgressLabel = new Label
-		{
-			Name = "EnemyProgressLabel",
-			Text = Localization.TextFormat("hud.enemies", 0, 0),
-			HorizontalAlignment = HorizontalAlignment.Left
-		};
-		resourcePanel.AddChild(_enemyProgressLabel);
-
-		_roomLabel = new Label
-		{
-			Name = "RoomLabel",
-			Text = "",
-			AnchorLeft = 0.5f,
-			AnchorRight = 0.5f,
-			OffsetLeft = -258.0f,
-			OffsetTop = 19.0f,
-			OffsetRight = 258.0f,
-			OffsetBottom = 49.0f,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		_roomLabel.AddThemeFontSizeOverride("font_size", 17);
-		_roomLabel.AddThemeColorOverride("font_color", new Color(0.86f, 0.78f, 0.68f));
-		root.AddChild(_roomLabel);
-		var roomDivider = new TextureRect
-		{
-			Name = "RoomDivider",
-			Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimpleDividerPath),
-			AnchorLeft = 0.5f,
-			AnchorRight = 0.5f,
-			OffsetLeft = -190.0f,
-			OffsetTop = 52.0f,
-			OffsetRight = 190.0f,
-			OffsetBottom = 56.0f,
-			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-			StretchMode = TextureRect.StretchModeEnum.Scale,
-			Modulate = new Color(0.55f, 0.46f, 0.42f, 0.44f),
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		root.AddChild(roomDivider);
-		_roomDivider = roomDivider;
-		// A Camara de Hemomancia escreve o proprio titulo sobre esta moldura.
-		_roomFrameAlwaysVisible = GetTree().CurrentScene is IntermissionChamber;
-		_controlsHintLabel = new Label
-		{
-			Name = "ControlsHint",
-			Visible = false,
-			Text = "Teclado: WASD mover • Mouse atacar • Espaço esquiva • Q especial • F fúria • C ficha\nControle: L mover/mirar • □/X atacar • △/Y especial • X/A esquiva/confirmar • R1/RB fúria",
-			AnchorLeft = 0.5f, AnchorTop = 1.0f, AnchorRight = 0.5f, AnchorBottom = 1.0f,
-			OffsetLeft = -430.0f, OffsetTop = -62.0f, OffsetRight = 430.0f, OffsetBottom = -18.0f,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center,
-			Modulate = new Color(1.0f, 1.0f, 1.0f, 0.62f),
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		root.AddChild(_controlsHintLabel);
-
-		_bossHealthPanel = new VBoxContainer
-		{
-			Name = "BossHealthPanel", AnchorLeft = 0.22f, AnchorTop = 0.075f, AnchorRight = 0.78f, AnchorBottom = 0.075f,
-			OffsetBottom = 78, Visible = false
-		};
-		root.AddChild(_bossHealthPanel);
-		_bossHealthLabel = new Label { Text = Localization.Text("hud.boss"), HorizontalAlignment = HorizontalAlignment.Center };
-		_bossHealthLabel.AddThemeFontSizeOverride("font_size", 24);
-		_bossHealthPanel.AddChild(_bossHealthLabel);
-		_bossHealthBar = new ProgressBar { ShowPercentage = false, CustomMinimumSize = new Vector2(0, 28) };
-		_bossHealthBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = new Color(0.52f, 0.015f, 0.025f), BorderWidthTop = 2, BorderWidthBottom = 2 });
-		_bossHealthBar.AddThemeStyleboxOverride("background", new StyleBoxFlat { BgColor = new Color(0.04f, 0.01f, 0.012f) });
-		_bossHealthPanel.AddChild(_bossHealthBar);
-
-		_enemyDefeatedToast = new Label
-		{
-			Name = "EnemyDefeatedToast",
-			Text = "+1 inimigo derrotado",
-			AnchorLeft = 0.5f,
-			AnchorTop = 0.28f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 0.28f,
-			OffsetLeft = -170.0f,
-			OffsetTop = -18.0f,
-			OffsetRight = 170.0f,
-			OffsetBottom = 18.0f,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			Modulate = Colors.Transparent,
-			Visible = false
-		};
-		root.AddChild(_enemyDefeatedToast);
+		// Contrato hud-ingame T1/T2: log (debug), toasts, alerta de wave e banner de sala limpa (HUD.Notifications.cs).
+		// Acima dos painéis do HUD e abaixo dos overlays modais.
+		BuildNotificationsLayout(root);
 
 		BuildPauseOverlay(root);
 		BuildGameOverOverlay(root);
-		BuildRoomClearBanner(root);
 		BuildCharacterSheetOverlay(root);
 		BuildBloodFountainOverlay(root);
 		BuildArtifactChestOverlay(root);
@@ -255,85 +93,198 @@ public partial class HUD
 		OnBloodCoinsChanged(CharacterSheet.BloodCoins);
 	}
 
-	private ProgressBar CreateBar(string label, float maxValue)
-	{
-		return new ProgressBar
-		{
-			Name = label,
-			MaxValue = maxValue,
-			Value = maxValue,
-			CustomMinimumSize = new Vector2(360.0f, 22.0f),
-			ShowPercentage = false,
-			TooltipText = label
-		};
-	}
-
-	private static PanelContainer AddHudPanel(Control root, string name, Vector4 anchors, Vector4 offsets, float alpha = 0.84f)
+	// §8.1: painel inferior esquerdo (24, −24), altura automática: só a vida; a fúria entra quando liberada.
+	private void BuildPlayerPanel(Control root)
 	{
 		var panel = new PanelContainer
 		{
-			Name = name, MouseFilter = Control.MouseFilterEnum.Ignore,
-			AnchorLeft = anchors.X, AnchorTop = anchors.Y, AnchorRight = anchors.Z, AnchorBottom = anchors.W,
-			OffsetLeft = offsets.X, OffsetTop = offsets.Y, OffsetRight = offsets.Z, OffsetBottom = offsets.W
+			Name = "PlayerFrame",
+			ThemeTypeVariation = UiVariation.HudPanel,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 0.0f, AnchorTop = 1.0f, AnchorRight = 0.0f, AnchorBottom = 1.0f,
+			GrowHorizontal = Control.GrowDirection.End,
+			GrowVertical = Control.GrowDirection.Begin
 		};
-		panel.AddThemeStyleboxOverride("panel", UIThemeFactory.HudPanel(alpha));
 		root.AddChild(panel);
-		return panel;
+		_playerHudFrame = panel;
+
+		var column = new VBoxContainer { Name = "PlayerStatus", MouseFilter = Control.MouseFilterEnum.Ignore };
+		column.AddThemeConstantOverride("separation", UiMetrics.S2);
+		panel.AddChild(column);
+
+		// Linha da vida: barra 260 · valor 56 (fora da barra, legível sobre chip e barreira) · "+N" de barreira 40.
+		// 260 + 8 + 56 + 8 + 40 = 372 de conteúdo; barreira atrás da vida sobre o máximo combinado.
+		_healthResourceBar = UiComponents.ResourceBar(ResourceBarKind.Health, 260);
+		_healthResourceBar.Bar.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_healthResourceBar.Root.Name = "HealthAndBarrier";
+		column.AddChild(_healthResourceBar.Root);
+
+		// Fúria com a mesma largura da barra de vida (bordas alinhadas).
+		_furyResourceBar = UiComponents.ResourceBar(ResourceBarKind.Fury, 260);
+		_furyResourceBar.Root.Name = "Fury";
+		_furyResourceBar.Root.Visible = false;
+		column.AddChild(_furyResourceBar.Root);
+
+		FitPlayerPanel();
+		var showCombatHud = !IsHubScene();
+		panel.Visible = showCombatHud;
 	}
 
-	private void ApplyHealthBarStyle()
+	// Recolhe o painel ao conteúdo atual (o Control fora de contêiner não encolhe sozinho) e cresce para cima.
+	private void FitPlayerPanel()
 	{
-		var fill = new StyleBoxFlat
-		{
-			BgColor = new Color(0.86f, 0.02f, 0.04f),
-			CornerRadiusTopLeft = 3,
-			CornerRadiusTopRight = 3,
-			CornerRadiusBottomLeft = 3,
-			CornerRadiusBottomRight = 3
-		};
-		var background = new StyleBoxFlat
-		{
-			BgColor = Colors.Transparent,
-			CornerRadiusTopLeft = 3,
-			CornerRadiusTopRight = 3,
-			CornerRadiusBottomLeft = 3,
-			CornerRadiusBottomRight = 3
-		};
+		if (_playerHudFrame == null)
+			return;
+		_playerHudFrame.OffsetLeft = UiMetrics.SafeMargin;
+		_playerHudFrame.OffsetRight = UiMetrics.SafeMargin;
+		_playerHudFrame.OffsetTop = -UiMetrics.SafeMargin;
+		_playerHudFrame.OffsetBottom = -UiMetrics.SafeMargin;
+	}
 
-		_healthBar.AddThemeStyleboxOverride("fill", fill);
-		_healthBar.AddThemeStyleboxOverride("background", background);
-		_barrierBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
+	// §8.2: só moedas (gota + número). A arma fica na ficha e na bancada; o progresso vai para o título da sala.
+	private void BuildResourcePanel(Control root)
+	{
+		var panel = new PanelContainer
 		{
-			BgColor = new Color(0.12f, 0.52f, 0.95f),
-			CornerRadiusTopLeft = 3,
-			CornerRadiusTopRight = 3,
-			CornerRadiusBottomLeft = 3,
-			CornerRadiusBottomRight = 3
-		});
-		_barrierBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
+			Name = "ResourceFrame",
+			ThemeTypeVariation = UiVariation.HudPanel,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			OffsetLeft = UiMetrics.SafeMargin, OffsetTop = UiMetrics.SafeMargin,
+			OffsetRight = UiMetrics.SafeMargin, OffsetBottom = UiMetrics.SafeMargin
+		};
+		root.AddChild(panel);
+		_resourceFrame = panel;
+		var row = new HBoxContainer { Name = "ResourcePanel", MouseFilter = Control.MouseFilterEnum.Ignore };
+		row.AddThemeConstantOverride("separation", UiMetrics.S2);
+		panel.AddChild(row);
+		var coin = UiComponents.CoinGlyph(24);
+		coin.TooltipText = "Moedas de Sangue";
+		row.AddChild(coin);
+		_coinsLabel = new Label
 		{
-			BgColor = new Color(0.12f, 0.0f, 0.0f),
-			CornerRadiusTopLeft = 3,
-			CornerRadiusTopRight = 3,
-			CornerRadiusBottomLeft = 3,
-			CornerRadiusBottomRight = 3
-		});
-		_furyBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
+			Name = "BloodCoinsLabel",
+			Text = "0",
+			ThemeTypeVariation = UiVariation.SectionGoldLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_coinsLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		row.AddChild(_coinsLabel);
+
+		// Fora do HUD (§8.2). Continua existindo, escondido, porque HUD.WeaponBench.cs ainda escreve nele.
+		_weaponLabel = new Label
 		{
-			BgColor = new Color(0.94f, 0.37f, 0.04f),
-			BorderColor = new Color(1.0f, 0.72f, 0.2f),
-			BorderWidthTop = 1,
-			BorderWidthBottom = 1
-		});
-		_furyBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
+			Name = "EquippedWeaponLabel",
+			Text = $"Arma: {WeaponLoadout.EquippedWeapon.DisplayName}",
+			Visible = false
+		};
+		root.AddChild(_weaponLabel);
+	}
+
+	// §8.3: nome do mapa (Section, Gold) + progresso (Secondary) na mesma linha; some na sala do chefe.
+	private void BuildRoomTitle(Control root)
+	{
+		_roomTitleGroup = new Control
 		{
-			BgColor = new Color(0.09f, 0.025f, 0.012f),
-			BorderColor = new Color(0.33f, 0.12f, 0.04f),
-			BorderWidthLeft = 1,
-			BorderWidthTop = 1,
-			BorderWidthRight = 1,
-			BorderWidthBottom = 1
-		});
+			Name = "RoomTitle",
+			AnchorRight = 1.0f, AnchorBottom = 1.0f,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		root.AddChild(_roomTitleGroup);
+
+		_roomFrame = new PanelContainer
+		{
+			Name = "RoomFrame",
+			ThemeTypeVariation = UiVariation.HudPanel,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			// Largura acompanha o conteúdo (mín. 320), centrada; ver o ajuste da Câmara no fim do método.
+			AnchorLeft = 0.5f, AnchorRight = 0.5f,
+			OffsetLeft = 0.0f, OffsetTop = 16.0f, OffsetRight = 0.0f, OffsetBottom = 64.0f,
+			CustomMinimumSize = new Vector2(320.0f, 0.0f),
+			GrowHorizontal = Control.GrowDirection.Both
+		};
+		_roomTitleGroup.AddChild(_roomFrame);
+		var row = new HBoxContainer
+		{
+			Alignment = BoxContainer.AlignmentMode.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		row.AddThemeConstantOverride("separation", UiMetrics.S2);
+		_roomFrame.AddChild(row);
+
+		_roomLabel = new Label
+		{
+			Name = "RoomLabel",
+			Text = "",
+			ThemeTypeVariation = UiVariation.SectionGoldLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		row.AddChild(_roomLabel);
+		_roomProgressSeparator = new Label
+		{
+			Text = "·",
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			Visible = false,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		row.AddChild(_roomProgressSeparator);
+		_enemyProgressLabel = new Label
+		{
+			Name = "EnemyProgressLabel",
+			Text = "",
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			Visible = false,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		row.AddChild(_enemyProgressLabel);
+
+		// A Camara de Hemomancia escreve o proprio status (±390 × 22..88, até 2 linhas) sobre esta moldura vazia:
+		// ali a moldura precisa cobrir o rótulo inteiro (até a fase dos overlays migrar o status para _roomLabel, §8.19).
+		_roomFrameAlwaysVisible = GetTree().CurrentScene is IntermissionChamber;
+		if (_roomFrameAlwaysVisible)
+			_roomFrame.CustomMinimumSize = new Vector2(800.0f, 76.0f);
+	}
+
+	// §8.4: barra do chefe no lugar do título (âncoras 0.25..0.75, topo 16), nome e valor em rótulos separados.
+	private void BuildBossBar(Control root)
+	{
+		var panel = new PanelContainer
+		{
+			Name = "BossHealthPanel",
+			ThemeTypeVariation = UiVariation.HudPanel,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 0.25f, AnchorRight = 0.75f,
+			OffsetTop = 16.0f, OffsetBottom = 16.0f,
+			GrowVertical = Control.GrowDirection.End,
+			Visible = false
+		};
+		root.AddChild(panel);
+		_bossHealthPanel = panel;
+		_bossResourceBar = UiComponents.ResourceBar(ResourceBarKind.Boss);
+		_bossResourceBar.Root.Name = "BossBar";
+		_bossResourceBar.Bar.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_bossResourceBar.NameLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		_bossResourceBar.ValueLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		panel.AddChild(_bossResourceBar.Root);
+		_bossDisplayName = Localization.Text("hud.boss");
+		_bossResourceBar.SetName(_bossDisplayName);
+		// BindBoss/UpdateBossHealth (HUD.Notifications.cs) escrevem direto no componente (SetName/SetValue).
+		panel.VisibilityChanged += RefreshRoomTitleVisibility;
+	}
+
+	private void RefreshRoomTitleVisibility()
+	{
+		if (_roomTitleGroup != null)
+			_roomTitleGroup.Visible = !IsVisible(_bossHealthPanel);
+	}
+
+	private bool IsHubScene()
+	{
+		var scenePath = GetTree().CurrentScene?.SceneFilePath ?? "";
+		return scenePath.EndsWith("CrowsNest.tscn", StringComparison.OrdinalIgnoreCase);
 	}
 
 	private void BindRuntimeNodes()
@@ -352,8 +303,6 @@ public partial class HUD
 		if (health != null)
 		{
 			_runtimeHealth = health;
-			_healthBar.MaxValue = health.MaxHealth;
-			_healthBar.Value = health.CurrentHealth;
 			OnHealthChanged(health.CurrentHealth, health.MaxHealth);
 			health.HealthChanged += OnHealthChanged;
 			health.Damaged += OnPlayerDamaged;
@@ -368,10 +317,8 @@ public partial class HUD
 		if (combat != null)
 		{
 			_runtimePlayerCombat = combat;
-			_furyBar.MaxValue = combat.MaxFury;
-			_furyBar.Value = combat.CurrentFury;
 			combat.FuryChanged += OnFuryChanged;
-			RefreshFuryVisibility();
+			OnFuryChanged(combat.CurrentFury, combat.MaxFury, combat.IsFuryActive);
 		}
 
 		if (runManager != null)
@@ -381,7 +328,7 @@ public partial class HUD
 			runManager.EnemyProgressChanged += OnEnemyProgressChanged;
 			runManager.RoomCleared += OnRoomCleared;
 			OnBloodCoinsChanged(runManager.BloodCoins);
-			SyncEnemyProgress(runManager.DefeatedEnemies, runManager.TotalEnemies);
+			OnEnemyProgressChanged(runManager.DefeatedEnemies, runManager.TotalEnemies);
 			SyncRoomInformation();
 			_isRuntimeBound = true;
 		}
@@ -395,28 +342,52 @@ public partial class HUD
 			AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(amount)} de dano.");
 			ShowReceivedDamageNumber(amount);
 		}
-		if (_damageFlash == null) return;
-		_damageFlash.Color = new Color(0.9f, 0, 0, 0.28f);
-		var tween = _damageFlash.CreateTween();
-		tween.TweenProperty(_damageFlash, "color:a", 0.0f, 0.16f);
+		PlayDamageFeedback();
 	}
 
-	private async void ShowReceivedDamageNumber(float amount)
+	// §6: a vinheta de borda sobe a 0,45 em 0,03 s e cai em 0,12 s; a borda da barra de vida pisca junto.
+	private void PlayDamageFeedback()
 	{
-		var label = new Label
+		_healthResourceBar?.FlashDamage();
+		if (_edgeVignette == null)
+			return;
+		_damageFlashTween?.Kill();
+		_damageFlashTween = _edgeVignette.CreateTween();
+		_damageFlashTween.TweenMethod(Callable.From<float>(SetDamageFlash), _damageFlashAmount, DamageFlashPeak, UiMotion.FlashRise);
+		_damageFlashTween.TweenMethod(Callable.From<float>(SetDamageFlash), DamageFlashPeak, 0.0f, UiMotion.FlashFall);
+	}
+
+	private void SetDamageFlash(float amount)
+	{
+		_damageFlashAmount = amount;
+		ApplyVignetteAlpha();
+	}
+
+	// §3.14: número no tema, saindo de cima do jogador projetado na tela; sem câmera, acima do painel do jogador.
+	private void ShowReceivedDamageNumber(float amount)
+	{
+		if (_hudRoot == null)
+			return;
+		// Golpes em sequência (< 0,35 s) abrem em leque (centro, direita, esquerda) para não se sobreporem (máx. 3 vivos).
+		_damageNumberStep = _hudClock - _lastDamageNumberTime < 0.35f ? (_damageNumberStep + 1) % 3 : 0;
+		_lastDamageNumberTime = _hudClock;
+		var step = _damageNumberStep;
+		var fan = new Vector2(step == 1 ? 64.0f : step == 2 ? -64.0f : 0.0f, -14.0f * step);
+		UiComponents.DamageNumber(_hudRoot, amount, ResolveDamageNumberOrigin() + fan, step == 0);
+	}
+
+	private Vector2 ResolveDamageNumberOrigin()
+	{
+		var camera = GetViewport()?.GetCamera3D();
+		if (camera != null && _runtimePlayerController != null && IsInstanceValid(_runtimePlayerController))
 		{
-			Text = $"-{Mathf.RoundToInt(amount)}", Modulate = new Color(1, 0.08f, 0.05f),
-			AnchorLeft = 0.5f, AnchorTop = 0.66f, AnchorRight = 0.5f, AnchorBottom = 0.66f,
-			OffsetLeft = -80, OffsetTop = -20, OffsetRight = 80, OffsetBottom = 30,
-			HorizontalAlignment = HorizontalAlignment.Center
-		};
-		label.AddThemeFontSizeOverride("font_size", 34);
-		AddChild(label);
-		var tween = label.CreateTween();
-		tween.TweenProperty(label, "position:y", label.Position.Y - 55, 0.55f);
-		tween.Parallel().TweenProperty(label, "modulate:a", 0.0f, 0.55f);
-		await ToSignal(tween, Tween.SignalName.Finished);
-		label.QueueFree();
+			var worldPosition = _runtimePlayerController.GlobalPosition;
+			if (!camera.IsPositionBehind(worldPosition))
+				return camera.UnprojectPosition(worldPosition) + new Vector2(0, -80);
+		}
+		if (_playerHudFrame != null)
+			return _playerHudFrame.GetGlobalRect().Position + new Vector2(_playerHudFrame.Size.X * 0.5f, -24);
+		return _hudRoot.Size * new Vector2(0.5f, 0.6f);
 	}
 
 	private void OnHealthChanged(float current, float max)
@@ -431,67 +402,91 @@ public partial class HUD
 
 	private void UpdateCombinedHealthDisplay()
 	{
-		if (_runtimeHealth == null || _healthBar == null || _barrierBar == null)
+		if (_statusPreviewActive || _runtimeHealth == null || _healthResourceBar == null)
 			return;
 
 		var barrier = _runtimePlayerController?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
 		var barrierCurrent = barrier?.CurrentBarrier ?? 0.0f;
 		var barrierMaximum = barrier?.MaximumBarrier ?? 0.0f;
-		var combinedMaximum = Mathf.Max(_runtimeHealth.MaxHealth + barrierMaximum, 1.0f);
-		_barrierBar.MaxValue = combinedMaximum;
-		_barrierBar.Value = Mathf.Min(_runtimeHealth.CurrentHealth + barrierCurrent, combinedMaximum);
-		_healthBar.MaxValue = combinedMaximum;
-		_healthBar.Value = _runtimeHealth.CurrentHealth;
-		if (_healthPointsLabel != null)
-		{
-			_healthPointsLabel.Text = barrierCurrent > 0.01f
-				? $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)} + {Mathf.CeilToInt(barrierCurrent)} / {Mathf.CeilToInt(_runtimeHealth.MaxHealth)}"
-				: $"{Mathf.CeilToInt(_runtimeHealth.CurrentHealth)}/{Mathf.CeilToInt(_runtimeHealth.MaxHealth)}";
-			_healthPointsLabel.Modulate = barrierCurrent > 0.01f ? new Color(0.72f, 0.9f, 1.0f) : Colors.White;
-		}
+		_healthResourceBar.SetHealth(_runtimeHealth.CurrentHealth, _runtimeHealth.MaxHealth, barrierCurrent, barrierMaximum);
+		FitPlayerPanel();
 	}
 
+	// Chamado todo quadro por HUD._Process. Sem alocação; só reescreve o alpha quando ele muda.
 	private void UpdateCriticalHealthIndicator(float delta)
 	{
-		if (_criticalHealthVignette == null || _runtimeHealth == null || _runtimeHealth.MaxHealth <= 0.0f)
-			return;
-
-		var healthRatio = _runtimeHealth.CurrentHealth / _runtimeHealth.MaxHealth;
-		if (healthRatio >= 0.3f || _runtimeHealth.IsDead)
+		// Relógio do HUD em tempo de jogo (o mesmo do --fixed-fps nas capturas); volta a zero para não perder precisão.
+		_hudClock = Mathf.PosMod(_hudClock + delta, 3600.0f);
+		var ratio = CurrentHealthRatioForVignette();
+		if (ratio >= 0.0f && ratio < CriticalHealthRatio)
 		{
-			_criticalHealthVignette.Color = new Color(0.75f, 0.0f, 0.025f, 0.0f);
-			return;
+			var periodSeconds = 1.0f / UiMotion.CriticalPulseHz;
+			_criticalHealthPulse = Mathf.PosMod(_criticalHealthPulse + delta, periodSeconds);
 		}
+		else
+		{
+			_criticalHealthPulse = 0.0f;
+		}
+		ApplyVignetteAlpha();
+	}
 
-		_criticalHealthPulse += delta * 3.4f;
-		var severity = Mathf.Clamp((0.3f - healthRatio) / 0.3f, 0.0f, 1.0f);
-		var pulse = 0.5f + 0.5f * Mathf.Sin(_criticalHealthPulse);
-		_criticalHealthVignette.Color = new Color(0.75f, 0.0f, 0.025f, 0.08f + severity * 0.12f + pulse * 0.055f);
+	// −1 = sem vida crítica possível (sem jogador, morto ou fora de combate).
+	private float CurrentHealthRatioForVignette()
+	{
+		if (_previewHealthRatio >= 0.0f)
+			return _previewHealthRatio;
+		if (_runtimeHealth == null || !IsInstanceValid(_runtimeHealth) || _runtimeHealth.MaxHealth <= 0.0f || _runtimeHealth.IsDead)
+			return -1.0f;
+		return _runtimeHealth.CurrentHealth / _runtimeHealth.MaxHealth;
+	}
+
+	private void ApplyVignetteAlpha()
+	{
+		if (_edgeVignette == null)
+			return;
+		var alpha = 0.0f;
+		var ratio = CurrentHealthRatioForVignette();
+		if (ratio >= 0.0f && ratio < CriticalHealthRatio)
+		{
+			var severity = Mathf.Clamp(1.0f - ratio / CriticalHealthRatio, 0.0f, 1.0f);
+			var pulse = 0.5f + 0.5f * Mathf.Sin(Mathf.Tau * UiMotion.CriticalPulseHz * _criticalHealthPulse);
+			alpha = Mathf.Min(0.20f + 0.25f * severity + 0.10f * pulse, CriticalVignetteCap);
+		}
+		alpha = Mathf.Min(alpha + _damageFlashAmount, VignetteCap);
+		if (Mathf.IsEqualApprox(alpha, _lastVignetteAlpha))
+			return;
+		_lastVignetteAlpha = alpha;
+		_edgeVignette.Modulate = new Color(1, 1, 1, alpha);
 	}
 
 	private void OnFuryChanged(float current, float max, bool isActive)
 	{
-		_furyBar.MaxValue = max;
-		_furyBar.Value = current;
+		if (_furyResourceBar == null || _statusPreviewActive)
+			return;
+		_furyResourceBar.SetValue(current, max);
+		_furyResourceBar.SetFuryState(max > 0.0f && current >= max, isActive);
 		RefreshFuryVisibility();
 		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", 10.0f);
-		_furyBar.TooltipText = isActive
+		_furyResourceBar.Bar.TooltipText = isActive
 			? $"Furia Bestial ativa: consome {furyDrainPerSecond:0.#} pontos por segundo e explode ao chegar a zero"
-			: RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f
-				? "Furia Bestial - pressione F quando a barra estiver cheia"
-				: "Furia Bestial bloqueada - encontre uma Bencao de Sangue compativel";
+			: "Furia Bestial - pressione F (R1/RB) quando a barra estiver cheia";
 	}
 
+	// A fúria só aparece quando liberada por uma Bênção de Sangue (§8.1).
 	private void RefreshFuryVisibility()
 	{
-		if (_furyBar == null)
+		if (_furyResourceBar == null || _statusPreviewActive)
 			return;
-		_furyBar.Visible = RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f;
+		var unlocked = RunState.GetEffectTotal("UnlockBestialFury.Flat") > 0.0f;
+		if (_furyResourceBar.Root.Visible == unlocked)
+			return;
+		_furyResourceBar.Root.Visible = unlocked;
+		FitPlayerPanel();
 	}
 
 	private void OnBloodCoinsChanged(int amount)
 	{
-		_coinsLabel.Text = Localization.TextFormat("hud.blood_coins", amount);
+		_coinsLabel.Text = amount.ToString();
 		RefreshVisibleCoinOverlays();
 	}
 
@@ -512,6 +507,18 @@ public partial class HUD
 	private void OnEnemyProgressChanged(int defeatedEnemies, int totalEnemies)
 	{
 		SyncEnemyProgress(defeatedEnemies, totalEnemies);
+		// Só a sala de combate (TestArena) tem RunManager, única fonte deste sinal: hub, câmara e sala inicial nunca
+		// mostram progresso. Antes da 1ª wave (total 0) o texto é só "Sala x/y" (SyncEnemyProgress). Sem nome de
+		// mapa a moldura inteira some (HUD._Process), então não é preciso esperar SyncRoomInformation.
+		SetRoomProgressVisible(true);
+	}
+
+	private void SetRoomProgressVisible(bool visible)
+	{
+		if (_enemyProgressLabel != null)
+			_enemyProgressLabel.Visible = visible;
+		if (_roomProgressSeparator != null)
+			_roomProgressSeparator.Visible = visible;
 	}
 
 	private void OnRoomCleared()
@@ -520,7 +527,69 @@ public partial class HUD
 			return;
 
 		_roomClearAnnounced = true;
-		_roomLabel.Text = "Sala concluida - portal vermelho liberado";
+		// O nome do mapa continua; a parte secundária vira "Sala limpa". O portal só abre depois da recompensa
+		// (RunManager.UnlockExitAfterReward → NotifyPortalOpened troca para "Portal aberto").
+		_enemyProgressLabel.Text = "Sala limpa";
+		SetRoomProgressVisible(!string.IsNullOrEmpty(_roomLabel.Text));
 		ShowRoomClearBanner();
+	}
+
+	// ---------- Pré-visualização (debug, --ui-preview; ligada em HUD.OpenPreviewScreen) ----------
+
+	// hud_combat: vida 83/100 + barreira 20, fúria cheia (pronta), 500 moedas.
+	internal void PreviewHudCombat()
+	{
+		ApplyStatusPreview(83.0f, 100.0f, 20.0f, 20.0f);
+		_furyResourceBar.Root.Visible = true;
+		_furyResourceBar.SetValue(100.0f, 100.0f);
+		_furyResourceBar.SetFuryState(true, false);
+		FitPlayerPanel();
+		_coinsLabel.Text = "500";
+	}
+
+	// critical_health: vida 14/100, vinheta de vida crítica pulsando.
+	internal void PreviewCriticalHealth()
+	{
+		ApplyStatusPreview(14.0f, 100.0f, 0.0f, 0.0f);
+		_previewHealthRatio = 0.14f;
+	}
+
+	// damage_flash: um golpe (flash de borda + borda da barra). Repetir a cada ~0,5 s para aparecer na captura.
+	internal void PreviewDamageFlash()
+	{
+		ApplyStatusPreview(62.0f, 100.0f, 0.0f, 0.0f);
+		PlayDamageFeedback();
+	}
+
+	// damage_number: três golpes seguidos (12, 27, 9) com flash; o chip de dano aparece na barra.
+	internal void PreviewDamageNumber()
+	{
+		ApplyStatusPreview(100.0f, 100.0f, 0.0f, 0.0f);
+		var hits = new[] { 12.0f, 27.0f, 9.0f };
+		var tween = CreateTween();
+		var remaining = 100.0f;
+		foreach (var hit in hits)
+		{
+			var amount = hit;
+			remaining -= amount;
+			var after = remaining;
+			tween.TweenCallback(Callable.From(() =>
+			{
+				_healthResourceBar.SetHealth(after, 100.0f, 0.0f, 0.0f);
+				ShowReceivedDamageNumber(amount);
+				PlayDamageFeedback();
+			}));
+			tween.TweenInterval(0.18f);
+		}
+	}
+
+	private void ApplyStatusPreview(float health, float maxHealth, float barrier, float barrierMax)
+	{
+		_statusPreviewActive = false;
+		_previewHealthRatio = -1.0f;
+		_playerHudFrame.Visible = true;
+		_healthResourceBar.SetHealth(health, maxHealth, barrier, barrierMax);
+		_statusPreviewActive = true;
+		FitPlayerPanel();
 	}
 }

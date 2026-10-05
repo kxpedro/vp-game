@@ -11,6 +11,8 @@ public partial class MainMenu : Control
 
 	public override void _Ready()
 	{
+		// Debug: --ui-preview/--ui-lang/--ui-device; antes de assinar LanguageChanged (idioma já entra no build).
+		UiPreview.Attach(this);
 		ControllerUiSupport.EnsureMappings();
 		Theme = UIThemeFactory.Create();
 		if (Localization.Instance != null) Localization.Instance.LanguageChanged += OnLanguageChanged;
@@ -176,6 +178,22 @@ public partial class MainMenu : Control
 		_options.Visible = page == _options;
 		_credits.Visible = page == _credits;
 		ControllerUiSupport.FocusFirst(page);
+	}
+
+	// Pré-visualização (debug, ver UiPreview.cs): mostra a página pelo nome. False = nome desconhecido.
+	internal bool ShowPreviewPage(string page)
+	{
+		var target = page switch
+		{
+			"menu_main" => _main,
+			"menu_slots" => _slots,
+			"menu_options" => _options,
+			"menu_credits" => _credits,
+			_ => null
+		};
+		if (target == null) return false;
+		ShowPage(target);
+		return true;
 	}
 
 	private void LoadSlot(int slot)
