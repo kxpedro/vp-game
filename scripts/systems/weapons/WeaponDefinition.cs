@@ -74,5 +74,7 @@ public sealed record WeaponDefinition(
     float QuickAttackKnockbackMultiplier = 2.7f,
     float SpecialAttackKnockbackMultiplier = 2.5f,
     float LineAttackLungeDistance = 0.8f,
-    float SpecialAttackCooldown = 0.26f
+    float SpecialAttackCooldown = 0.26f,
+    // false = arma placeholder (WeaponCatalog.Placeholder): sem moveset próprio, só aparece como "Em breve".
+    bool IsImplemented = true
 );

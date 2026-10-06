@@ -62,6 +62,8 @@ public partial class GameCursor : Node
 
     private void OnWindowInput(InputEvent @event)
     {
+        // Preview com --ui-device (debug): o dispositivo fica fixo para os glifos não voltarem a teclado nas capturas.
+        if (UiPreview.DeviceLocked) return;
         switch (@event)
         {
             case InputEventJoypadButton button when button.Pressed:

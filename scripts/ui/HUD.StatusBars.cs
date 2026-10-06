@@ -241,11 +241,11 @@ public partial class HUD
 		};
 		row.AddChild(_enemyProgressLabel);
 
-		// A Camara de Hemomancia escreve o proprio status (±390 × 22..88, até 2 linhas) sobre esta moldura vazia:
-		// ali a moldura precisa cobrir o rótulo inteiro (até a fase dos overlays migrar o status para _roomLabel, §8.19).
+		// A Camara de Hemomancia escreve o proprio status (2 linhas centradas, ~260 px) sobre esta moldura vazia:
+		// só a altura precisa cobrir as duas linhas; a largura segue o mínimo comum, sem a faixa fixa de 800.
 		_roomFrameAlwaysVisible = GetTree().CurrentScene is IntermissionChamber;
 		if (_roomFrameAlwaysVisible)
-			_roomFrame.CustomMinimumSize = new Vector2(800.0f, 76.0f);
+			_roomFrame.CustomMinimumSize = new Vector2(360.0f, 76.0f);
 	}
 
 	// §8.4: barra do chefe no lugar do título (âncoras 0.25..0.75, topo 16), nome e valor em rótulos separados.

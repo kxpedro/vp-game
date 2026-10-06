@@ -53,6 +53,7 @@ public static class RunState
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
         ApplyEquippedArtifacts();
+        CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
     }
 
     public static void AdvanceRoom()
@@ -158,6 +159,7 @@ public static class RunState
     public static void AddTemporaryArtifact(ArtifactRecord artifact)
     {
         TemporaryArtifacts.Add(artifact);
+        CodexProgress.MarkDiscovered(CodexCategory.Artifact, artifact.Id);
 
         ApplyArtifactEffect(artifact);
     }
@@ -189,6 +191,7 @@ public static class RunState
         if (nextStack > definition.MaxStacks) return false;
         BlessingStacks[definition.Id] = nextStack;
         BloodBlessings.Add(new BloodBlessingRecord(definition.Id, definition.DisplayName, nextStack, offer.Rarity, offer.PowerMultiplier));
+        CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
         RecalculateArtifactBonuses();
         return true;
     }

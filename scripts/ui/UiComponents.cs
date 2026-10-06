@@ -148,6 +148,8 @@ public sealed class UiChoiceCard
     internal bool Focused, Hovered, Flashing;
     private Tween _flash;
 
+    // Foco/hover mantêm a cor da raridade (clarear confundia Comum com Mítico): o foco é marcado pelo anel externo
+    // Focus (só foco de teclado/controle, mais forte que o hover) e pela barra esquerda Gold.
     internal void Refresh()
     {
         if (!GodotObject.IsInstanceValid(Root)) return;
@@ -155,7 +157,7 @@ public sealed class UiChoiceCard
         var style = new StyleBoxFlat
         {
             BgColor = active ? UiPalette.PanelRaised : UiPalette.Panel,
-            BorderColor = Flashing ? UiPalette.Gold : Data.Disabled ? UiPalette.Border : active ? Accent.Lightened(0.15f) : Accent,
+            BorderColor = Flashing ? UiPalette.Gold : Data.Disabled ? UiPalette.Border : Accent,
             ContentMarginLeft = 0, ContentMarginRight = UiMetrics.PadPanelX,
             ContentMarginTop = UiMetrics.PadPanelY, ContentMarginBottom = UiMetrics.PadPanelY
         };
@@ -163,7 +165,33 @@ public sealed class UiChoiceCard
         style.SetCornerRadiusAll(UiMetrics.RadiusCard);
         Root.AddThemeStyleboxOverride("panel", style);
         FocusBar.Color = active ? UiPalette.Gold : Colors.Transparent;
+        Root.QueueRedraw();
     }
+
+    internal bool Stirps => (Data.RarityId ?? "").Equals("stirps", StringComparison.OrdinalIgnoreCase) && !Data.Disabled;
+
+    // Desenhado depois do painel (sinal Draw), sem mexer no layout: linha interna do Stirps e anel de foco por fora.
+    internal void DrawOverlay()
+    {
+        if (!GodotObject.IsInstanceValid(Root)) return;
+        var rect = new Rect2(Vector2.Zero, Root.Size);
+        if (Stirps)
+        {
+            var active = (Focused || Hovered) || Flashing;
+            var inset = (active ? UiMetrics.BorderCardFocus : UiMetrics.BorderCard) + 2;
+            if (_stirpsLine == null)
+            {
+                _stirpsLine = new StyleBoxFlat { DrawCenter = false, BorderColor = UiPalette.Gold };
+                _stirpsLine.SetBorderWidthAll(1);
+                _stirpsLine.SetCornerRadiusAll(UiMetrics.RadiusCard);
+            }
+            Root.DrawStyleBox(_stirpsLine, rect.Grow(-inset));
+        }
+        if (Focused && !Data.Disabled)
+            Root.DrawStyleBox(_focusRing ??= UIThemeFactory.FocusRing(), rect);
+    }
+
+    private static StyleBoxFlat _stirpsLine, _focusRing;
 
     // Escolhe: flash Gold na borda e chama o handler (sem atrasar o fluxo da tela).
     public void Choose()
@@ -855,8 +883,11 @@ public static class UiComponents
             OnCancel = onCancel,
             ReturnFocus = parent?.GetViewport()?.GuiGetFocusOwner()
         };
+        // Empilhado sobre outra tela modal (pilha aberta ou pai sob um scrim): scrim leve, a tela de baixo já escurece o jogo.
+        var stacked = UiModalStack.AnyOpen || IsUnderModalScrim(parent);
         var window = Window(parent, "ConfirmDialog", WindowSize.Small, title);
         confirm.Window = window;
+        if (stacked) window.Root.Color = new Color(UiPalette.Scrim, StackedConfirmScrimAlpha);
         window.Title.ThemeTypeVariation = UiVariation.SectionGoldLabel;
         window.Body.AddChild(new Label
         {
@@ -883,8 +914,10 @@ public static class UiComponents
         window.Actions.AddChild(confirm.CancelButton);
         window.Actions.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore });
         window.Actions.AddChild(confirm.ConfirmButton);
-        window.FooterLine.Visible = false;
-        window.Footer.Root.Visible = false;
+        // Rodapé (§3.3/§3.11): voltar à esquerda, aceitar à direita; glifos seguem o último dispositivo.
+        // Aceitar ativa o botão focado (o foco inicial é Cancelar), por isso o rótulo é "Escolher" e não "Confirmar".
+        window.Footer.Add(UiAction.Cancel, TextOr("ui.common.cancel", "Cancelar"), confirm.Cancel, left: true);
+        window.Footer.Add(UiAction.Accept, TextOr("ui.common.choose", "Escolher"));
         window.Root.GuiInput += input =>
         {
             if (!input.IsActionPressed("ui_cancel")) return;
@@ -901,6 +934,17 @@ public static class UiComponents
             window.Root.Ready += () => confirm.CancelButton.CallDeferred(Control.MethodName.GrabFocus);
         }
         return confirm;
+    }
+
+    // Opacidade do scrim do Confirm quando já existe uma tela modal por baixo (evita dois scrims de 0,85).
+    private const float StackedConfirmScrimAlpha = 0.4f;
+
+    private static bool IsUnderModalScrim(Node node)
+    {
+        for (var current = node; current != null; current = current.GetParent())
+            if (current is ColorRect rect && rect.Color == UiPalette.Scrim && rect.IsVisibleInTree())
+                return true;
+        return false;
     }
 
     // ---------- Botões (§3.2) ----------
@@ -951,18 +995,9 @@ public static class UiComponents
         if (readOnly) card.Root.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
 
         Control container = card.Root;
-        if ((data.RarityId ?? "").Equals("stirps", StringComparison.OrdinalIgnoreCase) && !data.Disabled)
-        {
-            // Stirps: linha interna 1 px Gold (marca de forma além da cor).
-            var inner = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            var line = new StyleBoxFlat { BgColor = Colors.Transparent, DrawCenter = false, BorderColor = UiPalette.Gold };
-            line.SetBorderWidthAll(1);
-            line.SetCornerRadiusAll(UiMetrics.RadiusCard);
-            line.ContentMarginRight = UiMetrics.S2;
-            inner.AddThemeStyleboxOverride("panel", line);
-            card.Root.AddChild(inner);
-            container = inner;
-        }
+        // Stirps: linha interna 1 px Gold (marca de forma além da cor), desenhada por cima sem alterar o layout
+        // (antes um PanelContainer interno com margem deslocava o botão ~8 px em relação aos outros cards).
+        card.Root.Draw += card.DrawOverlay;
 
         var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", UiMetrics.S4);

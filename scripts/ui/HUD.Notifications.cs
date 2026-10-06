@@ -133,16 +133,6 @@ public partial class HUD
 		_roomLabel.Text = RunState.CurrentMap.Name;
 	}
 
-	public void OpenBloodFountain()
-	{
-		if (_bloodFountainOverlay == null)
-			return;
-
-		RefreshBloodFountain();
-		_bloodFountainOverlay.Visible = true;
-		ControllerUiSupport.FocusFirst(_bloodFountainOverlay);
-	}
-
 	// Canal (b) informativo (borda neutra): mensagens de skill e da Câmara.
 	public void NotifySkillMessage(string message)
 	{
@@ -155,16 +145,6 @@ public partial class HUD
 		AppendGameLog($"Artefato obtido: {artifactName}.");
 		ShowNotificationToast($"Artefato obtido: {artifactName}", true);
 		RefreshCharacterSheet();
-	}
-
-	public void OpenArtifactChest()
-	{
-		if (_artifactChestOverlay == null)
-			return;
-
-		RefreshArtifactChest();
-		_artifactChestOverlay.Visible = true;
-		ControllerUiSupport.FocusFirst(_artifactChestOverlay);
 	}
 
 	// Banner: PanelHud com borda 2 WindowBorder, 560 × auto, âncora 0.18; título Banner 34 Gold + linha secundária.

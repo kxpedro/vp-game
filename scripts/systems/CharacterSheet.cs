@@ -92,6 +92,7 @@ public static class CharacterSheet
             return false;
 
         SkillRanks[skillId] = currentRank + 1;
+        CodexProgress.MarkDiscovered(CodexCategory.Skill, skillId);
         SaveGameManager.RequestAutosave();
         return true;
     }
@@ -120,6 +121,7 @@ public static class CharacterSheet
             return;
 
         Artifacts.Add(artifact);
+        CodexProgress.MarkDiscovered(CodexCategory.Artifact, ResolveArtifactId(artifact));
         SaveGameManager.RequestAutosave();
     }
 
@@ -220,7 +222,8 @@ public static class CharacterSheet
             SkillRanks = new Dictionary<string, int>(SkillRanks),
             Artifacts = new List<ArtifactRecord>(Artifacts),
             EquippedArtifacts = (string[])EquippedArtifactSlots.Clone(),
-            EquippedWeaponId = WeaponLoadout.EquippedWeaponId
+            EquippedWeaponId = WeaponLoadout.EquippedWeaponId,
+            Discoveries = CodexProgress.ToSaveData()
         };
         foreach (var pair in Attributes) data.Attributes[pair.Key.ToString()] = pair.Value;
         return data;
@@ -243,6 +246,8 @@ public static class CharacterSheet
         var equippedArtifacts = data.EquippedArtifacts ?? System.Array.Empty<string>();
         for (var i = 0; i < EquippedArtifactSlots.Length && i < equippedArtifacts.Length; i++) EquippedArtifactSlots[i] = equippedArtifacts[i] ?? "";
         WeaponLoadout.Equip(data.EquippedWeaponId ?? "longsword");
+        CodexProgress.LoadSaveData(data.Discoveries);
+        BackfillDiscoveries();
     }
 
     public static void ResetPermanentProgress()
@@ -251,6 +256,32 @@ public static class CharacterSheet
         BloodCoins = 0; SkillRanks.Clear(); Artifacts.Clear();
         System.Array.Fill(EquippedArtifactSlots, "");
         WeaponLoadout.Equip("longsword");
+        CodexProgress.Reset();
+    }
+
+    /// <summary>Saves anteriores ao diario: marca como descoberto o que o jogador ja possui (sem autosave/evento).</summary>
+    private static void BackfillDiscoveries()
+    {
+        foreach (var skillId in SkillRanks.Keys)
+            CodexProgress.MarkSilently(CodexCategory.Skill, skillId);
+        foreach (var artifact in Artifacts)
+            CodexProgress.MarkSilently(CodexCategory.Artifact, ResolveArtifactId(artifact));
+        CodexProgress.MarkSilently(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
+    }
+
+    /// <summary>Id do catalogo; registros antigos (construtor por nome) tem Id vazio e sao resolvidos pelo nome.</summary>
+    private static string ResolveArtifactId(ArtifactRecord artifact)
+    {
+        if (!string.IsNullOrWhiteSpace(artifact.Id))
+            return artifact.Id;
+
+        foreach (var definition in ArtifactCatalog.All)
+        {
+            if (definition.DisplayName == artifact.Name)
+                return definition.Id;
+        }
+
+        return "";
     }
 
     private static int AttributeDelta(CharacterAttribute attribute)

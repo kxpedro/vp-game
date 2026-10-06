@@ -1,362 +1,97 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 
+// Pausa, opções, ajustes de tuning (debug) e game over (docs/design/ui-guia.md §7, §8.10, §8.11).
+// A pausa continua como camada legada (IsLegacyPauseRequested lê _pauseOverlay.Visible): as demais telas ainda são
+// legadas e um Push faria MoveToFront da pausa por cima do compêndio/ficha. Confirmações e game over entram na UiModalStack.
 public partial class HUD
 {
+	// Causa usada por AbandonRun: o game over troca "derrotado por" por "desistiu".
+	private const string AbandonRunDeathSource = "Desistência da run";
+	private const float GameOverButtonWidth = 280.0f;
+
+	private sealed class PauseTuningEntry
+	{
+		public UiOptionRow Row;
+		public Func<int> Get;
+	}
+
+	private UiWindow _pauseWindow;
+	private VBoxContainer _pauseMainPage;
+	private VBoxContainer _pauseOptionsPage;
+	private VBoxContainer _pauseTuningPage;
+	private Button _pauseContinueButton;
+	private Button _pauseCompendiumButton;
+	private Button _pauseAbandonButton;
+	private Button _pauseMainMenuButton;
+	private Control _pauseReturnFocus;
+	private UiConfirm _pauseConfirm;
+	private bool _pauseCompendiumHooked;
+	private readonly List<PauseTuningEntry> _pauseTuningEntries = new();
+	private UiWindow _gameOverWindow;
+	private Label _gameOverCauseLabel;
+	private Label _gameOverLastHitLabel;
+	private VBoxContainer _gameOverSummary;
+	private Button _gameOverRetryButton;
+	private Button _gameOverMenuButton;
+
+	// ---------- Game over (§8.11) ----------
+
 	private void BuildGameOverOverlay(Control root)
 	{
-		_gameOverOverlay = new ColorRect
-		{
-			Name = "GameOverOverlay",
-			Color = new Color(0.02f, 0.0f, 0.0f, 0.82f),
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			Visible = false,
-			ProcessMode = ProcessModeEnum.Always
-		};
-		root.AddChild(_gameOverOverlay);
+		_gameOverWindow = UiComponents.Window(root, "GameOverOverlay", WindowSize.Small, Localization.Text("hud.game_over"));
+		_gameOverOverlay = _gameOverWindow.Root;
+		_gameOverOverlay.Visible = false;
 
-		var panel = new VBoxContainer
-		{
-			Name = "GameOverPanel",
-			AnchorLeft = 0.5f,
-			AnchorTop = 0.5f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 0.5f,
-			OffsetLeft = -180.0f,
-			OffsetTop = -85.0f,
-			OffsetRight = 180.0f,
-			OffsetBottom = 85.0f,
-			Alignment = BoxContainer.AlignmentMode.Center
-		};
-		_gameOverOverlay.AddChild(panel);
+		// Small com 640 de largura (§8.11) e título Display.
+		var panel = _gameOverWindow.Panel;
+		panel.OffsetLeft = -320.0f;
+		panel.OffsetRight = 320.0f;
+		panel.CustomMinimumSize = new Vector2(640.0f, 0.0f);
+		var title = _gameOverWindow.Title;
+		title.ThemeTypeVariation = UiVariation.DisplayLabel;
+		title.Uppercase = true;
+		if (title.GetParent() is Control titleRow)
+			titleRow.CustomMinimumSize = new Vector2(0.0f, 84.0f);
+		_gameOverWindow.SetStatus(UiComponents.TextOr("gameover.subtitle", "Virgil retornou ao caixão."));
 
-		var title = new Label
-		{
-			Name = "GameOverTitle",
-			Text = Localization.Text("hud.game_over"),
-			HorizontalAlignment = HorizontalAlignment.Center,
-			CustomMinimumSize = new Vector2(360.0f, 42.0f)
-		};
-		panel.AddChild(title);
+		var body = _gameOverWindow.Body;
+		_gameOverCauseLabel = MakeGameOverLabel(UiVariation.BodyLabel);
+		body.AddChild(_gameOverCauseLabel);
+		_gameOverLastHitLabel = MakeGameOverLabel(UiVariation.BodyLabel);
+		body.AddChild(_gameOverLastHitLabel);
+		_gameOverSummary = new VBoxContainer { Name = "GameOverSummary" };
+		_gameOverSummary.AddThemeConstantOverride("separation", UiMetrics.S1);
+		body.AddChild(_gameOverSummary);
 
-		_gameOverSubtitle = new Label
-		{
-			Name = "GameOverSubtitle",
-			Text = "Virgil retornou ao caixao.",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			CustomMinimumSize = new Vector2(360.0f, 32.0f)
-		};
-		panel.AddChild(_gameOverSubtitle);
+		var actions = _gameOverWindow.Actions;
+		actions.Visible = true;
+		actions.Alignment = BoxContainer.AlignmentMode.Center;
+		_gameOverRetryButton = UiComponents.MenuButton(UiComponents.TextOr("gameover.return_nest", "Voltar ao Ninho do Corvo"), ContinueAfterGameOver, ButtonVariant.Primary, ButtonSize.Medium);
+		_gameOverRetryButton.Name = "RestartButton";
+		actions.AddChild(_gameOverRetryButton);
+		_gameOverMenuButton = UiComponents.MenuButton(UiComponents.TextOr("gameover.main_menu", "Menu principal"), ReturnToMainMenuAfterGameOver, ButtonVariant.Secondary, ButtonSize.Medium);
+		_gameOverMenuButton.Name = "GameOverMainMenuButton";
+		actions.AddChild(_gameOverMenuButton);
+		// Mesma largura mínima nos dois botões (o rótulo do primeiro é mais longo).
+		foreach (var button in new[] { _gameOverRetryButton, _gameOverMenuButton })
+			button.CustomMinimumSize = new Vector2(GameOverButtonWidth, button.CustomMinimumSize.Y);
+		ControllerUiSupport.SetHorizontalCycle(new Control[] { _gameOverRetryButton, _gameOverMenuButton });
 
-		var restartButton = new Button
-		{
-			Name = "RestartButton",
-			Text = "Continuar no Ninho do Corvo",
-			CustomMinimumSize = new Vector2(220.0f, 44.0f),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
-		};
-		restartButton.Pressed += ContinueAfterGameOver;
-		panel.AddChild(restartButton);
+		_gameOverWindow.Footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"));
 	}
 
-	private void BuildPauseOverlay(Control root)
+	private static Label MakeGameOverLabel(string variation)
 	{
-		_pauseOverlay = new ColorRect
+		return new Label
 		{
-			Name = "PauseOverlay",
-			Color = new Color(0.0f, 0.0f, 0.0f, 0.68f),
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			Visible = false,
-			ProcessMode = ProcessModeEnum.Always
-		};
-		root.AddChild(_pauseOverlay);
-
-		var panel = new VBoxContainer
-		{
-			Name = "PausePanel",
-			AnchorLeft = 0.0f,
-			AnchorTop = 0.0f,
-			AnchorRight = 1.0f,
-			AnchorBottom = 1.0f,
-			OffsetLeft = 48.0f,
-			OffsetTop = 42.0f,
-			OffsetRight = -48.0f,
-			OffsetBottom = -42.0f,
-			Alignment = BoxContainer.AlignmentMode.Begin
-		};
-		_pauseOverlay.AddChild(panel);
-
-		var title = new Label
-		{
-			Name = "PauseTitle",
-			Text = Localization.Text("hud.paused"),
-			HorizontalAlignment = HorizontalAlignment.Center,
-			CustomMinimumSize = new Vector2(360.0f, 42.0f)
-		};
-		panel.AddChild(title);
-
-		_pauseMainMenu = new VBoxContainer
-		{
-			Name = "PauseMainMenu", Alignment = BoxContainer.AlignmentMode.Center,
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(420, 440)
-		};
-		panel.AddChild(_pauseMainMenu);
-		AddPauseMenuButton(_pauseMainMenu, "Continuar", ResumeGame);
-		AddPauseMenuButton(_pauseMainMenu, "Parametros de gameplay", () => ShowPausePage(_pauseTuningPage));
-		AddPauseMenuButton(_pauseMainMenu, "Opcoes", () => ShowPausePage(_optionsPage));
-		_abandonRunButton = new Button
-		{
-			Name = "AbandonRunButton",
-			Text = "Desistir da run",
-			CustomMinimumSize = new Vector2(360, 52)
-		};
-		_abandonRunButton.AddThemeColorOverride("font_color", new Color(1.0f, 0.32f, 0.32f));
-		_abandonRunButton.Pressed += AbandonRun;
-		_pauseMainMenu.AddChild(_abandonRunButton);
-		AddPauseMenuButton(_pauseMainMenu, "Dicionario", OpenCompendium);
-		// Recarregar a sala mantem o RunState e permite repetir recompensas; so em debug.
-		if (OS.IsDebugBuild())
-			AddPauseMenuButton(_pauseMainMenu, "Reiniciar teste", RestartCurrentScene);
-		AddPauseMenuButton(_pauseMainMenu, "Voltar ao menu principal", ReturnToMainMenu);
-
-		_pauseTuningPage = new VBoxContainer
-		{
-			Name = "GameplayParametersPage", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill, Visible = false
-		};
-		panel.AddChild(_pauseTuningPage);
-		BuildOptionsPage(panel);
-
-		var subtitle = new Label
-		{
-			Name = "PauseSubtitle",
-			Text = "Ajuste os parametros em tempo real. A faixa de cada controle aparece no proprio slider.",
+			ThemeTypeVariation = variation,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			CustomMinimumSize = new Vector2(0.0f, 36.0f)
-		};
-		_pauseTuningPage.AddChild(subtitle);
-
-		_pauseTuningStatusLabel = new Label
-		{
-			Name = "PauseTuningStatus",
-			Text = "Nenhuma alteracao salva ainda.",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			CustomMinimumSize = new Vector2(0.0f, 28.0f)
-		};
-		_pauseTuningPage.AddChild(_pauseTuningStatusLabel);
-
-		_pauseTuningScroll = new ScrollContainer
-		{
-			Name = "PauseTuningScroll",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(0.0f, 420.0f)
-		};
-		_pauseTuningPage.AddChild(_pauseTuningScroll);
-
-		_pauseTuningList = new VBoxContainer
-		{
-			Name = "PauseTuningList",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			SizeFlagsVertical = Control.SizeFlags.ExpandFill
-		};
-		_pauseTuningScroll.AddChild(_pauseTuningList);
-
-		AddPauseTuningSlider("Velocidade de andar", GameTuning.WalkSpeedPercent, GameTuning.SetWalkSpeedPercent, out _walkSpeedSlider, out _walkSpeedValueLabel);
-		AddPauseTuningSlider("Velocidade de correr", GameTuning.RunSpeedPercent, GameTuning.SetRunSpeedPercent, out _runSpeedSlider, out _runSpeedValueLabel);
-		AddPauseTuningSlider("Velocidade do dash", GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent, out _dashSpeedSlider, out _dashSpeedValueLabel);
-		AddPauseTuningSlider("Distancia do dash", GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent, out _dashDistanceSlider, out _dashDistanceValueLabel, 180);
-		AddPauseTuningSlider("Distancia do zoom da camera", GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent, out _cameraZoomDistanceSlider, out _cameraZoomDistanceValueLabel, 200);
-		AddPauseTuningSlider("Dano do jogador", GameTuning.DamagePercent, GameTuning.SetDamagePercent, out _damageSlider, out _damageValueLabel);
-		AddPauseTuningSlider("Vida maxima", GameTuning.HealthPercent, GameTuning.SetHealthPercent, out _healthSlider, out _healthValueLabel);
-		AddPauseTuningSlider("Velocidade da animacao", GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent, out _animationSpeedSlider, out _animationSpeedValueLabel);
-		AddPauseTuningSlider("Velocidade do ataque", GameTuning.AttackSpeedPercent, GameTuning.SetAttackSpeedPercent, out _attackSpeedSlider, out _attackSpeedValueLabel);
-		AddPauseTuningSlider("Delay entre ataques", GameTuning.AttackDelayPercent, GameTuning.SetAttackDelayPercent, out _attackDelaySlider, out _attackDelayValueLabel);
-		AddPauseTuningSlider("Distancia do ataque", GameTuning.AttackRangePercent, GameTuning.SetAttackRangePercent, out _attackRangeSlider, out _attackRangeValueLabel, 250);
-
-		var footer = new HBoxContainer
-		{
-			Name = "PauseFooter",
-			Alignment = BoxContainer.AlignmentMode.Center,
-			CustomMinimumSize = new Vector2(0.0f, 56.0f)
-		};
-		_pauseTuningPage.AddChild(footer);
-
-		var resumeButton = new Button
-		{
-			Name = "ResumeButton",
-			Text = Localization.Text("hud.continue"),
-			CustomMinimumSize = new Vector2(220.0f, 44.0f),
+			CustomMinimumSize = new Vector2(560.0f, 0.0f),
 			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
 		};
-		resumeButton.Pressed += ResumeGame;
-		footer.AddChild(resumeButton);
-
-		var compendiumButton = new Button
-		{
-			Name = "OpenCompendiumButton",
-			Text = "Dicionario",
-			CustomMinimumSize = new Vector2(220.0f, 44.0f),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
-		};
-		compendiumButton.Pressed += OpenCompendium;
-		footer.AddChild(compendiumButton);
-
-		var restartButton = new Button
-		{
-			Name = "PauseRestartButton",
-			Text = "Reiniciar teste",
-			CustomMinimumSize = new Vector2(220.0f, 44.0f),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			Visible = OS.IsDebugBuild()
-		};
-		restartButton.Pressed += RestartCurrentScene;
-		footer.AddChild(restartButton);
-
-		var saveButton = new Button
-		{
-			Name = "SaveTuningButton",
-			Text = "Salvar parametros",
-			CustomMinimumSize = new Vector2(220.0f, 44.0f),
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
-		};
-		saveButton.Pressed += SavePauseTuning;
-		footer.AddChild(saveButton);
-
-		var backButton = new Button
-		{
-			Name = "BackFromParametersButton", Text = Localization.Text("hud.back"),
-			CustomMinimumSize = new Vector2(180, 44)
-		};
-		backButton.Pressed += ShowPauseMainMenu;
-		footer.AddChild(backButton);
-
-		RefreshPauseTuningValues();
-	}
-
-	private void AddPauseMenuButton(VBoxContainer parent, string text, Action action)
-	{
-		var button = new Button { Text = text, CustomMinimumSize = new Vector2(360, 52) };
-		button.Pressed += action;
-		parent.AddChild(button);
-	}
-
-	private void ShowPausePage(Control page)
-	{
-		_pauseMainMenu.Visible = false;
-		_pauseTuningPage.Visible = page == _pauseTuningPage;
-		_optionsPage.Visible = page == _optionsPage;
-		ControllerUiSupport.FocusFirst(page);
-	}
-
-	private void ShowPauseMainMenu()
-	{
-		_pauseMainMenu.Visible = true;
-		_pauseTuningPage.Visible = false;
-		_optionsPage.Visible = false;
-		ControllerUiSupport.FocusFirst(_pauseMainMenu);
-	}
-
-	private void BuildOptionsPage(VBoxContainer panel)
-	{
-		_optionsPage = new VBoxContainer
-		{
-			Name = "OptionsPage", Visible = false, Alignment = BoxContainer.AlignmentMode.Center,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill
-		};
-		panel.AddChild(_optionsPage);
-		_optionsPage.AddChild(new Label { Text = "OPCOES", HorizontalAlignment = HorizontalAlignment.Center });
-
-		var resolution = new OptionButton { CustomMinimumSize = new Vector2(360, 46) };
-		resolution.AddItem("1280 x 720"); resolution.AddItem("1600 x 900"); resolution.AddItem("1920 x 1080");
-		resolution.Selected = GlobalSettings.Instance?.Data.ResolutionIndex ?? 1;
-		resolution.ItemSelected += index => GlobalSettings.Instance?.SetResolution((int)index);
-		_optionsPage.AddChild(resolution);
-
-		var fullscreen = new CheckButton { Text = "Tela cheia", ButtonPressed = GlobalSettings.Instance?.Data.Fullscreen ?? false, CustomMinimumSize = new Vector2(360, 44) };
-		fullscreen.Toggled += enabled => GlobalSettings.Instance?.SetFullscreen(enabled);
-		_optionsPage.AddChild(fullscreen);
-		AddVolumeOption("Volume da musica", GlobalSettings.Instance?.Data.MusicVolume ?? 70, value => GlobalSettings.Instance?.SetMusicVolume((float)value));
-		AddVolumeOption("Volume dos efeitos", GlobalSettings.Instance?.Data.EffectsVolume ?? 85, value => GlobalSettings.Instance?.SetEffectsVolume((float)value));
-		AddPauseMenuButton(_optionsPage, "Voltar", ShowPauseMainMenu);
-	}
-
-	private void AddVolumeOption(string title, double initialValue, Action<double> setter)
-	{
-		var row = new VBoxContainer { CustomMinimumSize = new Vector2(460, 64) };
-		row.AddChild(new Label { Text = title });
-		var slider = new HSlider { MinValue = 0, MaxValue = 100, Step = 1, Value = initialValue };
-		slider.ValueChanged += value => setter(value);
-		row.AddChild(slider);
-		_optionsPage.AddChild(row);
-	}
-
-	private void AddPauseTuningSlider(string title, int currentValue, Action<int> setter, out HSlider sliderRef, out Label valueLabelRef, int maxValue = 100)
-	{
-		if (_pauseTuningList == null)
-		{
-			sliderRef = null;
-			valueLabelRef = null;
-			return;
-		}
-
-		var row = new VBoxContainer
-		{
-			Name = $"{title.Replace(" ", "")}Row",
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-			CustomMinimumSize = new Vector2(0.0f, 66.0f)
-		};
-		_pauseTuningList.AddChild(row);
-
-		var header = new HBoxContainer
-		{
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-		};
-		row.AddChild(header);
-
-		var label = new Label
-		{
-			Text = title,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-		};
-		header.AddChild(label);
-
-		var valueLabel = new Label
-		{
-			Text = currentValue.ToString(),
-			HorizontalAlignment = HorizontalAlignment.Right,
-			CustomMinimumSize = new Vector2(88.0f, 0.0f)
-		};
-		header.AddChild(valueLabel);
-
-		var slider = new HSlider
-		{
-			MinValue = 1.0,
-			MaxValue = maxValue,
-			Step = 1.0,
-			Value = currentValue,
-			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-		};
-		slider.ValueChanged += value =>
-		{
-			var percent = Mathf.Clamp((int)Mathf.Round((float)value), 1, 100);
-			valueLabel.Text = percent.ToString();
-			setter(percent);
-			SetPauseTuningStatus($"Ajuste temporario aplicado: {title} = {percent}");
-		};
-		row.AddChild(slider);
-
-		sliderRef = slider;
-		valueLabelRef = valueLabel;
 	}
 
 	private void OnPlayerDied()
@@ -364,19 +99,81 @@ public partial class HUD
 		GetTree().CallGroup("audio_manager", "PlayEffect", "death");
 		GetTree().CallGroup("audio_manager", "PlayGameOverMusic");
 		_isGameOver = true;
+		var source = _runtimeHealth?.LastDamageSource ?? "causa desconhecida";
 		var finalDamage = _runtimeHealth?.LastDamageAmount ?? 0.0f;
-		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}.");
-		_gameOverSubtitle.Text = $"Virgil foi derrotado por: {_runtimeHealth?.LastDamageSource ?? "causa desconhecida"}. Último golpe: {Mathf.RoundToInt(finalDamage)} de dano.";
-		_gameOverOverlay.Visible = true;
-		ControllerUiSupport.FocusFirst(_gameOverOverlay);
-		if (_artifactOfferOverlay != null)
-			_artifactOfferOverlay.Visible = false;
-		if (_bloodBlessingOverlay != null)
-			_bloodBlessingOverlay.Visible = false;
-		if (_compendiumOverlay != null)
-			_compendiumOverlay.Visible = false;
-		_pauseOverlay.Visible = false;
-		GetTree().Paused = true;
+		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {source}.");
+		ShowGameOver(source, finalDamage);
+	}
+
+	// Igual a OnPlayerDied, sem áudio, log nem jogador real (causa fictícia).
+	private void ShowPreviewGameOver()
+	{
+		_isGameOver = true;
+		ShowGameOver("Lorde Corvo", 42.0f);
+	}
+
+	// Preenche a janela com os dados da run (antes do FailRun), fecha tudo e entra no topo da pilha.
+	// Pausa a árvore, mas não a música (pausesAudio: false; a fonte legada também exclui o game over).
+	private void ShowGameOver(string source, float finalDamage)
+	{
+		var abandoned = source == AbandonRunDeathSource;
+		_gameOverCauseLabel.Text = abandoned
+			? UiComponents.TextOr("gameover.abandoned", "Virgil desistiu da run.")
+			: $"Virgil foi derrotado por: {source}.";
+		var lastHit = Mathf.RoundToInt(finalDamage);
+		_gameOverLastHitLabel.Text = $"Último golpe: {lastHit} de dano.";
+		_gameOverLastHitLabel.Visible = !abandoned && lastHit > 0;
+		FillGameOverSummary();
+
+		HideOverlaysForGameOver();
+		UiModalStack.Clear();
+		UiModalStack.Push(_gameOverOverlay, pauses: true, initialFocus: _gameOverRetryButton, mandatory: true, pausesAudio: false);
+		_gameOverWindow.FadeIn();
+	}
+
+	// Resumo com dados já existentes em RunState/CharacterSheet; linha sem dado é omitida.
+	private void FillGameOverSummary()
+	{
+		foreach (var child in _gameOverSummary.GetChildren())
+		{
+			_gameOverSummary.RemoveChild(child);
+			child.QueueFree();
+		}
+
+		if (RunState.IsRunActive)
+		{
+			var map = RunState.CurrentMap;
+			var room = RunState.IsBossRoom ? "Chefe" : $"Sala {RunState.CurrentRoom}/{map.CommonRoomCount}";
+			AddGameOverSummaryLine($"Alcançado: {map.Name} · {room}");
+			AddGameOverSummaryLine($"Bênçãos: {RunState.RunBlessings.Count} · Artefatos: {RunState.RunArtifacts.Count}");
+		}
+		AddGameOverSummaryLine(Localization.TextFormat("hud.blood_coins", CharacterSheet.BloodCoins));
+	}
+
+	private void AddGameOverSummaryLine(string text)
+	{
+		var label = MakeGameOverLabel(UiVariation.SecondaryLabel);
+		label.Text = text;
+		_gameOverSummary.AddChild(label);
+	}
+
+	// Game over fica sozinho: esconde as telas legadas e o HUD de combate (§8.11).
+	private void HideOverlaysForGameOver()
+	{
+		if (_pauseConfirm != null && _pauseConfirm.IsOpen)
+			_pauseConfirm.Cancel();
+		// Valores do Dicionário (debug) pendentes do debounce entram antes de a tela sumir.
+		FlushCompendiumApply();
+		foreach (var overlay in new[]
+		{
+			_pauseOverlay, _artifactOfferOverlay, _bloodBlessingOverlay, _compendiumOverlay, _characterSheetOverlay,
+			_bloodFountainOverlay, _artifactChestOverlay, _weaponBenchOverlay,
+			_playerHudFrame, _blessingHudList, _bossHealthPanel
+		})
+		{
+			if (overlay != null)
+				overlay.Visible = false;
+		}
 	}
 
 	private void ContinueAfterGameOver()
@@ -388,6 +185,311 @@ public partial class HUD
 		GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
 	}
 
+	// A run já terminou: sem confirmação (§8.11).
+	private void ReturnToMainMenuAfterGameOver()
+	{
+		RunState.FailRun();
+		ReturnToMainMenu();
+	}
+
+	// ---------- Pausa (§8.10) ----------
+
+	private void BuildPauseOverlay(Control root)
+	{
+		_pauseWindow = UiComponents.Window(root, "PauseOverlay", WindowSize.Medium, PauseTitle());
+		_pauseOverlay = _pauseWindow.Root;
+		_pauseOverlay.Visible = false;
+
+		BuildPauseMainPage();
+		_pauseOptionsPage = AddPausePage("PauseOptionsPage");
+		_pauseOptionsPage.AddChild(UiComponents.OptionsPanel(false));
+		// Voltar explícito (além do rodapé), como nas opções do menu principal.
+		_pauseOptionsPage.AddChild(UiComponents.Separator());
+		var optionsBack = AddPauseMenuButton(_pauseOptionsPage, Localization.Text("hud.back"), ShowPauseMainMenu);
+		optionsBack.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+		if (OS.IsDebugBuild())
+			BuildPauseTuningPage();
+		RefreshPauseTuningValues();
+	}
+
+	private VBoxContainer AddPausePage(string name)
+	{
+		var page = new VBoxContainer { Name = name, Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+		page.AddThemeConstantOverride("separation", UiMetrics.S2);
+		_pauseWindow.Body.AddChild(page);
+		return page;
+	}
+
+	// "PAUSADO" (hud.paused) vira "Pausa" (§8.10); chave nova até a fase 4.
+	private static string PauseTitle() => UiComponents.TextOr("pause.title", "Pausa");
+
+	// Ordem: Continuar · Opções · Dicionário · [DEV: ajustes, reiniciar] · [divisor] · Desistir · Menu principal.
+	private void BuildPauseMainPage()
+	{
+		_pauseMainPage = AddPausePage("PauseMainPage");
+		var column = new VBoxContainer
+		{
+			Name = "PauseMainMenu",
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+			CustomMinimumSize = new Vector2(460.0f, 0.0f)
+		};
+		column.AddThemeConstantOverride("separation", UiMetrics.S2);
+		_pauseMainPage.AddChild(column);
+
+		_pauseContinueButton = AddPauseMenuButton(column, Localization.Text("hud.continue"), ResumeGame, ButtonVariant.Primary);
+		Button optionsButton = null;
+		optionsButton = AddPauseMenuButton(column, Localization.Text("menu.options"), () => ShowPausePage(_pauseOptionsPage, optionsButton));
+		_pauseCompendiumButton = AddPauseMenuButton(column, UiComponents.TextOr("codex.title", "Dicionário"), OpenCompendiumFromPause);
+
+		if (OS.IsDebugBuild())
+		{
+			column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
+			var dev = UiComponents.DevSection();
+			column.AddChild(dev.Root);
+			Button tuningButton = null;
+			tuningButton = AddPauseMenuButton(dev.Body, "Ajustes de gameplay", () => ShowPausePage(_pauseTuningPage, tuningButton));
+			// Recarregar a sala mantém o RunState e permite repetir recompensas; só em debug.
+			AddPauseMenuButton(dev.Body, "Reiniciar teste", RestartCurrentScene);
+		}
+
+		column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
+		column.AddChild(UiComponents.Separator());
+		column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
+		_pauseAbandonButton = AddPauseMenuButton(column, UiComponents.TextOr("pause.abandon_run", "Desistir da run"), RequestAbandonRun, ButtonVariant.Destructive);
+		_pauseAbandonButton.Name = "AbandonRunButton";
+		_pauseMainMenuButton = AddPauseMenuButton(column, UiComponents.TextOr("pause.main_menu", "Voltar ao menu principal"), RequestReturnToMainMenu);
+	}
+
+	private Button AddPauseMenuButton(Container parent, string text, Action action, ButtonVariant variant = ButtonVariant.Secondary)
+	{
+		var button = UiComponents.MenuButton(text, action, variant, ButtonSize.Large);
+		parent.AddChild(button);
+		return button;
+	}
+
+	// Ferramenta de dev (§7): seção DEV, sliders com valor visível; rodapé só "Voltar" e "Salvar".
+	private void BuildPauseTuningPage()
+	{
+		_pauseTuningPage = AddPausePage("GameplayParametersPage");
+		var dev = UiComponents.DevSection();
+		_pauseTuningPage.AddChild(dev.Root);
+		dev.Body.AddChild(UiComponents.MakeLabel("Ajustes temporários aplicados em tempo real. Salve para torná-los o padrão.", UiVariation.SecondaryLabel, true));
+
+		var scroll = UiComponents.ScrollList(400.0f, out var list);
+		scroll.Name = "PauseTuningScroll";
+		list.AddThemeConstantOverride("separation", UiMetrics.S1);
+		dev.Body.AddChild(scroll);
+
+		AddPauseTuningSlider(list, "Velocidade de andar", () => GameTuning.WalkSpeedPercent, GameTuning.SetWalkSpeedPercent);
+		AddPauseTuningSlider(list, "Velocidade de correr", () => GameTuning.RunSpeedPercent, GameTuning.SetRunSpeedPercent);
+		AddPauseTuningSlider(list, "Velocidade do dash", () => GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent);
+		AddPauseTuningSlider(list, "Distância do dash", () => GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent, 180);
+		AddPauseTuningSlider(list, "Distância do zoom da câmera", () => GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent, 200);
+		AddPauseTuningSlider(list, "Dano do jogador", () => GameTuning.DamagePercent, GameTuning.SetDamagePercent);
+		AddPauseTuningSlider(list, "Vida máxima", () => GameTuning.HealthPercent, GameTuning.SetHealthPercent);
+		AddPauseTuningSlider(list, "Velocidade da animação", () => GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent);
+		AddPauseTuningSlider(list, "Velocidade do ataque", () => GameTuning.AttackSpeedPercent, GameTuning.SetAttackSpeedPercent);
+		AddPauseTuningSlider(list, "Delay entre ataques", () => GameTuning.AttackDelayPercent, GameTuning.SetAttackDelayPercent);
+		AddPauseTuningSlider(list, "Distância do ataque", () => GameTuning.AttackRangePercent, GameTuning.SetAttackRangePercent, 250);
+	}
+
+	private void AddPauseTuningSlider(VBoxContainer list, string title, Func<int> getter, Action<int> setter, int maxValue = 100)
+	{
+		var row = UiComponents.LabeledSlider(title, 1.0, maxValue, getter(), value =>
+		{
+			// Clamp na faixa do próprio slider (antes era sempre 100, prendendo dash/zoom/alcance).
+			var percent = Mathf.Clamp(Mathf.RoundToInt((float)value), 1, maxValue);
+			setter(percent);
+			SetPauseTuningStatus($"Ajuste temporário aplicado: {title} = {percent}");
+		});
+		list.AddChild(row.Root);
+		_pauseTuningEntries.Add(new PauseTuningEntry { Row = row, Get = getter });
+	}
+
+	private void PauseGame()
+	{
+		RefreshPauseTuningValues();
+		var runActive = RunState.IsRunActive;
+		_pauseAbandonButton.Visible = runActive;
+		// Sem run ativa, voltar ao menu não perde nada: botão comum e sem confirmação.
+		_pauseMainMenuButton.ThemeTypeVariation = runActive ? UiVariation.DestructiveButton : UiVariation.SecondaryButton;
+		_pauseReturnFocus = null;
+		_pauseWindow.FadeIn();
+		ShowPauseMainMenu();
+		SetModalPause(true);
+	}
+
+	private void ResumeGame()
+	{
+		if (_pauseConfirm != null && _pauseConfirm.IsOpen)
+			_pauseConfirm.Cancel();
+		if (IsVisible(_compendiumOverlay))
+			CloseCompendium();
+		_pauseOverlay.Visible = false;
+		RefreshModalPause();
+	}
+
+	// Subpágina (opções, ajustes): `opener` recebe o foco de volta em ShowPauseMainMenu.
+	private void ShowPausePage(Control page, Control opener)
+	{
+		if (page == null)
+			return;
+		_pauseReturnFocus = opener;
+		SetPausePageVisible(page);
+		_pauseWindow.SetTitle(page == _pauseOptionsPage ? Localization.Text("options.title") : "Ajustes de gameplay");
+		_pauseWindow.SetStatus(null);
+		SetPauseFooter(page);
+		var focusables = ApplyPauseFocusCycle(page);
+		ControllerUiSupport.FocusInitial(focusables.Count > 0 ? focusables[0] : null, page);
+	}
+
+	private void ShowPauseMainMenu()
+	{
+		SetPausePageVisible(_pauseMainPage);
+		_pauseWindow.SetTitle(PauseTitle());
+		_pauseWindow.SetStatus(null);
+		SetPauseFooter(_pauseMainPage);
+		ApplyPauseFocusCycle(_pauseMainPage);
+		var target = _pauseReturnFocus;
+		_pauseReturnFocus = null;
+		ControllerUiSupport.FocusInitial(ControllerUiSupport.CanTakeFocus(target) ? target : _pauseContinueButton, _pauseMainPage);
+	}
+
+	private void SetPausePageVisible(Control page)
+	{
+		foreach (var candidate in new Control[] { _pauseMainPage, _pauseOptionsPage, _pauseTuningPage })
+		{
+			if (candidate != null)
+				candidate.Visible = candidate == page;
+		}
+	}
+
+	private void SetPauseFooter(Control page)
+	{
+		var footer = _pauseWindow.Footer;
+		footer.Clear();
+		if (page == _pauseMainPage)
+		{
+			footer.Add(UiAction.Cancel, Localization.Text("hud.continue"), ResumeGame, left: true);
+			footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"));
+			return;
+		}
+		footer.Add(UiAction.Cancel, Localization.Text("hud.back"), ShowPauseMainMenu, left: true);
+		if (page == _pauseTuningPage)
+			footer.Add(UiAction.Alt, "Salvar", SavePauseTuning);
+	}
+
+	// Ciclo vertical explícito entre os controles visíveis da página (evita o foco escapar pela geometria).
+	private static List<Control> ApplyPauseFocusCycle(Control page)
+	{
+		var focusables = new List<Control>();
+		foreach (var node in page.FindChildren("*", "Control", true, false))
+		{
+			if (node is Control control && ControllerUiSupport.CanTakeFocus(control))
+				focusables.Add(control);
+		}
+		ControllerUiSupport.SetVerticalCycle(focusables);
+		return focusables;
+	}
+
+	// ui_alt (R / Y / △) = "Salvar" na página de ajustes. Chamado pelo HUD._UnhandledInput (RouteModalShortcut) com a pausa
+	// visível e nada empilhado: tecla/controle vai só ao Control focado e não chegaria ao GuiInput da raiz da pausa.
+	private bool HandlePauseShortcut(InputEvent @event)
+	{
+		if (!IsVisible(_pauseTuningPage) || !InputMap.HasAction("ui_alt") || !@event.IsActionPressed("ui_alt") || @event.IsEcho())
+			return false;
+		SavePauseTuning();
+		return true;
+	}
+
+	// O compêndio (legado) abre por cima; ao fechar, o foco volta ao botão "Compêndio" (§8.12).
+	private void OpenCompendiumFromPause()
+	{
+		if (_compendiumOverlay != null && !_pauseCompendiumHooked)
+		{
+			_pauseCompendiumHooked = true;
+			_compendiumOverlay.VisibilityChanged += OnCompendiumVisibilityChangedForPause;
+		}
+		OpenCompendium();
+	}
+
+	private void OnCompendiumVisibilityChangedForPause()
+	{
+		if (_compendiumOverlay.Visible)
+			return;
+		// Deferred: ResumeGame esconde o compêndio e logo depois a pausa; só refoca se a pausa continuar aberta.
+		Callable.From(() =>
+		{
+			if (IsVisible(_pauseOverlay) && IsVisible(_pauseMainPage) && ControllerUiSupport.CanTakeFocus(_pauseCompendiumButton))
+				_pauseCompendiumButton.GrabFocus();
+		}).CallDeferred();
+	}
+
+	// ---------- Confirmações (§3.3) ----------
+
+	private void RequestAbandonRun()
+	{
+		if (!RunState.IsRunActive || _runtimeHealth == null || _runtimeHealth.IsDead)
+			return;
+		OpenAbandonRunConfirm();
+	}
+
+	private void OpenAbandonRunConfirm()
+	{
+		OpenPauseConfirm(
+			UiComponents.TextOr("ui.confirm.abandon_run.title", "Desistir da run?"),
+			UiComponents.TextOr("ui.confirm.abandon_run.body", "Virgil volta ao Ninho do Corvo e as bênçãos e artefatos desta run são perdidos."),
+			UiComponents.TextOr("pause.abandon_run", "Desistir da run"),
+			AbandonRun);
+	}
+
+	private void RequestReturnToMainMenu()
+	{
+		if (!RunState.IsRunActive)
+		{
+			ReturnToMainMenu();
+			return;
+		}
+		OpenMainMenuConfirm();
+	}
+
+	private void OpenMainMenuConfirm()
+	{
+		OpenPauseConfirm(
+			UiComponents.TextOr("ui.confirm.main_menu.title", "Voltar ao menu principal?"),
+			UiComponents.TextOr("ui.confirm.main_menu.body", "A run em andamento não é salva e será perdida. O progresso permanente continua salvo."),
+			UiComponents.TextOr("pause.main_menu", "Voltar ao menu principal"),
+			ReturnToMainMenu);
+	}
+
+	// Confirmação por cima da pausa, na pilha modal (CloseTopmostOverlay → CancelTop fecha ela primeiro).
+	// A ação roda deferred: o Confirm devolve o foco (deferred) ao botão de origem antes de a pausa sumir.
+	// O rodapé da pausa ("Continuar") some enquanto a confirmação está aberta (o espaço é mantido: a janela não pula).
+	private void OpenPauseConfirm(string title, string body, string confirmText, Action onConfirm)
+	{
+		if (_pauseConfirm != null && _pauseConfirm.IsOpen)
+			return;
+		SetPauseFooterInert(true);
+		var confirm = UiComponents.Confirm(_pauseOverlay, title, body, confirmText, () =>
+		{
+			SetPauseFooterInert(false);
+			Callable.From(onConfirm).CallDeferred();
+		}, ConfirmKind.Destructive, () => SetPauseFooterInert(false));
+		_pauseConfirm = confirm;
+		ControllerUiSupport.SetHorizontalCycle(new Control[] { confirm.CancelButton, confirm.ConfirmButton });
+		UiModalStack.Push(confirm.Window.Root, pauses: true, initialFocus: confirm.CancelButton, onCancel: confirm.Cancel);
+	}
+
+	private void SetPauseFooterInert(bool inert)
+	{
+		if (_pauseWindow == null)
+			return;
+		// Só visual: o scrim da confirmação (tela inteira, MouseFilter Stop) já bloqueia o clique nas dicas de baixo.
+		_pauseWindow.Footer.Root.Modulate = inert ? Colors.Transparent : Colors.White;
+	}
+
+	// ---------- Ações ----------
+
 	private void AbandonRun()
 	{
 		if (!RunState.IsRunActive || _runtimeHealth == null || _runtimeHealth.IsDead)
@@ -396,7 +498,7 @@ public partial class HUD
 		_pauseOverlay.Visible = false;
 		UiModalStack.ApplyPause(false);
 		_runtimeHealth.SetInvincible(false);
-		_runtimeHealth.ForceDeath("Desistência da run");
+		_runtimeHealth.ForceDeath(AbandonRunDeathSource);
 	}
 
 	private void RestartCurrentScene()
@@ -408,53 +510,26 @@ public partial class HUD
 
 	private void ReturnToMainMenu()
 	{
+		// Grava já: o menu lê o slot logo em seguida (sem isso mostraria dados velhos).
 		SaveGameManager.RequestAutosave();
+		SaveGameManager.Instance?.FlushPendingSave();
 		UiModalStack.Clear();
 		UiModalStack.ApplyPause(false);
 		GetTree().ChangeSceneToFile("res://scenes/ui/MainMenu.tscn");
 	}
 
-	private void PauseGame()
-	{
-		RefreshPauseTuningValues();
-		if (_abandonRunButton != null)
-			_abandonRunButton.Visible = RunState.IsRunActive;
-		ShowPauseMainMenu();
-		_pauseOverlay.Visible = true;
-		ControllerUiSupport.FocusFirst(_pauseMainMenu);
-		SetModalPause(true);
-	}
-
-	private void ResumeGame()
-	{
-		if (_compendiumOverlay != null)
-			_compendiumOverlay.Visible = false;
-		_pauseOverlay.Visible = false;
-		RefreshModalPause();
-	}
+	// ---------- Fluxo de pausa (contrato §5.2; não renomear) ----------
 
 	private bool CloseTopmostOverlay()
 	{
 		// Telas migradas para a pilha modal fecham primeiro; depois segue a cadeia legada.
+		// Ofertas (obrigatórias: só avisam), ficha, Fonte, baú e bancada já respondem pelo CancelTop.
 		if (UiModalStack.CancelTop()) return true;
-		if (IsVisible(_skillDescriptionPopup)) { _skillDescriptionPopup.Visible = false; return true; }
-		if (IsVisible(_compendiumOverlay)) { _compendiumOverlay.Visible = false; RefreshModalPause(); return true; }
-		if (IsVisible(_pauseOverlay) && (IsVisible(_pauseTuningPage) || IsVisible(_optionsPage)))
+		if (IsVisible(_pauseOverlay) && !IsVisible(_pauseMainPage))
 		{
 			ShowPauseMainMenu();
 			return true;
 		}
-		if (IsVisible(_artifactOfferOverlay)) { _artifactOfferOverlay.Visible = false; RefreshModalPause(); return true; }
-		if (IsVisible(_bloodBlessingOverlay))
-		{
-			_bloodBlessingStatusLabel.Text = "Escolha uma Bencao de Sangue para liberar a saida.";
-			FocusBlessingChoice(_focusedBlessingChoice);
-			return true;
-		}
-		if (IsVisible(_characterSheetOverlay)) { _characterSheetOverlay.Visible = false; RefreshModalPause(); return true; }
-		if (IsVisible(_bloodFountainOverlay)) { _bloodFountainOverlay.Visible = false; RefreshModalPause(); return true; }
-		if (IsVisible(_artifactChestOverlay)) { _artifactChestOverlay.Visible = false; RefreshModalPause(); return true; }
-		if (IsVisible(_weaponBenchOverlay)) { _weaponBenchOverlay.Visible = false; RefreshModalPause(); return true; }
 		if (IsVisible(_pauseOverlay)) { ResumeGame(); return true; }
 		return false;
 	}
@@ -470,39 +545,71 @@ public partial class HUD
 		UiModalStack.RefreshPause();
 	}
 
+	// ---------- Ajustes de tuning ----------
+
 	private void SavePauseTuning()
 	{
 		GameTuning.Save();
-		SetPauseTuningStatus("Parametros salvos como padrao definitivo.");
+		SetPauseTuningStatus("Parâmetros salvos como padrão definitivo.");
 	}
 
+	// Sem sinal: abrir a pausa não reaplica os valores nem troca o status.
 	private void RefreshPauseTuningValues()
 	{
-		SyncSlider(_walkSpeedSlider, _walkSpeedValueLabel, GameTuning.WalkSpeedPercent);
-		SyncSlider(_runSpeedSlider, _runSpeedValueLabel, GameTuning.RunSpeedPercent);
-		SyncSlider(_dashSpeedSlider, _dashSpeedValueLabel, GameTuning.DashSpeedPercent);
-		SyncSlider(_dashDistanceSlider, _dashDistanceValueLabel, GameTuning.DashDistancePercent);
-		SyncSlider(_cameraZoomDistanceSlider, _cameraZoomDistanceValueLabel, GameTuning.CameraZoomDistancePercent);
-		SyncSlider(_damageSlider, _damageValueLabel, GameTuning.DamagePercent);
-		SyncSlider(_healthSlider, _healthValueLabel, GameTuning.HealthPercent);
-		SyncSlider(_animationSpeedSlider, _animationSpeedValueLabel, GameTuning.AnimationSpeedPercent);
-		SyncSlider(_attackSpeedSlider, _attackSpeedValueLabel, GameTuning.AttackSpeedPercent);
-		SyncSlider(_attackDelaySlider, _attackDelayValueLabel, GameTuning.AttackDelayPercent);
-		SyncSlider(_attackRangeSlider, _attackRangeValueLabel, GameTuning.AttackRangePercent);
-	}
-
-	private void SyncSlider(HSlider slider, Label valueLabel, int value)
-	{
-		if (slider != null)
-			slider.Value = value;
-
-		if (valueLabel != null)
-			valueLabel.Text = value.ToString();
+		foreach (var entry in _pauseTuningEntries)
+		{
+			var value = entry.Get();
+			entry.Row.Slider.SetValueNoSignal(value);
+			entry.Row.Value.Text = value.ToString();
+		}
 	}
 
 	private void SetPauseTuningStatus(string text)
 	{
-		if (_pauseTuningStatusLabel != null)
-			_pauseTuningStatusLabel.Text = text;
+		if (IsVisible(_pauseTuningPage))
+			_pauseWindow.SetStatus(text);
+	}
+
+	// ---------- Pré-visualização (debug, UiPreview) ----------
+
+	private bool OpenPausePreviewScreen(string screen)
+	{
+		switch (screen)
+		{
+			case "pause":
+				EnsurePreviewRunActive();
+				PauseGame();
+				return true;
+			case "options":
+				PauseGame();
+				ShowPausePage(_pauseOptionsPage, null);
+				return true;
+			case "tuning":
+			case "pause_tuning":
+				PauseGame();
+				ShowPausePage(_pauseTuningPage, null);
+				return true;
+			case "pause_confirm_abandon":
+				EnsurePreviewRunActive();
+				PauseGame();
+				OpenAbandonRunConfirm();
+				return true;
+			case "pause_confirm_menu":
+				EnsurePreviewRunActive();
+				PauseGame();
+				OpenMainMenuConfirm();
+				return true;
+			case "game_over":
+				ShowPreviewGameOver();
+				return true;
+		}
+		return false;
+	}
+
+	// Preview da pausa como numa run (Desistir visível, Menu principal destrutivo). Run volátil; sem slot carregado nada é gravado.
+	private static void EnsurePreviewRunActive()
+	{
+		if (!RunState.IsRunActive)
+			RunState.StartRun();
 	}
 }

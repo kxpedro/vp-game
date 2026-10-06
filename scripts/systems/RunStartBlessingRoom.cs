@@ -29,7 +29,7 @@ public partial class RunStartBlessingRoom : Node3D
 
     public override void _Process(double delta)
     {
-        if (!_playerAtFountain || _offerOpened || !Input.IsActionJustPressed("interact"))
+        if (!_playerAtFountain || _offerOpened || !InteractPrompt.ConsumeInteract(this))
             return;
 
         _offerOpened = true;

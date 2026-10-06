@@ -57,6 +57,8 @@ public static class ArtifactCatalog
 
             choices.Add(selected);
             pool.Remove(selected);
+            // Diario de descobertas: artefato oferecido no altar conta como visto.
+            CodexProgress.MarkDiscovered(CodexCategory.Artifact, selected.Id);
         }
 
         return choices;

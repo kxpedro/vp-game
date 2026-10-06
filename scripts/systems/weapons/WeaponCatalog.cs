@@ -107,6 +107,6 @@ public static class WeaponCatalog
     private static WeaponDefinition Placeholder(string id, string name, string description)
     {
         var attack = new WeaponAttackDefinition(name, 32, 0.6f, 0.3f, 4, 1.5f, 1.5f, 0);
-        return new(id, name, $"{description} Moveset em desenvolvimento.", new[] { attack }, attack, attack);
+        return new(id, name, $"{description} Moveset em desenvolvimento.", new[] { attack }, attack, attack, IsImplemented: false);
     }
 }

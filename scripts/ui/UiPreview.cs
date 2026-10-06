@@ -13,15 +13,21 @@ using Godot;
 /// Argumentos:
 ///   --ui-preview=TELA        tela a abrir (lista abaixo)
 ///   --ui-lang=pt-BR|en|es    idioma da sessão (não grava nas configurações)
-///   --ui-device=kbm|xbox|ps  último dispositivo (glifos e cursor); "keyboard"/"playstation" também valem
-///   --ui-tab=ABA             aba do compêndio: Artifacts, Blessings, Skills, Attacks, Enemies
+///   --ui-device=kbm|xbox|ps  último dispositivo (glifos e cursor); "keyboard"/"playstation" também valem.
+///                            Fica travado na sessão (DeviceLocked): o GameCursor ignora mouse/teclado/controle reais.
+///   --ui-tab=ABA             aba do Dicionário (compendium): Artifacts, Blessings, Skills, Attacks, Enemies, Weapons;
+///                            aba da ficha (character_sheet): Attributes, Blessings, Artifacts, Skills
+///   --ui-codex-locked[=sample]  Dicionário na visão de release (entradas bloqueadas); "=sample" finge algumas descobertas
 ///
 /// Telas (cena sugerida):
-///   MainMenu:   menu_main, menu_slots, menu_options, menu_credits
+///   MainMenu:   menu_main, menu_slots, menu_confirm_delete, menu_options, menu_credits
 ///   TestArena:  hud_combat, critical_health, damage_flash, damage_number, blessing_bar, event_log,
-///               character_sheet, artifact_offer, blessing_offer, pause, options, tuning,
+///               character_sheet, artifact_offer, artifact_offer_4, blessing_offer, blessing_offer_replace,
+///               pause, options, tuning, pause_confirm_abandon, pause_confirm_menu,
 ///               compendium, game_over, room_clear, toast, wave_warning, boss_bar
+///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
 ///   CrowsNest:  blood_fountain, skill_popup, artifact_chest, weapon_bench
+///   IntermissionChamber: altar (host = a própria Câmara)
 ///   (as telas do HUD abrem em qualquer cena com HUD: CrowsNest, RunStartBlessingRoom, TestArena, IntermissionChamber)
 /// Apelidos: skill_detail = skill_popup, pause_tuning = tuning, wave_alert = wave_warning.
 /// Toast, aviso de wave, banner de sala limpa, flash de dano (0,5 s) e número de dano (1 s) se repetem
@@ -40,12 +46,15 @@ public partial class UiPreview : Node
 	private static string _device;
 	private static string _tab;
 
+	/// <summary>True quando --ui-device foi aplicado (só debug): o GameCursor não troca o dispositivo durante o preview.</summary>
+	public static bool DeviceLocked { get; private set; }
+
 	private Node _host;
 	private int _frames;
 	private float _repeatInterval;
 	private float _repeatTimer;
 
-	// Chamado no _Ready do HUD e do MainMenu. Aplica idioma/dispositivo e agenda a tela (uma vez por processo).
+	// Chamado no _Ready do HUD, do MainMenu e da IntermissionChamber. Aplica idioma/dispositivo e agenda a tela (uma vez por processo).
 	public static void Attach(Node host)
 	{
 		if (host == null || !OS.IsDebugBuild())
@@ -110,12 +119,16 @@ public partial class UiPreview : Node
 		{
 			HUD hud => hud.OpenPreviewScreen(_screen, _tab, this),
 			MainMenu menu => menu.ShowPreviewPage(_screen),
+			IntermissionChamber chamber => chamber.OpenPreviewScreen(_screen),
 			_ => false
 		};
 	}
 
 	private static bool CanHandle(Node host, string screen)
 	{
+		// altar: tela da própria Câmara (IntermissionChamber chama Attach no _Ready), não do HUD.
+		if (screen == "altar")
+			return host is IntermissionChamber;
 		var isMenuScreen = screen.StartsWith("menu_");
 		return host is MainMenu ? isMenuScreen : host is HUD && !isMenuScreen;
 	}
@@ -179,6 +192,7 @@ public partial class UiPreview : Node
 			return;
 		}
 		UiInput.Report(device.Value);
+		DeviceLocked = true;
 		if (device.Value != InputDevice.KeyboardMouse)
 			Input.MouseMode = Input.MouseModeEnum.Hidden;
 	}

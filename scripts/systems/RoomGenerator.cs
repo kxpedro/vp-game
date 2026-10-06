@@ -343,7 +343,11 @@ public partial class RoomGenerator : Node3D
             if (RunState.IsBossRoom)
                 enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetBoss(RunState.CurrentMapIndex));
             else
+            {
                 enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetEnemy(spawn.Archetype));
+                // Diario: so inimigos comuns (inclui Legendary comum do mapa 2+). O boss e marcado via MarkBoss em RunManager.ConfigureBossRoom.
+                CodexProgress.MarkEnemy(spawn.Archetype, spawn.Rarity);
+            }
             enemy.SetSpawnActive(false);
             spawnedEnemies.Add(enemy);
             // Model instantiation is deliberately spread over frames to avoid a spawn hitch.
@@ -663,18 +667,14 @@ public partial class RoomGenerator : Node3D
         };
         AddChild(marker);
 
+        // Título de lugar em Gold e acima da cabeça do jogador (guia §2.2/§8.8); a cor fica só no marcador do piso.
         var label = new Label3D
         {
-            PixelSize = 0.0085f,
             Name = $"{labelText.Replace(" ", "")}Label",
             Text = labelText,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 30,
-            Modulate = color,
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = position + Vector3.Up * 0.75f
+            Position = new Vector3(position.X, Mathf.Max(position.Y + 0.75f, InteractPrompt.TitleMinHeight), position.Z)
         };
+        InteractPrompt.StyleTitle(label);
         AddChild(label);
     }
 

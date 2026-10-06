@@ -53,6 +53,8 @@ public static class BloodBlessingCatalog
                 ? new BloodBlessingRarity("stirps", "Stirps", 1.0f, 1.0f)
                 : RollRarity(rng);
             offers.Add(new BloodBlessingOffer(definition, rarity.DisplayName, rarity.PowerMultiplier));
+            // Diario de descobertas: bencao oferecida na Fonte de Sangue conta como vista.
+            CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
         }
         return offers;
     }
