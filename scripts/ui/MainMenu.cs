@@ -1,20 +1,60 @@
 using Godot;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 
+// Menu principal (docs/design/ui-guia.md §8.9). Páginas: main, slots, options, credits.
+// Coluna de páginas a partir de y≈330; rodapé com dicas por dispositivo à esquerda e versão à direita.
 public partial class MainMenu : Control
 {
+	private const float MainColumnWidth = 440;
+	private const float WideColumnWidth = 640;
+	private const float ColumnTop = 330;
+	private const float ColumnBottomMargin = 96; // rodapé (52) + margem segura (24) + folga
+	private const float SlotRowHeight = 72;
+	private const float CreditsScrollSpeed = 520; // px/s no analógico direito
+
+	private sealed class SlotRow
+	{
+		public int Slot;
+		public Button Play;
+		public Label Title;
+		public Label Date;
+		public HBoxContainer Summary;
+		public Button Delete;
+		public bool Exists;
+		public bool Corrupted;
+		public bool HasFile => Exists || Corrupted;
+	}
+
 	private VBoxContainer _main;
 	private VBoxContainer _slots;
 	private VBoxContainer _options;
 	private VBoxContainer _credits;
+	private Control _currentPage;
 
-	private bool _showingOptions;
+	private Button _playButton;
+	private Button _optionsButton;
+	private Button _creditsButton;
+	private Button _slotsBackButton;
+	private ScrollContainer _creditsScroll;
+	private float _creditsScrollRemainder;
+	private readonly List<SlotRow> _slotRows = new();
+
+	private UiHintBar _hints;
+	private UiHint _backHint;
+	private UiHint _scrollHint;
+	private UiConfirm _confirm;
 
 	public override void _Ready()
 	{
+		// Debug: --ui-preview/--ui-lang/--ui-device; antes de assinar LanguageChanged (idioma já entra no build).
+		UiPreview.Attach(this);
 		ControllerUiSupport.EnsureMappings();
 		Theme = UIThemeFactory.Create();
 		if (Localization.Instance != null) Localization.Instance.LanguageChanged += OnLanguageChanged;
-		BuildInterface(); ShowPage(_main);
+		BuildInterface();
+		ShowPage(_main, _playButton);
 	}
 
 	public override void _ExitTree()
@@ -24,48 +64,90 @@ public partial class MainMenu : Control
 
 	public override void _Input(InputEvent @event)
 	{
+		// Créditos: o analógico direito rola de forma contínua em _Process (com foco em qualquer controle da página).
+		if (_credits?.Visible == true && IsScrollAction(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (!@event.IsActionPressed("ui_cancel")) return;
-		if (_main?.Visible == true) return;
-		ShowPage(_main);
+		// Camada modal (confirmação) primeiro.
+		if (UiModalStack.CancelTop())
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		// Na página principal, ui_cancel não faz nada (não sai do jogo sem ação explícita).
+		if (_currentPage == null || _currentPage == _main) return;
+		GoBack();
 		GetViewport().SetInputAsHandled();
 	}
 
+	public override void _Process(double delta)
+	{
+		if (_credits?.Visible != true || _creditsScroll == null || UiModalStack.AnyOpen) return;
+		if (!InputMap.HasAction("ui_scroll_up") || !InputMap.HasAction("ui_scroll_down")) return;
+		var axis = Input.GetAxis("ui_scroll_up", "ui_scroll_down");
+		if (Mathf.Abs(axis) < 0.01f)
+		{
+			_creditsScrollRemainder = 0;
+			return;
+		}
+		_creditsScrollRemainder += axis * CreditsScrollSpeed * (float)delta;
+		var step = (int)_creditsScrollRemainder;
+		if (step == 0) return;
+		_creditsScrollRemainder -= step;
+		_creditsScroll.ScrollVertical += step;
+	}
+
+	private static bool IsScrollAction(InputEvent @event) =>
+		InputMap.HasAction("ui_scroll_up") && (@event.IsAction("ui_scroll_up") || @event.IsAction("ui_scroll_down"));
+
+	// ---------- Montagem ----------
+
 	private void BuildInterface()
 	{
-		AddChild(new ColorRect { Color = new Color(0.006f, 0.002f, 0.005f), AnchorRight = 1, AnchorBottom = 1 });
+		BuildIdentity();
+		BuildMainPage();
+		BuildSlotsPage();
+		BuildOptionsPage();
+		BuildCreditsPage();
+		BuildFooter();
+	}
+
+	// Identidade (§9): fundo preto, glow carmesim, emblema, título dourado com sombra carmesim, subtítulo e divisor.
+	private void BuildIdentity()
+	{
+		AddChild(new ColorRect { Color = UiPalette.ScreenBg, AnchorRight = 1, AnchorBottom = 1, MouseFilter = MouseFilterEnum.Ignore });
 		AddChild(BuildBackdropGlow());
-		var emblem = new TextureRect
+		AddChild(new TextureRect
 		{
 			Texture = ResourceLoader.Load<Texture2D>("res://icon.png"),
-			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -64, OffsetTop = 48, OffsetRight = 64, OffsetBottom = 176,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -48, OffsetTop = 36, OffsetRight = 48, OffsetBottom = 132,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-			Modulate = new Color(1, 1, 1, 0.92f)
+			Modulate = new Color(Colors.White, 0.8f), MouseFilter = MouseFilterEnum.Ignore
+		});
+		AddChild(new Label
+		{
+			Text = Localization.Text("game.title"), ThemeTypeVariation = UiVariation.DisplayLabel,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -400, OffsetTop = 138, OffsetRight = 400, OffsetBottom = 206,
+			HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+		});
+		var subtitle = new Label
+		{
+			Text = Localization.Text("game.subtitle"), ThemeTypeVariation = UiVariation.BodyLabel,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -400, OffsetTop = 206, OffsetRight = 400, OffsetBottom = 234,
+			HorizontalAlignment = HorizontalAlignment.Center
 		};
-		AddChild(emblem);
-		var title = new Label { Text = Localization.Text("game.title"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 184, OffsetRight = 350, OffsetBottom = 250, HorizontalAlignment = HorizontalAlignment.Center };
-		title.AddThemeFontSizeOverride("font_size", 54); title.Modulate = new Color(0.9f, 0.72f, 0.38f);
-		title.AddThemeColorOverride("font_shadow_color", new Color(0.35f, 0.0f, 0.03f, 0.85f));
-		title.AddThemeConstantOverride("shadow_offset_x", 0); title.AddThemeConstantOverride("shadow_offset_y", 4); title.AddThemeConstantOverride("shadow_outline_size", 10);
-		AddChild(title);
-		var subtitle = new Label { Text = Localization.Text("game.subtitle"), AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -350, OffsetTop = 248, OffsetRight = 350, OffsetBottom = 280, HorizontalAlignment = HorizontalAlignment.Center, Modulate = new Color(0.68f, 0.57f, 0.5f) }; AddChild(subtitle);
-		var divider = new TextureRect
+		subtitle.AddThemeColorOverride("font_color", UiPalette.TextSecondary);
+		AddChild(subtitle);
+		AddChild(new TextureRect
 		{
 			Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimpleDividerPath),
-			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -220, OffsetTop = 288, OffsetRight = 220, OffsetBottom = 292,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, OffsetLeft = -220, OffsetTop = 246, OffsetRight = 220, OffsetBottom = 250,
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.Scale,
-			Modulate = new Color(0.62f, 0.2f, 0.18f, 0.7f)
-		};
-		AddChild(divider);
-		_main = CreatePage(); _slots = CreatePage(); _options = CreatePage(); _credits = CreatePage();
-		AddMenuButton(_main, Localization.Text("menu.play"), () => ShowPage(_slots));
-		AddMenuButton(_main, Localization.Text("menu.options"), () => ShowPage(_options));
-		AddMenuButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits));
-		AddMenuButton(_main, Localization.Text("menu.quit"), () => GetTree().Quit());
-		BuildSlotsPage();
-		BuildCreditsPage();
-		_options.AddChild(new Label { Text = Localization.Text("options.title"), HorizontalAlignment = HorizontalAlignment.Center });
-		AddLanguageOption(); AddResolutionOption(); AddVolumeOption("options.volume_music", true); AddVolumeOption("options.volume_effects", false);
-		AddMenuButton(_options, Localization.Text("menu.back"), () => ShowPage(_main));
+			SelfModulate = new Color(UiPalette.DecorCrimson.Lightened(0.25f), 0.8f), MouseFilter = MouseFilterEnum.Ignore
+		});
 	}
 
 	private static TextureRect BuildBackdropGlow()
@@ -87,95 +169,414 @@ public partial class MainMenu : Control
 		};
 	}
 
-	private void BuildCreditsPage()
+	private VBoxContainer CreatePage(float width)
 	{
-		_credits.AddChild(new Label { Text = Localization.Text("credits.title"), HorizontalAlignment = HorizontalAlignment.Center });
-		var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(600, 300), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-		var text = new RichTextLabel
+		var page = new VBoxContainer
 		{
-			BbcodeEnabled = true, FitContent = true, SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			Text = $"[center][b]{Localization.Text("credits.created_by")}[/b]\nPedro Henrique Rech Sarmento\n\n[b]{Localization.Text("credits.third_party")}[/b][/center]\n" + ThirdPartyCredits
+			Visible = false,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0, AnchorBottom = 1,
+			OffsetLeft = -width / 2, OffsetRight = width / 2, OffsetTop = ColumnTop, OffsetBottom = -ColumnBottomMargin,
+			Alignment = BoxContainer.AlignmentMode.Begin
 		};
-		scroll.AddChild(text);
-		_credits.AddChild(scroll);
-		AddMenuButton(_credits, Localization.Text("menu.back"), () => ShowPage(_main));
+		page.AddThemeConstantOverride("separation", UiMetrics.S3);
+		AddChild(page);
+		return page;
 	}
 
-	// Atribuicoes exigidas pelas licencas (CC BY 3.0 e OGA-BY 3.0) e cortesia aos pacotes CC0. Detalhes em CREDITS.md.
-	private const string ThirdPartyCredits =
-		"• Whip by Poly by Google (poly.pizza) — CC BY 3.0\n" +
-		"• Additional Sound FX by Will Leamon — \"Fleshy Fight Sounds\" (OpenGameArt) — OGA-BY 3.0\n" +
-		"• Swishes Sound Pack by artisticdude (OpenGameArt) — CC0\n" +
-		"• 20 Sword Sound Effects by StarNinjas (OpenGameArt) — CC0\n" +
-		"• Ultimate Animated Character, Ultimate Monsters, Modular Medieval Dungeon, Modular Weapons e Revolver by Quaternius — CC0\n" +
-		"• Modular Dungeon Kit, UI Pack e Cursor Pack by Kenney — CC0";
-
-	private VBoxContainer CreatePage()
+	private static void AddPageHeader(VBoxContainer page, string title)
 	{
-		var page = new VBoxContainer { AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f, OffsetLeft = -300, OffsetTop = -140, OffsetRight = 300, OffsetBottom = 260, Alignment = BoxContainer.AlignmentMode.Center };
-		AddChild(page); return page;
+		page.AddChild(new Label { Text = title, ThemeTypeVariation = UiVariation.TitleLabel, HorizontalAlignment = HorizontalAlignment.Center });
+		page.AddChild(UiComponents.Divider());
 	}
 
-	private void AddMenuButton(VBoxContainer page, string text, System.Action action)
+	private Button AddPageButton(VBoxContainer page, string text, Action action, ButtonVariant variant = ButtonVariant.Secondary)
 	{
-		var button = new Button { Text = text, CustomMinimumSize = new Vector2(500, 54) }; button.Pressed += action; page.AddChild(button);
+		var button = UiComponents.MenuButton(text, action, variant, ButtonSize.Large);
+		page.AddChild(button);
+		return button;
 	}
+
+	private Button AddBackButton(VBoxContainer page)
+	{
+		page.AddChild(UiComponents.Separator());
+		return AddPageButton(page, Localization.Text("menu.back"), GoBack);
+	}
+
+	private void BuildMainPage()
+	{
+		_main = CreatePage(MainColumnWidth);
+		_playButton = AddPageButton(_main, Localization.Text("menu.play"), () => ShowPage(_slots, PreferredSlotFocus()), ButtonVariant.Primary);
+		_optionsButton = AddPageButton(_main, Localization.Text("menu.options"), () => ShowPage(_options));
+		_creditsButton = AddPageButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits, _creditsScroll));
+		_main.AddChild(UiComponents.Separator());
+		AddPageButton(_main, Localization.Text("menu.quit"), () => GetTree().Quit());
+	}
+
+	// ---------- Slots ----------
 
 	private void BuildSlotsPage()
 	{
-		_slots.AddChild(new Label { Text = Localization.Text("menu.choose_slot"), HorizontalAlignment = HorizontalAlignment.Center });
+		_slots = CreatePage(WideColumnWidth);
+		AddPageHeader(_slots, Localization.Text("menu.choose_slot"));
+		_slotRows.Clear();
 		for (var slot = 1; slot <= 3; slot++)
 		{
-			var captured = slot;
-			var row = new HBoxContainer { CustomMinimumSize = new Vector2(600, 54) };
-			var play = new Button { Text = Localization.TextFormat("menu.slot", slot, SaveGameManager.Instance.GetSlotSummary(slot)), SizeFlagsHorizontal = SizeFlags.ExpandFill };
-			play.Pressed += () => LoadSlot(captured); row.AddChild(play);
-			var delete = new Button { Text = Localization.Text("menu.delete"), Disabled = !SaveGameManager.Instance.SlotExists(slot), CustomMinimumSize = new Vector2(95, 54) };
-			delete.Pressed += () => { SaveGameManager.Instance.DeleteSlot(captured); RebuildInterface(); };
-			row.AddChild(delete); _slots.AddChild(row);
+			var row = BuildSlotRow(slot);
+			_slotRows.Add(row);
+			UpdateSlotRow(row);
 		}
-		AddMenuButton(_slots, Localization.Text("menu.back"), () => ShowPage(_main));
+		_slotsBackButton = AddBackButton(_slots);
+		RefreshSlotNeighbors();
 	}
 
-	private void AddLanguageOption()
+	private SlotRow BuildSlotRow(int slot)
 	{
-		_options.AddChild(new Label { Text = Localization.Text("options.language") });
-		var choice = new OptionButton { CustomMinimumSize = new Vector2(500, 48) };
-		choice.AddItem(Localization.Text("options.language.pt_br"));
-		choice.AddItem(Localization.Text("options.language.en"));
-		choice.AddItem(Localization.Text("options.language.es"));
-		var language = GlobalSettings.Instance?.Data.Language ?? "pt-BR";
-		choice.Selected = language == "en" ? 1 : language == "es" ? 2 : 0;
-		choice.ItemSelected += index => GlobalSettings.Instance?.SetLanguage(index == 1 ? "en" : index == 2 ? "es" : "pt-BR");
-		_options.AddChild(choice);
+		var row = new SlotRow { Slot = slot };
+		var line = new HBoxContainer { CustomMinimumSize = new Vector2(0, SlotRowHeight) };
+		line.AddThemeConstantOverride("separation", UiMetrics.S3);
+		_slots.AddChild(line);
+
+		row.Play = UiComponents.MenuButton("", () => RequestLoadSlot(row), ButtonVariant.Secondary, ButtonSize.Large);
+		row.Play.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		row.Play.CustomMinimumSize = new Vector2(0, SlotRowHeight);
+		line.AddChild(row.Play);
+
+		// Conteúdo do botão: "Slot N" + data à direita; abaixo, resumo (moedas, ranks, artefatos) ou "Novo jogo".
+		var margin = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore };
+		margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+		margin.AddThemeConstantOverride("margin_left", UiMetrics.PadPanelX);
+		margin.AddThemeConstantOverride("margin_right", UiMetrics.PadPanelX);
+		margin.AddThemeConstantOverride("margin_top", UiMetrics.S2);
+		margin.AddThemeConstantOverride("margin_bottom", UiMetrics.S2);
+		row.Play.AddChild(margin);
+		var column = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
+		column.AddThemeConstantOverride("separation", 2);
+		margin.AddChild(column);
+		var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		top.AddThemeConstantOverride("separation", UiMetrics.S3);
+		column.AddChild(top);
+		row.Title = UiComponents.MakeLabel(string.Format(UiComponents.TextOr("menu.slot_title", "Slot {0}"), slot), UiVariation.SectionLabel);
+		top.AddChild(row.Title);
+		row.Date = UiComponents.MakeLabel("", UiVariation.SecondaryLabel);
+		row.Date.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		row.Date.HorizontalAlignment = HorizontalAlignment.Right;
+		row.Date.VerticalAlignment = VerticalAlignment.Center;
+		row.Date.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+		top.AddChild(row.Date);
+		row.Summary = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+		row.Summary.AddThemeConstantOverride("separation", UiMetrics.S1);
+		column.AddChild(row.Summary);
+
+		row.Delete = UiComponents.MenuButton(Localization.Text("menu.delete"), () => RequestDeleteSlot(row), ButtonVariant.Destructive, ButtonSize.Small);
+		row.Delete.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+		line.AddChild(row.Delete);
+		return row;
 	}
 
-	private void AddResolutionOption()
+	private void UpdateSlotRow(SlotRow row)
 	{
-		var choice = new OptionButton { CustomMinimumSize = new Vector2(500, 48) };
-		choice.AddItem("1280 x 720"); choice.AddItem("1600 x 900"); choice.AddItem("1920 x 1080");
-		choice.Selected = GlobalSettings.Instance?.Data.ResolutionIndex ?? 1;
-		choice.ItemSelected += index => GlobalSettings.Instance?.SetResolution((int)index); _options.AddChild(choice);
-		var fullscreen = new CheckButton { Text = Localization.Text("options.fullscreen"), ButtonPressed = GlobalSettings.Instance?.Data.Fullscreen ?? false };
-		fullscreen.Toggled += enabled => GlobalSettings.Instance?.SetFullscreen(enabled); _options.AddChild(fullscreen);
+		var info = SaveGameManager.Instance?.GetSlotInfo(row.Slot);
+		row.Exists = info != null && info.Exists;
+		row.Corrupted = info != null && info.Corrupted;
+		foreach (var child in row.Summary.GetChildren())
+		{
+			row.Summary.RemoveChild(child);
+			child.QueueFree();
+		}
+
+		if (row.Corrupted)
+		{
+			row.Date.Text = "";
+			var unreadable = UiComponents.MakeLabel(UiComponents.TextOr("menu.slot_unreadable", "Save ilegível"), UiVariation.SecondaryLabel);
+			unreadable.AddThemeColorOverride("font_color", UiPalette.Warn);
+			row.Summary.AddChild(unreadable);
+		}
+		else if (!row.Exists)
+		{
+			row.Date.Text = "";
+			var empty = UiComponents.MakeLabel(Localization.Text("menu.new_game"), UiVariation.SecondaryLabel);
+			empty.AddThemeColorOverride("font_color", UiPalette.Gold);
+			row.Summary.AddChild(empty);
+		}
+		else
+		{
+			row.Date.Text = info.LastPlayedLocal.Year < 2000 ? "" : FormatDate(info.LastPlayedLocal);
+			var coin = UiComponents.CoinGlyph(18);
+			row.Summary.AddChild(coin);
+			var coins = UiComponents.MakeLabel(string.Format(UiComponents.TextOr("menu.slot_coins", "{0} moedas"), info.BloodCoins), UiVariation.SecondaryLabel);
+			coins.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
+			row.Summary.AddChild(coins);
+			var details = new List<string>
+			{
+				string.Format(UiComponents.TextOr("menu.slot_skill_ranks", "{0} ranks de habilidade"), info.SkillRanks),
+				info.ArtifactCount == 1
+					? UiComponents.TextOr("menu.slot_artifacts_one", "1 artefato")
+					: string.Format(UiComponents.TextOr("menu.slot_artifacts", "{0} artefatos"), info.ArtifactCount)
+			};
+			var rest = UiComponents.MakeLabel("· " + string.Join(" · ", details), UiVariation.SecondaryLabel);
+			rest.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			rest.ClipText = true;
+			rest.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+			row.Summary.AddChild(rest);
+		}
+
+		// Slot vazio: Excluir some, mas guarda o espaço (as três linhas ficam alinhadas). Save ilegível pode ser excluído.
+		row.Delete.Disabled = !row.HasFile;
+		row.Delete.Modulate = row.HasFile ? Colors.White : Colors.Transparent;
+		row.Delete.MouseFilter = row.HasFile ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
+		row.Delete.FocusMode = row.HasFile ? FocusModeEnum.All : FocusModeEnum.None;
+		row.Delete.MouseDefaultCursorShape = row.HasFile ? CursorShape.PointingHand : CursorShape.Arrow;
 	}
 
-	private void AddVolumeOption(string labelKey, bool music)
+	// Data/hora local curta no formato do idioma atual.
+	private static string FormatDate(DateTime value)
 	{
-		_options.AddChild(new Label { Text = Localization.Text(labelKey) });
-		var initial = music ? GlobalSettings.Instance?.Data.MusicVolume ?? 70 : GlobalSettings.Instance?.Data.EffectsVolume ?? 85;
-		var slider = new HSlider { MinValue = 0, MaxValue = 100, Value = initial, Step = 1, CustomMinimumSize = new Vector2(500, 36) };
-		slider.ValueChanged += value => { if (music) GlobalSettings.Instance?.SetMusicVolume((float)value); else GlobalSettings.Instance?.SetEffectsVolume((float)value); }; _options.AddChild(slider);
+		var language = Localization.Instance?.CurrentLanguage ?? "pt-BR";
+		CultureInfo culture;
+		try
+		{
+			culture = new CultureInfo(language == "en" ? "en-US" : language == "es" ? "es-ES" : "pt-BR");
+		}
+		catch (CultureNotFoundException)
+		{
+			culture = CultureInfo.InvariantCulture;
+		}
+		return value.ToString("g", culture);
 	}
 
-	private void ShowPage(Control page)
+	// Cima/baixo entre os slots e o Voltar; direita no slot vai a Excluir (se houver save), esquerda volta.
+	private void RefreshSlotNeighbors()
 	{
-		_showingOptions = page == _options;
+		for (var i = 0; i < _slotRows.Count; i++)
+		{
+			var row = _slotRows[i];
+			var up = i > 0 ? _slotRows[i - 1].Play : (Control)_slotsBackButton;
+			var down = i < _slotRows.Count - 1 ? _slotRows[i + 1].Play : (Control)_slotsBackButton;
+			row.Play.FocusNeighborTop = row.Play.GetPathTo(up);
+			row.Play.FocusNeighborBottom = row.Play.GetPathTo(down);
+			row.Play.FocusNeighborRight = row.Play.GetPathTo(row.HasFile ? row.Delete : row.Play);
+			row.Play.FocusNeighborLeft = row.Play.GetPathTo(row.Play);
+			row.Delete.FocusNeighborLeft = row.Delete.GetPathTo(row.Play);
+			row.Delete.FocusNeighborRight = row.Delete.GetPathTo(row.Delete);
+			var upDelete = i > 0 ? NeighborTarget(_slotRows[i - 1]) : _slotsBackButton;
+			var downDelete = i < _slotRows.Count - 1 ? NeighborTarget(_slotRows[i + 1]) : _slotsBackButton;
+			row.Delete.FocusNeighborTop = row.Delete.GetPathTo(upDelete);
+			row.Delete.FocusNeighborBottom = row.Delete.GetPathTo(downDelete);
+		}
+		if (_slotRows.Count > 0)
+		{
+			_slotsBackButton.FocusNeighborTop = _slotsBackButton.GetPathTo(_slotRows[_slotRows.Count - 1].Play);
+			_slotsBackButton.FocusNeighborBottom = _slotsBackButton.GetPathTo(_slotRows[0].Play);
+		}
+	}
+
+	private static Control NeighborTarget(SlotRow row) => row.HasFile ? row.Delete : row.Play;
+
+	// Foco inicial: o slot jogado por último; sem saves, o Slot 1.
+	private Control PreferredSlotFocus()
+	{
+		SlotRow best = null;
+		var bestDate = DateTime.MinValue;
+		foreach (var row in _slotRows)
+		{
+			if (!row.Exists) continue;
+			var info = SaveGameManager.Instance?.GetSlotInfo(row.Slot);
+			if (info == null || best != null && info.LastPlayedLocal <= bestDate) continue;
+			best = row;
+			bestDate = info.LastPlayedLocal;
+		}
+		return (best ?? (_slotRows.Count > 0 ? _slotRows[0] : null))?.Play;
+	}
+
+	private void RequestDeleteSlot(SlotRow row)
+	{
+		if (_confirm != null && _confirm.IsOpen) return;
+		var title = string.Format(UiComponents.TextOr("menu.delete_confirm_title", "Excluir Slot {0}?"), row.Slot);
+		var body = UiComponents.TextOr("menu.delete_confirm_body", "O progresso salvo neste slot (moedas, habilidades e artefatos) será apagado.");
+		OpenMenuConfirm(title, body, Localization.Text("menu.delete"), () => OnDeleteConfirmed(row));
+	}
+
+	private void OnDeleteConfirmed(SlotRow row)
+	{
+		SaveGameManager.Instance?.DeleteSlot(row.Slot);
+		// Depois do retorno de foco adiado do Confirm (vai para Excluir, que fica desabilitado): refoca o slot.
+		Callable.From(() =>
+		{
+			if (!IsInstanceValid(row.Play) || !row.Play.IsInsideTree()) return;
+			UpdateSlotRow(row);
+			RefreshSlotNeighbors();
+			row.Play.GrabFocus();
+		}).CallDeferred();
+	}
+
+	// ---------- Opções ----------
+
+	private void BuildOptionsPage()
+	{
+		_options = CreatePage(WideColumnWidth);
+		AddPageHeader(_options, Localization.Text("options.title"));
+		// Mesmo painel da pausa (UiComponents.OptionsPanel): rótulo 240 · controle · valor 64.
+		_options.AddChild(UiComponents.OptionsPanel(true));
+		AddBackButton(_options);
+	}
+
+	// ---------- Créditos ----------
+
+	private void BuildCreditsPage()
+	{
+		_credits = CreatePage(WideColumnWidth);
+		AddPageHeader(_credits, Localization.Text("credits.title"));
+		_creditsScroll = UiComponents.ScrollList(240, out var list);
+		UiComponents.MakeScrollFocusable(_creditsScroll);
+		// Moldura que acende com o foco da lista: no 4.7 o "focus" do ScrollContainer não aparece (nem com DrawFocusBorder).
+		var frame = new PanelContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+		var idle = UIThemeFactory.ControlBox(Colors.Transparent, UiPalette.Border, UiMetrics.BorderThin, UiMetrics.S2, UiMetrics.S2);
+		var focused = UIThemeFactory.ControlBox(UiPalette.PanelRaised, UiPalette.Focus, UiMetrics.BorderFocus, UiMetrics.S2, UiMetrics.S2);
+		focused.ShadowColor = UiPalette.FocusGlow;
+		focused.ShadowSize = 6;
+		frame.AddThemeStyleboxOverride("panel", idle);
+		_creditsScroll.FocusEntered += () => frame.AddThemeStyleboxOverride("panel", focused);
+		_creditsScroll.FocusExited += () => frame.AddThemeStyleboxOverride("panel", idle);
+		frame.AddChild(_creditsScroll);
+		_credits.AddChild(frame);
+		var text = new RichTextLabel
+		{
+			BbcodeEnabled = true, FitContent = true, ScrollActive = false,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
+			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			FocusMode = FocusModeEnum.None, MouseFilter = MouseFilterEnum.Pass,
+			Text = BuildCreditsText()
+		};
+		list.AddChild(text);
+		AddBackButton(_credits);
+	}
+
+	private static string BuildCreditsText()
+	{
+		var gold = UiPalette.Gold.ToHtml(false);
+		var secondary = UiPalette.TextSecondary.ToHtml(false);
+		var text = $"[center][font_size={UiFont.Section}][color=#{gold}]{Localization.Text("credits.created_by")}[/color][/font_size]\n" +
+			"Pedro Henrique Rech Sarmento\n\n" +
+			$"[font_size={UiFont.Section}][color=#{gold}]{Localization.Text("credits.third_party")}[/color][/font_size]\n";
+		foreach (var (work, detail) in ThirdPartyCredits)
+			text += $"{work}\n[font_size={UiFont.Secondary}][color=#{secondary}]{detail}[/color][/font_size]\n\n";
+		return text.TrimEnd('\n') + "[/center]";
+	}
+
+	// Atribuições exigidas pelas licenças (CC BY 3.0 e OGA-BY 3.0) e cortesia aos pacotes CC0. Detalhes em CREDITS.md.
+	private static readonly (string Work, string Detail)[] ThirdPartyCredits =
+	{
+		("Whip", "Poly by Google (poly.pizza) — CC BY 3.0"),
+		("Additional Sound FX by Will Leamon — \"Fleshy Fight Sounds\"", "Will Leamon (OpenGameArt) — OGA-BY 3.0"),
+		("Swishes Sound Pack", "artisticdude (OpenGameArt) — CC0"),
+		("20 Sword Sound Effects", "StarNinjas (OpenGameArt) — CC0"),
+		("Ultimate Animated Character, Ultimate Monsters, Modular Medieval Dungeon, Modular Weapons, Revolver", "Quaternius — CC0"),
+		("Modular Dungeon Kit, UI Pack, Cursor Pack", "Kenney — CC0")
+	};
+
+	// ---------- Rodapé ----------
+
+	private void BuildFooter()
+	{
+		_hints = UiComponents.HintBar();
+		var root = _hints.Root;
+		root.AnchorLeft = 0; root.AnchorRight = 1; root.AnchorTop = 1; root.AnchorBottom = 1;
+		root.OffsetLeft = UiMetrics.SafeMargin; root.OffsetRight = -UiMetrics.SafeMargin;
+		root.OffsetTop = -UiMetrics.SafeMargin - UiMetrics.FooterHeight; root.OffsetBottom = -UiMetrics.SafeMargin;
+		AddChild(root);
+		_backHint = _hints.Add(UiAction.Cancel, Localization.Text("menu.back"), GoBack, true);
+		_scrollHint = _hints.Add(UiAction.Scroll, UiComponents.TextOr("ui.common.scroll", "Rolar"), null, true);
+		_hints.Add(UiAction.Accept, UiComponents.TextOr("ui.common.select", "Selecionar"), null, true);
+		var version = UiComponents.MakeLabel(GameVersionText(), UiVariation.SecondaryLabel);
+		version.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+		_hints.Right.AddChild(version);
+	}
+
+	private static string GameVersionText()
+	{
+		var version = ProjectSettings.GetSetting("application/config/version", "").AsString();
+		var name = ProjectSettings.GetSetting("application/config/name", "VP0.1").AsString();
+		var text = string.IsNullOrEmpty(version) ? name : $"{name} v{version}";
+		return OS.IsDebugBuild() ? text + " · debug" : text;
+	}
+
+	// ---------- Navegação ----------
+
+	private void ShowPage(Control page, Control focus = null)
+	{
+		_currentPage = page;
 		_main.Visible = page == _main;
 		_slots.Visible = page == _slots;
 		_options.Visible = page == _options;
 		_credits.Visible = page == _credits;
-		ControllerUiSupport.FocusFirst(page);
+		_creditsScrollRemainder = 0;
+		if (page == _credits) _creditsScroll.ScrollVertical = 0;
+		if (_backHint != null) _backHint.Visible = page != _main;
+		if (_scrollHint != null) _scrollHint.Visible = page == _credits;
+		ControllerUiSupport.FocusInitial(focus, page);
+	}
+
+	// Volta à página principal com foco no botão que abriu a subpágina.
+	private void GoBack()
+	{
+		if (_currentPage == null || _currentPage == _main) return;
+		var opener = _currentPage == _slots ? _playButton : _currentPage == _options ? _optionsButton : _creditsButton;
+		ShowPage(_main, opener);
+	}
+
+	// Pré-visualização (debug, ver UiPreview.cs): mostra a página pelo nome. False = nome desconhecido.
+	internal bool ShowPreviewPage(string page)
+	{
+		if (page == "menu_confirm_delete")
+		{
+			ShowPage(_slots, PreferredSlotFocus());
+			if (_slotRows.Count > 0) RequestDeleteSlot(_slotRows[0]);
+			return true;
+		}
+		var target = page switch
+		{
+			"menu_main" => _main,
+			"menu_slots" => _slots,
+			"menu_options" => _options,
+			"menu_credits" => _credits,
+			_ => null
+		};
+		if (target == null) return false;
+		ShowPage(target, target == _main ? _playButton : target == _slots ? PreferredSlotFocus() : target == _credits ? _creditsScroll : null);
+		return true;
+	}
+
+	// Save ilegível: jogar começa um jogo novo no slot (o arquivo é copiado e sobrescrito), então pede confirmação.
+	private void RequestLoadSlot(SlotRow row)
+	{
+		if (_confirm != null && _confirm.IsOpen) return;
+		var info = SaveGameManager.Instance?.GetSlotInfo(row.Slot);
+		if (info == null || !info.Corrupted)
+		{
+			LoadSlot(row.Slot);
+			return;
+		}
+		var title = string.Format(UiComponents.TextOr("menu.unreadable_confirm_title", "Slot {0}: save ilegível"), row.Slot);
+		var body = UiComponents.TextOr("menu.unreadable_confirm_body", "Este save não pôde ser lido. Começar um novo jogo substitui o arquivo atual (uma cópia é guardada na pasta de saves).");
+		OpenMenuConfirm(title, body, Localization.Text("menu.new_game"), () => LoadSlot(row.Slot));
+	}
+
+	// Confirmação na pilha modal; o rodapé do menu ("Voltar") some enquanto ela está aberta (ela tem o próprio rodapé).
+	private void OpenMenuConfirm(string title, string body, string confirmText, Action onConfirm)
+	{
+		SetMenuHintsHidden(true);
+		_confirm = UiComponents.Confirm(this, title, body, confirmText, () =>
+		{
+			SetMenuHintsHidden(false);
+			onConfirm();
+		}, ConfirmKind.Destructive, () => SetMenuHintsHidden(false));
+		UiModalStack.Push(_confirm.Window.Root, false, _confirm.CancelButton, _confirm.Cancel);
+	}
+
+	private void SetMenuHintsHidden(bool hidden)
+	{
+		if (_hints != null && IsInstanceValid(_hints.Root))
+			_hints.Root.Modulate = hidden ? Colors.Transparent : Colors.White;
 	}
 
 	private void LoadSlot(int slot)
@@ -183,21 +584,30 @@ public partial class MainMenu : Control
 		SaveGameManager.Instance.StartSlot(slot); RunState.FailRun(); GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
 	}
 
-	private void RebuildInterface()
-	{
-		foreach (var child in GetChildren()) child.QueueFree();
-		BuildInterface(); ShowPage(_slots);
-	}
+	// ---------- Idioma ----------
 
 	private void OnLanguageChanged(string language)
 	{
-		CallDeferred(nameof(RebuildForLanguage), _showingOptions);
+		var page = _currentPage == _options ? "options" : _currentPage == _slots ? "slots" : _currentPage == _credits ? "credits" : "main";
+		Callable.From(() => RebuildForLanguage(page)).CallDeferred();
 	}
 
-	private void RebuildForLanguage(bool keepOptionsOpen)
+	private void RebuildForLanguage(string page)
 	{
-		foreach (var child in GetChildren()) child.Free();
+		_confirm = null; // a confirmação aberta sai junto (UiModalStack esquece a camada no TreeExiting)
+		foreach (var child in GetChildren())
+		{
+			if (child is UiPreview) continue;
+			RemoveChild(child);
+			child.Free();
+		}
 		BuildInterface();
-		ShowPage(keepOptionsOpen ? _options : _main);
+		switch (page)
+		{
+			case "options": ShowPage(_options); break; // foco no idioma (primeiro controle)
+			case "slots": ShowPage(_slots, PreferredSlotFocus()); break;
+			case "credits": ShowPage(_credits, _creditsScroll); break;
+			default: ShowPage(_main, _playButton); break;
+		}
 	}
 }

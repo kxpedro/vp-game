@@ -34,6 +34,14 @@ public partial class CrowsNestCrypt : Node3D
 
         CreateTrainingHall();
         CreateImportedDecorations();
+
+        // Rótulo do caixão no padrão dos títulos 3D (§8.8): acima da cabeça do jogador no spawn.
+        var coffinLabel = GetNodeOrNull<Label3D>("../VirgilCoffin/CoffinLabel");
+        if (coffinLabel != null)
+        {
+            coffinLabel.Position = new Vector3(coffinLabel.Position.X, Mathf.Max(coffinLabel.Position.Y, 2.2f), coffinLabel.Position.Z);
+            InteractPrompt.StyleTitle(coffinLabel);
+        }
     }
 
     private const string StoneMaterialPath = "res://assets/materials/dungeon_stone.tres";

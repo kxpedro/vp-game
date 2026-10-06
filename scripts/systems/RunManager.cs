@@ -152,6 +152,8 @@ public partial class RunManager : Node3D
         if (_exitPortal == null) return;
         ConfigureExitPortal();
         SetPortalOpen(true);
+        // HUD: título secundário "Sala limpa" → "Portal aberto" + toast (HUD.Notifications.cs, NotifyPortalOpened).
+        GetTree().CallGroup("hud", "NotifyPortalOpened");
         var tween = _exitPortal.CreateTween();
         _exitPortal.Scale = Vector3.One * 0.78f;
         tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);
@@ -237,6 +239,7 @@ public partial class RunManager : Node3D
                 var controller = new BossController { Name = "BossController" };
                 enemy.AddChild(controller);
                 controller.Configure(enemy, bossDefinition);
+                CodexProgress.MarkBoss(bossDefinition.Id);
                 GetTree().CallGroup("hud", "BindBoss", enemy, bossDefinition.DisplayName);
             }
             else
@@ -338,18 +341,15 @@ public partial class RunManager : Node3D
         pulse.TweenProperty(relic, "position:y", 1.12f, 0.7f)
             .SetTrans(Tween.TransitionType.Sine)
             .SetEase(Tween.EaseType.InOut);
-        artifact.AddChild(new Label3D
+        // Título de objeto em Gold (guia §2.2/§8.8); RoomArtifact ancora o prompt acima dele.
+        var altarTitle = new Label3D
         {
-            PixelSize = 0.0085f,
             Name = "AltarTitle",
-            Text = "ALTAR DE ARTEFATOS",
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 36,
-            Modulate = new Color(1.0f, 0.68f, 0.76f),
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 1.85f
-        });
+            Text = UiComponents.TextOr("room.artifact_altar.title", "Altar de Artefatos"),
+            Position = Vector3.Up * InteractPrompt.TitleMinHeight
+        };
+        InteractPrompt.StyleTitle(altarTitle);
+        artifact.AddChild(altarTitle);
 
         var collision = new CollisionShape3D
         {
@@ -361,18 +361,14 @@ public partial class RunManager : Node3D
 
     private void CreateRoomLabel(string text)
     {
+        // Título de lugar em Gold, não vermelho (guia §2.2: vermelho vivo só para perigo).
         var label = new Label3D
         {
-            PixelSize = 0.0085f,
             Name = "RoomTitle",
             Text = text,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 48,
-            Modulate = new Color(1.0f, 0.08f, 0.04f),
-            OutlineSize = 10,
-            OutlineModulate = Colors.Black,
             Position = new Vector3(0.0f, 2.2f, -7.7f)
         };
+        InteractPrompt.StyleTitle(label);
         AddChild(label);
     }
 

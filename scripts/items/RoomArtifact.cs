@@ -24,7 +24,7 @@ public partial class RoomArtifact : Area3D
 
     public override void _Process(double delta)
     {
-        if (!_isPlayerInside || !Input.IsActionJustPressed("interact"))
+        if (!_isPlayerInside || !InteractPrompt.ConsumeInteract(this))
             return;
 
         OpenArtifactOffer();
@@ -43,20 +43,15 @@ public partial class RoomArtifact : Area3D
 
     private void CreatePromptLabel()
     {
-        _promptLabel = new Label3D
-        {
-            PixelSize = 0.0085f,
-            Name = "PromptLabel",
-            Text = $"E / X (A) - invocar recompensa no {ArtifactName}",
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 34,
-            Modulate = new Color(1.0f, 0.08f, 0.04f),
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 1.4f,
-            Visible = false
-        };
-        AddChild(_promptLabel);
+        _promptLabel = InteractPrompt.CreatePrompt(this, "Invocar recompensa", 1.85f);
+        // O título (AltarTitle) é adicionado pelo RunManager depois do AddChild: estiliza no fim do frame.
+        Callable.From(StyleTitle).CallDeferred();
+    }
+
+    private void StyleTitle()
+    {
+        if (IsInstanceValid(this) && IsInsideTree())
+            InteractPrompt.StyleTitlesAndAnchor(this, _promptLabel);
     }
 
     private void OnBodyEntered(Node3D body)

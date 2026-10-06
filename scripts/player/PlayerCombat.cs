@@ -220,6 +220,7 @@ public partial class PlayerCombat : Node
 		_isAttacking = true;
 		var attackGeneration = ++_attackGeneration;
 		CurrentAttackType = attackType;
+		CodexProgress.MarkAttack(attackType == PlayerAttackType.Special ? CodexAttackId.Special : CodexAttackId.Light(_lightComboIndex));
 		_currentControl = attack.Control ?? AttackControlProfile.Default;
 		_attackDirection = GetAssistedAttackDirection(GetMouseAttackDirection(), attack);
 		FaceAttackDirection();
@@ -322,6 +323,7 @@ public partial class PlayerCombat : Node
 		var attackGeneration = ++_attackGeneration;
 		IsQuickAttacking = true;
 		CurrentAttackType = PlayerAttackType.Quick;
+		CodexProgress.MarkAttack(CodexAttackId.Dash);
 		_controller?.ConsumeDashAttackGrace();
 		_health?.SetInvincible(true);
 
@@ -854,6 +856,7 @@ public partial class PlayerCombat : Node
 	private void ActivateFury()
 	{
 		IsFuryActive = true;
+		CodexProgress.MarkAttack(CodexAttackId.Fury);
 		CurrentFury = Mathf.Min(CurrentFury, MaxFury);
 		SetFuryVisualActive(true);
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);

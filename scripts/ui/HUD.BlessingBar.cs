@@ -2,98 +2,204 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
+// Barra de bênçãos do HUD em jogo (guia de UI §8.6).
+// Não é focável: o acesso completo por controle fica na ficha do personagem (aba Bênçãos, §8.13).
+// O tooltip por mouse só repete o que a ficha mostra; a dica "[C/View/Create] Ficha" ao lado da barra indica o caminho.
 public partial class HUD
 {
+	// Slots visíveis no total (ícones + "+N"). Com 7 slots + dica a barra cabe nos 492 px do contêiner,
+	// fora da zona de combate protegida (faixa inferior, abaixo de 0.80 da altura).
+	private const int BlessingBarSlotLimit = 7;
+	// ~360 px de largura máxima do tooltip (guia §3.6) a 15 pt.
+	private const int BlessingTooltipWrapColumns = 46;
+
 	private void RefreshBlessingHud()
 	{
 		if (_blessingHudList == null) return;
 		RefreshFuryVisibility();
-		foreach (var child in _blessingHudList.GetChildren()) child.QueueFree();
-		const int visibleBlessingLimit = 7;
-		var visibleCount = Mathf.Min(RunState.RunBlessings.Count, visibleBlessingLimit);
-		for (var i = 0; i < visibleCount; i++)
-		{
-			var record = RunState.RunBlessings[i];
-			if (!BloodBlessingCatalog.TryGet(record.Id, out var blessing)) continue;
-			var iconContainer = new Control
-			{
-				CustomMinimumSize = new Vector2(44.0f, 44.0f),
-				TooltipText = FullBlessingTooltip(blessing, record.Rarity, record.EffectivePowerMultiplier, record.Level),
-				MouseFilter = Control.MouseFilterEnum.Pass,
-				MouseDefaultCursorShape = Control.CursorShape.Help
-			};
-			iconContainer.AddChild(new TextureRect
-			{
-				Texture = ResourceLoader.Load<Texture2D>(UIThemeFactory.SimplePanelPath),
-				AnchorRight = 1.0f,
-				AnchorBottom = 1.0f,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.Scale,
-				Modulate = new Color(0.12f, 0.08f, 0.09f, 0.72f),
-				MouseFilter = Control.MouseFilterEnum.Ignore
-			});
-			var icon = new TextureRect
-			{
-				Texture = ResourceLoader.Load<Texture2D>(blessing.IconPath),
-				AnchorRight = 1.0f, AnchorBottom = 1.0f,
-				OffsetLeft = 4.0f, OffsetTop = 4.0f, OffsetRight = -4.0f, OffsetBottom = -4.0f,
-				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-				StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-				MouseFilter = Control.MouseFilterEnum.Ignore
-			};
-			iconContainer.AddChild(icon);
-			var blessingLevel = record.Level;
-			if (blessingLevel > 1)
-			{
-				var levelBadge = new Label
-				{
-					Text = $"N{blessingLevel}",
-					AnchorLeft = 1.0f,
-					AnchorTop = 1.0f,
-					AnchorRight = 1.0f,
-					AnchorBottom = 1.0f,
-					OffsetLeft = -24.0f,
-					OffsetTop = -18.0f,
-					OffsetRight = 1.0f,
-					OffsetBottom = 1.0f,
-					HorizontalAlignment = HorizontalAlignment.Center,
-					VerticalAlignment = VerticalAlignment.Center,
-					MouseFilter = Control.MouseFilterEnum.Ignore
-				};
-				levelBadge.AddThemeFontSizeOverride("font_size", 13);
-				levelBadge.AddThemeColorOverride("font_color", Colors.White);
-				levelBadge.AddThemeColorOverride("font_shadow_color", Colors.Black);
-				levelBadge.AddThemeConstantOverride("shadow_offset_x", 2);
-				levelBadge.AddThemeConstantOverride("shadow_offset_y", 2);
-				iconContainer.AddChild(levelBadge);
-			}
-			_blessingHudList.AddChild(iconContainer);
-		}
-
-		if (RunState.RunBlessings.Count <= visibleBlessingLimit)
-			return;
-
-		var hiddenCount = RunState.RunBlessings.Count - visibleBlessingLimit;
-		var more = new Label
-		{
-			Text = "+",
-			TooltipText = $"Mais {hiddenCount} bênção(ões). Pressione C para ver todas.",
-			CustomMinimumSize = new Vector2(44.0f, 40.0f),
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Pass,
-			MouseDefaultCursorShape = Control.CursorShape.Help,
-			Modulate = new Color(1.0f, 0.3f, 0.34f)
-		};
-		more.AddThemeFontSizeOverride("font_size", 30);
-		_blessingHudList.AddChild(more);
+		RenderBlessingBar(RunState.RunBlessings);
 	}
 
 	public void RefreshBlessingDisplays()
 	{
 		RefreshBlessingHud();
 		RefreshCharacterSheet();
+	}
+
+	// Pré-visualização (debug): 8 bênçãos fictícias com raridades variadas e níveis 1–3.
+	// Não toca no RunState nem em save; o próximo RefreshBlessingHud volta a mostrar a run real.
+	internal void PreviewBlessingBar()
+	{
+		if (_blessingHudList == null) return;
+		var rarities = new[] { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Stirps", "Common", "Rare" };
+		var levels = new[] { 1, 2, 3, 1, 2, 1, 3, 2 };
+		var records = new List<BloodBlessingRecord>();
+		var definitions = BloodBlessingCatalog.All;
+		for (var i = 0; i < rarities.Length; i++)
+		{
+			if (definitions.Count > 0)
+			{
+				var definition = definitions[i % definitions.Count];
+				records.Add(new BloodBlessingRecord(definition.Id, definition.DisplayName, 1, rarities[i], 1.0f, levels[i]));
+			}
+			else
+				records.Add(new BloodBlessingRecord($"preview_{i}", $"Bênção {i + 1}", 1, rarities[i], 1.0f, levels[i]));
+		}
+		RenderBlessingBar(records);
+	}
+
+	private void RenderBlessingBar(IReadOnlyList<BloodBlessingRecord> blessings)
+	{
+		ClearBlessingBar();
+		// Se a barra passar da largura prevista, cresce para os dois lados e continua centrada.
+		_blessingHudList.GrowHorizontal = Control.GrowDirection.Both;
+		var count = blessings?.Count ?? 0;
+		if (count == 0)
+			return;
+
+		var visibleCount = count > BlessingBarSlotLimit ? BlessingBarSlotLimit - 1 : count;
+		for (var i = 0; i < visibleCount; i++)
+			_blessingHudList.AddChild(CreateBlessingBarSlot(blessings[i]));
+
+		if (count > visibleCount)
+			_blessingHudList.AddChild(CreateBlessingOverflowSlot(blessings, visibleCount));
+
+		_blessingHudList.AddChild(CreateCharacterSheetHint());
+	}
+
+	// RemoveChild + QueueFree: os nós antigos saem do contêiner no mesmo quadro (guia §5.1, regra 10).
+	private void ClearBlessingBar()
+	{
+		foreach (var child in _blessingHudList.GetChildren())
+		{
+			_blessingHudList.RemoveChild(child);
+			child.QueueFree();
+		}
+	}
+
+	private static Control CreateBlessingBarSlot(BloodBlessingRecord record)
+	{
+		var slot = UiComponents.BlessingIcon(record, UiMetrics.IconHud, true);
+		slot.MouseFilter = Control.MouseFilterEnum.Pass;
+		slot.MouseDefaultCursorShape = Control.CursorShape.Help;
+		slot.TooltipText = BlessingBarTooltip(record);
+		return slot;
+	}
+
+	// Excedente "+N" no mesmo formato de slot (PanelInset, borda 2), em vez do "+" solto.
+	private static Control CreateBlessingOverflowSlot(IReadOnlyList<BloodBlessingRecord> blessings, int firstHidden)
+	{
+		var hiddenCount = blessings.Count - firstHidden;
+		var slot = new Panel
+		{
+			CustomMinimumSize = new Vector2(UiMetrics.IconHud, UiMetrics.IconHud),
+			MouseFilter = Control.MouseFilterEnum.Pass,
+			MouseDefaultCursorShape = Control.CursorShape.Help
+		};
+		var style = new StyleBoxFlat { BgColor = UiPalette.PanelInset, BorderColor = UiPalette.GoldDim };
+		style.SetBorderWidthAll(2);
+		style.SetCornerRadiusAll(UiMetrics.RadiusBadge);
+		slot.AddThemeStyleboxOverride("panel", style);
+
+		var label = UiComponents.MakeLabel($"+{hiddenCount}", UiVariation.HudValueLabel);
+		label.HorizontalAlignment = HorizontalAlignment.Center;
+		label.VerticalAlignment = VerticalAlignment.Center;
+		label.MouseFilter = Control.MouseFilterEnum.Ignore;
+		label.AddThemeColorOverride("font_color", UiPalette.Gold);
+		label.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		slot.AddChild(label);
+
+		var text = new StringBuilder();
+		text.Append(hiddenCount == 1 ? "Mais 1 bênção:" : $"Mais {hiddenCount} bênçãos:");
+		for (var i = firstHidden; i < blessings.Count; i++)
+		{
+			var record = blessings[i];
+			text.Append('\n').Append("• ").Append(BlessingBarName(record))
+				.Append(" (").Append(UiComponents.RarityLabel(record.Rarity)).Append(", N").Append(record.Level).Append(')');
+		}
+		text.Append("\n\nTodas as bênçãos estão na ficha do personagem.");
+		slot.TooltipText = text.ToString();
+		return slot;
+	}
+
+	// Dica do caminho por controle/teclado: glifo da ação Ficha (acompanha o último dispositivo) + rótulo.
+	private static Control CreateCharacterSheetHint()
+	{
+		var hint = new HBoxContainer
+		{
+			Name = "BlessingBarSheetHint",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+		};
+		hint.AddThemeConstantOverride("separation", UiMetrics.S1);
+		var glyph = UiComponents.ButtonGlyph(UiAction.CharacterSheet);
+		glyph.MouseFilter = Control.MouseFilterEnum.Ignore;
+		glyph.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+		hint.AddChild(glyph);
+		var label = UiComponents.MakeLabel("Ficha", UiVariation.SecondaryLabel);
+		label.MouseFilter = Control.MouseFilterEnum.Ignore;
+		label.VerticalAlignment = VerticalAlignment.Center;
+		label.AddThemeConstantOverride("outline_size", 4);
+		label.AddThemeColorOverride("font_outline_color", UiPalette.TextOutline);
+		hint.AddChild(label);
+		return hint;
+	}
+
+	private static string BlessingBarName(BloodBlessingRecord record)
+	{
+		if (BloodBlessingCatalog.TryGet(record.Id, out var definition) && !string.IsNullOrEmpty(definition.DisplayName))
+			return definition.DisplayName;
+		return string.IsNullOrEmpty(record.Name) ? record.Id : record.Name;
+	}
+
+	// Tooltip no padrão do guia (§3.6): nome; raridade · nível; descrição com valores efetivos; flavor.
+	// Texto simples (o TooltipLabel do tema não interpreta BBCode), quebrado em ~360 px.
+	private static string BlessingBarTooltip(BloodBlessingRecord record)
+	{
+		var meta = $"{UiComponents.RarityLabel(record.Rarity)} · Nível {record.Level}";
+		if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
+			return $"{BlessingBarName(record)}\n{meta}";
+
+		var lines = new StringBuilder();
+		lines.Append(BlessingBarName(record)).Append('\n').Append(meta);
+		lines.Append('\n').Append(WrapBlessingTooltip(FormatBlessingLineage(definition)));
+		var description = FormatBloodBlessingDescription(definition, record.EffectivePowerMultiplier);
+		if (!string.IsNullOrWhiteSpace(description))
+			lines.Append("\n\n").Append(WrapBlessingTooltip(description));
+		if (!string.IsNullOrWhiteSpace(definition.FlavorText))
+			lines.Append("\n\n").Append(WrapBlessingTooltip(definition.FlavorText));
+		return lines.ToString();
+	}
+
+	private static string WrapBlessingTooltip(string text)
+	{
+		if (string.IsNullOrEmpty(text)) return "";
+		var result = new StringBuilder();
+		var paragraphs = text.Replace("\r", "").Split('\n');
+		for (var p = 0; p < paragraphs.Length; p++)
+		{
+			if (p > 0) result.Append('\n');
+			var lineLength = 0;
+			foreach (var word in Regex.Split(paragraphs[p].Trim(), @"\s+"))
+			{
+				if (word.Length == 0) continue;
+				if (lineLength > 0 && lineLength + 1 + word.Length > BlessingTooltipWrapColumns)
+				{
+					result.Append('\n');
+					lineLength = 0;
+				}
+				else if (lineLength > 0)
+				{
+					result.Append(' ');
+					lineLength++;
+				}
+				result.Append(word);
+				lineLength += word.Length;
+			}
+		}
+		return result.ToString();
 	}
 }

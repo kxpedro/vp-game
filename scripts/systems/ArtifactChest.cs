@@ -2,7 +2,7 @@ using Godot;
 
 public partial class ArtifactChest : Area3D
 {
-    [Export] public string PromptText { get; set; } = "E - abrir Bau de Artefatos";
+    [Export] public string PromptText { get; set; } = "Abrir Baú de Artefatos";
 
     private bool _isPlayerInside;
     private Label3D _promptLabel;
@@ -16,7 +16,7 @@ public partial class ArtifactChest : Area3D
 
     public override void _Process(double delta)
     {
-        if (!_isPlayerInside || !Input.IsActionJustPressed("interact"))
+        if (!_isPlayerInside || !InteractPrompt.ConsumeInteract(this))
             return;
 
         GetTree().CallGroup("hud", "OpenArtifactChest");
@@ -24,20 +24,8 @@ public partial class ArtifactChest : Area3D
 
     private void CreatePromptLabel()
     {
-        _promptLabel = new Label3D
-        {
-            PixelSize = 0.0085f,
-            Name = "PromptLabel",
-            Text = PromptText,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 34,
-            Modulate = new Color(1.0f, 0.08f, 0.04f),
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 1.55f,
-            Visible = false
-        };
-        AddChild(_promptLabel);
+        _promptLabel = InteractPrompt.CreatePrompt(this, PromptText, 1.55f);
+        InteractPrompt.StyleSiblingTitlesAndAnchor(this, _promptLabel);
     }
 
     private void OnBodyEntered(Node3D body)

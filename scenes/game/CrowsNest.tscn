@@ -177,7 +177,7 @@ pixel_size = 0.0085
 position = Vector3(0, 1.05, 0)
 billboard = 1
 modulate = Color(1, 0.08, 0.04, 1)
-text = "Bau de Artefatos"
+text = "Baú de Artefatos"
 font_size = 34
 outline_size = 8
 
@@ -215,7 +215,7 @@ pixel_size = 0.0085
 position = Vector3(0, 1.2, 0)
 billboard = 1
 modulate = Color(0.72, 0.68, 0.72, 1)
-text = "Caixao de Virgil"
+text = "Caixão de Virgil"
 font_size = 30
 outline_size = 8
 

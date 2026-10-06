@@ -11,7 +11,7 @@ public partial class ScenePortal : Area3D
     }
 
     [Export(PropertyHint.File, "*.tscn")] public string TargetScenePath { get; set; } = "";
-    [Export] public string PromptText { get; set; } = "Pressione E";
+    [Export] public string PromptText { get; set; } = "Atravessar o portal";
     [Export] public bool StartsEnabled { get; set; } = true;
     [Export] public RunPortalAction PortalAction { get; set; } = RunPortalAction.None;
 
@@ -33,7 +33,7 @@ public partial class ScenePortal : Area3D
         if (!_isEnabled || !_isPlayerInside)
             return;
 
-        if (Input.IsActionJustPressed("interact") && !string.IsNullOrWhiteSpace(TargetScenePath))
+        if (InteractPrompt.ConsumeInteract(this) && !string.IsNullOrWhiteSpace(TargetScenePath))
         {
             ApplyPortalAction();
             GetTree().ChangeSceneToFile(TargetScenePath);
@@ -47,7 +47,7 @@ public partial class ScenePortal : Area3D
         PortalAction = portalAction;
 
         if (_promptLabel != null)
-            _promptLabel.Text = PromptText;
+            InteractPrompt.SetText(_promptLabel, PromptText);
     }
 
     public void SetPortalEnabled(bool isEnabled)
@@ -58,20 +58,9 @@ public partial class ScenePortal : Area3D
 
     private void CreatePromptLabel()
     {
-        _promptLabel = new Label3D
-        {
-            PixelSize = 0.0085f,
-            Name = "PromptLabel",
-            Text = PromptText,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 36,
-            Modulate = new Color(1.0f, 0.08f, 0.04f),
-            OutlineSize = 8,
-            OutlineModulate = Colors.Black,
-            Position = Vector3.Up * 1.65f,
-            Visible = false
-        };
-        AddChild(_promptLabel);
+        // Sem título no portal (salas da run): prompt acima do lintel (~2,9 m). No hub, ancora no título irmão.
+        _promptLabel = InteractPrompt.CreatePrompt(this, PromptText, 3.2f);
+        InteractPrompt.StyleSiblingTitlesAndAnchor(this, _promptLabel);
     }
 
     private void OnBodyEntered(Node3D body)
