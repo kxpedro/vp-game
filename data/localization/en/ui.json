@@ -250,6 +250,8 @@
   "portal.start_run": "Begin the run",
   "prompt.blood_fountain": "Open Blood Fountain",
   "prompt.weapon_bench": "Choose weapon",
+  "scene.crows_nest.character_locked": "???\nLocked",
+  "prompt.character_soon": "Coming soon",
   "scene.crows_nest.coffin": "Virgil's Coffin",
   "scene.crows_nest.start_portal": "Ascent to Armand's Castle",
   "scene.crows_nest.training_hall": "TRAINING HALL\nRegenerating dummy",

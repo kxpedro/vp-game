@@ -50,6 +50,7 @@ public partial class CrowsNestCrypt : Node3D
 
         CreateTrainingHall();
         CreateImportedDecorations();
+        CreateCharacterPlaceholders();
 
         // Rótulo do caixão no padrão dos títulos 3D (§8.8): acima da cabeça do jogador no spawn.
         var coffinLabel = GetNodeOrNull<Label3D>("../VirgilCoffin/CoffinLabel");
@@ -57,6 +58,17 @@ public partial class CrowsNestCrypt : Node3D
         {
             coffinLabel.Position = new Vector3(coffinLabel.Position.X, Mathf.Max(coffinLabel.Position.Y, 2.2f), coffinLabel.Position.Z);
             InteractPrompt.StyleTitle(coffinLabel);
+        }
+    }
+
+    // 3 pontos reservados para personagens desbloqueáveis, na sala leste (a do antigo Baú de Artefatos), encostados na parede.
+    private void CreateCharacterPlaceholders()
+    {
+        var spots = new[] { new Vector3(12.9f, 0.0f, -3.4f), new Vector3(12.9f, 0.0f, 0.0f), new Vector3(12.9f, 0.0f, 3.4f) };
+        for (var i = 0; i < spots.Length; i++)
+        {
+            // Sarcófago com a cabeceira ao longo de Z; a frente fica voltada ao centro do hub (-X).
+            AddChild(new CharacterPlaceholder { Name = $"CharacterPlaceholder{i + 1}", Position = spots[i] });
         }
     }
 

@@ -180,6 +180,7 @@ Mais detalhes em [`docs/build_and_export.md`](docs/build_and_export.md).
 - [`docs/initialization.md`](docs/initialization.md): snapshot técnico para novas sessões;
 - [`docs/gameplay_systems.md`](docs/gameplay_systems.md): controles, combate, HUD, inimigos, bênçãos e salas especiais;
 - [`docs/design/ui-guia.md`](docs/design/ui-guia.md): guia de estilo e especificação das telas de UI, com os previews em lote;
+- [`docs/design/personagens-futuros.md`](docs/design/personagens-futuros.md): elenco jogável futuro (3 desbloqueáveis, ainda não implementados), decisões e perguntas em aberto;
 - [`docs/room_generation.md`](docs/room_generation.md): campanha, geração procedural e waves;
 - [`docs/character_asset.md`](docs/character_asset.md): estado do visual provisório e catálogo do asset arquivado;
 - [`docs/build_and_export.md`](docs/build_and_export.md): build e exportação;

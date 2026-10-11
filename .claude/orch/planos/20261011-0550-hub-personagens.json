@@ -2,7 +2,7 @@
   "schema": "orch.plano/1",
   "id": "20261011-0550-hub-personagens",
   "titulo": "Hub: pontos reservados para os personagens desbloqueáveis e atributos ocultos",
-  "status": "planejado",
+  "status": "concluido",
   "demanda": "Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.",
   "objetivo": "O hub ganha 3 pontos reservados (placeholders) para os futuros personagens desbloqueáveis; a Ficha deixa de mostrar a aba Atributos em release (os atributos seguem calculados); as decisões sobre o elenco ficam documentadas para um plano futuro. Nenhum personagem novo é implementado agora.",
   "grupo": "20261011-0550-economia-recompensas",
@@ -10,7 +10,7 @@
     "20261011-0550-economia-recompensas"
   ],
   "criado": "2026-10-11T05:50:00-03:00",
-  "atualizado": "2026-10-11T05:50:00-03:00",
+  "atualizado": "2026-10-11T06:10:00-03:00",
   "commitInicial": "3c2e257",
   "versaoOrch": "0.5.0",
   "ondas": [
@@ -33,11 +33,11 @@
         "data/localization/*/ui.json"
       ],
       "prontoQuando": "Captura do hub com os 3 pontos nos 3 idiomas, sem erro; nenhuma lógica de personagem.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T06:00:00-03:00",
+      "fim": "2026-10-11T06:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "3 sarcófagos placeholder na parede leste do hub (CharacterPlaceholder.cs, CrowsNestCrypt.cs), título \"???/Bloqueado\" e prompt \"Em breve\", chaves nos 3 idiomas. Build e validador OK; sem captura visual.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -53,11 +53,11 @@
         "scripts/ui/UiPreview.cs"
       ],
       "prontoQuando": "Ficha sem a aba em release e com ela em debug (gate `OS.IsDebugBuild()`); cálculos intactos; build e validadores sem erro.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T06:00:00-03:00",
+      "fim": "2026-10-11T06:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Aba Atributos e Totais da run ocultos em release (HUD.CharacterSheet.cs), mantidos em debug; cálculos intactos. Build e validadores OK.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -72,11 +72,11 @@
         "docs/design/personagens-futuros.md"
       ],
       "prontoQuando": "Documento claro e completo, sem código.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T06:00:00-03:00",
+      "fim": "2026-10-11T06:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Criado docs/design/personagens-futuros.md com D9–D11, hipótese de bosses, poderes, atributos ocultos, armas, perguntas em aberto e esboço do plano futuro.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -89,7 +89,55 @@
       "tarefa": null,
       "tipo": "plano-criado",
       "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T06:00:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Plano iniciado"
+    },
+    {
+      "quando": "2026-10-11T06:00:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "T1 iniciada"
+    },
+    {
+      "quando": "2026-10-11T06:00:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "T2 iniciada"
+    },
+    {
+      "quando": "2026-10-11T06:00:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "T3 iniciada"
+    },
+    {
+      "quando": "2026-10-11T06:10:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "3 sarcófagos placeholder na parede leste do hub (CharacterPlaceholder.cs, CrowsNestCrypt.cs), título \"???/Bloqueado\" e prompt \"Em breve\", chaves nos 3 idiomas. Build e validador OK; sem captura visual."
+    },
+    {
+      "quando": "2026-10-11T06:10:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "Aba Atributos e Totais da run ocultos em release (HUD.CharacterSheet.cs), mantidos em debug; cálculos intactos. Build e validadores OK."
+    },
+    {
+      "quando": "2026-10-11T06:10:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "Criado docs/design/personagens-futuros.md com D9–D11, hipótese de bosses, poderes, atributos ocultos, armas, perguntas em aberto e esboço do plano futuro."
+    },
+    {
+      "quando": "2026-10-11T06:10:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Plano concluído"
     }
   ],
-  "resultadoFinal": null
+  "resultadoFinal": "Hub com 3 placeholders de personagens, aba Atributos oculta em release e elenco futuro documentado. Falta conferência visual do hub no jogo."
 }
