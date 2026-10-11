@@ -27,9 +27,9 @@ using System.Collections.Generic;
 ///               pause, options, tuning, pause_confirm_abandon, pause_confirm_menu,
 ///               compendium, game_over, room_clear, toast, wave_warning, boss_bar
 ///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
-///   CrowsNest:  blood_fountain, skill_popup, weapon_bench
+///   CrowsNest:  blood_fountain, skill_popup, weapon_bench, hub, hub_cast (enquadra os 3 sarcófagos de personagens)
 ///               (a Fonte mostra o saldo de Sangue Amaldiçoado; compras e cheat só simulam)
-///   IntermissionChamber: altar (host = a própria Câmara)
+///   IntermissionChamber: altar (host = a própria Câmara), reward_doors (jogador diante das portas de recompensa; host = HUD)
 ///   IntermissionChamber: shop (Loja de Artefatos; host = HUD. Estoque de 4 artefatos fictícios em raridades variadas:
 ///               Incomum já comprado, Raro ao alcance, Épico e Lendário caros demais, saldo fictício de 1000 Moedas.
 ///               Comprar só simula; nada é gravado nem toca o RunState.)
@@ -91,8 +91,8 @@ public partial class UiPreview : Node
 		("blessing_offer_replace", null, SceneArena), ("toast", null, SceneArena), ("wave_warning", null, SceneArena),
 		("room_clear", null, SceneArena), ("boss_bar", null, SceneArena),
 		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
-		("weapon_bench", null, SceneNest), ("hub", null, SceneNest),
-		("altar", null, SceneChamber), ("shop", null, SceneChamber)
+		("weapon_bench", null, SceneNest), ("hub", null, SceneNest), ("hub_cast", null, SceneNest),
+		("altar", null, SceneChamber), ("shop", null, SceneChamber), ("reward_doors", null, SceneChamber)
 	};
 
 	private List<BatchJob> _jobs;

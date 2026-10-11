@@ -16,11 +16,12 @@ Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientaç�
 - quatro waves de 5 inimigos por sala, com intervalo reduzido, spawns espaçados e arquétipos melee, ranged e tank;
 - campanha com 6, 8 e 10 salas comuns nos três primeiros mapas, além do confronto final;
 - primeira sala bônus da run, Câmara de Hemomancia entre mapas e sala de treinamento no Ninho do Corvo;
-- recompensas de Bênção de Sangue após salas comuns e Altar de Artefatos interativo após bosses;
+- portas de saída com a recompensa visível (Bênção de Sangue, Fruta do Diabo ou Moedas de Sangue); a recompensa escolhida fica no chão da sala seguinte e as portas só abrem depois de pegá-la;
+- economia em dois recursos: Moedas de Sangue (só na run) e Sangue Amaldiçoado (permanente); artefatos só na Loja da Câmara de Hemomancia, sem drop de boss;
 - HUD minimalista sem minimapa, com molduras discretas, cursor temático, ficha, bênçãos, níveis de aprimoramento, passivas, pausa, compêndio e barreira azul integrada à vida;
 - personagem, inimigos, bosses, armas e partes dos cenários usam assets 3D externos com origem e licença registradas;
 - áudio de combate diferencia cortes, estocada, rodopio, batida no chão, impacto corporal, ataque pelas costas, parede e esquiva;
-- três slots de save, progressão permanente Bestialis/Humanitas e configurações globais;
+- três slots de save (formato v2), progressão permanente Bestialis/Humanitas e configurações globais;
 - localização em português (`pt-BR`, idioma padrão e fallback), inglês (`en`) e espanhol (`es`), com textos separados do código em `data/localization/`;
 - exportação Windows self-contained para Godot .NET.
 
@@ -73,7 +74,7 @@ godot --path . res://scenes/game/CrowsNest.tscn -- --ui-preview=blood_fountain -
 godot --path . --resolution 1600x900 -- --ui-batch --ui-shots=C:/tmp/shots --ui-langs=pt-BR,en,es --ui-screens=pause,compendium
 ```
 
-Opções: `--ui-preview=<tela>`, `--ui-lang=pt-BR|en|es`, `--ui-device=kbm|xbox|ps`, `--ui-tab=<aba>` (compêndio e ficha), `--ui-codex-locked[=sample]` (Dicionário na visão de release) e, no lote, `--ui-batch`, `--ui-shots=<pasta>` (padrão `user://ui_shots`), `--ui-langs=` e `--ui-screens=`. O lote recarrega a cena entre uma captura e outra, em vez de abrir o jogo uma vez por tela. A lista de telas está no cabeçalho de `UiPreview.cs`.
+Opções: `--ui-preview=<tela>`, `--ui-lang=pt-BR|en|es`, `--ui-device=kbm|xbox|ps`, `--ui-tab=<aba>` (compêndio e ficha), `--ui-codex-locked[=sample]` (Dicionário na visão de release) e, no lote, `--ui-batch`, `--ui-shots=<pasta>` (padrão `user://ui_shots`), `--ui-langs=` e `--ui-screens=`. O lote recarrega a cena entre uma captura e outra, em vez de abrir o jogo uma vez por tela. A lista de telas está no cabeçalho de `UiPreview.cs`. O lote padrão (`BatchScreens`) tem 37 telas (contando cada aba do compêndio e da ficha), ou seja, 111 PNGs em 3 idiomas. Inclui `reward_doors` (portas de recompensa, na Câmara) e `hub_cast` (os 3 sarcófagos de personagens no hub). Os itens no chão (`RewardPickup`, `DevilsFruit`) não têm preview.
 
 ## Controles
 
@@ -96,12 +97,12 @@ O ataque no controle é orientado pelo analógico esquerdo. Ao abrir a ficha com
 ## Fluxo da campanha
 
 1. Escolher idioma e um dos três slots no menu principal.
-2. Preparar a run no Ninho do Corvo, onde ficam a Fonte de Sangue, o Baú de Artefatos, a bancada de armas e a sala de treinamento.
+2. Preparar a run no Ninho do Corvo, onde ficam a Fonte de Sangue (compra de skills com Sangue Amaldiçoado), a bancada de armas, a sala de treinamento e três sarcófagos reservados a personagens futuros (placeholders, "Em breve", sem interação).
 3. Na primeira run room, interagir com a fonte central e escolher a bênção inicial obrigatória. Essa sala aparece apenas antes do primeiro mapa.
-4. Vencer as salas comuns e escolher uma Bênção de Sangue antes de atravessar o portão de saída.
-5. Derrotar o boss, interagir com o Altar de Artefatos na arena e escolher uma recompensa passiva.
-6. Visitar a Câmara de Hemomancia para recuperar até 35% da vida e, opcionalmente, reduzir a vida máxima total da run em 5% para elevar em um nível uma bênção, preservando sua raridade.
-7. Avançar pelo segundo mapa com 8 salas e pelo terceiro com 10; o quarto mapa contém o confronto final.
+4. Limpar a sala. O bônus de sala limpa (Moedas de Sangue) e a recompensa da porta escolhida na sala anterior aparecem no chão; pegue todos com `interact` para as portas de saída abrirem. Cada porta mostra o tipo de recompensa da próxima sala (ver [Portas com recompensa](#portas-com-recompensa)).
+5. Derrotar o boss: ele paga Moedas e Sangue Amaldiçoado e solta uma Fruta do Diabo (exceto no mapa final). Não há mais Altar de Artefatos nem drop de artefato.
+6. Visitar a Câmara de Hemomancia para recuperar até 35% da vida, opcionalmente reduzir a vida máxima total da run em 5% para elevar em um nível uma bênção, preservando sua raridade, e gastar Moedas de Sangue na Loja de Artefatos.
+7. Avançar pelo segundo mapa com 8 salas e pelo terceiro com 10; o quarto mapa contém o confronto final. A ordem dos bosses é Guardiã Invisível (`invisible_woman`), Guardião do Labirinto (`labyrinth_keeper`), Dragonkin Prateado (`silver_dragonkin`) e Lorde Armand (`armand`).
 
 A vida atual é preservada entre salas e mapas. Ao morrer ou desistir, a run temporária termina e a progressão permanente do slot é mantida.
 
@@ -115,9 +116,38 @@ O combo básico reinicia após 1 segundo sem continuação, e o terceiro golpe e
 
 Com 100 pontos acumulados, a Fúria Bestial consome 10 pontos por segundo e dura 10 segundos antes de causar uma explosão final de 15% do dano básico em área. Efeitos externos podem alterar essa duração. A barreira absorve dano antes da vida, aguarda 8 segundos após obtenção ou consumo, perde 0,25 ponto por segundo e é zerada ao trocar de sala.
 
-As habilidades permanentes ficam em `data/skills/skills.json` e são compradas na Fonte de Sangue. As Bênçãos de Sangue ficam em `data/blessings/blood_blessings.json` e duram apenas durante a run. Artefatos em `data/artifacts/artifacts.json` são exclusivamente passivos.
+As habilidades permanentes ficam em `data/skills/skills.json` e são compradas na Fonte de Sangue. As Bênçãos de Sangue ficam em `data/blessings/blood_blessings.json` e duram apenas durante a run. Artefatos em `data/artifacts/artifacts.json` são exclusivamente passivos e só são obtidos na Loja da Câmara de Hemomancia.
 
 Raridade e nível de bênção são progressões independentes. A raridade sorteada determina a base; toda bênção começa no nível 1 e pode chegar ao nível 10. Cada nível adicional aumenta em 25% os valores escaláveis daquela raridade. Chances são limitadas a 100% tanto na lógica quanto na interface. No Altar do Sacrifício, até três bênçãos elegíveis são sorteadas e apresentadas no mesmo formato visual das ofertas de bênção.
+
+## Economia: dois recursos
+
+Valores numéricos vêm de `CompendiumTuning` (chaves `economy.*`); os citados abaixo são os padrões do código. Detalhes de design em [`docs/design/economia-v2.md`](docs/design/economia-v2.md).
+
+| Recurso | Onde vive | Duração | Como se ganha | Para que serve |
+| --- | --- | --- | --- | --- |
+| Moedas de Sangue | `RunState.RunBloodCoins` | só na run; nunca vai para o save | inimigos, bônus de sala limpa, boss e portas de Moedas | comprar artefatos na Loja da Câmara |
+| Sangue Amaldiçoado | `CharacterSheet.CursedBlood` | permanente (salvo no slot) | boss (40/60/80/120 por mapa) e inimigo Lendário (0/6/8/8 por mapa; chance `economy.cursed_blood.legendary_drop_chance`, padrão 1,0) | comprar skills Bestialis/Humanitas na Fonte de Sangue |
+
+As Moedas de Sangue zeram em `RunState.StartRun`, em `RunState.FailRun` (morte ou desistência) e em `RunState.CompleteBoss` do mapa final. Elas **não** zeram entre mapas, porque a Loja fica na Câmara entre mapas. Já o Sangue Amaldiçoado sobrevive à morte da run. No HUD, o contador mostra as Moedas durante a run e o Sangue Amaldiçoado no hub (Ninho do Corvo).
+
+### Fruta do Diabo
+
+`scripts/items/DevilsFruit.cs`: item coletado com `interact` que soma vida máxima só durante a run (`RunState.AddDevilsFruit`) e cura o jogador. O ganho padrão é `economy.fruit.max_health` = 15 (e `economy.fruit.heal` = 15). Zera em `StartRun`, `FailRun` e no fim da campanha. Fontes: porta de Fruta (teto de `economy.fruit.run_cap_from_doors` = 3 por run), uma Fruta garantida por boss (`economy.fruit.boss_guaranteed` = 1; no mapa final, `economy.fruit.boss_final_map` = 0) e `DevilsFruit.Spawn`.
+
+O bônus é exato: `RunState.DevilsFruitMaxHealthTotal` é somado em `PlayerController.ApplyRuntimeTuning` depois dos multiplicadores de vida máxima (não passa por `MaxHealthBonus`), então cada Fruta dá +15 de fato.
+
+### Loja da Câmara de Hemomancia
+
+Na Câmara (depois de cada boss não final) há um balcão interativo que abre `HUD.Shop.cs` (`CallGroup("hud", "OpenShop")`). O estoque é sorteado uma vez por visita (`ArtifactCatalog.RollShopStock`): 3 artefatos, com 50% de chance de um quarto, o primeiro slot sempre Common ou Uncommon e a raridade dos demais pesada pela visita. Preço-base por raridade em `economy.shop.price.*` (250/420/700/1.100/1.700/2.400), com desconto da skill `humanitas.collector_eye`. A compra é `RunState.TryBuyShopArtifact`, gasta Moedas de Sangue e adiciona o artefato à run (sem limite de quantidade; por padrão não repete artefato já possuído). O sorteio do antigo Altar de Artefatos (`ArtifactCatalog.RollChoices`) foi removido.
+
+### Portas com recompensa
+
+Cada saída de sala comum tem uma ou duas portas (probabilidade de duas por mapa e sala em `RoomRewardCatalog.TwoDoorChance`; base 0,30/0,35/0,40 e teto 0,55), sorteadas por `RunState.GetOrRollRoomRewardSet`. Toda saída tem uma Bênção de Sangue (garantida pelo padrão `reward.blessing.max_sets_without_blessing` = 0); a segunda porta, opcional, é Fruta do Diabo ou Moedas (150/130/110 por mapa). Cada porta tem um ícone provisório (`DoorRewardIcon`) e um prompt dizendo a recompensa. Ao atravessar, a escolha fica pendente (`RunState.PendingRoomReward`) e é paga na sala seguinte como item no chão (`RewardPickup` para Bênção e Moedas, `DevilsFruit` para Fruta). As portas nascem travadas (`ScenePortal` com `StartsEnabled` falso) e só abrem quando não resta item no chão (`RunManager.UnlockExitAfterReward`); a saída para o boss e o boss têm saída única. Detalhes em [`docs/design/portas-recompensas.md`](docs/design/portas-recompensas.md).
+
+## Save (formato v2)
+
+O slot é `user://save_slot_{1..3}.json`, com `GameSaveData.Version = 2` (`CurrentSaveVersion`). Na v2 as Moedas de Sangue deixaram de ser salvas e surgiu o campo `CursedBlood`. Ao ler um slot, `SaveGameManager.ReadSlot` só trata como v1 um JSON em que `Version` existe, é inteiro e está em `1 <= Version < 2`; nesse caso o arquivo é **renomeado** para `save_slot_N.v1.json` (`ArchiveLegacySlot`) e o slot começa vazio; não há migração. JSON válido sem `Version` é carregado normalmente. JSON inválido segue o fluxo de slot corrompido (backup).
 
 ## Estrutura do projeto
 
@@ -180,6 +210,8 @@ Mais detalhes em [`docs/build_and_export.md`](docs/build_and_export.md).
 - [`docs/initialization.md`](docs/initialization.md): snapshot técnico para novas sessões;
 - [`docs/gameplay_systems.md`](docs/gameplay_systems.md): controles, combate, HUD, inimigos, bênçãos e salas especiais;
 - [`docs/design/ui-guia.md`](docs/design/ui-guia.md): guia de estilo e especificação das telas de UI, com os previews em lote;
+- [`docs/design/economia-v2.md`](docs/design/economia-v2.md): Moedas de Sangue, Sangue Amaldiçoado, Fruta do Diabo e Loja;
+- [`docs/design/portas-recompensas.md`](docs/design/portas-recompensas.md): portas com recompensa visível;
 - [`docs/design/personagens-futuros.md`](docs/design/personagens-futuros.md): elenco jogável futuro (3 desbloqueáveis, ainda não implementados), decisões e perguntas em aberto;
 - [`docs/room_generation.md`](docs/room_generation.md): campanha, geração procedural e waves;
 - [`docs/character_asset.md`](docs/character_asset.md): estado do visual provisório e catálogo do asset arquivado;

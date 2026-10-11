@@ -150,7 +150,7 @@ public partial class HUD
 				var costText = bought ? null : price < basePrice
 					? Localization.TextFormat("shop.price_discount", price, basePrice)
 					: Localization.TextFormat("shop.price", price);
-				if (!bought && !affordable && price >= basePrice)
+				if (!bought && !affordable)
 					costText += "\n" + Localization.TextFormat("shop.missing", price - balance);
 				var card = UiComponents.ChoiceCard(new ChoiceCardData
 				{

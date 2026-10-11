@@ -154,7 +154,7 @@ public static class RoomRewardCatalog
         if (rng == null)
             return null;
 
-        var offers = BloodBlessingCatalog.RollOffers(rng, BlessingPlanSize, out var family, guaranteeBasicAttack);
+        var offers = BloodBlessingCatalog.RollOffers(rng, BlessingPlanSize, out var family, guaranteeBasicAttack, false);
         return offers.Count == 0 ? null : new RoomBlessingPlan(family, offers);
     }
 

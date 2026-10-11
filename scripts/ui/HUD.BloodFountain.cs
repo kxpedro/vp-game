@@ -166,7 +166,7 @@ public partial class HUD
 		{
 			// Ferramenta de teste: fora do build de debug ela permitiria farmar Sangue Amaldiçoado (§7).
 			var dev = UiComponents.DevSection();
-			_cursedBloodCheatButton = UiComponents.MenuButton("+500 Sangue Amaldiçoado", AddCheatCursedBlood, ButtonVariant.Secondary, ButtonSize.Small);
+			_cursedBloodCheatButton = UiComponents.MenuButton(Localization.TextFormat("fountain.dev.cheat", Localization.Text("hud.cursed_blood_name")),AddCheatCursedBlood, ButtonVariant.Secondary, ButtonSize.Small);
 			_cursedBloodCheatButton.Name = "CursedBloodCheatButton";
 			dev.Body.AddChild(_cursedBloodCheatButton);
 			detailColumn.AddChild(dev.Root);
@@ -895,7 +895,7 @@ public partial class HUD
 		{
 			// Preview de debug: valida igual, mas não gasta Sangue Amaldiçoado nem grava o save.
 			SetBloodFountainStatus(CharacterSheet.CursedBlood >= cost
-				? $"Prévia: compra de {definition.DisplayName} simulada (nada foi gravado)."
+				? Localization.TextFormat("fountain.dev.preview_buy", definition.DisplayName)
 				: Localization.TextFormat("fountain.status.no_cursed_blood", definition.DisplayName), CharacterSheet.CursedBlood < cost);
 			return;
 		}
@@ -937,13 +937,13 @@ public partial class HUD
 	{
 		if (_bloodFountainPreviewMode)
 		{
-			SetBloodFountainStatus("Prévia: +500 Sangue Amaldiçoado simulado (nada foi gravado).", false);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.dev.preview_cheat", Localization.Text("hud.cursed_blood_name")), false);
 			return;
 		}
 		CharacterSheet.AddCursedBlood(500);
 		RefreshResourceIndicator();
 		RefreshBloodFountain();
-		SetBloodFountainStatus("+500 Sangue Amaldiçoado adicionado para teste.", false);
+		SetBloodFountainStatus(Localization.TextFormat("fountain.dev.cheat", Localization.Text("hud.cursed_blood_name")), false);
 	}
 
 	// Status de uma linha sob o título; aviso (moedas, bloqueio) em Warn.
@@ -975,7 +975,7 @@ public partial class HUD
 		_hoveredSkillId = null;
 		_isDraggingBloodFountain = false;
 		_skillTreeFitPending = true;
-		SetBloodFountainStatus(_bloodFountainPreviewMode ? "Prévia: compras e cheat são simulados; nada é gravado." : null, false);
+		SetBloodFountainStatus(_bloodFountainPreviewMode ? Localization.Text("fountain.dev.preview_intro") : null, false);
 		RefreshBloodFountain();
 		var initial = FindInitialSkillNode();
 		// §5.1: Fonte não pausa (só bloqueia input do jogo); Esc/B fecha pela pilha.

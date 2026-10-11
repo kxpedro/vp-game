@@ -204,7 +204,7 @@ public partial class ScenePortal : Area3D
         }
         ApplyPortalAction();
 
-        var timer = GetTree().CreateTimer(closeSeconds);
+        var timer = GetTree().CreateTimer(closeSeconds, false);
         timer.Timeout += () =>
         {
             if (IsInstanceValid(this) && !string.IsNullOrWhiteSpace(TargetScenePath))

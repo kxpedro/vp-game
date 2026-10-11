@@ -110,7 +110,7 @@ public partial class HUD
 	private void ShowPreviewGameOver()
 	{
 		_isGameOver = true;
-		ShowGameOver("Lorde Corvo", 42.0f);
+		ShowGameOver(Localization.Text("boss.armand.name"), 42.0f);
 	}
 
 	// Preenche a janela com os dados da run (antes do FailRun), fecha tudo e entra no topo da pilha.
