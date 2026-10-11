@@ -149,16 +149,13 @@ public static class SkillCatalog
         if (implementationStatus == SkillImplementationStatus.Implemented && effects.Length == 0)
             throw new InvalidOperationException($"Implemented skill '{id}' must declare at least one runtime effect.");
 
+        // Nome, descrição, flavor e monograma ficam em content.json (skill.<id>.name/.desc/.flavor/.icon).
         return new SkillDefinition(
             id,
-            ReadRequiredString(presentation, "name", $"Skill '{id}' presentation"),
             tree,
             ReadNonNegativeInt(progression, "cost", $"Skill '{id}' progression"),
             maxRank,
-            ReadRequiredString(presentation, "description", $"Skill '{id}' presentation"),
-            ReadRequiredString(presentation, "flavorText", $"Skill '{id}' presentation"),
             ReadRequiredString(presentation, "metalReference", $"Skill '{id}' presentation"),
-            ReadRequiredString(presentation, "iconText", $"Skill '{id}' presentation"),
             ReadStringArray(progression, "prerequisites", $"Skill '{id}' progression"),
             Math.Max(ReadNonNegativeInt(progression, "tier", $"Skill '{id}' progression"), 1),
             ReadNonNegativeInt(position, "column", $"Skill '{id}' position"),

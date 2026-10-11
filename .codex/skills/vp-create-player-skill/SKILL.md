@@ -14,13 +14,13 @@ Entregar uma habilidade passiva, permanente, comprável na Fonte de Sangue e fun
 3. Classificar a habilidade como básica, mediana ou forte e usar respectivamente `maxRank` 5, 3 ou 1.
 4. Preferir efeitos fundamentais e legíveis, como vida máxima flat, dano percentual, redução de dano, cura entre salas ou um revive por run.
 5. Definir árvore, custo base, apresentação, posição, tier, pré-requisitos e efeitos parametrizados. Bestialis deve formar uma cruz invertida; Humanitas, uma cruz em pé.
-6. Adicionar a definição em `data/skills/skills.json`. Manter uma constante de ID em `SkillCatalog` somente quando o runtime referenciar a habilidade. Usar o prefixo `bestialis.` ou `humanitas.` e `snake_case` depois do ponto.
+6. Adicionar a definição em `data/skills/skills.json` (sem textos: `presentation` guarda só `metalReference` e `tags`) e os textos em `data/localization/{pt-BR,en,es}/content.json`: `skill.<id>.name`, `.desc`, `.flavor` e `.icon` (monograma de 2 letras), nos três idiomas. Manter uma constante de ID em `SkillCatalog` somente quando o runtime referenciar a habilidade. Usar o prefixo `bestialis.` ou `humanitas.` e `snake_case` depois do ponto.
 7. Confirmar que todos os pré-requisitos existem, pertencem à progressão pretendida e não formam ciclos.
 8. Implementar cada efeito declarado em `runtime.effects` e usar `runtime.status: Implemented` somente quando o comportamento existir.
 9. Para múltiplos ranks, confirmar escala, compra repetida, custo crescente, limite, persistência e aplicação após carregar o save.
 10. Manter referências musicais somente em metadados de easter egg. Nunca exibir a música ou a banda na descrição.
 11. Procurar o ID e os tipos de efeito com `rg` para verificar todas as integrações.
-12. Executar `dotnet build VP0.1.csproj`. Quando possível, validar também em modo headless e testar compra, upgrade, pré-requisito, efeito, morte e recarregamento.
+12. Executar `py tools/validate_localization.py` e `dotnet build VP0.1.csproj`. Quando possível, validar também em modo headless e testar compra, upgrade, pré-requisito, efeito, morte e recarregamento.
 13. Informar cadastro, ranks, integração, persistência e testes realizados.
 
 ## Regras de conclusão

@@ -190,7 +190,7 @@ material_override = SubResource("StandardMaterial3D_portal")
 [node name="PortalArea" type="Area3D" parent="ExitPortal"]
 script = ExtResource("6")
 TargetScenePath = "res://scenes/game/CrowsNest.tscn"
-PromptText = "E - voltar ao Ninho"
+PromptText = "portal.return_nest"
 StartsEnabled = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ExitPortal/PortalArea"]

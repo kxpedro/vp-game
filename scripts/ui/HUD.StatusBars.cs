@@ -2,7 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 // HUD em jogo — painel do jogador, recursos, título da sala, barra do chefe e feedback de dano (guia de UI §4.2, §6, §8.1–8.4, §8.7).
 public partial class HUD
@@ -27,6 +26,7 @@ public partial class HUD
 	private Control _roomTitleGroup;
 	private Label _roomProgressSeparator;
 	private PanelContainer _resourceFrame;
+	private Control _coinGlyph;
 	// Debug (previews): congela o painel do jogador com dados fictícios; critical < 0 = sem vida crítica forçada.
 	private bool _statusPreviewActive;
 	private float _previewHealthRatio = -1.0f;
@@ -158,7 +158,8 @@ public partial class HUD
 		row.AddThemeConstantOverride("separation", UiMetrics.S2);
 		panel.AddChild(row);
 		var coin = UiComponents.CoinGlyph(24);
-		coin.TooltipText = "Moedas de Sangue";
+		coin.TooltipText = Localization.Text("hud.blood_coins_name");
+		_coinGlyph = coin;
 		row.AddChild(coin);
 		_coinsLabel = new Label
 		{
@@ -175,7 +176,7 @@ public partial class HUD
 		_weaponLabel = new Label
 		{
 			Name = "EquippedWeaponLabel",
-			Text = $"Arma: {WeaponLoadout.EquippedWeapon.DisplayName}",
+			Text = Localization.TextFormat("hud.weapon", WeaponLoadout.EquippedWeapon.DisplayName),
 			Visible = false
 		};
 		root.AddChild(_weaponLabel);
@@ -459,6 +460,11 @@ public partial class HUD
 		_edgeVignette.Modulate = new Color(1, 1, 1, alpha);
 	}
 
+	// Tooltip da Fúria: o sinal sai todo quadro com a Fúria ativa; só reescreve quando estado, idioma ou barra mudam.
+	private Control _furyTooltipBar;
+	private bool _furyTooltipActive;
+	private string _furyTooltipLanguage;
+
 	private void OnFuryChanged(float current, float max, bool isActive)
 	{
 		if (_furyResourceBar == null || _statusPreviewActive)
@@ -466,10 +472,16 @@ public partial class HUD
 		_furyResourceBar.SetValue(current, max);
 		_furyResourceBar.SetFuryState(max > 0.0f && current >= max, isActive);
 		RefreshFuryVisibility();
+		var language = Localization.Instance?.CurrentLanguage;
+		if (_furyTooltipBar == _furyResourceBar.Bar && _furyTooltipActive == isActive && _furyTooltipLanguage == language)
+			return;
+		_furyTooltipBar = _furyResourceBar.Bar;
+		_furyTooltipActive = isActive;
+		_furyTooltipLanguage = language;
 		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", 10.0f);
 		_furyResourceBar.Bar.TooltipText = isActive
-			? $"Furia Bestial ativa: consome {furyDrainPerSecond:0.#} pontos por segundo e explode ao chegar a zero"
-			: "Furia Bestial - pressione F (R1/RB) quando a barra estiver cheia";
+			? Localization.TextFormat("hud.fury.tooltip_active", furyDrainPerSecond)
+			: Localization.Text("hud.fury.tooltip_ready");
 	}
 
 	// A fúria só aparece quando liberada por uma Bênção de Sangue (§8.1).
@@ -529,7 +541,7 @@ public partial class HUD
 		_roomClearAnnounced = true;
 		// O nome do mapa continua; a parte secundária vira "Sala limpa". O portal só abre depois da recompensa
 		// (RunManager.UnlockExitAfterReward → NotifyPortalOpened troca para "Portal aberto").
-		_enemyProgressLabel.Text = "Sala limpa";
+		RefreshRoomProgressText();
 		SetRoomProgressVisible(!string.IsNullOrEmpty(_roomLabel.Text));
 		ShowRoomClearBanner();
 	}

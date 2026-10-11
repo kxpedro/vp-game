@@ -8,7 +8,7 @@ using System.Collections.Generic;
 public partial class HUD
 {
 	// Causa usada por AbandonRun: o game over troca "derrotado por" por "desistiu".
-	private const string AbandonRunDeathSource = "Desistência da run";
+	private const string AbandonRunDeathSource = "abandon_run";
 	private const float GameOverButtonWidth = 280.0f;
 
 	private sealed class PauseTuningEntry
@@ -25,6 +25,7 @@ public partial class HUD
 	private Button _pauseCompendiumButton;
 	private Button _pauseAbandonButton;
 	private Button _pauseMainMenuButton;
+	private Button _pauseOptionsButton;
 	private Control _pauseReturnFocus;
 	private UiConfirm _pauseConfirm;
 	private bool _pauseCompendiumHooked;
@@ -54,7 +55,7 @@ public partial class HUD
 		title.Uppercase = true;
 		if (title.GetParent() is Control titleRow)
 			titleRow.CustomMinimumSize = new Vector2(0.0f, 84.0f);
-		_gameOverWindow.SetStatus(UiComponents.TextOr("gameover.subtitle", "Virgil retornou ao caixão."));
+		_gameOverWindow.SetStatus(Localization.Text("gameover.subtitle"));
 
 		var body = _gameOverWindow.Body;
 		_gameOverCauseLabel = MakeGameOverLabel(UiVariation.BodyLabel);
@@ -68,10 +69,10 @@ public partial class HUD
 		var actions = _gameOverWindow.Actions;
 		actions.Visible = true;
 		actions.Alignment = BoxContainer.AlignmentMode.Center;
-		_gameOverRetryButton = UiComponents.MenuButton(UiComponents.TextOr("gameover.return_nest", "Voltar ao Ninho do Corvo"), ContinueAfterGameOver, ButtonVariant.Primary, ButtonSize.Medium);
+		_gameOverRetryButton = UiComponents.MenuButton(Localization.Text("gameover.return_nest"), ContinueAfterGameOver, ButtonVariant.Primary, ButtonSize.Medium);
 		_gameOverRetryButton.Name = "RestartButton";
 		actions.AddChild(_gameOverRetryButton);
-		_gameOverMenuButton = UiComponents.MenuButton(UiComponents.TextOr("gameover.main_menu", "Menu principal"), ReturnToMainMenuAfterGameOver, ButtonVariant.Secondary, ButtonSize.Medium);
+		_gameOverMenuButton = UiComponents.MenuButton(Localization.Text("gameover.main_menu"), ReturnToMainMenuAfterGameOver, ButtonVariant.Secondary, ButtonSize.Medium);
 		_gameOverMenuButton.Name = "GameOverMainMenuButton";
 		actions.AddChild(_gameOverMenuButton);
 		// Mesma largura mínima nos dois botões (o rótulo do primeiro é mais longo).
@@ -79,7 +80,7 @@ public partial class HUD
 			button.CustomMinimumSize = new Vector2(GameOverButtonWidth, button.CustomMinimumSize.Y);
 		ControllerUiSupport.SetHorizontalCycle(new Control[] { _gameOverRetryButton, _gameOverMenuButton });
 
-		_gameOverWindow.Footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"));
+		_gameOverWindow.Footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"));
 	}
 
 	private static Label MakeGameOverLabel(string variation)
@@ -99,7 +100,7 @@ public partial class HUD
 		GetTree().CallGroup("audio_manager", "PlayEffect", "death");
 		GetTree().CallGroup("audio_manager", "PlayGameOverMusic");
 		_isGameOver = true;
-		var source = _runtimeHealth?.LastDamageSource ?? "causa desconhecida";
+		var source = _runtimeHealth?.LastDamageSource;
 		var finalDamage = _runtimeHealth?.LastDamageAmount ?? 0.0f;
 		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {source}.");
 		ShowGameOver(source, finalDamage);
@@ -118,10 +119,10 @@ public partial class HUD
 	{
 		var abandoned = source == AbandonRunDeathSource;
 		_gameOverCauseLabel.Text = abandoned
-			? UiComponents.TextOr("gameover.abandoned", "Virgil desistiu da run.")
-			: $"Virgil foi derrotado por: {source}.";
+			? Localization.Text("gameover.abandoned")
+			: Localization.TextFormat("gameover.defeated_by", string.IsNullOrWhiteSpace(source) ? Localization.Text("gameover.unknown_cause") : source);
 		var lastHit = Mathf.RoundToInt(finalDamage);
-		_gameOverLastHitLabel.Text = $"Último golpe: {lastHit} de dano.";
+		_gameOverLastHitLabel.Text = Localization.TextFormat("gameover.last_hit", lastHit);
 		_gameOverLastHitLabel.Visible = !abandoned && lastHit > 0;
 		FillGameOverSummary();
 
@@ -143,9 +144,9 @@ public partial class HUD
 		if (RunState.IsRunActive)
 		{
 			var map = RunState.CurrentMap;
-			var room = RunState.IsBossRoom ? "Chefe" : $"Sala {RunState.CurrentRoom}/{map.CommonRoomCount}";
-			AddGameOverSummaryLine($"Alcançado: {map.Name} · {room}");
-			AddGameOverSummaryLine($"Bênçãos: {RunState.RunBlessings.Count} · Artefatos: {RunState.RunArtifacts.Count}");
+			var room = RunState.IsBossRoom ? Localization.Text("hud.room.boss") : Localization.TextFormat("hud.room.progress", RunState.CurrentRoom, map.CommonRoomCount);
+			AddGameOverSummaryLine(Localization.TextFormat("gameover.reached", map.Name, room));
+			AddGameOverSummaryLine(Localization.TextFormat("gameover.run_summary", RunState.RunBlessings.Count, RunState.RunArtifacts.Count));
 		}
 		AddGameOverSummaryLine(Localization.TextFormat("hud.blood_coins", CharacterSheet.BloodCoins));
 	}
@@ -202,7 +203,7 @@ public partial class HUD
 
 		BuildPauseMainPage();
 		_pauseOptionsPage = AddPausePage("PauseOptionsPage");
-		_pauseOptionsPage.AddChild(UiComponents.OptionsPanel(false));
+		_pauseOptionsPage.AddChild(UiComponents.OptionsPanel(true));
 		// Voltar explícito (além do rodapé), como nas opções do menu principal.
 		_pauseOptionsPage.AddChild(UiComponents.Separator());
 		var optionsBack = AddPauseMenuButton(_pauseOptionsPage, Localization.Text("hud.back"), ShowPauseMainMenu);
@@ -210,6 +211,38 @@ public partial class HUD
 		if (OS.IsDebugBuild())
 			BuildPauseTuningPage();
 		RefreshPauseTuningValues();
+	}
+
+	// Troca de idioma com a pausa aberta (opções): recria a janela no mesmo índice e volta à página em que estava.
+	private void RebuildPauseForLanguage()
+	{
+		if (_pauseOverlay == null || _hudRoot == null || _pauseOverlay.GetParent() != _hudRoot)
+			return;
+		var wasVisible = IsVisible(_pauseOverlay);
+		var onOptions = wasVisible && IsVisible(_pauseOptionsPage);
+		var onTuning = wasVisible && IsVisible(_pauseTuningPage);
+		if (_pauseConfirm != null && _pauseConfirm.IsOpen)
+			_pauseConfirm.Cancel();
+		_pauseTuningEntries.Clear();
+		var index = _pauseOverlay.GetIndex();
+		var old = _pauseOverlay;
+		_hudRoot.RemoveChild(old);
+		old.QueueFree();
+		BuildPauseOverlay(_hudRoot);
+		_hudRoot.MoveChild(_pauseOverlay, index);
+		if (!wasVisible)
+			return;
+		var runActive = RunState.IsRunActive;
+		_pauseAbandonButton.Visible = runActive;
+		_pauseMainMenuButton.ThemeTypeVariation = runActive ? UiVariation.DestructiveButton : UiVariation.SecondaryButton;
+		_pauseOverlay.Visible = true;
+		if (onOptions)
+			ShowPausePage(_pauseOptionsPage, _pauseOptionsButton);
+		else if (onTuning && _pauseTuningPage != null)
+			ShowPausePage(_pauseTuningPage, null);
+		else
+			ShowPauseMainMenu();
+		RefreshModalPause();
 	}
 
 	private VBoxContainer AddPausePage(string name)
@@ -221,7 +254,7 @@ public partial class HUD
 	}
 
 	// "PAUSADO" (hud.paused) vira "Pausa" (§8.10); chave nova até a fase 4.
-	private static string PauseTitle() => UiComponents.TextOr("pause.title", "Pausa");
+	private static string PauseTitle() => Localization.Text("pause.title");
 
 	// Ordem: Continuar · Opções · Dicionário · [DEV: ajustes, reiniciar] · [divisor] · Desistir · Menu principal.
 	private void BuildPauseMainPage()
@@ -239,7 +272,8 @@ public partial class HUD
 		_pauseContinueButton = AddPauseMenuButton(column, Localization.Text("hud.continue"), ResumeGame, ButtonVariant.Primary);
 		Button optionsButton = null;
 		optionsButton = AddPauseMenuButton(column, Localization.Text("menu.options"), () => ShowPausePage(_pauseOptionsPage, optionsButton));
-		_pauseCompendiumButton = AddPauseMenuButton(column, UiComponents.TextOr("codex.title", "Dicionário"), OpenCompendiumFromPause);
+		_pauseOptionsButton = optionsButton;
+		_pauseCompendiumButton = AddPauseMenuButton(column, Localization.Text("codex.title"), OpenCompendiumFromPause);
 
 		if (OS.IsDebugBuild())
 		{
@@ -255,9 +289,9 @@ public partial class HUD
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
 		column.AddChild(UiComponents.Separator());
 		column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
-		_pauseAbandonButton = AddPauseMenuButton(column, UiComponents.TextOr("pause.abandon_run", "Desistir da run"), RequestAbandonRun, ButtonVariant.Destructive);
+		_pauseAbandonButton = AddPauseMenuButton(column, Localization.Text("pause.abandon_run"), RequestAbandonRun, ButtonVariant.Destructive);
 		_pauseAbandonButton.Name = "AbandonRunButton";
-		_pauseMainMenuButton = AddPauseMenuButton(column, UiComponents.TextOr("pause.main_menu", "Voltar ao menu principal"), RequestReturnToMainMenu);
+		_pauseMainMenuButton = AddPauseMenuButton(column, Localization.Text("pause.main_menu"), RequestReturnToMainMenu);
 	}
 
 	private Button AddPauseMenuButton(Container parent, string text, Action action, ButtonVariant variant = ButtonVariant.Secondary)
@@ -371,7 +405,7 @@ public partial class HUD
 		if (page == _pauseMainPage)
 		{
 			footer.Add(UiAction.Cancel, Localization.Text("hud.continue"), ResumeGame, left: true);
-			footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"));
+			footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"));
 			return;
 		}
 		footer.Add(UiAction.Cancel, Localization.Text("hud.back"), ShowPauseMainMenu, left: true);
@@ -437,9 +471,9 @@ public partial class HUD
 	private void OpenAbandonRunConfirm()
 	{
 		OpenPauseConfirm(
-			UiComponents.TextOr("ui.confirm.abandon_run.title", "Desistir da run?"),
-			UiComponents.TextOr("ui.confirm.abandon_run.body", "Virgil volta ao Ninho do Corvo e as bênçãos e artefatos desta run são perdidos."),
-			UiComponents.TextOr("pause.abandon_run", "Desistir da run"),
+			Localization.Text("ui.confirm.abandon_run.title"),
+			Localization.Text("ui.confirm.abandon_run.body"),
+			Localization.Text("pause.abandon_run"),
 			AbandonRun);
 	}
 
@@ -456,9 +490,9 @@ public partial class HUD
 	private void OpenMainMenuConfirm()
 	{
 		OpenPauseConfirm(
-			UiComponents.TextOr("ui.confirm.main_menu.title", "Voltar ao menu principal?"),
-			UiComponents.TextOr("ui.confirm.main_menu.body", "A run em andamento não é salva e será perdida. O progresso permanente continua salvo."),
-			UiComponents.TextOr("pause.main_menu", "Voltar ao menu principal"),
+			Localization.Text("ui.confirm.main_menu.title"),
+			Localization.Text("ui.confirm.main_menu.body"),
+			Localization.Text("pause.main_menu"),
 			ReturnToMainMenu);
 	}
 

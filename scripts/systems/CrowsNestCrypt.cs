@@ -18,8 +18,24 @@ public partial class CrowsNestCrypt : Node3D
         new Vector2I(0, 2)
     };
 
+    private Label3D _trainingHallLabel;
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(string language)
+    {
+        if (IsInstanceValid(_trainingHallLabel))
+            _trainingHallLabel.Text = Localization.Text("scene.crows_nest.training_hall");
+    }
+
     public override void _Ready()
     {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
         // Mesma pedra das salas fixas; as paredes recebem um tom um pouco mais claro para separar do piso.
         var floorMaterial = ResourceLoader.Load<StandardMaterial3D>(StoneMaterialPath);
         var wallMaterial = (StandardMaterial3D)floorMaterial.Duplicate();
@@ -180,7 +196,7 @@ public partial class CrowsNestCrypt : Node3D
         {
             PixelSize = 0.0085f,
             Name = "TrainingHallLabel",
-            Text = "SALA DE TREINAMENTO\nBoneco regenerativo",
+            Text = Localization.Text("scene.crows_nest.training_hall"),
             Position = center + new Vector3(-1.8f, 2.9f, -1.8f),
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             FontSize = 30,
@@ -188,6 +204,7 @@ public partial class CrowsNestCrypt : Node3D
             Modulate = new Color(0.86f, 0.68f, 0.34f)
         };
         AddChild(title);
+        _trainingHallLabel = title;
 
         var trainingMark = new MeshInstance3D
         {

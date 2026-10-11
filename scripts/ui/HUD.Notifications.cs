@@ -2,7 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 public partial class HUD
 {
@@ -14,6 +13,10 @@ public partial class HUD
 	private string _lastToastText;
 	private ulong _lastToastTicks;
 	private bool _portalOpenAnnounced;
+	private int _lastDefeatedEnemies;
+	private int _lastTotalEnemies;
+	private Label _roomClearTitle;
+	private Label _roomClearSubtitle;
 
 	// Contrato hud-ingame T1/T2: BuildLayout (StatusBars) chama este método; T2 constrói aqui log, toasts e banner.
 	// Idempotente: pode ser chamado mais de uma vez sem duplicar nós.
@@ -48,12 +51,36 @@ public partial class HUD
 	// Depois de limpar fica "Sala limpa" e, quando o portal abre de fato, "Portal aberto" (NotifyPortalOpened).
 	public void SyncEnemyProgress(int defeatedEnemies, int totalEnemies)
 	{
-		if (_enemyProgressLabel == null || _roomClearAnnounced)
+		_lastDefeatedEnemies = defeatedEnemies;
+		_lastTotalEnemies = totalEnemies;
+		RefreshRoomProgressText();
+	}
+
+	// Reescreve a parte secundária do título no idioma atual (também chamado na troca de idioma).
+	private void RefreshRoomProgressText()
+	{
+		if (_enemyProgressLabel == null)
 			return;
-		var room = $"Sala {RunState.CurrentRoom}/{RunState.CurrentMap.CommonRoomCount}";
-		_enemyProgressLabel.Text = RunState.IsBossRoom
-			? "Chefe"
-			: totalEnemies > 0 ? $"{room} · {defeatedEnemies}/{totalEnemies}" : room;
+		if (_portalOpenAnnounced)
+		{
+			_enemyProgressLabel.Text = Localization.Text("hud.room.portal_open");
+			return;
+		}
+		if (_roomClearAnnounced)
+		{
+			_enemyProgressLabel.Text = Localization.Text("hud.room.cleared");
+			return;
+		}
+		if (RunState.IsBossRoom)
+		{
+			_enemyProgressLabel.Text = Localization.Text("hud.room.boss");
+			return;
+		}
+		var room = RunState.CurrentRoom;
+		var rooms = RunState.CurrentMap.CommonRoomCount;
+		_enemyProgressLabel.Text = _lastTotalEnemies > 0
+			? Localization.TextFormat("hud.room.progress_enemies", room, rooms, _lastDefeatedEnemies, _lastTotalEnemies)
+			: Localization.TextFormat("hud.room.progress", room, rooms);
 	}
 
 	// Canal (c): o "+N" sai em NotifyBloodCoinsRewarded (toda entrada de moedas), sem frase nem toast.
@@ -93,19 +120,21 @@ public partial class HUD
 		_roomClearAnnounced = true;
 		if (_enemyProgressLabel != null)
 		{
-			_enemyProgressLabel.Text = "Portal aberto";
+			RefreshRoomProgressText();
 			SetRoomProgressVisible(!string.IsNullOrEmpty(_roomLabel?.Text));
 		}
 		AppendGameLog("O portal de saída foi aberto.");
-		ShowNotificationToast("O portal foi aberto", false);
+		ShowNotificationToast(Localization.Text("hud.toast.portal_open"), false);
 	}
 
 	// Canal (a): faixa de perigo com contagem regressiva; não é substituída por kills nem por toasts.
 	// O log da wave já é escrito por quem chama (RoomGenerator).
 	public void NotifyWaveIncoming(int enemyCount, float seconds)
 	{
-		var body = enemyCount == 1 ? "1 inimigo" : $"{enemyCount} inimigos";
-		_toastStack?.ShowCombatAlert("Próxima onda", body, Mathf.Max(0.0f, seconds));
+		var body = enemyCount == 1
+			? Localization.Text("hud.toast.wave_body_one")
+			: Localization.TextFormat("hud.toast.wave_body_other", enemyCount);
+		_toastStack?.ShowCombatAlert(Localization.Text("hud.toast.wave_title"), body, Mathf.Max(0.0f, seconds));
 	}
 
 	public void BindBoss(Node bossNode, string displayName)
@@ -140,10 +169,11 @@ public partial class HUD
 		ShowNotificationToast(message, false);
 	}
 
-	public void NotifyArtifactCollected(string artifactName)
+	public void NotifyArtifactCollected(ArtifactRecord artifact)
 	{
-		AppendGameLog($"Artefato obtido: {artifactName}.");
-		ShowNotificationToast($"Artefato obtido: {artifactName}", true);
+		var displayName = ArtifactCatalog.DisplayNameFor(artifact);
+		AppendGameLog($"Artefato obtido: {displayName}.");
+		ShowNotificationToast(Localization.TextFormat("hud.toast.artifact", displayName), true);
 		RefreshCharacterSheet();
 	}
 
@@ -176,7 +206,7 @@ public partial class HUD
 		column.AddThemeConstantOverride("separation", UiMetrics.S1);
 		banner.AddChild(column);
 
-		column.AddChild(new Label
+		_roomClearTitle = new Label
 		{
 			Name = "RoomClearLabel",
 			Text = Localization.Text("hud.room_clear"),
@@ -184,16 +214,18 @@ public partial class HUD
 			Uppercase = true,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore
-		});
-		column.AddChild(new Label
+		};
+		column.AddChild(_roomClearTitle);
+		_roomClearSubtitle = new Label
 		{
 			// O portal só abre depois da recompensa (NotifyPortalOpened); aqui não se afirma que ele abriu.
 			Name = "RoomClearSubtitle",
-			Text = "Escolha sua recompensa",
+			Text = Localization.Text("hud.banner.choose_reward"),
 			ThemeTypeVariation = UiVariation.SecondaryLabel,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore
-		});
+		};
+		column.AddChild(_roomClearSubtitle);
 		_roomClearBanner = banner;
 	}
 
@@ -260,11 +292,11 @@ public partial class HUD
 	internal void PreviewToasts()
 	{
 		_lastToastText = null;
-		ShowNotificationToast("Artefato obtido: Cálice Rachado", true);
+		ShowNotificationToast(Localization.TextFormat("hud.toast.artifact", "Cálice Rachado"), true);
 		_lastToastText = null;
-		ShowNotificationToast("Raro: Sede Escarlate", true);
+		ShowNotificationToast(Localization.TextFormat("hud.toast.blessing", UiComponents.RarityLabel("rare"), "Sede Escarlate"), true);
 		_lastToastText = null;
-		ShowNotificationToast("Fúria Bestial ainda não está pronta (40/100).", false);
+		ShowNotificationToast(Localization.TextFormat("combat.fury.not_ready", 40, 100), false);
 		_toastStack?.ShowKill(_resourceFrame, 5);
 	}
 }

@@ -18,7 +18,13 @@ public partial class Health : Node
     public bool IsDead => CurrentHealth <= 0.0f;
     public int ShieldHits { get; set; }
     public bool LastDamageWasCritical { get; private set; }
-    public string LastDamageSource { get; private set; } = "Perigos do castelo";
+    // Causa exibida na morte. Fonte vazia = texto generico de world.json, resolvido na leitura
+    // (acompanha a troca de idioma). Fontes nao vazias sao guardadas como vieram (ex.: "abandon_run").
+    public string LastDamageSource => !string.IsNullOrWhiteSpace(_lastDamageSource)
+        ? _lastDamageSource
+        : _lastDeathWasForced ? Localization.Text("death.cause.sealed_fate") : Localization.Text("death.cause.castle_hazards");
+    private string _lastDamageSource = "";
+    private bool _lastDeathWasForced;
     public float LastDamageAmount { get; private set; }
 
     public override void _Ready()
@@ -55,13 +61,14 @@ public partial class Health : Node
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }
 
-    public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "Perigos do castelo")
+    public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "")
     {
         if (GetTree()?.Paused == true || IsDead || IsInvincible || amount <= 0.0f)
             return;
 
         LastDamageWasCritical = isCritical;
-        LastDamageSource = string.IsNullOrWhiteSpace(sourceName) ? "Perigos do castelo" : sourceName;
+        _lastDamageSource = sourceName ?? "";
+        _lastDeathWasForced = false;
 
         if (ShieldHits > 0)
         {
@@ -129,13 +136,14 @@ public partial class Health : Node
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }
 
-    public void ForceDeath(string sourceName = "Destino selado")
+    public void ForceDeath(string sourceName = "")
     {
         if (IsDead)
             return;
 
         LastDamageWasCritical = false;
-        LastDamageSource = string.IsNullOrWhiteSpace(sourceName) ? "Destino selado" : sourceName;
+        _lastDamageSource = sourceName ?? "";
+        _lastDeathWasForced = true;
         LastDamageAmount = CurrentHealth;
         CurrentHealth = 0.0f;
         if (GetParent()?.IsInGroup("player") == true) RunState.NotifyPlayerDamaged();

@@ -67,7 +67,7 @@ Confirme sempre no arquivo antes de citar:
 - **Implementação:**
   - Antes de criar conteúdo, leia o guia `.codex/skills/vp-create-*` do tipo.
   - Uma entrada no JSON **não** é implementação: o efeito precisa ser consumido em C#.
-  - Siga as convenções do perfil: indentação do arquivo editado, `_camelCase`, textos em `game_texts.json` nos 3 idiomas, IDs de save estáveis.
+  - Siga as convenções do perfil: indentação do arquivo editado, `_camelCase`, textos em `data/localization/<idioma>/*.json` nos 3 idiomas (`py tools/validate_localization.py`), IDs de save estáveis.
   - Renomear métodos chamados por `CallGroup` quebra em runtime. Procure com `rg` antes.
 - **Verificação** (rode tudo o que se aplicar à mudança):
   - `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py`

@@ -57,7 +57,7 @@ public partial class HUD
 	private void BuildArtifactChestOverlay(Control root)
 	{
 		_artifactChestWindow = UiComponents.Window(root, "ArtifactChestOverlay", WindowSize.Large,
-			UiComponents.TextOr("chest.title", "Baú de Artefatos"));
+			Localization.Text("chest.title"));
 		_artifactChestOverlay = _artifactChestWindow.Root;
 		_artifactChestOverlay.Visible = false;
 
@@ -69,7 +69,7 @@ public partial class HUD
 		var slotColumn = new VBoxContainer { Name = "ArtifactSlots", CustomMinimumSize = new Vector2(ArtifactSlotColumnWidth, 0.0f) };
 		slotColumn.AddThemeConstantOverride("separation", UiMetrics.S2);
 		columns.AddChild(slotColumn);
-		slotColumn.AddChild(UiComponents.MakeLabel(UiComponents.TextOr("chest.equipped", "Equipados"), UiVariation.SectionGoldLabel));
+		slotColumn.AddChild(UiComponents.MakeLabel(Localization.Text("chest.equipped"), UiVariation.SectionGoldLabel));
 
 		for (var i = 0; i < _artifactSlotButtons.Length; i++)
 		{
@@ -90,7 +90,7 @@ public partial class HUD
 			slotColumn.AddChild(button);
 		}
 
-		_artifactUnequipButton = UiComponents.MenuButton(UiComponents.TextOr("chest.unequip", "Remover do slot"),
+		_artifactUnequipButton = UiComponents.MenuButton(Localization.Text("chest.unequip"),
 			UnequipSelectedArtifactSlot, ButtonVariant.Secondary, ButtonSize.Small);
 		_artifactUnequipButton.Name = "ArtifactUnequipButton";
 		_artifactUnequipButton.CustomMinimumSize = new Vector2(ArtifactSlotColumnWidth, UiMetrics.ButtonS);
@@ -106,7 +106,7 @@ public partial class HUD
 		};
 		collectionColumn.AddThemeConstantOverride("separation", UiMetrics.S2);
 		columns.AddChild(collectionColumn);
-		collectionColumn.AddChild(UiComponents.MakeLabel(UiComponents.TextOr("chest.collection", "Coleção"), UiVariation.SectionGoldLabel));
+		collectionColumn.AddChild(UiComponents.MakeLabel(Localization.Text("chest.collection"), UiVariation.SectionGoldLabel));
 		var scroll = UiComponents.ScrollList(0.0f, out _artifactCollectionList);
 		scroll.Name = "ArtifactCollectionScroll";
 		_artifactCollectionList.AddThemeConstantOverride("separation", UiMetrics.S2);
@@ -119,8 +119,8 @@ public partial class HUD
 		_artifactChestWindow.Body.AddChild(_artifactChestDetail.Root);
 
 		var footer = _artifactChestWindow.Footer;
-		footer.Add(UiAction.Cancel, UiComponents.TextOr("ui.common.close", "Fechar"), CloseArtifactChest, left: true);
-		footer.Add(UiAction.Accept, UiComponents.TextOr("chest.hint_accept", "Selecionar / Equipar"));
+		footer.Add(UiAction.Cancel, Localization.Text("ui.common.close"), CloseArtifactChest, left: true);
+		footer.Add(UiAction.Accept, Localization.Text("chest.hint_accept"));
 	}
 
 	// ---------- Ações ----------
@@ -135,10 +135,10 @@ public partial class HUD
 		var target = PreferredArtifactCollectionButton();
 		if (target == null)
 		{
-			SetArtifactChestStatus(UiComponents.TextOr("chest.nothing_to_equip", "Nenhum artefato da coleção permanente para equipar."));
+			SetArtifactChestStatus(Localization.Text("chest.nothing_to_equip"));
 			return;
 		}
-		SetArtifactChestStatus(UiComponents.TextOr("chest.pick_artifact", "Escolha um artefato da coleção para o slot {0}.").Replace("{0}", (slotIndex + 1).ToString()));
+		SetArtifactChestStatus(Localization.TextFormat("chest.pick_artifact", (slotIndex + 1).ToString()));
 		target.GrabFocus();
 	}
 
@@ -146,18 +146,19 @@ public partial class HUD
 	{
 		if (entry.FromRun)
 		{
-			SetArtifactChestStatus(UiComponents.TextOr("chest.run_only", "Artefato da run atual: só os da coleção permanente podem ser equipados."));
+			SetArtifactChestStatus(Localization.Text("chest.run_only"));
 			return;
 		}
 
 		var artifactName = entry.Record.Name;
+		var displayName = ArtifactCatalog.DisplayNameFor(entry.Record);
 		if (!EquipChestArtifact(_selectedArtifactSlot, artifactName))
 		{
-			SetArtifactChestStatus($"Não foi possível equipar {artifactName}.");
+			SetArtifactChestStatus(Localization.TextFormat("chest.equip_failed", displayName));
 			return;
 		}
 
-		SetArtifactChestStatus($"{artifactName} equipado no slot {_selectedArtifactSlot + 1}.");
+		SetArtifactChestStatus(Localization.TextFormat("chest.equipped_message", displayName, _selectedArtifactSlot + 1));
 		RefreshArtifactChest();
 		if (!_artifactChestPreviewMode)
 			RefreshCharacterSheet();
@@ -172,7 +173,7 @@ public partial class HUD
 		else
 			CharacterSheet.UnequipArtifact(_selectedArtifactSlot);
 
-		SetArtifactChestStatus($"Slot {_selectedArtifactSlot + 1} vazio.");
+		SetArtifactChestStatus(Localization.TextFormat("chest.slot_emptied", _selectedArtifactSlot + 1));
 		RefreshArtifactChest();
 		if (!_artifactChestPreviewMode)
 			RefreshCharacterSheet();
@@ -188,7 +189,7 @@ public partial class HUD
 	private void SetArtifactChestStatus(string text)
 	{
 		_artifactChestWindow?.SetStatus(string.IsNullOrEmpty(text)
-			? UiComponents.TextOr("chest.subtitle", "Escolha um slot e equipe um artefato da coleção para as próximas runs.")
+			? Localization.Text("chest.subtitle")
 			: text);
 	}
 
@@ -227,7 +228,7 @@ public partial class HUD
 			button.AddChild(row);
 
 			var entry = FindArtifactChestEntry(GetChestEquippedName(i));
-			var name = entry?.Definition?.DisplayName ?? entry?.Record.Name;
+			var name = entry?.Definition?.DisplayName ?? (entry != null ? ArtifactCatalog.DisplayNameFor(entry.Record) : null);
 			row.AddChild(entry != null
 				? UiComponents.IconOrMonogram(LoadArtifactIcon(entry.Definition), name, UiMetrics.IconM)
 				: EmptyArtifactSlotIcon());
@@ -241,9 +242,9 @@ public partial class HUD
 			text.AddThemeConstantOverride("separation", UiMetrics.S1);
 			row.AddChild(text);
 			var badgeRow = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-			badgeRow.AddChild(UiComponents.Badge($"Slot {i + 1}", i == _selectedArtifactSlot ? UiPalette.Gold : UiPalette.PanelInset));
+			badgeRow.AddChild(UiComponents.Badge(Localization.TextFormat("ui.artifact_slot.number", i + 1), i == _selectedArtifactSlot ? UiPalette.Gold : UiPalette.PanelInset));
 			text.AddChild(badgeRow);
-			var nameLabel = MakeArtifactChestLabel(name ?? UiComponents.TextOr("chest.empty_slot", "Vazio"), UiVariation.BodyLabel);
+			var nameLabel = MakeArtifactChestLabel(name ?? Localization.Text("chest.empty_slot"), UiVariation.BodyLabel);
 			nameLabel.AddThemeColorOverride("font_color", entry == null
 				? UiPalette.TextDisabled
 				: UiPalette.Rarity(entry.Definition?.Rarity));
@@ -266,7 +267,7 @@ public partial class HUD
 		{
 			_artifactCollectionList.AddChild(new Label
 			{
-				Text = UiComponents.TextOr("chest.empty", "Nenhum artefato encontrado nesta run ou na coleção permanente."),
+				Text = Localization.Text("chest.empty"),
 				ThemeTypeVariation = UiVariation.SecondaryLabel,
 				HorizontalAlignment = HorizontalAlignment.Center,
 				AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -305,7 +306,7 @@ public partial class HUD
 		row.OffsetRight = -UiMetrics.S3;
 		button.AddChild(row);
 
-		var name = entry.Definition?.DisplayName ?? entry.Record.Name;
+		var name = entry.Definition?.DisplayName ?? ArtifactCatalog.DisplayNameFor(entry.Record);
 		row.AddChild(UiComponents.IconOrMonogram(LoadArtifactIcon(entry.Definition), name, UiMetrics.IconM));
 
 		var text = new VBoxContainer
@@ -328,11 +329,11 @@ public partial class HUD
 			titleRow.AddChild(ShrinkBadge(UiComponents.Badge(UiComponents.RarityLabel(entry.Definition.Rarity), UiPalette.Rarity(entry.Definition.Rarity))));
 		// Selos de origem com fundo visível, como os demais (PanelInset some sobre a linha).
 		titleRow.AddChild(ShrinkBadge(entry.FromRun
-			? UiComponents.Badge(UiComponents.TextOr("chest.origin_run", "Run"), UiPalette.DecorCrimson, UiPalette.TextPrimary)
-			: UiComponents.Badge(UiComponents.TextOr("chest.origin_collection", "Coleção"), UiPalette.GoldDim, UiPalette.TextPrimary)));
+			? UiComponents.Badge(Localization.Text("chest.origin_run"), UiPalette.DecorCrimson, UiPalette.TextPrimary)
+			: UiComponents.Badge(Localization.Text("chest.origin_collection"), UiPalette.GoldDim, UiPalette.TextPrimary)));
 		var equippedSlot = FindEquippedChestSlot(entry.Record.Name);
 		if (!entry.FromRun && equippedSlot >= 0)
-			titleRow.AddChild(ShrinkBadge(UiComponents.Badge($"Slot {equippedSlot + 1}", UiPalette.Gold)));
+			titleRow.AddChild(ShrinkBadge(UiComponents.Badge(Localization.TextFormat("ui.artifact_slot.number", equippedSlot + 1), UiPalette.Gold)));
 
 		text.AddChild(MakeArtifactChestLabel(ArtifactEntryEffects(entry), UiVariation.SecondaryLabel));
 		return button;
@@ -393,18 +394,18 @@ public partial class HUD
 			_artifactChestDetail.Show(new DetailData
 			{
 				IconText = (slotIndex + 1).ToString(),
-				Title = $"Slot {slotIndex + 1}",
-				Meta = UiComponents.TextOr("chest.empty_slot", "Vazio"),
-				BodyBbcode = UiComponents.TextOr("chest.empty_slot_body", "Nenhum artefato equipado. Selecione o slot e escolha um artefato da coleção."),
-				ActionText = UiComponents.TextOr("chest.choose_artifact", "Escolher artefato"),
+				Title = Localization.TextFormat("ui.artifact_slot.number", slotIndex + 1),
+				Meta = Localization.Text("chest.empty_slot"),
+				BodyBbcode = Localization.Text("chest.empty_slot_body"),
+				ActionText = Localization.Text("chest.choose_artifact"),
 				ActionGlyph = UiAction.Accept
 			});
 			return;
 		}
 
 		var data = BuildArtifactChestDetail(entry);
-		data.Meta = $"Slot {slotIndex + 1} · {data.Meta}";
-		data.ActionText = UiComponents.TextOr("chest.swap_artifact", "Trocar artefato");
+		data.Meta = $"{Localization.TextFormat("ui.artifact_slot.number", slotIndex + 1)} · {data.Meta}";
+		data.ActionText = Localization.Text("chest.swap_artifact");
 		data.ActionGlyph = UiAction.Accept;
 		_artifactChestDetail.Show(data);
 	}
@@ -417,7 +418,7 @@ public partial class HUD
 		var data = BuildArtifactChestDetail(entry);
 		if (!entry.FromRun)
 		{
-			data.ActionText = UiComponents.TextOr("chest.equip_in_slot", "Equipar no slot {0}").Replace("{0}", (_selectedArtifactSlot + 1).ToString());
+			data.ActionText = Localization.TextFormat("chest.equip_in_slot", (_selectedArtifactSlot + 1).ToString());
 			data.ActionGlyph = UiAction.Accept;
 		}
 		_artifactChestDetail.Show(data);
@@ -426,14 +427,14 @@ public partial class HUD
 	private DetailData BuildArtifactChestDetail(ArtifactChestEntry entry)
 	{
 		var origin = entry.FromRun
-			? UiComponents.TextOr("chest.origin_run_long", "Run atual")
-			: UiComponents.TextOr("chest.origin_collection_long", "Coleção permanente");
+			? Localization.Text("chest.origin_run_long")
+			: Localization.Text("chest.origin_collection_long");
 		var definition = entry.Definition;
 		if (definition == null)
 		{
 			return new DetailData
 			{
-				Title = entry.Record.Name,
+				Title = ArtifactCatalog.DisplayNameFor(entry.Record),
 				Meta = $"{ArtifactSlotText(entry.Record.Slot)} · {origin}",
 				BodyBbcode = EscapeArtifactBbcode(ArtifactEntryEffects(entry))
 			};

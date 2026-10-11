@@ -612,7 +612,7 @@ public partial class BloodBlessingRuntime : Node
             foreach (var node in GetTree().GetNodesInGroup("enemies"))
             {
                 if (node is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(position) > radius) continue;
-                enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(damagePerSecond, false, "Nuvem de Pestilência");
+                enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(damagePerSecond, false, Localization.Text("blessing.damage_source.pestilence_cloud"));
             }
             await ToSignal(GetTree().CreateTimer(1.0f), SceneTreeTimer.SignalName.Timeout);
             elapsed += 1.0f;

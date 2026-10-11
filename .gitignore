@@ -18,3 +18,10 @@ Thumbs.db
 # Material arquivado fora do projeto (modelos de referencia e capturas de outros jogos)
 /3d/
 /references/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs de execucao do orch (runtime)
+/.claude/orch/execucoes/

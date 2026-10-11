@@ -6,7 +6,8 @@ public partial class EnemyProjectile : Node3D
     public Vector3 SpawnPosition { get; set; }
     public float Speed { get; set; } = 5.2f;
     public float Damage { get; set; } = 10.0f;
-    public string SourceName { get; set; } = "Disparo inimigo";
+    // Nome da fonte de dano (causa da morte). Vazio = texto generico localizado no momento do impacto.
+    public string SourceName { get; set; } = "";
     public Rid OwnerRid { get; set; }
 
     public override void _Ready()
@@ -87,7 +88,7 @@ public partial class EnemyProjectile : Node3D
         {
             var collider = collision["collider"].AsGodotObject() as Node;
             if (collider?.IsInGroup("player") == true)
-                collider.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, SourceName);
+                collider.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, ResolveSourceName());
             QueueFree();
             return;
         }
@@ -96,7 +97,7 @@ public partial class EnemyProjectile : Node3D
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
         if (player != null && SegmentDistanceToPlayer(from, to, player.GlobalPosition) <= 0.82f)
         {
-            player.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, SourceName);
+            player.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, ResolveSourceName());
             QueueFree();
             return;
         }
@@ -114,4 +115,6 @@ public partial class EnemyProjectile : Node3D
             : Mathf.Clamp((playerPosition - from).Dot(segment) / lengthSquared, 0.0f, 1.0f);
         return playerPosition.DistanceTo(from + segment * progress);
     }
+
+    private string ResolveSourceName() => string.IsNullOrWhiteSpace(SourceName) ? Localization.Text("enemy.damage.projectile") : SourceName;
 }

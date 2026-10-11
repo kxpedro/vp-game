@@ -11,7 +11,9 @@ public partial class ScenePortal : Area3D
     }
 
     [Export(PropertyHint.File, "*.tscn")] public string TargetScenePath { get; set; } = "";
-    [Export] public string PromptText { get; set; } = "Atravessar o portal";
+    // Texto do prompt ou chave de data/localization/<idioma>/*.json (resolvida na exibição e na troca de idioma).
+    // Vazio = "portal.default".
+    [Export] public string PromptText { get; set; } = "";
     [Export] public bool StartsEnabled { get; set; } = true;
     [Export] public RunPortalAction PortalAction { get; set; } = RunPortalAction.None;
 
@@ -26,6 +28,27 @@ public partial class ScenePortal : Area3D
         BodyExited += OnBodyExited;
         CreatePromptLabel();
         UpdatePromptVisibility();
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
+    }
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(string language)
+    {
+        if (_promptLabel != null)
+            InteractPrompt.SetText(_promptLabel, ResolvePromptText());
+    }
+
+    private string ResolvePromptText()
+    {
+        if (string.IsNullOrEmpty(PromptText))
+            return Localization.Text("portal.default");
+        return Localization.Has(PromptText) ? Localization.Text(PromptText) : PromptText;
     }
 
     public override void _Process(double delta)
@@ -47,7 +70,7 @@ public partial class ScenePortal : Area3D
         PortalAction = portalAction;
 
         if (_promptLabel != null)
-            InteractPrompt.SetText(_promptLabel, PromptText);
+            InteractPrompt.SetText(_promptLabel, ResolvePromptText());
     }
 
     public void SetPortalEnabled(bool isEnabled)
@@ -59,7 +82,7 @@ public partial class ScenePortal : Area3D
     private void CreatePromptLabel()
     {
         // Sem título no portal (salas da run): prompt acima do lintel (~2,9 m). No hub, ancora no título irmão.
-        _promptLabel = InteractPrompt.CreatePrompt(this, PromptText, 3.2f);
+        _promptLabel = InteractPrompt.CreatePrompt(this, ResolvePromptText(), 3.2f);
         InteractPrompt.StyleSiblingTitlesAndAnchor(this, _promptLabel);
     }
 

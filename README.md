@@ -21,7 +21,7 @@ Vampire's Prey é um roguelite de ação 3D com câmera isométrica, ambientaç�
 - personagem, inimigos, bosses, armas e partes dos cenários usam assets 3D externos com origem e licença registradas;
 - áudio de combate diferencia cortes, estocada, rodopio, batida no chão, impacto corporal, ataque pelas costas, parede e esquiva;
 - três slots de save, progressão permanente Bestialis/Humanitas e configurações globais;
-- localização centralizada com `pt-BR` como idioma padrão;
+- localização em português (`pt-BR`, idioma padrão e fallback), inglês (`en`) e espanhol (`es`), com textos separados do código em `data/localization/`;
 - exportação Windows self-contained para Godot .NET.
 
 As mudanças de combate, interface, inimigos, bênçãos e fluxo de campanha estão detalhadas em [`docs/gameplay_systems.md`](docs/gameplay_systems.md).
@@ -32,7 +32,7 @@ As mudanças de combate, interface, inimigos, bênçãos e fluxo de campanha est
 - .NET 8;
 - C#;
 - Jolt Physics;
-- catálogos JSON para habilidades, bênçãos, artefatos e localização.
+- catálogos JSON para habilidades, bênçãos e artefatos (só IDs e números) e arquivos JSON de textos por idioma.
 
 ## Como executar
 
@@ -55,8 +55,25 @@ No Windows, `jogar.bat` inicia o projeto pelo Godot sem abrir o editor.
 dotnet build VP0.1.sln
 py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py
 py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py
+py tools/validate_localization.py
 godot --headless --path . --quit-after 180 res://scenes/game/TestArena.tscn
 ```
+
+`validate_localization.py` confere paridade de chaves entre os três idiomas, placeholders, JSON válido e se as chaves literais usadas no C# existem; os validadores de bênçãos e artefatos também conferem as chaves de `content.json`. Erros devolvem código de saída 1; avisos não.
+
+### Pré-visualização de telas (build de debug)
+
+Em build de debug, `scripts/ui/UiPreview.cs` abre uma tela de UI com dados fictícios, sem gravar nada. Os argumentos de usuário vêm depois de `--`:
+
+```bash
+# uma tela, em um idioma e com glifos de Xbox
+godot --path . res://scenes/game/CrowsNest.tscn -- --ui-preview=blood_fountain --ui-lang=en --ui-device=xbox
+
+# lote: um único processo percorre telas x idiomas e grava um PNG por combinação
+godot --path . --resolution 1600x900 -- --ui-batch --ui-shots=C:/tmp/shots --ui-langs=pt-BR,en,es --ui-screens=pause,compendium
+```
+
+Opções: `--ui-preview=<tela>`, `--ui-lang=pt-BR|en|es`, `--ui-device=kbm|xbox|ps`, `--ui-tab=<aba>` (compêndio e ficha), `--ui-codex-locked[=sample]` (Dicionário na visão de release) e, no lote, `--ui-batch`, `--ui-shots=<pasta>` (padrão `user://ui_shots`), `--ui-langs=` e `--ui-screens=`. O lote recarrega a cena entre uma captura e outra, em vez de abrir o jogo uma vez por tela. A lista de telas está no cabeçalho de `UiPreview.cs`.
 
 ## Controles
 
@@ -108,12 +125,29 @@ Raridade e nível de bênção são progressões independentes. A raridade sorte
 .codex/      skills locais e validadores dos catálogos
 assets/      pacotes externos com licença e origem registradas
 audio/       músicas, ambientes e efeitos sonoros
-data/        skills, bênçãos, artefatos e localização
+data/        skills, bênçãos e artefatos (IDs e números) e localization/<idioma>/ (textos)
 docs/        documentação técnica
 images/      interface, ícones e efeitos
 scenes/      cenas do Godot
 scripts/     código C# de gameplay e sistemas
+tools/       validador de localização
 ```
+
+## Localização
+
+Todo texto exibido vem de `data/localization/<idioma>/` (idiomas `pt-BR`, `en` e `es`), em arquivos JSON planos no formato `"chave": "texto"`:
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `ui.json` | interface: menus, HUD, opções, prompts e portais (`portal.*`) |
+| `content.json` | bênçãos, artefatos, skills, armas e nomes de efeitos (`blessing.<id>.name/.desc/.flavor`, `artifact.<id>...`, `skill.<id>...`, `weapon.<arma>...`) |
+| `world.json` | bosses e golpes, mapas, inimigos e mensagens de combate |
+
+`scripts/systems/Localization.cs` (autoload) carrega todos os `.json` da pasta de cada idioma. Uma chave é resolvida no idioma atual, depois em `pt-BR` e, por último, aparece como a própria chave (com aviso em build de debug, uma vez por chave). Uso no C#: `Localization.Text(chave)`, `Localization.TextFormat(chave, args)` (um `string.Format` com tradução malformada não derruba o jogo) e `Localization.Has(chave)`. O sinal `LanguageChanged` faz overlays e rótulos 3D se atualizarem na hora. A cultura da sessão acompanha o idioma: `en` usa ponto decimal; `pt-BR` e `es` usam vírgula.
+
+Os catálogos `blood_blessings.json`, `artifacts.json` e `skills.json` guardam só IDs e números. Descrições de bênção usam `{n}` (valor do efeito n) e `[kw=<id>]termo[/kw]` para palavras-chave. Cada artefato tem um `saveName`, identificador legado gravado nos saves: nunca o altere.
+
+Para adicionar um texto, crie a chave nos três idiomas (o validador cobra paridade) e rode `py tools/validate_localization.py`. Termos de referência: `docs/design/glossario-localizacao.json`. Para um idioma novo, é preciso mexer em `Localization.Languages` e `NormalizeLanguage`, no seletor de idioma de `UiComponents.OptionsPanel` (que hoje tem três opções fixas), e nas listas `LANGUAGES` dos três validadores Python; depois crie a pasta com `ui.json`, `content.json` e `world.json`. Textos só de debug (log de eventos, seção DEV, linhas "Prévia:" dos previews) podem ficar literais.
 
 Cenas principais:
 
@@ -145,6 +179,7 @@ Mais detalhes em [`docs/build_and_export.md`](docs/build_and_export.md).
 
 - [`docs/initialization.md`](docs/initialization.md): snapshot técnico para novas sessões;
 - [`docs/gameplay_systems.md`](docs/gameplay_systems.md): controles, combate, HUD, inimigos, bênçãos e salas especiais;
+- [`docs/design/ui-guia.md`](docs/design/ui-guia.md): guia de estilo e especificação das telas de UI, com os previews em lote;
 - [`docs/room_generation.md`](docs/room_generation.md): campanha, geração procedural e waves;
 - [`docs/character_asset.md`](docs/character_asset.md): estado do visual provisório e catálogo do asset arquivado;
 - [`docs/build_and_export.md`](docs/build_and_export.md): build e exportação;

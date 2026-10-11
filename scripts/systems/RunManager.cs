@@ -1,4 +1,6 @@
 using Godot;
+using System;
+using System.Collections.Generic;
 
 public partial class RunManager : Node3D
 {
@@ -33,10 +35,14 @@ public partial class RunManager : Node3D
     private int _pendingBloodCoins;
     private readonly RandomNumberGenerator _rng = new();
     private bool _roomConfigured;
+    // Rotulos 3D com texto de world.json; reescritos quando o idioma muda.
+    private readonly List<(Label3D Label, Func<string> Text)> _localizedLabels = new();
 
     public override void _Ready()
     {
         AddToGroup("run_manager");
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
         _rng.Randomize();
         _exitPortal = GetNodeOrNull<Node3D>(ExitPortalPath);
         _scenePortal = _exitPortal?.GetNodeOrNull<ScenePortal>("PortalArea");
@@ -58,6 +64,21 @@ public partial class RunManager : Node3D
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
         GetTree().CallGroup("hud", "SyncBloodCoins", BloodCoins);
         GetTree().CallGroup("hud", "SyncEnemyProgress", DefeatedEnemies, TotalEnemies);
+    }
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(string language)
+    {
+        foreach (var (label, text) in _localizedLabels)
+        {
+            if (IsInstanceValid(label))
+                label.Text = text();
+        }
     }
 
     public override void _Process(double delta)
@@ -176,7 +197,7 @@ public partial class RunManager : Node3D
 
         ApplyCommonEnemyTuning(enemies);
 
-        CreateRoomLabel($"{RunState.CurrentMap.Name} - Sala {RunState.CurrentRoom}/{RunState.CurrentMap.CommonRoomCount}");
+        CreateRoomLabel(() => Localization.TextFormat("room.label.common", RunState.CurrentMap.Name, RunState.CurrentRoom, RunState.CurrentMap.CommonRoomCount));
     }
 
     private static readonly StringName CommonTuningAppliedMeta = "common_tuning_applied";
@@ -248,7 +269,7 @@ public partial class RunManager : Node3D
             }
         }
 
-        CreateRoomLabel($"Chefe de {RunState.CurrentMap.Name} - {BossCatalog.Get(RunState.CurrentMapIndex).DisplayName}");
+        CreateRoomLabel(() => Localization.TextFormat("room.label.boss", RunState.CurrentMap.Name, BossCatalog.Get(RunState.CurrentMapIndex).DisplayName));
     }
 
     private void ConfigureExitPortal()
@@ -261,9 +282,8 @@ public partial class RunManager : Node3D
             var destination = RunState.IsFinalMap
                 ? "res://scenes/game/CrowsNest.tscn"
                 : "res://scenes/game/IntermissionChamber.tscn";
-            var prompt = RunState.IsFinalMap
-                ? Localization.Text("portal.finish_campaign")
-                : "Interagir — entrar na Câmara de Hemomancia";
+            // Chave (não o texto): o ScenePortal resolve na exibição e acompanha a troca de idioma.
+            var prompt = RunState.IsFinalMap ? "portal.finish_campaign" : "portal.hemomancy_chamber";
             _scenePortal.ConfigureDestination(
                 destination,
                 prompt,
@@ -274,7 +294,7 @@ public partial class RunManager : Node3D
 
         _scenePortal.ConfigureDestination(
             "res://scenes/game/TestArena.tscn",
-            Localization.Text("portal.next_room"),
+            "portal.next_room",
             ScenePortal.RunPortalAction.AdvanceRoom
         );
     }
@@ -293,7 +313,7 @@ public partial class RunManager : Node3D
         {
             Name = "BossArtifactAltar",
             Position = _roomGenerator?.GetArtifactSpawnPosition() ?? new Vector3(_rng.RandfRange(-5.0f, 5.0f), 0.35f, _rng.RandfRange(-5.0f, 5.0f)),
-            ArtifactName = "Altar de Artefatos"
+            ArtifactName = Localization.Text("room.artifact_altar.title")
         };
         AddChild(artifact);
 
@@ -345,9 +365,10 @@ public partial class RunManager : Node3D
         var altarTitle = new Label3D
         {
             Name = "AltarTitle",
-            Text = UiComponents.TextOr("room.artifact_altar.title", "Altar de Artefatos"),
+            Text = Localization.Text("room.artifact_altar.title"),
             Position = Vector3.Up * InteractPrompt.TitleMinHeight
         };
+        _localizedLabels.Add((altarTitle, () => Localization.Text("room.artifact_altar.title")));
         InteractPrompt.StyleTitle(altarTitle);
         artifact.AddChild(altarTitle);
 
@@ -359,15 +380,16 @@ public partial class RunManager : Node3D
         artifact.AddChild(collision);
     }
 
-    private void CreateRoomLabel(string text)
+    private void CreateRoomLabel(Func<string> text)
     {
         // Título de lugar em Gold, não vermelho (guia §2.2: vermelho vivo só para perigo).
         var label = new Label3D
         {
             Name = "RoomTitle",
-            Text = text,
+            Text = text(),
             Position = new Vector3(0.0f, 2.2f, -7.7f)
         };
+        _localizedLabels.Add((label, text));
         InteractPrompt.StyleTitle(label);
         AddChild(label);
     }

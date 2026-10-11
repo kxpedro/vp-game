@@ -42,8 +42,10 @@ public sealed record AttackControlProfile(
     public static AttackControlProfile Default { get; } = new();
 }
 
+// NameKey: chave em content.json (weapon.<arma>.<golpe>.name). Name resolve no idioma atual; se receber um texto
+// que não é chave (ex.: golpe recriado com o Name já traduzido), devolve o próprio texto.
 public sealed record WeaponAttackDefinition(
-    string Name,
+    string NameKey,
     float Damage,
     float HitDelay,
     float Recovery,
@@ -54,12 +56,14 @@ public sealed record WeaponAttackDefinition(
     WeaponAttackShape Shape = WeaponAttackShape.Arc,
     float StaggerDuration = 0.24f,
     AttackControlProfile Control = null
-);
+)
+{
+    public string Name => Localization.Has(NameKey) ? Localization.Text(NameKey) : NameKey ?? "";
+}
 
+// Nome e descrição vêm de content.json: weapon.<id>.name e weapon.<id>.desc.
 public sealed record WeaponDefinition(
     string Id,
-    string DisplayName,
-    string Description,
     WeaponAttackDefinition[] BasicCombo,
     WeaponAttackDefinition QuickAttack,
     WeaponAttackDefinition SpecialAttack,
@@ -77,4 +81,8 @@ public sealed record WeaponDefinition(
     float SpecialAttackCooldown = 0.26f,
     // false = arma placeholder (WeaponCatalog.Placeholder): sem moveset próprio, só aparece como "Em breve".
     bool IsImplemented = true
-);
+)
+{
+    public string DisplayName => Localization.Text($"weapon.{Id}.name");
+    public string Description => Localization.Text($"weapon.{Id}.desc");
+}

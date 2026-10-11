@@ -183,13 +183,13 @@ public partial class PlayerCombat : Node
 	{
 		if (RunState.GetEffectTotal("UnlockBestialFury.Flat") <= 0.0f)
 		{
-			GetTree().CallGroup("hud", "NotifySkillMessage", "Furia Bestial requer uma Bencao de Sangue que a desperte.");
+			GetTree().CallGroup("hud", "NotifySkillMessage", Localization.Text("combat.fury.locked"));
 			return;
 		}
 		if (_isAttacking && !TryCancelCurrentAttack(AttackCancelAction.Special))
 			return;
 		if (!TryActivateFury())
-			GetTree().CallGroup("hud", "NotifySkillMessage", $"Furia Bestial ainda nao esta pronta ({Mathf.RoundToInt(CurrentFury)}/{Mathf.RoundToInt(MaxFury)}).");
+			GetTree().CallGroup("hud", "NotifySkillMessage", Localization.TextFormat("combat.fury.not_ready", Mathf.RoundToInt(CurrentFury), Mathf.RoundToInt(MaxFury)));
 	}
 
 	public bool TryReleaseQueuedQuickAttack(Vector3 dashDirection)
@@ -497,7 +497,7 @@ public partial class PlayerCombat : Node
 			var isBackstab = enemyNode is EnemyBasic backstabTarget && backstabTarget.IsAttackedFromBehind(player.GlobalPosition);
 			if (isBackstab) finalDamage *= EquippedWeapon.BackstabDamageMultiplier;
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
-			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? "Ataque pelas costas" : attack.Name);
+			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? EnemyBasic.BackstabDamageSource : attack.Name);
 			if (enemyNode is EnemyBasic hitEnemy)
 			{
 				hitEnemy.ApplyStagger(attack.StaggerDuration);
@@ -556,7 +556,7 @@ public partial class PlayerCombat : Node
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
-			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? "Ataque pelas costas" : attackType == PlayerAttackType.Special ? EquippedSpecialName : EquippedWeapon.QuickAttack.Name);
+			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? EnemyBasic.BackstabDamageSource : attackType == PlayerAttackType.Special ? EquippedSpecialName : EquippedWeapon.QuickAttack.Name);
 			if (enemyNode is EnemyBasic hitEnemy)
 			{
 				hitEnemy.ApplyStagger(attack.StaggerDuration);
@@ -1166,7 +1166,7 @@ void fragment() {
 	private WeaponAttackDefinition GetTunedAttack(WeaponAttackDefinition attack, string keyPrefix)
 	{
 		return new WeaponAttackDefinition(
-			attack.Name,
+			attack.NameKey,
 			CompendiumTuning.GetFloat($"{keyPrefix}.damage", attack.Damage),
 			CompendiumTuning.GetFloat($"{keyPrefix}.hit_delay", attack.HitDelay),
 			CompendiumTuning.GetFloat($"{keyPrefix}.recovery", attack.Recovery),

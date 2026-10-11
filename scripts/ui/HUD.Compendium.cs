@@ -2,7 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 // Dicionário / compêndio (guia de UI §8.12, decisão D2): diário de descobertas.
 // Release: o que não foi descoberto aparece bloqueado ("???"). Debug: tudo visível, com ID e editores de tuning numa seção DEV.
@@ -12,7 +11,6 @@ public partial class HUD
 {
 	// IDs de aba (persistem em --ui-tab e no _selectedCompendiumTab; não renomear).
 	private static readonly string[] CompendiumTabIds = { "Artifacts", "Blessings", "Skills", "Attacks", "Enemies", "Weapons" };
-	private static readonly string[] CompendiumTabLabels = { "Artefatos", "Bênçãos", "Habilidades", "Ataques", "Inimigos", "Armas" };
 	private const float CompendiumDetailWidth = 560.0f;
 	private const float CompendiumRowHeight = 64.0f;
 	private const double CompendiumApplyDelay = 0.2;
@@ -62,7 +60,7 @@ public partial class HUD
 	{
 		ReadCompendiumPreviewArguments();
 
-		_compendiumWindow = UiComponents.Window(root, "CompendiumOverlay", WindowSize.Full, UiComponents.TextOr("codex.title", "Dicionário"));
+		_compendiumWindow = UiComponents.Window(root, "CompendiumOverlay", WindowSize.Full, Localization.Text("codex.title"));
 		_compendiumOverlay = _compendiumWindow.Root;
 		_compendiumOverlay.Visible = false;
 		_compendiumStatusLabel = _compendiumWindow.Status;
@@ -83,7 +81,11 @@ public partial class HUD
 
 		var body = _compendiumWindow.Body;
 
-		_compendiumTabs = UiComponents.Tabs(CompendiumTabLabels, OnCompendiumTabChanged);
+		_compendiumTabs = UiComponents.Tabs(new[]
+		{
+			Localization.Text("codex.tab.artifacts"), Localization.Text("codex.tab.blessings"), Localization.Text("codex.tab.skills"),
+			Localization.Text("codex.tab.attacks"), Localization.Text("codex.tab.enemies"), Localization.Text("codex.tab.weapons")
+		}, OnCompendiumTabChanged);
 		_compendiumTabs.Root.Name = "CompendiumTabs";
 		_compendiumTabs.Root.Alignment = BoxContainer.AlignmentMode.Center;
 		body.AddChild(_compendiumTabs.Root);
@@ -126,8 +128,8 @@ public partial class HUD
 		split.AddChild(_compendiumDetail.Root);
 
 		var footer = _compendiumWindow.Footer;
-		footer.Add(UiAction.Cancel, "Fechar", CloseCompendium, left: true);
-		footer.Add(UiAction.Scroll, "Rolar detalhes");
+		footer.Add(UiAction.Cancel, Localization.Text("ui.common.close"), CloseCompendium, left: true);
+		footer.Add(UiAction.Scroll, Localization.Text("sheet.hint.scroll_detail"));
 		if (CompendiumShowDev)
 		{
 			var devTools = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -312,7 +314,7 @@ public partial class HUD
 		}
 
 		if (_compendiumRows.Count == 0)
-			_compendiumList.AddChild(UiComponents.MakeLabel("Nada registrado nesta aba.", UiVariation.SecondaryLabel));
+			_compendiumList.AddChild(UiComponents.MakeLabel(Localization.Text("codex.empty_tab"), UiVariation.SecondaryLabel));
 
 		LinkCompendiumRowFocus();
 		if (hadFocus)
@@ -371,7 +373,7 @@ public partial class HUD
 			name.AddThemeColorOverride("font_color", UiPalette.Rarity(entry.RarityId));
 		text.AddChild(name);
 
-		var meta = UiComponents.MakeLabel(discovered ? entry.Meta : "Ainda não descoberto", UiVariation.SecondaryLabel);
+		var meta = UiComponents.MakeLabel(discovered ? entry.Meta : Localization.Text("codex.locked.meta"), UiVariation.SecondaryLabel);
 		meta.ClipText = true;
 		meta.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
 		meta.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -502,10 +504,10 @@ public partial class HUD
 			_compendiumDetail.Show(new DetailData
 			{
 				Title = "???",
-				BadgeText = "Bloqueado",
+				BadgeText = Localization.Text("codex.locked.badge"),
 				BadgeColor = UiPalette.PanelInset,
 				Meta = CompendiumCategoryLabel(entry.Category),
-				BodyBbcode = "Ainda não descoberto.\n\n" + EscapeCompendiumBbcode(entry.LockedHint ?? "Continue explorando para registrar esta entrada.")
+				BodyBbcode = Localization.Text("codex.locked.body") + "\n\n" + EscapeCompendiumBbcode(entry.LockedHint ?? Localization.Text("codex.hint.default"))
 			});
 			foreach (var child in _compendiumDetail.IconSlot.GetChildren())
 			{
@@ -579,7 +581,7 @@ public partial class HUD
 			return;
 		var total = _compendiumEntries.Count;
 		var known = _compendiumEntries.Count(IsCompendiumEntryKnown);
-		var text = $"Descobertos: {known}/{total}";
+		var text = Localization.TextFormat("codex.counter", known, total);
 		if (!CompendiumReleaseView)
 			text += "  ·  contagem real do save; tudo aparece desbloqueado por ser build de debug";
 		else if (_compendiumPreviewSample)
@@ -599,13 +601,13 @@ public partial class HUD
 
 	private static string CompendiumCategoryLabel(string category) => category switch
 	{
-		CodexCategory.Artifact => "Artefato",
-		CodexCategory.Blessing => "Bênção de Sangue",
-		CodexCategory.Skill => "Habilidade",
-		CodexCategory.Enemy => "Inimigo",
-		CodexCategory.Boss => "Chefe",
-		CodexCategory.Attack => "Ataque",
-		CodexCategory.Weapon => "Arma",
+		CodexCategory.Artifact => Localization.Text("codex.category.artifact"),
+		CodexCategory.Blessing => Localization.Text("codex.category.blessing"),
+		CodexCategory.Skill => Localization.Text("codex.category.skill"),
+		CodexCategory.Enemy => Localization.Text("codex.category.enemy"),
+		CodexCategory.Boss => Localization.Text("codex.category.boss"),
+		CodexCategory.Attack => Localization.Text("codex.category.attack"),
+		CodexCategory.Weapon => Localization.Text("codex.category.weapon"),
 		_ => ""
 	};
 
@@ -635,7 +637,7 @@ public partial class HUD
 
 	private void BuildArtifactCompendium()
 	{
-		SetCompendiumStatus("Artefatos encontrados nos tesouros dos chefes.");
+		SetCompendiumStatus(Localization.Text("codex.status.artifacts"));
 		foreach (var artifact in ArtifactCatalog.All)
 		{
 			var definition = artifact;
@@ -650,10 +652,10 @@ public partial class HUD
 				Meta = $"{UiComponents.RarityLabel(definition.Rarity)} · {FormatCompendiumSlot(definition.Slot)}",
 				Body = EscapeCompendiumBbcode(definition.Description)
 					+ (HasFriendlyEffectNames(definition.Effects.Select(e => e.Type))
-						? $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]Efeitos[/color]\n{EscapeCompendiumBbcode(FormatArtifactEffects(definition))}"
+						? $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{Localization.Text("ui.common.effects")}[/color]\n{EscapeCompendiumBbcode(FormatArtifactEffects(definition))}"
 						: ""),
 				Flavor = definition.FlavorText,
-				LockedHint = "Encontre este artefato numa oferta de artefatos para registrá-lo.",
+				LockedHint = Localization.Text("codex.hint.artifact"),
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Raridade: {definition.Rarity} · Slot: {definition.Slot} · Tags: {FormatTags(definition.Tags)}"));
@@ -670,7 +672,7 @@ public partial class HUD
 
 	private void BuildBlessingCompendium()
 	{
-		SetCompendiumStatus($"{BloodBlessingCatalog.AllFamilies.Count} linhagens. Stirps tem raridade própria e exige pré-condições.");
+		SetCompendiumStatus(Localization.TextFormat("codex.status.blessings", BloodBlessingCatalog.AllFamilies.Count));
 		var rarityText = string.Join(" · ", BloodBlessingCatalog.AllRarities.Select(r => $"{UiComponents.RarityLabel(r.Id)} ×{FormatLocalizedNumber(r.PowerMultiplier)}"));
 		foreach (var blessing in BloodBlessingCatalog.All.OrderBy(b => CompendiumFamilyOrder(b.Family)).ThenBy(b => b.DisplayName, StringComparer.CurrentCulture))
 		{
@@ -680,9 +682,9 @@ public partial class HUD
 			// A lista "Efeitos" usa os nomes amigáveis da ficha e só aparece se todos os efeitos tiverem nome em português.
 			var body = FormatEffectKeywords(FormatBloodBlessingDescription(definition, 1.0f, true));
 			if (HasFriendlyEffectNames(definition.Effects.Select(e => e.Type)))
-				body += $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{(isStirps ? "Poder fixo Stirps" : "Efeitos na raridade Comum")}[/color]\n"
+				body += $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{(isStirps ? Localization.Text("codex.blessing.stirps_power") : Localization.Text("codex.blessing.common_effects"))}[/color]\n"
 					+ FormatSheetBlessingEffects(definition, 1.0f);
-			body += "\n\n" + EscapeCompendiumBbcode(isStirps ? "Liberada apenas quando suas condições forem atendidas." : $"Raridades: {rarityText}");
+			body += "\n\n" + EscapeCompendiumBbcode(isStirps ? Localization.Text("codex.blessing.stirps_condition") : Localization.TextFormat("codex.blessing.rarities", rarityText));
 			_compendiumEntries.Add(new CodexEntry
 			{
 				Category = CodexCategory.Blessing,
@@ -691,11 +693,13 @@ public partial class HUD
 				IconPath = definition.IconPath,
 				RarityId = isStirps ? "stirps" : null,
 				BadgeText = isStirps ? UiComponents.RarityLabel("stirps") : null,
-				Meta = isStirps ? $"{FormatCompendiumLineage(definition)} · raridade Stirps" : $"{FormatCompendiumLineage(definition)} · todas as raridades",
+				Meta = isStirps
+					? Localization.TextFormat("codex.blessing.meta_stirps", FormatCompendiumLineage(definition))
+					: Localization.TextFormat("codex.blessing.meta_all", FormatCompendiumLineage(definition)),
 				Body = body,
 				Flavor = definition.FlavorText,
 				Section = definition.Family,
-				LockedHint = "Encontre esta bênção numa oferta de sangue para registrá-la.",
+				LockedHint = Localization.Text("codex.hint.blessing"),
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Raridade: {definition.Rarity} · Peso: {definition.Weight} · Máx. acúmulos: {definition.MaxStacks}"));
@@ -710,7 +714,7 @@ public partial class HUD
 	private void BuildSkillCompendium()
 	{
 		var skills = new List<SkillDefinition>(SkillCatalog.All);
-		SetCompendiumStatus("Habilidades permanentes compradas na Fonte de Sangue.");
+		SetCompendiumStatus(Localization.Text("codex.status.skills"));
 		foreach (var skill in skills.OrderBy(s => s.Tree).ThenBy(s => s.Tier).ThenBy(s => s.GridRow).ThenBy(s => s.GridColumn))
 		{
 			var definition = skill;
@@ -722,13 +726,13 @@ public partial class HUD
 				Id = definition.Id,
 				Title = definition.DisplayName,
 				IconText = string.IsNullOrWhiteSpace(definition.IconText) ? definition.DisplayName : definition.IconText,
-				BadgeText = definition.IsImplemented ? null : "Em breve",
+				BadgeText = definition.IsImplemented ? null : Localization.Text("ui.common.coming_soon"),
 				BadgeColor = definition.IsImplemented ? null : CompendiumSoonBadgeColor,
-				Meta = $"{definition.Tree} · passiva · custo {cost:0} · rank máx. {maxRank:0}",
-				Body = $"{EscapeCompendiumBbcode(definition.Description)}\n\nPré-requisitos: {EscapeCompendiumBbcode(FormatCompendiumPrerequisites(definition))}",
+				Meta = Localization.TextFormat("codex.skill.meta", SkillTreeName(definition.Tree), cost, maxRank),
+				Body = $"{EscapeCompendiumBbcode(definition.Description)}\n\n{EscapeCompendiumBbcode(Localization.TextFormat("codex.skill.prerequisites", FormatCompendiumPrerequisites(definition)))}",
 				Flavor = definition.FlavorText,
-				Section = definition.Tree.ToString(),
-				LockedHint = "Compre esta habilidade na Fonte de Sangue para registrá-la.",
+				Section = SkillTreeName(definition.Tree),
+				LockedHint = Localization.Text("codex.hint.skill"),
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Tier {definition.Tier} · grade {definition.GridColumn},{definition.GridRow} · {definition.ImplementationStatus}"));
@@ -741,22 +745,22 @@ public partial class HUD
 
 	private void BuildAttackCompendium()
 	{
-		SetCompendiumStatus("Golpes do Virgil. Os valores reais dependem da arma equipada.");
-		AddAttackEntry(CodexAttackId.Light1, "Ataque leve I", "Ataque básico · 1º golpe do combo", "Primeiro golpe do combo leve.", 32.0, 0.68, 0.32, 1.55, 1.65, 4.2);
-		AddAttackEntry(CodexAttackId.Light2, "Ataque leve II", "Ataque básico em sequência · 2º golpe", "Segundo golpe do combo leve.", 38.0, 0.70, 0.30, 1.75, 1.75, 4.8);
-		AddAttackEntry(CodexAttackId.Light3, "Ataque leve III", "Ataque básico em sequência · finalizador", "Finalizador do combo leve.", 52.0, 0.72, 0.28, 2.05, 1.95, 6.4);
-		AddAttackEntry(CodexAttackId.Special, "Ataque especial", "Especial da arma equipada", "Interrompe imediatamente o combo básico atual.", 56.0, 0.28, 0.42, 3.15, 3.15, 11.0);
-		AddAttackEntry(CodexAttackId.Dash, "Ataque rápido", "Esquiva + ataque imediato", "Golpe rápido ao fim da esquiva: cancela o ataque padrão, preserva a invencibilidade e causa dano em círculo ao redor do personagem.", 68.0, 0.12, 0.18, 2.25, 2.05, 7.4,
+		SetCompendiumStatus(Localization.Text("codex.status.attacks"));
+		AddAttackEntry(CodexAttackId.Light1, Localization.Text("codex.attack.light_1.title"), Localization.Text("codex.attack.light_1.meta"), Localization.Text("codex.attack.light_1.body"), 32.0, 0.68, 0.32, 1.55, 1.65, 4.2);
+		AddAttackEntry(CodexAttackId.Light2, Localization.Text("codex.attack.light_2.title"), Localization.Text("codex.attack.light_2.meta"), Localization.Text("codex.attack.light_2.body"), 38.0, 0.70, 0.30, 1.75, 1.75, 4.8);
+		AddAttackEntry(CodexAttackId.Light3, Localization.Text("codex.attack.light_3.title"), Localization.Text("codex.attack.light_3.meta"), Localization.Text("codex.attack.light_3.body"), 52.0, 0.72, 0.28, 2.05, 1.95, 6.4);
+		AddAttackEntry(CodexAttackId.Special, Localization.Text("codex.attack.special.title"), Localization.Text("codex.attack.special.meta"), Localization.Text("codex.attack.special.body"), 56.0, 0.28, 0.42, 3.15, 3.15, 11.0);
+		AddAttackEntry(CodexAttackId.Dash, Localization.Text("codex.attack.dash.title"), Localization.Text("codex.attack.dash.meta"), Localization.Text("codex.attack.dash.body"), 68.0, 0.12, 0.18, 2.25, 2.05, 7.4,
 			section => AddCompendiumNumberEditor(section, "Multiplicador de dano", "attack.dash.damage_multiplier", 1.35, 0.05, 20.0));
 
 		_compendiumEntries.Add(new CodexEntry
 		{
 			Category = CodexCategory.Attack,
 			Id = CodexAttackId.Fury,
-			Title = "Fúria Bestial",
-			Meta = "Fúria · requer uma Bênção de Sangue que desperte a Fúria",
-			Body = "Consome a barra cheia e ativa temporariamente o estado de dano aumentado.",
-			LockedHint = "Desperte a Fúria com uma Bênção de Sangue e ative-a para registrá-la.",
+			Title = Localization.Text("codex.attack.fury.title"),
+			Meta = Localization.Text("codex.attack.fury.meta"),
+			Body = Localization.Text("codex.attack.fury.body"),
+			LockedHint = Localization.Text("codex.attack.fury.hint"),
 			BuildDev = section =>
 			{
 				AddCompendiumNumberEditor(section, "Multiplicador de dano", "attack.fury.damage_multiplier", 1.75, 0.05, 20.0);
@@ -776,7 +780,7 @@ public partial class HUD
 			IconText = attackId.StartsWith("light_", StringComparison.Ordinal) ? $"L{attackId.Substring(6)}" : null,
 			Meta = meta,
 			Body = EscapeCompendiumBbcode(body),
-			LockedHint = "Use este golpe em combate para registrá-lo.",
+			LockedHint = Localization.Text("codex.hint.attack"),
 			BuildDev = section =>
 			{
 				section.AddChild(MakeCompendiumDevLine($"Chaves attack.{attackId}.* (o PlayerCombat atual lê weapon.<arma>.*; ver aba Armas)."));
@@ -797,13 +801,14 @@ public partial class HUD
 
 	private void BuildEnemyCompendium()
 	{
-		SetCompendiumStatus("Criaturas enfrentadas no castelo. Variantes de raridade são registradas ao encontrá-las.");
-		AddEnemyEntry(EnemyArchetype.Melee, "Lâmina Sombria", "Corpo a corpo",
-			"Avança até você e golpeia em área curta depois de um aviso (!). Vida e dano de referência.");
-		AddEnemyEntry(EnemyArchetype.Ranged, "Demônio Atirador", "À distância",
-			"Mantém distância, recua quando você se aproxima e dispara projéteis quando tem linha de visão. Dano ×0,8.");
-		AddEnemyEntry(EnemyArchetype.Tank, "Orc Brutamontes", "Pesado",
-			"Lento e resistente: aguenta mais golpes e desfere um ataque pesado com aviso duplo (!!). Vida ×1,8 e dano ×1,52.");
+		SetCompendiumStatus(Localization.Text("codex.status.enemies"));
+		// Nomes dos arquétipos via EnemyTuningCatalog.ArchetypeName (world.json); papel e descrição do Dicionário em ui.json (codex.enemy.*).
+		AddEnemyEntry(EnemyArchetype.Melee, EnemyTuningCatalog.ArchetypeName(EnemyArchetype.Melee), Localization.Text("codex.enemy.melee.role"),
+			Localization.Text("codex.enemy.melee.body"));
+		AddEnemyEntry(EnemyArchetype.Ranged, EnemyTuningCatalog.ArchetypeName(EnemyArchetype.Ranged), Localization.Text("codex.enemy.ranged.role"),
+			Localization.Text("codex.enemy.ranged.body"));
+		AddEnemyEntry(EnemyArchetype.Tank, EnemyTuningCatalog.ArchetypeName(EnemyArchetype.Tank), Localization.Text("codex.enemy.tank.role"),
+			Localization.Text("codex.enemy.tank.body"));
 
 		var seen = new HashSet<string>();
 		for (var mapIndex = 0; mapIndex < CampaignCatalog.Count; mapIndex++)
@@ -815,7 +820,7 @@ public partial class HUD
 			var mapNumber = mapIndex + 1;
 			var definition = boss;
 			var moves = string.Join("\n", definition.Moves.Select(m => m.MinimumPhase > 1
-				? $"• {EscapeCompendiumBbcode(m.DisplayName)} (a partir da fase {m.MinimumPhase})"
+				? $"• {EscapeCompendiumBbcode(Localization.TextFormat("codex.boss.move_phase", m.DisplayName, m.MinimumPhase))}"
 				: $"• {EscapeCompendiumBbcode(m.DisplayName)}"));
 			_compendiumEntries.Add(new CodexEntry
 			{
@@ -823,12 +828,12 @@ public partial class HUD
 				Id = definition.Id,
 				Title = definition.DisplayName,
 				RarityId = "legendary",
-				BadgeText = "Chefe",
-				Meta = $"Chefe · {map.Name}",
-				Body = $"Guardião de {EscapeCompendiumBbcode(map.Name)}. Vida estimada: {definition.EstimatedMaxHealth:0}.\n\n[color=#{UiPalette.Gold.ToHtml(false)}]Golpes[/color]\n{moves}",
-				Flavor = "Ao vencê-lo, os artefatos temporários da run são confirmados.",
-				Section = "Chefes",
-				LockedHint = "Chegue à sala do chefe deste mapa para registrá-lo.",
+				BadgeText = Localization.Text("codex.category.boss"),
+				Meta = Localization.TextFormat("codex.boss.meta", map.Name),
+				Body = $"{EscapeCompendiumBbcode(Localization.TextFormat("codex.boss.body", map.Name, definition.EstimatedMaxHealth))}\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{Localization.Text("codex.moves")}[/color]\n{moves}",
+				Flavor = Localization.Text("codex.boss.flavor"),
+				Section = Localization.Text("codex.section.bosses"),
+				LockedHint = Localization.Text("codex.hint.boss"),
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Mapa {mapNumber}: {map.Id} · duração alvo {definition.TargetDurationSeconds:0}s × DPS {definition.ExpectedPlayerDps:0.##}"));
@@ -852,8 +857,10 @@ public partial class HUD
 		{
 			var tuning = EnemyTuningCatalog.Get(rarity);
 			variants.Add(IsCompendiumIdVisible(CodexCategory.Enemy, CodexProgress.EnemyId(archetype, rarity))
-				? $"• {tuning.DisplayName}: vida ×{tuning.Health:0.##}, dano ×{tuning.Damage:0.##}{(tuning.ModifierCount > 0 ? $", {tuning.ModifierCount} modificador(es)" : "")}"
-				: "• ??? (variante não encontrada)");
+				? Localization.TextFormat("codex.enemy.variant", tuning.DisplayName, tuning.Health, tuning.Damage)
+					+ (tuning.ModifierCount == 1 ? Localization.Text("codex.enemy.modifiers_one")
+						: tuning.ModifierCount > 1 ? Localization.TextFormat("codex.enemy.modifiers_other", tuning.ModifierCount) : "")
+				: Localization.Text("codex.enemy.variant_unknown"));
 		}
 
 		_compendiumEntries.Add(new CodexEntry
@@ -861,10 +868,10 @@ public partial class HUD
 			Category = CodexCategory.Enemy,
 			Id = id,
 			Title = title,
-			Meta = $"Inimigo comum · {role}",
-			Body = $"{EscapeCompendiumBbcode(description)}\n\n[color=#{UiPalette.Gold.ToHtml(false)}]Variantes[/color]\n{string.Join("\n", variants)}",
-			Section = "Inimigos comuns",
-			LockedHint = "Enfrente esta criatura numa sala para registrá-la.",
+			Meta = Localization.TextFormat("codex.enemy.meta", role),
+			Body = $"{EscapeCompendiumBbcode(description)}\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{Localization.Text("codex.enemy.variants")}[/color]\n{string.Join("\n", variants)}",
+			Section = Localization.Text("codex.section.common_enemies"),
+			LockedHint = Localization.Text("codex.hint.enemy"),
 			BuildDev = section =>
 			{
 				var raw = string.Join(", ", Enum.GetValues(typeof(EnemyRarity)).Cast<EnemyRarity>()
@@ -883,7 +890,7 @@ public partial class HUD
 
 	private void BuildWeaponCompendium()
 	{
-		SetCompendiumStatus("Armas da bancada do Ninho do Corvo.");
+		SetCompendiumStatus(Localization.Text("codex.status.weapons"));
 		foreach (var weapon in WeaponCatalog.All)
 		{
 			var definition = weapon;
@@ -892,17 +899,19 @@ public partial class HUD
 			var combo = string.Join(" · ", definition.BasicCombo.Select(a => $"{EscapeCompendiumBbcode(a.Name)} ({a.Damage:0})"));
 			var body = EscapeCompendiumBbcode(definition.Description);
 			if (!placeholder)
-				body += $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]Golpes[/color]\nCombo: {combo}\nAtaque rápido: {EscapeCompendiumBbcode(definition.QuickAttack.Name)} ({definition.QuickAttack.Damage:0})\nEspecial: {EscapeCompendiumBbcode(definition.SpecialAttack.Name)} ({definition.SpecialAttack.Damage:0})";
+				body += $"\n\n[color=#{UiPalette.Gold.ToHtml(false)}]{Localization.Text("codex.moves")}[/color]\n"
+					+ Localization.TextFormat("codex.weapon.moves", combo, EscapeCompendiumBbcode(definition.QuickAttack.Name), definition.QuickAttack.Damage,
+						EscapeCompendiumBbcode(definition.SpecialAttack.Name), definition.SpecialAttack.Damage);
 			_compendiumEntries.Add(new CodexEntry
 			{
 				Category = CodexCategory.Weapon,
 				Id = definition.Id,
 				Title = definition.DisplayName,
-				BadgeText = placeholder ? "Em breve" : equipped ? "Equipada" : null,
+				BadgeText = placeholder ? Localization.Text("ui.common.coming_soon") : equipped ? Localization.Text("ui.common.equipped") : null,
 				BadgeColor = placeholder ? CompendiumSoonBadgeColor : UiPalette.Gold,
-				Meta = placeholder ? "Moveset em desenvolvimento" : $"Combo de {definition.BasicCombo.Length} golpes",
+				Meta = placeholder ? Localization.Text("bench.meta_placeholder") : Localization.TextFormat("codex.weapon.meta", definition.BasicCombo.Length),
 				Body = body,
-				LockedHint = "Comece uma run com esta arma equipada para registrá-la.",
+				LockedHint = Localization.Text("codex.hint.weapon"),
 				BuildDev = placeholder ? null : section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Chaves lidas pelo PlayerCombat: weapon.{definition.Id}.<golpe>.*"));
@@ -1074,7 +1083,7 @@ public partial class HUD
 	private string FormatArtifactEffects(ArtifactDefinition artifact)
 	{
 		if (artifact.Effects.Length == 0)
-			return "nenhum";
+			return Localization.Text("ui.common.none");
 
 		var text = "";
 		for (var i = 0; i < artifact.Effects.Length; i++)
@@ -1094,7 +1103,7 @@ public partial class HUD
 	private static string FormatArtifactOperation(string operation, double value)
 	{
 		if (operation.Contains("Multiplier")) return $"{value * 100:+0;-0;0}%";
-		if (operation is "Set" or "SetBool") return value > 0 ? "ativo" : "inativo";
+		if (operation is "Set" or "SetBool") return value > 0 ? Localization.Text("ui.common.active") : Localization.Text("ui.common.inactive");
 		return $"{value:+0.##;-0.##;0}";
 	}
 
@@ -1105,8 +1114,8 @@ public partial class HUD
 
 	private static string FormatCompendiumSlot(string slot) => (slot ?? "").ToLowerInvariant() switch
 	{
-		"passive" => "Passivo",
-		"active" => "Ativo",
+		"passive" => Localization.Text("ui.artifact_slot.passive"),
+		"active" => Localization.Text("ui.artifact_slot.active"),
 		_ => slot ?? ""
 	};
 
@@ -1135,7 +1144,7 @@ public partial class HUD
 	private static string FormatCompendiumPrerequisites(SkillDefinition definition)
 	{
 		if (definition.Prerequisites.Length == 0)
-			return "nenhum";
+			return Localization.Text("ui.common.none");
 		return string.Join(", ", definition.Prerequisites.Select(id => SkillCatalog.TryGet(id, out var prerequisite) ? prerequisite.DisplayName : id));
 	}
 }

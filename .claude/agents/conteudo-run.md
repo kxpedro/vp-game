@@ -45,7 +45,7 @@ Leia o guia local do tipo de conteúdo. Ele é a fonte de verdade das regras:
   - Referências musicais ficam só nos metadados.
 - **IDs:** snake_case, únicos e **estáveis** (persistidos no save via `CharacterSheet` e `SaveGameManager`). Renomear exige mapear o ID antigo, como faz `WeaponCatalog.Get`.
 - **Catálogo novo:** siga `scripts/systems/artifacts/ArtifactCatalog.cs` (`EnsureLoaded`, try/catch, `GD.PushError`, aviso para ID duplicado).
-- **Textos novos de UI:** chave em `data/localization/game_texts.json` com `pt-BR`, `en` e `es`. Nome, descrição e flavor ficam no próprio JSON do catálogo.
+- **Textos:** nome, descrição e flavor ficam em `data/localization/<idioma>/content.json` (`pt-BR`, `en`, `es`, sempre os três), com chaves derivadas do ID (`blessing.<id>.name/.desc/.flavor`, `artifact.<id>...`, `skill.<id>...`); os catálogos JSON guardam só IDs e números. Texto novo de interface vai em `ui.json`. Valide com `py tools/validate_localization.py`.
 
 ## Comandos
 

@@ -47,10 +47,13 @@ public partial class RoomGenerator : Node3D
     private int _nextWaveEnemyIndex;
     private bool _isSpawningWave;
     private float _waveCountdown;
+    private readonly List<(Label3D Label, System.Func<string> Text)> _localizedLabels = new();
 
     public override void _Ready()
     {
         AddToGroup("room_generator");
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
         _rng.Seed = BuildRoomSeed();
         _layoutQuarterTurns = _rng.RandiRange(0, 3);
         _layoutMirror = _rng.Randf() < 0.5f;
@@ -62,6 +65,12 @@ public partial class RoomGenerator : Node3D
         GeneratePointsOfInterest();
         BuildEnemySpawnCells();
         GenerateEnemies();
+    }
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
     }
 
     public override void _Process(double delta)
@@ -225,16 +234,19 @@ public partial class RoomGenerator : Node3D
 
     private void GeneratePointsOfInterest()
     {
-        CreatePointOfInterest("Entrada", CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
-        CreatePointOfInterest(RunState.IsBossRoom ? "Portao Final" : "Saida", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
+        CreatePointOfInterest("Entrance", () => Localization.Text("room.poi.entrance"), CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
+        if (RunState.IsBossRoom)
+            CreatePointOfInterest("FinalGate", () => Localization.Text("room.poi.final_gate"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
+        else
+            CreatePointOfInterest("Exit", () => Localization.Text("room.poi.exit"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
         if (!RunState.IsBossRoom)
         {
-            CreatePointOfInterest("Camara central", CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
+            CreatePointOfInterest("CentralChamber", () => Localization.Text("room.poi.central_chamber"), CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
         }
         else
         {
-            CreatePointOfInterest("Arena do Chefe", Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
+            CreatePointOfInterest("BossArena", () => Localization.Text("room.poi.boss_arena"), Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
         }
     }
 
@@ -643,11 +655,12 @@ public partial class RoomGenerator : Node3D
         body.AddChild(visual);
     }
 
-    private void CreatePointOfInterest(string labelText, Vector3 position, Color color)
+    // labelText resolve a chave de world.json (room.poi.*); e reavaliado quando o idioma muda.
+    private void CreatePointOfInterest(string nodeId, System.Func<string> labelText, Vector3 position, Color color)
     {
         var marker = new MeshInstance3D
         {
-            Name = $"{labelText.Replace(" ", "")}Marker",
+            Name = $"{nodeId}Marker",
             Position = position + Vector3.Up * 0.05f,
             Mesh = new CylinderMesh
             {
@@ -670,12 +683,22 @@ public partial class RoomGenerator : Node3D
         // Título de lugar em Gold e acima da cabeça do jogador (guia §2.2/§8.8); a cor fica só no marcador do piso.
         var label = new Label3D
         {
-            Name = $"{labelText.Replace(" ", "")}Label",
-            Text = labelText,
+            Name = $"{nodeId}Label",
+            Text = labelText(),
             Position = new Vector3(position.X, Mathf.Max(position.Y + 0.75f, InteractPrompt.TitleMinHeight), position.Z)
         };
         InteractPrompt.StyleTitle(label);
         AddChild(label);
+        _localizedLabels.Add((label, labelText));
+    }
+
+    private void OnLanguageChanged(string language)
+    {
+        foreach (var (label, text) in _localizedLabels)
+        {
+            if (IsInstanceValid(label))
+                label.Text = text();
+        }
     }
 
     private void RemoveStaticArenaShell()

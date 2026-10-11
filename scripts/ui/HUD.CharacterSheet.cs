@@ -59,7 +59,7 @@ public partial class HUD
 
 	private void BuildCharacterSheetOverlay(Control root)
 	{
-		_characterSheetWindow = UiComponents.Window(root, "CharacterSheetOverlay", WindowSize.Full, UiComponents.TextOr("sheet.title", "Ficha do personagem"));
+		_characterSheetWindow = UiComponents.Window(root, "CharacterSheetOverlay", WindowSize.Full, Localization.Text("sheet.title"));
 		_characterSheetOverlay = _characterSheetWindow.Root;
 		_characterSheetOverlay.Visible = false;
 
@@ -75,10 +75,10 @@ public partial class HUD
 		var body = _characterSheetWindow.Body;
 		_characterSheetTabs = UiComponents.Tabs(new[]
 		{
-			UiComponents.TextOr("sheet.tab.attributes", "Atributos"),
-			UiComponents.TextOr("sheet.tab.blessings", "Bênçãos"),
-			UiComponents.TextOr("sheet.tab.artifacts", "Artefatos"),
-			UiComponents.TextOr("sheet.tab.skills", "Habilidades")
+			Localization.Text("sheet.tab.attributes"),
+			Localization.Text("sheet.tab.blessings"),
+			Localization.Text("sheet.tab.artifacts"),
+			Localization.Text("sheet.tab.skills")
 		}, OnCharacterSheetTabChanged);
 		_characterSheetTabs.Root.Name = "CharacterSheetTabs";
 		_characterSheetTabs.Root.Alignment = BoxContainer.AlignmentMode.Center;
@@ -118,8 +118,8 @@ public partial class HUD
 		split.AddChild(_characterSheetDetail.Root);
 
 		var footer = _characterSheetWindow.Footer;
-		footer.Add(UiAction.Cancel, UiComponents.TextOr("ui.common.close", "Fechar"), CloseCharacterSheet, left: true);
-		_characterSheetScrollHint = footer.Add(UiAction.Scroll, UiComponents.TextOr("sheet.hint.scroll_detail", "Rolar detalhes"));
+		footer.Add(UiAction.Cancel, Localization.Text("ui.common.close"), CloseCharacterSheet, left: true);
+		_characterSheetScrollHint = footer.Add(UiAction.Scroll, Localization.Text("sheet.hint.scroll_detail"));
 		_characterSheetDeviceHandler = RefreshCharacterSheetScrollHint;
 		UiInput.DeviceChanged += _characterSheetDeviceHandler;
 		_characterSheetOverlay.TreeExiting += () => UiInput.DeviceChanged -= _characterSheetDeviceHandler;
@@ -462,34 +462,34 @@ public partial class HUD
 
 	private void BuildCharacterSheetAttributes(CharacterSheetData data)
 	{
-		var section = UiComponents.TextOr("sheet.section.attributes", "Atributos");
-		AddCharacterSheetAttribute(section, CharacterAttribute.Strength, UiComponents.TextOr("sheet.attr.strength", "Força"),
-			string.Format(UiComponents.TextOr("sheet.attr.strength.effect", "Dano {0}"), FormatSheetPercent(CharacterSheet.GetDamageMultiplier())),
-			UiComponents.TextOr("sheet.attr.strength.desc", "Aumenta o dano de todos os ataques em 3% por ponto."));
-		AddCharacterSheetAttribute(section, CharacterAttribute.Dexterity, UiComponents.TextOr("sheet.attr.dexterity", "Destreza"),
-			string.Format(UiComponents.TextOr("sheet.attr.dexterity.effect", "Velocidade {0} · Vigor +{1:0}"), FormatSheetPercent(CharacterSheet.GetMoveSpeedMultiplier()), CharacterSheet.GetMaxStaminaBonus()),
-			UiComponents.TextOr("sheet.attr.dexterity.desc", "Aumenta a velocidade de movimento em 1,5% e o vigor máximo em 5 por ponto."));
-		AddCharacterSheetAttribute(section, CharacterAttribute.Vitality, UiComponents.TextOr("sheet.attr.vitality", "Vitalidade"),
-			string.Format(UiComponents.TextOr("sheet.attr.vitality.effect", "Vida máxima +{0:0}"), CharacterSheet.GetMaxHealthBonus()),
-			UiComponents.TextOr("sheet.attr.vitality.desc", "Aumenta a vida máxima em 6 por ponto."));
-		AddCharacterSheetAttribute(section, CharacterAttribute.Resolve, UiComponents.TextOr("sheet.attr.resolve", "Determinação"),
-			string.Format(UiComponents.TextOr("sheet.attr.resolve.effect", "Fúria {0}"), FormatSheetPercent(CharacterSheet.GetFuryMultiplier())),
-			UiComponents.TextOr("sheet.attr.resolve.desc", "Aumenta o ganho de Fúria em 3% por ponto."));
-		AddCharacterSheetAttribute(section, CharacterAttribute.Bloodcraft, UiComponents.TextOr("sheet.attr.bloodcraft", "Sangue"),
-			string.Format(UiComponents.TextOr("sheet.attr.bloodcraft.effect", "Artes de sangue {0}"), FormatSheetPercent(CharacterSheet.GetBloodcraftMultiplier())),
-			UiComponents.TextOr("sheet.attr.bloodcraft.desc", "Fortalece as artes de sangue em 3% por ponto."));
+		var section = Localization.Text("sheet.section.attributes");
+		AddCharacterSheetAttribute(section, CharacterAttribute.Strength, Localization.Text("sheet.attr.strength"),
+			Localization.TextFormat("sheet.attr.strength.effect", FormatSheetPercent(CharacterSheet.GetDamageMultiplier())),
+			Localization.Text("sheet.attr.strength.desc"));
+		AddCharacterSheetAttribute(section, CharacterAttribute.Dexterity, Localization.Text("sheet.attr.dexterity"),
+			Localization.TextFormat("sheet.attr.dexterity.effect", FormatSheetPercent(CharacterSheet.GetMoveSpeedMultiplier()), CharacterSheet.GetMaxStaminaBonus()),
+			Localization.Text("sheet.attr.dexterity.desc"));
+		AddCharacterSheetAttribute(section, CharacterAttribute.Vitality, Localization.Text("sheet.attr.vitality"),
+			Localization.TextFormat("sheet.attr.vitality.effect", CharacterSheet.GetMaxHealthBonus()),
+			Localization.Text("sheet.attr.vitality.desc"));
+		AddCharacterSheetAttribute(section, CharacterAttribute.Resolve, Localization.Text("sheet.attr.resolve"),
+			Localization.TextFormat("sheet.attr.resolve.effect", FormatSheetPercent(CharacterSheet.GetFuryMultiplier())),
+			Localization.Text("sheet.attr.resolve.desc"));
+		AddCharacterSheetAttribute(section, CharacterAttribute.Bloodcraft, Localization.Text("sheet.attr.bloodcraft"),
+			Localization.TextFormat("sheet.attr.bloodcraft.effect", FormatSheetPercent(CharacterSheet.GetBloodcraftMultiplier())),
+			Localization.Text("sheet.attr.bloodcraft.desc"));
 
-		var stats = UiComponents.TextOr("sheet.section.stats", "Totais da run");
-		AddCharacterSheetStat(stats, UiComponents.TextOr("sheet.stat.damage", "Dano"), FormatSheetMultiplier(CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier),
-			string.Format(UiComponents.TextOr("sheet.stat.damage.meta", "Atributos {0} · Run {1}"), FormatSheetMultiplier(CharacterSheet.GetDamageMultiplier()), FormatSheetMultiplier(RunState.DamageMultiplier)),
-			UiComponents.TextOr("sheet.stat.damage.desc", "Multiplicador de dano combinado: atributos permanentes × bônus desta run (artefatos e bênçãos)."));
-		AddCharacterSheetStat(stats, UiComponents.TextOr("sheet.stat.max_health", "Vida máxima extra"), $"+{CharacterSheet.GetMaxHealthBonus() + RunState.MaxHealthBonus:0}",
-			string.Format(UiComponents.TextOr("sheet.stat.max_health.meta", "Atributos +{0:0} · Artefatos +{1:0}"), CharacterSheet.GetMaxHealthBonus(), RunState.MaxHealthBonus),
-			UiComponents.TextOr("sheet.stat.max_health.desc", "Vida extra somada à vida base de Virgil."));
-		AddCharacterSheetStat(stats, UiComponents.TextOr("sheet.stat.speed", "Velocidade"), FormatSheetMultiplier(CharacterSheet.GetMoveSpeedMultiplier()), null,
-			UiComponents.TextOr("sheet.stat.speed.desc", "Multiplicador de velocidade de movimento vindo dos atributos."));
-		AddCharacterSheetStat(stats, UiComponents.TextOr("sheet.stat.fury", "Fúria"), FormatSheetMultiplier(CharacterSheet.GetFuryMultiplier()), null,
-			UiComponents.TextOr("sheet.stat.fury.desc", "Multiplicador de ganho de Fúria vindo dos atributos."));
+		var stats = Localization.Text("sheet.section.stats");
+		AddCharacterSheetStat(stats, Localization.Text("sheet.stat.damage"), FormatSheetMultiplier(CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier),
+			Localization.TextFormat("sheet.stat.damage.meta", FormatSheetMultiplier(CharacterSheet.GetDamageMultiplier()), FormatSheetMultiplier(RunState.DamageMultiplier)),
+			Localization.Text("sheet.stat.damage.desc"));
+		AddCharacterSheetStat(stats, Localization.Text("sheet.stat.max_health"), $"+{CharacterSheet.GetMaxHealthBonus() + RunState.MaxHealthBonus:0}",
+			Localization.TextFormat("sheet.stat.max_health.meta", CharacterSheet.GetMaxHealthBonus(), RunState.MaxHealthBonus),
+			Localization.Text("sheet.stat.max_health.desc"));
+		AddCharacterSheetStat(stats, Localization.Text("sheet.stat.speed"), FormatSheetMultiplier(CharacterSheet.GetMoveSpeedMultiplier()), null,
+			Localization.Text("sheet.stat.speed.desc"));
+		AddCharacterSheetStat(stats, Localization.Text("sheet.stat.fury"), FormatSheetMultiplier(CharacterSheet.GetFuryMultiplier()), null,
+			Localization.Text("sheet.stat.fury.desc"));
 		if (OS.IsDebugBuild())
 			AddCharacterSheetStat("DEV", "Dano tuning", FormatSheetMultiplier(GameTuning.GetDamageMultiplier()), null,
 				"Multiplicador global de dano do tuning (só em build de debug).");
@@ -536,16 +536,16 @@ public partial class HUD
 
 	private void BuildCharacterSheetBlessings(CharacterSheetData data)
 	{
-		var section = string.Format(UiComponents.TextOr("sheet.section.blessings", "Bênçãos de Sangue ({0})"), data.Blessings.Count);
+		var section = Localization.TextFormat("sheet.section.blessings", data.Blessings.Count);
 		if (data.Blessings.Count == 0)
-			AddCharacterSheetEmptyNote(section, UiComponents.TextOr("sheet.empty.blessings", "Nenhuma Bênção de Sangue nesta run. Elas são oferecidas ao limpar salas."));
+			AddCharacterSheetEmptyNote(section, Localization.Text("sheet.empty.blessings"));
 		foreach (var record in data.Blessings)
 		{
 			var hasDefinition = BloodBlessingCatalog.TryGet(record.Id, out var blessing);
 			var name = hasDefinition && !string.IsNullOrEmpty(blessing.DisplayName) ? blessing.DisplayName : (string.IsNullOrEmpty(record.Name) ? record.Id : record.Name);
 			var rarityLabel = UiComponents.RarityLabel(record.Rarity);
-			var level = string.Format(UiComponents.TextOr("sheet.blessing.level", "Nível {0}"), record.Level);
-			var lineage = hasDefinition ? string.Format(UiComponents.TextOr("offer.blessing.lineage", "Linhagem {0}"), FormatBlessingLineage(blessing)) : null;
+			var level = Localization.TextFormat("ui.common.level", record.Level);
+			var lineage = hasDefinition ? Localization.TextFormat("offer.blessing.lineage", FormatBlessingLineage(blessing)) : null;
 			var captured = record;
 			_characterSheetEntries.Add(new CharacterSheetEntry
 			{
@@ -577,7 +577,7 @@ public partial class HUD
 		if (effects.Length > 0)
 		{
 			body.Append("\n\n[color=#").Append(UiPalette.Gold.ToHtml(false)).Append(']')
-				.Append(UiComponents.TextOr("sheet.detail.effects", "Efeitos")).Append("[/color]\n").Append(effects);
+				.Append(Localization.Text("sheet.detail.effects")).Append("[/color]\n").Append(effects);
 		}
 
 		return new DetailData
@@ -610,10 +610,10 @@ public partial class HUD
 	private void BuildCharacterSheetArtifacts(CharacterSheetData data)
 	{
 		var equippedCount = data.EquippedSlots.Count(slot => !string.IsNullOrWhiteSpace(slot));
-		var equippedSection = string.Format(UiComponents.TextOr("sheet.section.equipped", "Equipados ({0}/{1})"), equippedCount, data.EquippedSlots.Length);
+		var equippedSection = Localization.TextFormat("sheet.section.equipped", equippedCount, data.EquippedSlots.Length);
 		for (var i = 0; i < data.EquippedSlots.Length; i++)
 		{
-			var slotLabel = string.Format(UiComponents.TextOr("sheet.artifact.slot", "Slot {0}"), i + 1);
+			var slotLabel = Localization.TextFormat("ui.artifact_slot.number", i + 1);
 			var artifactName = data.EquippedSlots[i];
 			if (string.IsNullOrWhiteSpace(artifactName))
 			{
@@ -621,15 +621,15 @@ public partial class HUD
 				{
 					Section = equippedSection,
 					BuildIcon = () => CreateSheetEmptySlotIcon(UiMetrics.IconM),
-					Title = UiComponents.TextOr("sheet.artifact.empty", "Vazio"),
+					Title = Localization.Text("sheet.artifact.empty"),
 					TitleColor = UiPalette.TextDisabled,
 					Meta = slotLabel,
 					Detail = new DetailData
 					{
 						Title = slotLabel,
-						BadgeText = UiComponents.TextOr("sheet.artifact.empty", "Vazio"),
+						BadgeText = Localization.Text("sheet.artifact.empty"),
 						BadgeColor = UiPalette.PanelInset,
-						BodyBbcode = EscapeSheetBbcode(UiComponents.TextOr("sheet.artifact.empty.desc", "Equipe artefatos da coleção permanente no Baú de Artefatos, no Ninho do Corvo."))
+						BodyBbcode = EscapeSheetBbcode(Localization.Text("sheet.artifact.empty.desc"))
 					}
 				});
 				continue;
@@ -640,23 +640,23 @@ public partial class HUD
 			AddCharacterSheetArtifact(equippedSection, record, slotLabel);
 		}
 
-		var runSection = string.Format(UiComponents.TextOr("sheet.section.run_artifacts", "Desta run ({0})"), data.RunArtifacts.Count);
+		var runSection = Localization.TextFormat("sheet.section.run_artifacts", data.RunArtifacts.Count);
 		if (data.RunArtifacts.Count == 0)
-			AddCharacterSheetEmptyNote(runSection, UiComponents.TextOr("sheet.empty.run_artifacts", "Nenhum artefato coletado nesta run."));
+			AddCharacterSheetEmptyNote(runSection, Localization.Text("sheet.empty.run_artifacts"));
 		foreach (var record in data.RunArtifacts)
-			AddCharacterSheetArtifact(runSection, record, UiComponents.TextOr("sheet.artifact.origin.run", "Desta run"));
+			AddCharacterSheetArtifact(runSection, record, Localization.Text("sheet.artifact.origin.run"));
 
-		var collectionSection = string.Format(UiComponents.TextOr("sheet.section.collection", "Coleção permanente ({0})"), data.Collection.Count);
+		var collectionSection = Localization.TextFormat("sheet.section.collection", data.Collection.Count);
 		if (data.Collection.Count == 0)
-			AddCharacterSheetEmptyNote(collectionSection, UiComponents.TextOr("sheet.empty.collection", "Nenhum artefato na coleção."));
+			AddCharacterSheetEmptyNote(collectionSection, Localization.Text("sheet.empty.collection"));
 		foreach (var record in data.Collection)
-			AddCharacterSheetArtifact(collectionSection, record, UiComponents.TextOr("sheet.artifact.origin.collection", "Coleção permanente"));
+			AddCharacterSheetArtifact(collectionSection, record, Localization.Text("sheet.artifact.origin.collection"));
 	}
 
 	private void AddCharacterSheetArtifact(string section, ArtifactRecord record, string origin)
 	{
 		var definition = FindSheetArtifactDefinition(record);
-		var name = definition != null ? definition.DisplayName : record.Name;
+		var name = definition != null ? definition.DisplayName : ArtifactCatalog.DisplayNameFor(record);
 		var rarity = definition?.Rarity;
 		var slot = FormatSheetArtifactSlot(definition != null ? definition.Slot : record.Slot);
 		var meta = string.IsNullOrEmpty(slot) ? origin : $"{slot}  ·  {origin}";
@@ -666,7 +666,7 @@ public partial class HUD
 		if (definition != null && !string.IsNullOrWhiteSpace(definition.Description))
 			body.Append(EscapeSheetBbcode(definition.Description)).Append("\n\n");
 		body.Append("[color=#").Append(UiPalette.Gold.ToHtml(false)).Append(']')
-			.Append(UiComponents.TextOr("sheet.detail.effects", "Efeitos")).Append("[/color]\n");
+			.Append(Localization.Text("sheet.detail.effects")).Append("[/color]\n");
 		// "Impacto dos artefatos" da ficha antiga fica fundido aqui. Com definição, usa o mesmo formatador do baú/oferta
 		// (valor × BossDropPowerMultiplier, como RunState aplica); o Amount do registro não tem esse multiplicador.
 		if (definition != null && definition.Effects != null && definition.Effects.Length > 0)
@@ -683,7 +683,7 @@ public partial class HUD
 		else if (!string.IsNullOrEmpty(record.Effect))
 			body.Append("• ").Append(EscapeSheetBbcode(FormatArtifactRecordEffect(record)));
 		else
-			body.Append(UiComponents.TextOr("sheet.detail.unknown_effects", "Sem dados de efeito (registro antigo)."));
+			body.Append(Localization.Text("sheet.detail.unknown_effects"));
 
 		_characterSheetEntries.Add(new CharacterSheetEntry
 		{
@@ -716,8 +716,8 @@ public partial class HUD
 			.ThenBy(skill => skill.Definition?.Tier ?? 0)
 			.ToList();
 		if (ordered.Count == 0)
-			AddCharacterSheetEmptyNote(UiComponents.TextOr("sheet.section.skills", "Habilidades passivas"),
-				UiComponents.TextOr("sheet.empty.skills", "Nenhuma habilidade adquirida. Compre habilidades na Fonte de Sangue."));
+			AddCharacterSheetEmptyNote(Localization.Text("sheet.section.skills"),
+				Localization.Text("sheet.empty.skills"));
 
 		foreach (var skill in ordered)
 		{
@@ -726,19 +726,19 @@ public partial class HUD
 			{
 				_characterSheetEntries.Add(new CharacterSheetEntry
 				{
-					Section = UiComponents.TextOr("sheet.section.skills_other", "Outras"),
+					Section = Localization.Text("sheet.section.skills_other"),
 					BuildIcon = () => UiComponents.Monogram(skill.Id, UiMetrics.IconM),
 					Title = skill.Id,
-					Meta = string.Format(UiComponents.TextOr("sheet.skill.rank", "Rank {0}"), skill.Rank),
-					Detail = new DetailData { Title = skill.Id, Meta = string.Format(UiComponents.TextOr("sheet.skill.rank", "Rank {0}"), skill.Rank) }
+					Meta = Localization.TextFormat("sheet.skill.rank", skill.Rank),
+					Detail = new DetailData { Title = skill.Id, Meta = Localization.TextFormat("sheet.skill.rank", skill.Rank) }
 				});
 				continue;
 			}
 
-			var treeName = definition.Tree == SkillTree.Bestialis ? "Bestialis" : "Humanitas";
+			var treeName = SkillTreeName(definition.Tree);
 			var isMax = skill.Rank >= definition.MaxRank;
-			var rankText = isMax ? UiComponents.TextOr("ui.common.max", "Máx") : $"{skill.Rank}/{definition.MaxRank}";
-			var meta = string.Format(UiComponents.TextOr("sheet.skill.meta", "{0} · Rank {1}/{2}"), treeName, skill.Rank, definition.MaxRank);
+			var rankText = isMax ? Localization.Text("ui.common.max") : $"{skill.Rank}/{definition.MaxRank}";
+			var meta = Localization.TextFormat("sheet.skill.meta", treeName, skill.Rank, definition.MaxRank);
 			var iconText = string.IsNullOrWhiteSpace(definition.IconText) ? definition.DisplayName : definition.IconText;
 			_characterSheetEntries.Add(new CharacterSheetEntry
 			{
@@ -830,10 +830,10 @@ public partial class HUD
 	{
 		if (!string.IsNullOrWhiteSpace(record.Id) && ArtifactCatalog.TryGet(record.Id, out var byId))
 			return byId;
-		// Saves antigos guardam só o nome.
+		// Saves antigos guardam só o SaveName; resolve by SaveName ou exibe o nome gravado.
 		return string.IsNullOrWhiteSpace(record.Name)
 			? null
-			: ArtifactCatalog.All.FirstOrDefault(artifact => artifact.DisplayName == record.Name);
+			: ArtifactCatalog.TryGetByRecordName(record.Name, out var found) ? found : null;
 	}
 
 	// Ícone genérico vira monograma (guia §3.4).
@@ -858,10 +858,15 @@ public partial class HUD
 
 	private static string FormatSheetArtifactSlot(string slot) => (slot ?? "").ToLowerInvariant() switch
 	{
-		"passive" => UiComponents.TextOr("sheet.artifact.passive", "Passivo"),
-		"active" => UiComponents.TextOr("sheet.artifact.active", "Ativo"),
+		"passive" => Localization.Text("ui.artifact_slot.passive"),
+		"active" => Localization.Text("ui.artifact_slot.active"),
 		_ => slot ?? ""
 	};
+
+	// Nome exibido da árvore de skills (ficha, Fonte de Sangue e Dicionário).
+	private static string SkillTreeName(SkillTree tree) => tree == SkillTree.Bestialis
+		? Localization.Text("ui.skill_tree.bestialis")
+		: Localization.Text("ui.skill_tree.humanitas");
 
 	private static string FormatSheetPercent(float multiplier) => $"{(multiplier - 1.0f) * 100.0f:+0.#;-0.#;+0}%";
 

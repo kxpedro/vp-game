@@ -7,7 +7,7 @@
 
 ## Sumário
 
-1. Princípios · 2. Tokens · 3. Componentes · 4. Layout · 5. Interação, pausa e foco · 6. Feedback de tela · 7. Ferramentas de dev · 8. Especificação por tela · 9. Não mexer · 10. Decisões em aberto · Anexo A (previews) · Anexo B (bugs → tarefa) · Anexo C (chaves de localização sugeridas)
+1. Princípios · 2. Tokens · 3. Componentes · 4. Layout · 5. Interação, pausa e foco · 6. Feedback de tela · 7. Ferramentas de dev · 8. Especificação por tela · 9. Não mexer · 10. Decisões em aberto · Anexo A (previews) · Anexo B (bugs → tarefa) · Anexo C (chaves de localização sugeridas) · Anexo D (localização na prática)
 
 ---
 
@@ -333,9 +333,9 @@ Três canais (HUD em jogo):
 
 | Canal | Quando | Aparência | Posição | Tempo |
 |---|---|---|---|---|
-| **(a) Alerta de combate** | `NotifyWaveIncoming` | faixa 520×64, fundo `DangerBg`, borda esquerda 6 `Danger`; "Próxima onda" `Section 22` `TextPrimary` + "N inimigos · 3" (contagem regressiva a partir de `seconds`) em `Secondary` | topo-centro, y 132 | `WaveAlert*` (~2 s); não é substituído por kills |
+| **(a) Alerta de combate** | `NotifyWaveIncoming` | faixa 520×64, fundo `DangerBg`, borda esquerda 6 `Danger`; "Próxima onda" `Section 22` `TextPrimary` + "N inimigos ·" em `Secondary` seguido da contagem regressiva (a partir de `seconds`) em rótulo próprio `TextPrimary` | topo-centro, y 132 | `WaveAlert*` (~2 s); não é substituído por kills |
 | **(b) Recompensa/info** | artefato, bênção, skill (`NotifySkillMessage`), mensagens da Câmara | `PanelHud`, borda 1 `WindowBorder` (recompensa) ou `Border` (info), ícone opcional 24, texto `Body`; largura 280–560 | topo-centro, abaixo do alerta (y 132 ou 204), empilhando para baixo, separação 8 | `Toast*`; máx. 3 visíveis, fila de 6 (descarta a mais antiga) |
-| **(c) Kill** | `NotifyEnemyDefeated` / `NotifyBloodCoinsRewarded` | só "+N" `Body` `Gold` ao lado do contador de moedas, subindo 16 px | painel de recursos | `KillPopup` 0,8 s; **sem frase** |
+| **(c) Kill** | `NotifyEnemyDefeated` / `NotifyBloodCoinsRewarded` | só "+N" `Body` `Gold`, subindo 16 px; host = moldura do painel de recursos (`_resourceFrame`), à direita da borda (posição lida no quadro seguinte, depois do relayout) | painel de recursos | `KillPopup` 0,8 s; **sem frase** |
 
 ### 3.10 Log de eventos — `UiComponents.EventLog()`
 
@@ -381,6 +381,7 @@ Só em `OS.IsDebugBuild()`. Canto inferior direito (âncora 1,1; −24/−24), 3
 
 - Filho do `Root` com tema (corrige Inv §0). `DamageNumber 30`, cor `DamageTaken`, outline 6 `TextOutline`.
 - Origem: posição do jogador projetada (`Camera3D.UnprojectPosition(player.GlobalPosition)`) + (0, −80); jitter horizontal ±12; sobe `DamageNumberRise` 40 px em 0,6 s; esmaece nos últimos 0,25 s.
+- Golpes em sequência (intervalo < 0,35 s) abrem em **leque**: centro, depois +64 px à direita (e 14 px acima), depois −64 px à esquerda (e 28 px acima); só o primeiro mantém o jitter aleatório de ±12, os deslocados saem sem ele; o ciclo reinicia após uma pausa maior (`HUD.StatusBars.cs`, `ShowReceivedDamageNumber`).
 - No máximo 3 vivos; o quarto recicla o mais antigo. Sem câmera, cai para junto da barra de vida (acima do painel do jogador).
 - Dano causado aos inimigos (`EnemyBasic.SpawnDamageNumber`, 3D branco/crítico dourado) não muda.
 
@@ -410,7 +411,7 @@ y0  ┌────────────────────────�
     │                    ( zona de combate protegida 0.18..0.82 × 0.16..0.80 )                │
     │                                                                                         │
     │                                                                                         │
-    │ [Painel do jogador 24 / −24, 400 × auto]   [Barra de bênçãos ±246, −24]   [Log debug]  │
+    │ [Painel do jogador 24 / −24, ~404 × auto]  [Barra de bênçãos ±246, −24]   [Log debug]  │
 y900└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -504,19 +505,19 @@ Substitui `_damageFlash` e `_criticalHealthVignette` (`ColorRect` cheios, `HUD.S
 
 ## 8. Especificação por tela
 
-Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde progresso; P1 = usabilidade/consistência; P2 = polimento) · **Tarefa** · **Componentes** · **Muda** · **Bugs junto** · **Previews**. Textos novos ficam onde estão (literal) até a fase 4; as chaves sugeridas estão no Anexo C.
+Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde progresso; P1 = usabilidade/consistência; P2 = polimento) · **Tarefa** · **Componentes** · **Muda** · **Bugs junto** · **Previews**. Os textos exibidos vivem em `data/localization/<idioma>/{ui,content,world}.json` (fase 4 concluída; ver Anexo D). Os nomes literais entre aspas nas especificações abaixo são o texto em pt-BR. O Anexo C é a proposta original de nomes de chave; vale o que está nos arquivos de localização.
 
 ### 8.0 Fundação (componentes, foco, preview)
 
 - **Tarefa:** fundação T1 (§2, §3 em `UIThemeFactory.cs`/`UiComponents.cs`), T2 (§5 em `ControllerUiSupport.cs`/`GameCursor.cs`), T3 (`UiPreview.cs`, `HUD.cs`, `MainMenu.cs`).
 - **Bugs junto:** `BlessingRarityColor` duplicado → `UiPalette.Rarity` (as cópias em `HUD.BlessingOffer.cs:384` e `IntermissionChamber.cs:257` passam a delegar; removidas em 3c T3/T5); cursor visível no controle (§5.5); foco não restaurado (API §5.2); `IsGameplayInputBlocked` sem altar/absorção (§5.2).
-- **Previews:** `gallery` (todos os componentes e estados: botões ×4 variantes × 6 estados, card por raridade incl. Stirps/Mythic e desabilitado, barras, abas, toast ×3 canais, linhas de opção, glifos ×3 dispositivos), `confirm`.
+- **Previews:** `gallery` (todos os componentes e estados) e `confirm` foram previstos mas **não existem** em `UiPreview.cs`; os componentes são conferidos pelas telas reais (Anexo A).
 
 ### 8.1 HUD — painel do jogador (Aud §1) — **P1**
 
 - **Tarefa:** hud-ingame T1 (`HUD.StatusBars.cs`).
 - **Componentes:** `PanelContainer` com `PanelHud` (altura automática), `ResourceBar(Health)`, `ResourceBar(Fury)`.
-- **Muda:** remove "VIRGIL"; âncora inferior esquerda (24, −24), largura 400; altura 64 sem fúria, ~92 com fúria; vida em `Life` (não mais `(0.86,0.02,0.04)`); chip de dano; "+N" de barreira em rótulo separado `Restore`; fúria fina com selo, estado "pronta" e glifo. Barreira integrada preservada.
+- **Muda:** remove "VIRGIL"; âncora inferior esquerda (24, −24), largura ~404 (conteúdo 372 = barra 260 + valor 56 + barreira 40 + 2 × 8 de separação, mais padding de 16 de cada lado; é automática, não fixada); altura 64 sem fúria, ~92 com fúria; vida em `Life` (não mais `(0.86,0.02,0.04)`); chip de dano; "+N" de barreira em rótulo separado `Restore`; fúria fina com selo, estado "pronta" e glifo. Barreira integrada preservada.
 - **Previews:** `hud_combat` (vida 83/100 + barreira 20 + fúria cheia), `critical_health`.
 
 ### 8.2 HUD — recursos (Aud §2) — **P1**
@@ -529,7 +530,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 ### 8.3 HUD — título da sala (Aud §3) — **P2**
 
 - **Tarefa:** hud-ingame T1 (layout, divisor, texto pós-limpeza em `StatusBars.cs:523`) + T2 (`SyncRoomInformation`, `Notifications.cs:69`).
-- **Muda:** `PanelHud` ±280 × 16..64 sem divisor sobreposto; nome do mapa `Section 22` `Gold` + "Sala 1/6 · 5/20" `Secondary`; após limpar, a parte secundária vira "Portal aberto" (nome continua). Sala de chefe: o título some e a barra do chefe ocupa o lugar. Na Câmara de Hemomancia: "Câmara de Hemomancia" via `_roomLabel` (sem vida) — substitui o `_statusLabel` da Câmara (ver §8.19).
+- **Muda:** `PanelHud` ±280 × 16..64 sem divisor sobreposto; nome do mapa `Section 22` `Gold` + "Sala 1/6 · 5/20" `Secondary`; ao limpar, a parte secundária vira "Sala limpa" e, quando o portal abre de fato (depois da recompensa, via `NotifyPortalOpened`), vira "Portal aberto" (o nome continua). Sala de chefe: o título some e a barra do chefe ocupa o lugar. Na Câmara de Hemomancia: "Câmara de Hemomancia" via `_roomLabel` (sem vida) — substitui o `_statusLabel` da Câmara (ver §8.19).
 - **Previews:** `hud_combat`, `room_clear`.
 
 ### 8.4 HUD — barra do chefe (Aud §4) — **P1**
@@ -582,7 +583,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 ### 8.10 Pausa, opções e parâmetros (Aud §10) — **P0** (confirmação, dev) / P1
 
 - **Tarefa:** hud-menus T2 (`HUD.Pause.cs`).
-- **Componentes:** `Window(Medium)` "Pausa", `MenuButton`, `Confirm`, `OptionsPanel(showLanguage: false)` (vira `true` quando a fase 4 fizer o HUD reagir a `LanguageChanged`), seção DEV (§7), `LabeledSlider`.
+- **Componentes:** `Window(Medium)` "Pausa", `MenuButton`, `Confirm`, `OptionsPanel(showLanguage: true)` (a pausa tem o seletor de idioma; o HUD reage a `LanguageChanged`), seção DEV (§7), `LabeledSlider`.
 - **Muda:** ordem: Continuar (foco) · Opções · Dicionário · *[divisor]* · Ferramentas de desenvolvimento (debug) · Reiniciar teste (debug) · *[divisor]* · Desistir da run (`Destructive`, só com run ativa) · Voltar ao menu principal (`Destructive` se run ativa, senão `Secondary`). Título e log do HUD escondidos enquanto a pausa estiver aberta. Tuning: rodapé só "Salvar" e "Voltar". Subpáginas voltam com foco no botão que as abriu.
 - **Bugs junto:** sliders presos em 100 (`HUD.Pause.cs:351`: alinhar o clamp ao `MaxValue` de cada slider); pausa inconsistente (wrappers §5.2); game over abaixo de outros overlays (§5.1 regra 6).
 - **Previews:** `pause`, `options`, `pause_tuning`, `pause_confirm_abandon`, `pause_confirm_menu`.
@@ -661,7 +662,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 
 - **Tarefa:** fundação T2 (API, ações, cursor); cada tarefa de tela declara foco inicial e usa `HintBar`.
 - **Muda:** §5. O `_controlsHintLabel` morto (`StatusBars.cs:199-211`) é removido em hud-ingame T1.
-- **Previews:** `gallery` com `--ui-device=keyboard|xbox|ps`.
+- **Previews:** qualquer tela com `--ui-device=kbm|xbox|ps` (não há `gallery`; ver Anexo A).
 
 ### 8.21 Resoluções (Aud §21) — **P1**
 
@@ -700,17 +701,43 @@ Fonte, Baú e Bancada continuam sem pausar (comportamento atual). Fazê-los paus
 
 ## Anexo A — Previews `--ui-preview=<nome>` (fundação T3)
 
-Comando: `F:/GODOT/App/Godot.exe --path . --resolution 1600x900 --fixed-fps 30 --write-movie <dir>/f.png --quit-after 90 <cena> -- --ui-preview=<nome> [--ui-device=keyboard|xbox|ps] [--ui-lang=pt-BR|en|es] [--ui-tab=<id>]`. Só em `OS.IsDebugBuild()`. `--ui-device` força os glifos; `--ui-lang` define o idioma antes de montar a tela (necessário para a localização T3).
+Implementação: `scripts/ui/UiPreview.cs` (o cabeçalho do arquivo é a fonte da lista de telas). Só em `OS.IsDebugBuild()`; em release, nada acontece. Os argumentos de usuário vêm depois de `--`.
+
+**Uma tela:**
+
+```
+F:/GODOT/App/Godot.exe --path . res://scenes/game/CrowsNest.tscn -- --ui-preview=blood_fountain
+F:/GODOT/App/Godot.exe --path . --resolution 1600x900 --fixed-fps 30 --write-movie <dir>/f.png --quit-after 60 <cena> -- --ui-preview=<nome> [--ui-device=kbm|xbox|ps] [--ui-lang=pt-BR|en|es] [--ui-tab=<aba>] [--ui-codex-locked[=sample]]
+```
+
+- `--ui-lang` define o idioma da sessão antes de montar a tela, sem gravar nas configurações.
+- `--ui-device` força os glifos e o cursor e fica travado na sessão (`kbm`, `xbox`, `ps`; `keyboard` e `playstation` também valem).
+- `--ui-tab` escolhe a aba do compêndio (`Artifacts`, `Blessings`, `Skills`, `Attacks`, `Enemies`, `Weapons`) ou da ficha (`Attributes`, `Blessings`, `Artifacts`, `Skills`).
+- `--ui-codex-locked` mostra o Dicionário na visão de release (entradas bloqueadas); `=sample` finge algumas descobertas.
+
+**Lote (um único processo do Godot):** percorre todas as telas × idiomas, recarregando a cena entre uma captura e outra, e grava um PNG por combinação. Evita abrir e fechar o jogo uma vez por tela e não usa `--write-movie`.
+
+```
+F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=C:/tmp/shots [--ui-langs=pt-BR,en,es] [--ui-screens=pause,compendium]
+```
+
+- `--ui-batch` ativa o lote (a cena inicial pode ser qualquer uma; o lote escolhe a cena de cada tela).
+- `--ui-shots=<pasta>` é onde gravar (`<tela>[_<aba>]_<idioma>.png`); sem ela, `user://ui_shots`.
+- `--ui-langs=a,b,c` limita os idiomas (padrão `pt-BR,en,es`); `--ui-screens=a,b` limita as telas (padrão: todas).
+- Cada captura espera cerca de 0,8 s depois de a tela abrir; uma tela que não abre em 6 s é ignorada com aviso. Ao fim, o processo encerra sozinho.
+
+Apelidos: `skill_detail` = `skill_popup`, `pause_tuning` = `tuning`, `wave_alert` = `wave_warning`. Toast, aviso de wave, banner de sala limpa, flash de dano e número de dano se repetem para aparecerem em qualquer quadro da captura. `event_log` só aparece em build de debug.
 
 | Nome | Cena | Seção |
 |---|---|---|
-| `gallery`, `confirm` | `MainMenu` | 8.0 |
 | `menu_main`, `menu_slots`, `menu_confirm_delete`, `menu_options`, `menu_credits` | `MainMenu` | 8.9 |
-| `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `wave_alert`, `room_clear`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
-| `pause`, `options`, `pause_tuning`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
+| `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `wave_warning`, `room_clear`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
+| `pause`, `options`, `tuning`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
 | `character_sheet`, `blessing_offer`, `blessing_offer_replace`, `artifact_offer`, `artifact_offer_4` | `TestArena` | 8.13, 8.16, 8.17 |
-| `blood_fountain`, `skill_detail`, `artifact_chest`, `weapon_bench` | `CrowsNest` | 8.14, 8.15, 8.18 |
+| `blood_fountain`, `skill_popup`, `artifact_chest`, `weapon_bench` | `CrowsNest` | 8.14, 8.15, 8.18 |
 | `altar` | `IntermissionChamber` | 8.19 |
+
+As telas do HUD abrem em qualquer cena com HUD (`CrowsNest`, `RunStartBlessingRoom`, `TestArena`, `IntermissionChamber`). `pause` e `pause_confirm_*` iniciam uma run volátil se não houver, para mostrar "Desistir da run". Os previews `gallery`, `confirm` e `prompt` previstos na fundação não foram implementados.
 
 Dados fictícios: 8 bênçãos (todas as raridades de bênção, níveis 1–3), 3 artefatos (Common/Epic/Mythic), 500 moedas, vida 83/100 + barreira 20, fúria cheia, chefe com 60% de vida.
 
@@ -734,9 +761,19 @@ Dados fictícios: 8 bênçãos (todas as raridades de bênção, níveis 1–3),
 | Tweens de flash concorrentes | hud-ingame T1 |
 | Game over abaixo de outros overlays; ficha atrás de ofertas/baú | `UiModalStack` (fundação T2) + hud-menus T2, hud-overlays T1 |
 | `RefreshCharacterSheet` com a ficha fechada | hud-overlays T1 |
-| Destaque de palavras-chave depende do texto em PT (`HUD.BlessingOffer.cs:486,498`) | localização T1 (registrar) |
+| Destaque de palavras-chave depende do texto em PT (`HUD.BlessingOffer.cs:486,498`) | localização T1; resolvido com a marcação `[kw=<id>]termo[/kw]` nas descrições (Anexo D) |
 | **Risco novo:** `interact` (E / botão 0) é lido por polling em `ArtifactChest.cs:19`, `BloodFountain.cs:19`, `WeaponBench.cs:30` sem checar `IsGameplayInputBlocked`; como Fonte/Baú/Bancada não pausam, ✕/A dentro do overlay reaciona `Open*`. | Verificar com controle em hud-overlays T6; correção em `scripts/systems/*` não tem dono nas fases 3 (pendência) |
 
 ## Anexo C — Chaves de localização sugeridas (fase 4)
 
 Prefixos: `ui.common.*` (confirm, cancel, back, close, choose, equip, upgrade, reroll, decide_later, dev_tools, coming_soon, equipped, max), `ui.confirm.*` (delete_slot.title/body, abandon_run.*, main_menu.*, irreversible), `ui.rarity.*` (common, uncommon, rare, epic, legendary, mythic, stirps), `hud.room.*` (title, room_progress, boss, portal_open, chamber), `hud.toast.*` (wave_title, wave_body, artifact, blessing), `hud.fury`, `hud.banner.portal_open`, `pause.*`, `gameover.*`, `sheet.*`, `fountain.*`, `chest.*`, `offer.artifact.*`, `offer.blessing.*`, `bench.*`, `altar.*`, `codex.*`, `hint.*`. Reaproveitar as existentes (`hud.*`, `menu.*`, `options.*`). Rótulos de rodapé devem caber em 160 px a 15 px nos três idiomas.
+
+## Anexo D — Localização na prática (fase 4 concluída)
+
+- **Onde:** `data/localization/<idioma>/{ui,content,world}.json` (idiomas `pt-BR`, `en`, `es`), JSON plano `"chave": "texto"`. `ui.json` = interface; `content.json` = bênçãos, artefatos, skills, armas e efeitos; `world.json` = bosses, mapas, inimigos e mensagens de combate. O `game_texts.json` antigo não existe mais. Estado: 905 chaves por idioma (375 + 467 + 63).
+- **Carga e fallback:** `scripts/systems/Localization.cs`. Idioma atual → `pt-BR` → a própria chave (aviso em debug, uma vez por chave). `Localization.Text`, `TextFormat`, `Has` e o sinal `LanguageChanged`; tradução com formato malformado cai para o `pt-BR` e depois para o texto cru. A cultura da sessão segue o idioma (`en` com ponto decimal; `pt-BR` e `es` com vírgula).
+- **Reação à troca de idioma:** o HUD, o menu, as salas e os rótulos 3D (fonte, baú, bancada, portais, artefatos no chão) assinam `LanguageChanged`. A pausa tem o seletor de idioma (`OptionsPanel(true)`).
+- **Regra para tela nova:** todo texto visível usa chave (`Localization.Text`/`TextFormat`); texto só de debug (log de eventos, seção DEV, linhas "Prévia:" dos previews) pode ficar literal. Chave nova entra nos três idiomas; o rótulo precisa caber em `en` e `es` (~30% maiores).
+- **Palavras-chave de bênção:** descrição com `{n}` (valor do efeito `n`) e `[kw=<id>]termo[/kw]`; termo e explicação em `blessing.keyword.<id>.term/.hint` (`BloodBlessingText`).
+- **Validação:** `py tools/validate_localization.py` (paridade, placeholders, JSON válido, chaves literais do C# existem); os validadores de bênçãos e artefatos conferem as chaves de `content.json`. Termos de referência em `docs/design/glossario-localizacao.json`.
+- **Idioma novo:** `Localization.Languages` e `NormalizeLanguage`, o seletor de `UiComponents.OptionsPanel` (três opções fixas) e a lista `LANGUAGES` dos três validadores.

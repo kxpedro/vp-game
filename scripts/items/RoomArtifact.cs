@@ -20,7 +20,17 @@ public partial class RoomArtifact : Area3D
         BodyEntered += OnBodyEntered;
         BodyExited += OnBodyExited;
         CreatePromptLabel();
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
     }
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(string language) => InteractPrompt.SetText(_promptLabel, Localization.Text("prompt.room_artifact"));
 
     public override void _Process(double delta)
     {
@@ -43,7 +53,7 @@ public partial class RoomArtifact : Area3D
 
     private void CreatePromptLabel()
     {
-        _promptLabel = InteractPrompt.CreatePrompt(this, "Invocar recompensa", 1.85f);
+        _promptLabel = InteractPrompt.CreatePrompt(this, Localization.Text("prompt.room_artifact"), 1.85f);
         // O título (AltarTitle) é adicionado pelo RunManager depois do AddChild: estiliza no fim do frame.
         Callable.From(StyleTitle).CallDeferred();
     }

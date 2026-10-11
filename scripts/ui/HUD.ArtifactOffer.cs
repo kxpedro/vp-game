@@ -39,7 +39,7 @@ public partial class HUD
 	private void BuildArtifactOfferOverlay(Control root)
 	{
 		_artifactOfferWindow = UiComponents.Window(root, "ArtifactOfferOverlay", WindowSize.Large,
-			UiComponents.TextOr("offer.artifact.title", "Tesouro de Artefatos"));
+			Localization.Text("offer.artifact.title"));
 		_artifactOfferOverlay = _artifactOfferWindow.Root;
 		_artifactOfferOverlay.Visible = false;
 		_artifactOfferWindow.Mandatory = true;
@@ -53,7 +53,7 @@ public partial class HUD
 		var footer = _artifactOfferWindow.Footer;
 		_artifactRerollHint = footer.Add(UiAction.Alt, "", RerollArtifactOffer);
 		_artifactRerollHint.Visible = false;
-		footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"));
+		footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"));
 		// ui_alt (R / Y / △): HUD.RegisterModalShortcuts → HandleArtifactOfferShortcut (tecla/controle só chegam ao botão focado).
 	}
 
@@ -86,7 +86,7 @@ public partial class HUD
 		_artifactOfferSourceKey = key;
 		_artifactOfferWindow.SetStatus(_artifactOfferPreviewMode
 			? "Prévia: escolher e trocar só simulam; nada é gravado."
-			: UiComponents.TextOr("offer.artifact.status", "Escolha um artefato para liberar a saída."));
+			: Localization.Text("offer.artifact.status"));
 		RebuildArtifactOfferCards(choices);
 		RefreshArtifactRerollHint();
 		// Modal não cancelável (D1): ui_cancel só avisa; a pilha refoca dentro da oferta.
@@ -135,9 +135,9 @@ public partial class HUD
 				Icon = LoadArtifactIcon(artifact),
 				Title = artifact.DisplayName,
 				RarityId = artifact.Rarity,
-				Meta = $"{UiComponents.TextOr("offer.artifact.kind", "Artefato")} · {ArtifactSlotText(artifact.Slot)}",
+				Meta = $"{Localization.Text("offer.artifact.kind")} · {ArtifactSlotText(artifact.Slot)}",
 				BodyBbcode = ArtifactBodyBbcode(artifact),
-				ActionText = UiComponents.TextOr("ui.common.choose", "Escolher"),
+				ActionText = Localization.Text("ui.common.choose"),
 				Width = 1080.0f
 			}, () => SelectArtifactOffer(captured));
 			_artifactOfferList.AddChild(card.Root);
@@ -155,7 +155,7 @@ public partial class HUD
 
 	private void WarnArtifactOfferMandatory()
 	{
-		_artifactOfferWindow?.SetStatus(UiComponents.TextOr("offer.artifact.mandatory", "Escolha um artefato para continuar."));
+		_artifactOfferWindow?.SetStatus(Localization.Text("offer.artifact.mandatory"));
 	}
 
 	private bool CanRerollArtifactOffer()
@@ -174,11 +174,11 @@ public partial class HUD
 			return;
 		// O reroll da skill vale uma vez por mapa.
 		var remaining = CanRerollArtifactOffer() ? 1 : 0;
-		_artifactRerollHint.SetLabel(string.Format(UiComponents.TextOr("offer.reroll_count", "Trocar ({0})"), remaining));
+		_artifactRerollHint.SetLabel(Localization.TextFormat("offer.reroll_count", remaining));
 		_artifactRerollHint.Button.Disabled = remaining == 0;
 		_artifactRerollHint.Button.TooltipText = remaining > 0
-			? UiComponents.TextOr("offer.reroll_tooltip", "Espelho do Destino: troca a oferta sem custo, uma vez por mapa.")
-			: UiComponents.TextOr("offer.reroll_used", "Espelho do Destino já usado neste mapa.");
+			? Localization.Text("offer.reroll_tooltip")
+			: Localization.Text("offer.reroll_used");
 	}
 
 	private void RerollArtifactOffer()
@@ -203,7 +203,7 @@ public partial class HUD
 			// Sem nada novo para oferecer: mantém as opções atuais (a oferta continua obrigatória).
 			if (choices.Count == 0)
 			{
-				_artifactOfferWindow.SetStatus(UiComponents.TextOr("offer.artifact.reroll_empty", "O Espelho do Destino não encontrou outros artefatos."));
+				_artifactOfferWindow.SetStatus(Localization.Text("offer.artifact.reroll_empty"));
 				RefreshArtifactRerollHint();
 				return;
 			}
@@ -217,7 +217,7 @@ public partial class HUD
 		_artifactOfferChoices[_artifactOfferSourceKey] = choices;
 		RebuildArtifactOfferCards(choices);
 		RefreshArtifactRerollHint();
-		_artifactOfferWindow.SetStatus(UiComponents.TextOr("offer.artifact.rerolled", "O Espelho do Destino reescreveu a oferta deste mapa."));
+		_artifactOfferWindow.SetStatus(Localization.Text("offer.artifact.rerolled"));
 		ControllerUiSupport.FocusInitial(FirstArtifactOfferTarget(), _artifactOfferOverlay);
 	}
 
@@ -256,7 +256,7 @@ public partial class HUD
 	{
 		RunState.AddTemporaryArtifact(artifact);
 		GetTree().CallGroup("player", "ApplyRuntimeTuning");
-		NotifyArtifactCollected(artifact.Name);
+		NotifyArtifactCollected(artifact);
 		_pendingArtifactSource?.Consume();
 		_pendingArtifactSource = null;
 		_artifactOfferPreviewMode = false;
@@ -334,8 +334,9 @@ public partial class HUD
 	{
 		return (slot ?? "").ToLowerInvariant() switch
 		{
-			"passive" => UiComponents.TextOr("ui.artifact_slot.passive", "Passivo"),
-			"" => UiComponents.TextOr("ui.artifact_slot.passive", "Passivo"),
+			"passive" => Localization.Text("ui.artifact_slot.passive"),
+			"" => Localization.Text("ui.artifact_slot.passive"),
+			"active" => Localization.Text("ui.artifact_slot.active"),
 			_ => slot
 		};
 	}
@@ -345,14 +346,14 @@ public partial class HUD
 	{
 		var gold = UiPalette.Gold.ToHtml(false);
 		var effects = FormatArtifactEffectList(artifact);
-		return $"{EscapeArtifactBbcode(artifact.Description)}\n[color=#{gold}]{UiComponents.TextOr("ui.common.effects", "Efeitos")}:[/color] {EscapeArtifactBbcode(effects)}";
+		return $"{EscapeArtifactBbcode(artifact.Description)}\n[color=#{gold}]{Localization.Text("ui.common.effects")}:[/color] {EscapeArtifactBbcode(effects)}";
 	}
 
 	// Formato único de efeito ("Nome: +20%") em oferta, baú e ficha: ArtifactEffectRegistry.FormatEffect.
 	private static string FormatArtifactEffectList(ArtifactDefinition artifact)
 	{
 		if (artifact.Effects == null || artifact.Effects.Length == 0)
-			return UiComponents.TextOr("ui.common.none", "nenhum");
+			return Localization.Text("ui.common.none");
 
 		var parts = new List<string>();
 		for (var i = 0; i < artifact.Effects.Length; i++)

@@ -1,133 +1,136 @@
 using System.Collections.Generic;
 using System.Globalization;
 
-// Nomes legíveis (PT-BR) dos tipos de efeito de artefatos e Bênçãos de Sangue, mais um formatador de valor com unidade.
-// Todo "type" usado em data/artifacts/artifacts.json e data/blessings/blood_blessings.json deve ter entrada em Names;
-// sem ela, FriendlyName cai no SplitPascalCase e o nome aparece em inglês na UI.
+// Nomes legíveis dos tipos de efeito de artefatos e Bênçãos de Sangue, mais um formatador de valor com unidade.
+// Todo "type" usado em data/artifacts/artifacts.json e data/blessings/blood_blessings.json deve estar em KnownTypes
+// e ter a chave artifact.effect.<Tipo> em data/localization/<idioma>/content.json; sem ela, FriendlyName cai no
+// SplitPascalCase e o nome aparece cru na UI.
 public static class ArtifactEffectRegistry
 {
-    private static readonly Dictionary<string, string> Names = new()
+    // Tipos de efeito conhecidos. O nome exibido de cada um fica em content.json, chave artifact.effect.<Tipo>
+    // (os validadores conferem a chave nos três idiomas).
+    private static readonly HashSet<string> KnownTypes = new()
     {
         // Atributos gerais
-        ["Damage"] = "Dano",
-        ["MaxHealth"] = "Vida máxima",
-        ["Heal"] = "Cura",
-        ["CriticalChance"] = "Chance de crítico",
-        ["CriticalDamage"] = "Dano crítico",
-        ["NonCriticalDamage"] = "Dano de golpes não críticos",
-        ["MoveSpeed"] = "Velocidade de movimento",
-        ["AttackSpeed"] = "Velocidade de ataque",
-        ["DamageBurst"] = "Explosão de dano",
-        ["DamageVsBoss"] = "Dano contra chefes",
-        ["DamageVsElite"] = "Dano contra inimigos especiais",
-        ["DamageTakenFromNormal"] = "Dano sofrido de inimigos comuns",
-        ["RareDropChance"] = "Chance de recompensa rara",
-        ["CriticalLifeSteal"] = "Roubo de vida em críticos",
-        ["ExecuteThreshold"] = "Limite de execução",
-        ["ExecuteThresholdOnCritical"] = "Limite de execução após crítico",
-        ["PreventFatalDamage"] = "Impede dano fatal uma vez",
-        ["InvulnerabilityOnFatal"] = "Invulnerabilidade após dano fatal",
-        ["DamageOnFatal"] = "Dano após dano fatal",
-        ["EnemyTimeScale"] = "Lentidão dos inimigos",
-        ["SummonSpectralServants"] = "Servos espectrais",
-        ["FearArea"] = "Medo em área",
-        ["Intangible"] = "Intangibilidade",
-        ["Duration"] = "Duração",
+        "Damage",
+        "MaxHealth",
+        "Heal",
+        "CriticalChance",
+        "CriticalDamage",
+        "NonCriticalDamage",
+        "MoveSpeed",
+        "AttackSpeed",
+        "DamageBurst",
+        "DamageVsBoss",
+        "DamageVsElite",
+        "DamageTakenFromNormal",
+        "RareDropChance",
+        "CriticalLifeSteal",
+        "ExecuteThreshold",
+        "ExecuteThresholdOnCritical",
+        "PreventFatalDamage",
+        "InvulnerabilityOnFatal",
+        "DamageOnFatal",
+        "EnemyTimeScale",
+        "SummonSpectralServants",
+        "FearArea",
+        "Intangible",
+        "Duration",
 
         // Condicionais de artefatos
-        ["AttackSpeedMissingHealth"] = "Velocidade de ataque por vida perdida",
-        ["MoveSpeedMissingHealth"] = "Velocidade de movimento por vida perdida",
-        ["AttackSpeedOnKill"] = "Velocidade de ataque ao abater",
-        ["MoveSpeedOnHit"] = "Velocidade de movimento ao sofrer dano",
-        ["FlawlessKillDamageStack"] = "Dano por abate sem sofrer dano",
-        ["FlawlessKillLifeStealStack"] = "Roubo de vida por abate sem sofrer dano",
-        ["ResetStacksOnHit"] = "Perde os acúmulos ao ser atingido",
-        ["CurrentHealthCostOnRoomEnter"] = "Custo de vida atual ao entrar na sala",
-        ["DamageUntilRoomClear"] = "Dano até limpar a sala",
-        ["DamagePerCurrencyHeld"] = "Dano por moeda guardada",
-        ["DamagePenaltyOnHeal"] = "Penalidade de dano ao se curar",
+        "AttackSpeedMissingHealth",
+        "MoveSpeedMissingHealth",
+        "AttackSpeedOnKill",
+        "MoveSpeedOnHit",
+        "FlawlessKillDamageStack",
+        "FlawlessKillLifeStealStack",
+        "ResetStacksOnHit",
+        "CurrentHealthCostOnRoomEnter",
+        "DamageUntilRoomClear",
+        "DamagePerCurrencyHeld",
+        "DamagePenaltyOnHeal",
 
         // Ataques (Bênçãos de Sangue)
-        ["BasicAttackDamage"] = "Dano do ataque básico",
-        ["BasicAttackLifeSteal"] = "Roubo de vida no ataque básico",
-        ["BasicAttackBleed"] = "Sangramento no ataque básico",
-        ["BasicAttackPestilence"] = "Pestilência no ataque básico",
-        ["BasicAttackCharmChance"] = "Chance de Encanto no ataque básico",
-        ["QuickAttackDamage"] = "Dano do ataque rápido",
-        ["QuickAttackLifeSteal"] = "Roubo de vida no ataque rápido",
-        ["QuickAttackBleedChance"] = "Chance de Sangramento no ataque rápido",
-        ["QuickAttackPestilenceChance"] = "Chance de Pestilência no ataque rápido",
-        ["QuickAttackCharmChance"] = "Chance de Encanto no ataque rápido",
-        ["SpecialAttackDamage"] = "Dano do ataque especial",
-        ["SpecialAttackLifeSteal"] = "Roubo de vida no ataque especial",
-        ["SpecialAttackPestilenceChance"] = "Chance de Pestilência no ataque especial",
-        ["SpecialAttackCharmChance"] = "Chance de Encanto no ataque especial",
-        ["SpecialAttackBloodPool"] = "Poça de sangue do ataque especial",
-        ["UnlockBestialFury"] = "Desbloqueia Fúria Bestial (F)",
-        ["FuryDamage"] = "Dano durante a Fúria Bestial",
-        ["FuryDuration"] = "Eficiência da Fúria Bestial",
+        "BasicAttackDamage",
+        "BasicAttackLifeSteal",
+        "BasicAttackBleed",
+        "BasicAttackPestilence",
+        "BasicAttackCharmChance",
+        "QuickAttackDamage",
+        "QuickAttackLifeSteal",
+        "QuickAttackBleedChance",
+        "QuickAttackPestilenceChance",
+        "QuickAttackCharmChance",
+        "SpecialAttackDamage",
+        "SpecialAttackLifeSteal",
+        "SpecialAttackPestilenceChance",
+        "SpecialAttackCharmChance",
+        "SpecialAttackBloodPool",
+        "UnlockBestialFury",
+        "FuryDamage",
+        "FuryDuration",
 
         // Dracul
-        ["BloodOrbDropChance"] = "Chance de Gota de Sangue",
-        ["BloodOrbHealMaxHealth"] = "Cura da Gota de Sangue",
-        ["DamageAboveHealth"] = "Dano com a vida alta",
-        ["NearbyEnemyDamage"] = "Dano de inimigos próximos",
-        ["DamageAfterHealing"] = "Dano após se curar",
-        ["OverhealToBarrier"] = "Excesso de cura em barreira",
-        ["DamageOnEliteKill"] = "Dano ao abater elite",
-        ["LifeStealVsLowHealthEnemy"] = "Roubo de vida contra alvos feridos",
-        ["DamageWhileBarrier"] = "Dano com barreira",
-        ["UnstoppableWhileBarrier"] = "Ininterrompível com barreira",
-        ["PermanentDamageFromOverheal"] = "Dano permanente por excesso de cura",
+        "BloodOrbDropChance",
+        "BloodOrbHealMaxHealth",
+        "DamageAboveHealth",
+        "NearbyEnemyDamage",
+        "DamageAfterHealing",
+        "OverhealToBarrier",
+        "DamageOnEliteKill",
+        "LifeStealVsLowHealthEnemy",
+        "DamageWhileBarrier",
+        "UnstoppableWhileBarrier",
+        "PermanentDamageFromOverheal",
 
         // Bathory
-        ["BloodPoolOnKill"] = "Poça de sangue ao abater",
-        ["BloodPoolHealPerSecond"] = "Cura por segundo na poça de sangue",
-        ["CriticalChanceAtFullHealth"] = "Chance de crítico com a vida cheia",
-        ["DamageReductionAfterHealing"] = "Redução de dano após se curar",
-        ["BloodPoolArea"] = "Área da poça de sangue",
-        ["BloodPoolDuration"] = "Duração da poça de sangue",
-        ["AttackSpeedAfterHighHealthHeal"] = "Velocidade de ataque após cura com vida alta",
-        ["BloodPoolRefreshOnKillChance"] = "Chance de estender a poça ao abater",
-        ["HealOnBloodPoolKill"] = "Cura ao abater sobre sangue",
-        ["DamageToRecoverableHealth"] = "Dano convertido em Ferida Recuperável",
-        ["DamageOnBlood"] = "Dano sobre sangue",
-        ["DamageReductionOnBlood"] = "Redução de dano sobre sangue",
-        ["MoveSpeedOnBlood"] = "Velocidade de movimento sobre sangue",
-        ["MinimumHealthOnBlood"] = "Vida mínima sobre sangue",
+        "BloodPoolOnKill",
+        "BloodPoolHealPerSecond",
+        "CriticalChanceAtFullHealth",
+        "DamageReductionAfterHealing",
+        "BloodPoolArea",
+        "BloodPoolDuration",
+        "AttackSpeedAfterHighHealthHeal",
+        "BloodPoolRefreshOnKillChance",
+        "HealOnBloodPoolKill",
+        "DamageToRecoverableHealth",
+        "DamageOnBlood",
+        "DamageReductionOnBlood",
+        "MoveSpeedOnBlood",
+        "MinimumHealthOnBlood",
 
         // Orlok
-        ["PestilenceDeathSpreadRadius"] = "Raio de contágio na morte",
-        ["PestilenceSpreadTargets"] = "Alvos do contágio na morte",
-        ["InfectedEnemyDamage"] = "Dano de inimigos pestilentos",
-        ["PestilenceCloudAtStacks"] = "Nuvem pestilenta",
-        ["InfectedCorpseExplosion"] = "Explosão de cadáver pestilento",
-        ["DamageVsPlagueHost"] = "Dano contra Hospedeiros",
-        ["PestilenceSpreadOnHostHit"] = "Contágio ao atingir Hospedeiro",
-        ["PestilenceDurationLink"] = "Raio de vínculo da Pestilência",
-        ["InfinitePestilenceSpread"] = "Contágio infinito da Pestilência",
-        ["HealOnPestilentKill"] = "Cura ao abater inimigo pestilento",
-        ["RatSummonOnPestilentKill"] = "Rato ao abater alvo pestilento",
-        ["PestilenceExplosionBloodPool"] = "Poça sangrenta da explosão pestilenta",
+        "PestilenceDeathSpreadRadius",
+        "PestilenceSpreadTargets",
+        "InfectedEnemyDamage",
+        "PestilenceCloudAtStacks",
+        "InfectedCorpseExplosion",
+        "DamageVsPlagueHost",
+        "PestilenceSpreadOnHostHit",
+        "PestilenceDurationLink",
+        "InfinitePestilenceSpread",
+        "HealOnPestilentKill",
+        "RatSummonOnPestilentKill",
+        "PestilenceExplosionBloodPool",
 
         // Karnstein
-        ["CharmedEnemyDamage"] = "Dano de inimigos encantados",
-        ["CriticalChanceAfterDash"] = "Chance de crítico após esquiva",
-        ["HealFromCharmedDamage"] = "Cura pelo dano de encantados",
-        ["CharmedDamageVsElite"] = "Dano de encantados contra elites",
-        ["DamagePerCharmedEnemy"] = "Dano por inimigo encantado",
-        ["MoveSpeedPerCharmedEnemy"] = "Velocidade de movimento por inimigo encantado",
-        ["CharmedDeathExplosion"] = "Explosão ao morrer encantado",
-        ["CharmDamageLink"] = "Vínculo de dano do Encanto",
-        ["SacrificeCharmedOnFatalDamage"] = "Sacrifício de encantado ao sofrer dano fatal",
-        ["PermanentCharm"] = "Encanto permanente",
-        ["FascinationDamageTaken"] = "Dano sofrido sob Fascínio",
+        "CharmedEnemyDamage",
+        "CriticalChanceAfterDash",
+        "HealFromCharmedDamage",
+        "CharmedDamageVsElite",
+        "DamagePerCharmedEnemy",
+        "MoveSpeedPerCharmedEnemy",
+        "CharmedDeathExplosion",
+        "CharmDamageLink",
+        "SacrificeCharmedOnFatalDamage",
+        "PermanentCharm",
+        "FascinationDamageTaken",
 
         // Stirps (combinações)
-        ["PestilenceAlsoBleeds"] = "Pestilência também causa Sangramento",
-        ["BleedingAlsoPestilence"] = "Sangramento também causa Pestilência",
-        ["CharmedTargetBleed"] = "Sangramento contra alvos encantados",
-        ["LifeStealVsBleeding"] = "Roubo de vida contra alvos sangrando"
+        "PestilenceAlsoBleeds",
+        "BleedingAlsoPestilence",
+        "CharmedTargetBleed",
+        "LifeStealVsBleeding"
     };
 
     // Tipos cujo valor "AddFlat"/"SetFlat"/"ApplyFlat" é uma fração (0.2 = 20%).
@@ -135,7 +138,7 @@ public static class ArtifactEffectRegistry
     {
         "CriticalChance", "ExecuteThreshold", "ExecuteThresholdOnCritical", "CriticalChanceAtFullHealth",
         "CriticalChanceAfterDash", "BloodOrbDropChance", "BloodOrbHealMaxHealth", "BloodPoolRefreshOnKillChance",
-        "HealOnBloodPoolKill", "SacrificeCharmedOnFatalDamage", "BloodPoolHealPerSecond"
+        "HealOnBloodPoolKill", "SacrificeCharmedOnFatalDamage", "BloodPoolHealPerSecond", "HealOnPestilentKill"
     };
 
     // Tipos cujo valor plano é uma duração em segundos.
@@ -154,35 +157,51 @@ public static class ArtifactEffectRegistry
     {
         if (string.IsNullOrEmpty(type))
             return "";
-        return Names.TryGetValue(type, out var name) ? name : SplitPascalCase(type);
+        var key = EffectNameKey(type);
+        return Localization.Has(key) ? Localization.Text(key) : SplitPascalCase(type);
     }
 
-    public static bool HasFriendlyName(string type) => type != null && Names.ContainsKey(type);
+    public static string EffectNameKey(string type) => $"artifact.effect.{type}";
+
+    public static bool HasFriendlyName(string type) => type != null && KnownTypes.Contains(type) && Localization.Has(EffectNameKey(type));
+
+    public static bool IsKnownType(string type) => type != null && KnownTypes.Contains(type);
+
+    // Tipo cujo valor plano é uma fração exibida em % (0.2 = 20%).
+    public static bool IsFractionType(string type) => type != null && FlatPercentTypes.Contains(type);
+
+    // Número com até 2 casas e o separador decimal do idioma atual (en: ponto; pt-BR/es: vírgula).
+    // Invariante + troca do separador: não depende de ICU/cultura instalada.
+    public static string FormatNumber(double value, string pattern = "0.##")
+    {
+        var text = value.ToString(pattern, CultureInfo.InvariantCulture);
+        return UsesDecimalPoint() ? text : text.Replace('.', ',');
+    }
+
+    private static bool UsesDecimalPoint() => Localization.Instance?.CurrentLanguage == "en";
 
     // Valor com sinal e unidade: multiplicadores e frações em "%", durações em "s", booleanos como "ativo"/"inativo".
     // Ex.: ("Damage", "AddMultiplier", 0.25) -> "+25%"; ("CriticalChance", "AddFlat", 0.2) -> "+20%";
-    //      ("BloodPoolDuration", "AddFlat", 2.5) -> "+2,5 s"; ("InvulnerabilityOnFatal", "ApplyFlat", 3) -> "3 s".
+    //      ("BloodPoolDuration", "AddFlat", 2.5) -> "+2,5 s" (en: "+2.5 s"); ("InvulnerabilityOnFatal", "ApplyFlat", 3) -> "3 s".
     public static string FormatValue(string type, string operation, double value)
     {
         operation ??= "";
         type ??= "";
-        // Invariante + vírgula decimal: não depende de ICU/cultura instalada (pt-BR pode faltar em modo invariante).
-        var culture = CultureInfo.InvariantCulture;
         // Operações que aplicam/definem um valor absoluto não levam sinal.
         var signed = !operation.StartsWith("Apply") && !operation.StartsWith("Set");
 
         if (operation is "Set" or "SetBool")
-            return value > 0 ? "ativo" : "inativo";
+            return Localization.Text(value > 0 ? "artifact.effect_value.active" : "artifact.effect_value.inactive");
 
         if (operation.Contains("Multiplier") || FlatPercentTypes.Contains(type))
         {
             var percent = value * 100.0;
             var pattern = System.Math.Abs(percent) < 1.0 && percent != 0.0 ? "0.##" : "0.#";
-            var text = percent.ToString(signed ? $"+{pattern};-{pattern};0" : pattern, culture).Replace('.', ',') + "%";
+            var text = FormatNumber(percent, signed ? $"+{pattern};-{pattern};0" : pattern) + "%";
             return PerSecondTypes.Contains(type) ? text + "/s" : text;
         }
 
-        var flat = value.ToString(signed ? "+0.##;-0.##;0" : "0.##", culture).Replace('.', ',');
+        var flat = FormatNumber(value, signed ? "+0.##;-0.##;0" : "0.##");
         if (SecondsTypes.Contains(type))
             return flat + " s";
         if (PerSecondTypes.Contains(type))

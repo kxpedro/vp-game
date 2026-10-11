@@ -5,7 +5,8 @@
 - `data/artifacts/artifacts.json`: catálogo e valores base.
 - `scripts/systems/artifacts/ArtifactDefinition.cs`: modelo carregado do JSON.
 - `scripts/systems/artifacts/ArtifactCatalog.cs`: parsing, filtro passivo, lookup, pesos e multiplicador global de drops de boss.
-- `scripts/systems/artifacts/ArtifactEffectRegistry.cs`: nomes exibidos para os tipos de efeito; não implementa gameplay.
+- `scripts/systems/artifacts/ArtifactEffectRegistry.cs`: tipos de efeito conhecidos e formatação de valor; não implementa gameplay. Os nomes exibidos ficam em `content.json` (`artifact.effect.<Tipo>`).
+- `data/localization/<idioma>/content.json`: nome, descrição e flavor de cada artefato.
 - `scripts/systems/RunState.cs`: aplica e agrega efeitos passivos da run.
 - `scripts/player/PlayerCombat.cs`, `scripts/player/PlayerController.cs` e `scripts/combat/Health.cs`: consumidores comuns de modificadores passivos.
 - `scripts/ui/HUD.cs`: ofertas, coleção da run, descobertas permanentes, formatação e compêndio.
@@ -13,7 +14,19 @@
 
 ## Forma da entrada
 
-Campos esperados: `id`, `name`, `icon`, `rarity`, `slot`, `weight`, `tags`, `description`, `flavorText` e `effects`. Cada efeito possui `type`, `operation` e `value`.
+Campos esperados: `id`, `saveName`, `icon`, `rarity`, `slot`, `weight`, `tags` e `effects`. Cada efeito possui `type`, `operation` e `value`.
+
+`saveName` é o identificador legado gravado no save (`ArtifactRecord.Name` e slots equipados guardam esse texto): não é exibido, não pode mudar e deve ser único. Para artefato novo, usar o próprio ID. `name`, `description` e `flavorText` no catálogo são erro no validador.
+
+## Textos (localização)
+
+Ficam em `data/localization/<idioma>/content.json` (`pt-BR`, `en`, `es`, sempre os três):
+
+- `artifact.<id>.name`, `artifact.<id>.desc`, `artifact.<id>.flavor`;
+- `artifact.effect.<Tipo>`: nome amigável de cada tipo de efeito (o tipo também entra em `KnownTypes` do `ArtifactEffectRegistry`);
+- `artifact.effect_value.active` / `.inactive`: valor de efeitos booleanos.
+
+`ArtifactDefinition.DisplayName`/`Description`/`FlavorText` resolvem a chave no idioma atual a cada leitura. Para exibir um `ArtifactRecord` (save ou run), usar `ArtifactCatalog.DisplayNameFor(record)`; nunca exibir `record.Name`. `ArtifactEffectRegistry.FormatValue` usa o separador decimal do idioma (ponto em `en`, vírgula em `pt-BR`/`es`).
 
 Usar sempre `slot: Passive`. O catálogo filtra defensivamente entradas ativas legadas, e o validador deve acusá-las. Reutilizar operações existentes salvo quando uma nova semântica for realmente necessária.
 
