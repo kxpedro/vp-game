@@ -167,6 +167,7 @@ public partial class PlayerController : CharacterBody3D
 			if (perfectDodge)
 				_skillController?.OnPerfectDodge();
 			Velocity = _dodgeDirection * DodgeSpeed;
+			_animator?.PlayDodge(DodgeDuration);
 			_animator?.SetMovementState(true, true, DodgeSpeed);
 			MoveAndSlide();
 			return;
@@ -289,6 +290,8 @@ public partial class PlayerController : CharacterBody3D
 		_combat?.CancelCurrentAttack();
 		Velocity = Vector3.Zero;
 		_animator?.SetMovementState(false, false, 0.0f);
+		_animator?.PlayHitReaction(DamageStaggerDuration);
+		CombatFeedback.Instance?.PlayPlayerDamaged(amount);
 	}
 
 	private void RestoreSavedHealth()

@@ -12,6 +12,19 @@ public partial class PlayerWeaponVisual : Node
     private Node3D _leftWeapon;
     private PlayerCombat _combat;
     private bool _weaponVisible;
+    private float _visibleLinger;
+
+    [Export] public float WeaponLingerSeconds { get; set; } = 0.22f;
+    private const float TrailLifetime = 0.16f;
+    private const int MaxTrailSamples = 14;
+
+    private readonly record struct TrailSample(Vector3 Base, Vector3 Tip, float Time);
+    private readonly System.Collections.Generic.List<TrailSample> _trailSamples = new();
+    private MeshInstance3D _trailMesh;
+    private Vector3 _trailBaseLocal;
+    private Vector3 _trailTipLocal;
+    private Color _trailColor = new(0.70f, 0.92f, 1.0f, 0.6f);
+    private float _trailClock;
 
     public override void _Ready()
     {
@@ -32,12 +45,115 @@ public partial class PlayerWeaponVisual : Node
 
     public override void _Process(double delta)
     {
-        SetWeaponVisibility(_combat?.IsAttacking == true);
+        // A arma fica visivel durante o golpe e um instante depois (embainhar sem "piscar").
+        if (_combat?.IsAttacking == true)
+            _visibleLinger = WeaponLingerSeconds;
+        else
+            _visibleLinger = Mathf.Max(_visibleLinger - (float)delta, 0.0f);
+        SetWeaponVisibility(_visibleLinger > 0.0f);
+        UpdateTrail((float)delta);
     }
 
     public override void _ExitTree()
     {
         WeaponLoadout.EquippedWeaponChanged -= RefreshVisual;
+        if (_trailMesh != null && IsInstanceValid(_trailMesh))
+            _trailMesh.QueueFree();
+    }
+
+    private void UpdateTrail(float delta)
+    {
+        _trailClock += delta;
+        if (_trailMesh == null || _rightWeapon == null || !IsInstanceValid(_rightWeapon))
+            return;
+
+        var phase = _combat?.CurrentAttackPhase ?? PlayerAttackPhase.None;
+        var swinging = _combat?.IsAttacking == true && phase != PlayerAttackPhase.None;
+        if (swinging && _weaponVisible)
+        {
+            var transform = _rightWeapon.GlobalTransform;
+            var baseWorld = transform * _trailBaseLocal;
+            var tipWorld = transform * _trailTipLocal;
+            var count = _trailSamples.Count;
+            if (count == 0 || _trailSamples[count - 1].Tip.DistanceTo(tipWorld) > 0.05f)
+            {
+                _trailSamples.Add(new TrailSample(baseWorld, tipWorld, _trailClock));
+                if (_trailSamples.Count > MaxTrailSamples)
+                    _trailSamples.RemoveAt(0);
+            }
+        }
+
+        while (_trailSamples.Count > 0 && _trailClock - _trailSamples[0].Time > TrailLifetime)
+            _trailSamples.RemoveAt(0);
+
+        var mesh = (ImmediateMesh)_trailMesh.Mesh;
+        mesh.ClearSurfaces();
+        if (_trailSamples.Count < 2)
+        {
+            _trailMesh.Visible = false;
+            return;
+        }
+
+        _trailMesh.Visible = true;
+        mesh.SurfaceBegin(Mesh.PrimitiveType.TriangleStrip);
+        foreach (var sample in _trailSamples)
+        {
+            var age = Mathf.Clamp((_trailClock - sample.Time) / TrailLifetime, 0.0f, 1.0f);
+            var color = _trailColor;
+            color.A *= 1.0f - age;
+            mesh.SurfaceSetColor(new Color(color.R, color.G, color.B, 0.0f));
+            mesh.SurfaceAddVertex(sample.Base);
+            mesh.SurfaceSetColor(color);
+            mesh.SurfaceAddVertex(sample.Tip);
+        }
+        mesh.SurfaceEnd();
+    }
+
+    private void CreateTrail(WeaponVisualDefinition definition)
+    {
+        _trailSamples.Clear();
+        if (definition.UsesLeftHand || _rightWeapon == null)
+            return;
+
+        if (!TryGetLocalBounds(_rightWeapon, out var minimum, out var maximum))
+            return;
+
+        // Eixo mais longo da arma = lamina. A ponta e a extremidade mais distante da mao.
+        var size = maximum - minimum;
+        var axis = size.X >= size.Y && size.X >= size.Z ? 0 : size.Y >= size.Z ? 1 : 2;
+        var centre = (minimum + maximum) * 0.5f;
+        var low = centre;
+        var high = centre;
+        low[axis] = minimum[axis];
+        high[axis] = maximum[axis];
+        var lowIsTip = low.LengthSquared() > high.LengthSquared();
+        var tip = lowIsTip ? low : high;
+        var handle = lowIsTip ? high : low;
+        _trailTipLocal = tip;
+        _trailBaseLocal = handle.Lerp(tip, 0.40f);
+        _trailColor = definition.TrailColor.A > 0.0f ? definition.TrailColor : new Color(0.70f, 0.92f, 1.0f, 0.6f);
+
+        if (_trailMesh == null)
+        {
+            _trailMesh = new MeshInstance3D
+            {
+                Name = "WeaponTrail",
+                Mesh = new ImmediateMesh(),
+                TopLevel = true,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Visible = false,
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    VertexColorUseAsAlbedo = true,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                    BlendMode = BaseMaterial3D.BlendModeEnum.Add
+                }
+            };
+            // O pai ainda está montando os filhos em _Ready: adiciona fora do frame (TopLevel já parte da identidade).
+            GetParent()?.CallDeferred(Node.MethodName.AddChild, _trailMesh);
+        }
     }
 
     private void RefreshVisual(string weaponId)
@@ -62,7 +178,8 @@ public partial class PlayerWeaponVisual : Node
                 definition.LeftPosition,
                 definition.LeftRotationDegrees,
                 "EquippedWeaponLeft");
-        SetWeaponVisibility(_combat?.IsAttacking == true, true);
+        CreateTrail(definition);
+        SetWeaponVisibility(_visibleLinger > 0.0f, true);
     }
 
     private void SetWeaponVisibility(bool visible, bool force = false)
