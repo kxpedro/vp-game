@@ -27,6 +27,7 @@ public partial class HUD
 	private Label _roomProgressSeparator;
 	private PanelContainer _resourceFrame;
 	private Control _coinGlyph;
+	private Control _cursedBloodGlyph;
 	// Debug (previews): congela o painel do jogador com dados fictícios; critical < 0 = sem vida crítica forçada.
 	private bool _statusPreviewActive;
 	private float _previewHealthRatio = -1.0f;
@@ -85,12 +86,12 @@ public partial class HUD
 		BuildGameOverOverlay(root);
 		BuildCharacterSheetOverlay(root);
 		BuildBloodFountainOverlay(root);
-		BuildArtifactChestOverlay(root);
-		BuildArtifactOfferOverlay(root);
 		BuildBloodBlessingOverlay(root);
 		BuildWeaponBenchOverlay(root);
 		BuildCompendiumOverlay(root);
-		OnBloodCoinsChanged(CharacterSheet.BloodCoins);
+		BuildShopOverlay(root);
+		// Indicador do HUD: Moedas de Sangue da RUN (RunState.RunBloodCoins) na run; Sangue Amaldiçoado permanente no hub.
+		RefreshResourceIndicator();
 	}
 
 	// §8.1: painel inferior esquerdo (24, −24), altura automática: só a vida; a fúria entra quando liberada.
@@ -141,7 +142,8 @@ public partial class HUD
 		_playerHudFrame.OffsetBottom = -UiMetrics.SafeMargin;
 	}
 
-	// §8.2: só moedas (gota + número). A arma fica na ficha e na bancada; o progresso vai para o título da sala.
+	// §8.2: um recurso só (glifo + número + rótulo). Na run são as Moedas de Sangue (gota dourada); no hub é o Sangue
+	// Amaldiçoado (losango violeta), ver RefreshResourceIndicator. A arma fica na ficha e na bancada; o progresso vai para o título da sala.
 	private void BuildResourcePanel(Control root)
 	{
 		var panel = new PanelContainer
@@ -161,6 +163,10 @@ public partial class HUD
 		coin.TooltipText = Localization.Text("hud.blood_coins_name");
 		_coinGlyph = coin;
 		row.AddChild(coin);
+		_cursedBloodGlyph = UiComponents.CursedBloodGlyph(24);
+		_cursedBloodGlyph.TooltipText = Localization.Text("hud.cursed_blood_name");
+		_cursedBloodGlyph.Visible = false;
+		row.AddChild(_cursedBloodGlyph);
 		_coinsLabel = new Label
 		{
 			Name = "BloodCoinsLabel",
@@ -171,6 +177,18 @@ public partial class HUD
 		};
 		_coinsLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
 		row.AddChild(_coinsLabel);
+		// Rótulo "Moedas": o saldo é o da run (perde-se ao fim dela), distinto do Sangue Amaldiçoado permanente.
+		_coinsNameLabel = new Label
+		{
+			Name = "BloodCoinsNameLabel",
+			Text = Localization.Text("hud.coins_label"),
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
+		_coinsNameLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		row.AddChild(_coinsNameLabel);
 
 		// Fora do HUD (§8.2). Continua existindo, escondido, porque HUD.WeaponBench.cs ainda escreve nele.
 		_weaponLabel = new Label
@@ -496,10 +514,43 @@ public partial class HUD
 		FitPlayerPanel();
 	}
 
-	private void OnBloodCoinsChanged(int amount)
+	// `runCoins` = saldo de Moedas da run (sinais do RunManager / CallGroup do HUD). No hub o indicador mostra o Sangue
+	// Amaldiçoado e ignora esse valor.
+	private void OnBloodCoinsChanged(int runCoins)
 	{
-		_coinsLabel.Text = amount.ToString();
+		ApplyResourceIndicator(runCoins);
 		RefreshVisibleCoinOverlays();
+	}
+
+	// Hub = a cena CrowsNest: nela não há run ativa (ScenePortal.StartRun só roda ao sair pelo portal; game over e menu
+	// chamam FailRun antes de voltar). A sala inicial, a Câmara e a arena são run e mostram as Moedas. Decidir pela cena
+	// (e não por RunState.IsRunActive) evita mostrar o saldo errado em previews e na TestArena aberta direto.
+	private bool ShowsCursedBloodIndicator() => IsHubScene();
+
+	private void RefreshResourceIndicator() => ApplyResourceIndicator(RunState.RunBloodCoins);
+
+	private void ApplyResourceIndicator(int runCoins)
+	{
+		if (_coinsLabel == null)
+			return;
+		var cursed = ShowsCursedBloodIndicator();
+		_coinsLabel.Text = (cursed ? CharacterSheet.CursedBlood : runCoins).ToString();
+		if (cursed)
+		{
+			_coinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+			_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+			_coinsNameLabel.Text = Localization.Text("hud.cursed_blood_name");
+		}
+		else
+		{
+			_coinsLabel.RemoveThemeColorOverride("font_color");
+			_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
+			_coinsNameLabel.Text = Localization.Text("hud.coins_label");
+		}
+		if (_coinGlyph != null)
+			_coinGlyph.Visible = !cursed;
+		if (_cursedBloodGlyph != null)
+			_cursedBloodGlyph.Visible = cursed;
 	}
 
 	// Ficha e Fonte sao reconstruidas ao abrir; enquanto fechadas nao precisam refazer a arvore a cada kill.

@@ -29,8 +29,6 @@ public partial class EnemyBasic : CharacterBody3D
     [Export] public float ContactDamageRange { get; set; } = 0.95f;
     [Export] public float ContactDamageCooldown { get; set; } = 0.8f;
     [Export] public float KnockbackResistance { get; set; } = 0.45f;
-    [Export] public int MinBloodCoinsReward { get; set; } = 1;
-    [Export] public int MaxBloodCoinsReward { get; set; } = 10;
     [Export] public float FuryOnDeath { get; set; } = 12.0f;
     [Export] public int MaxPestilenceStacks { get; set; } = 5;
     [Export] public float DamageTakenPerStatusStack { get; set; } = 0.05f;
@@ -1101,7 +1099,8 @@ public partial class EnemyBasic : CharacterBody3D
         ClearCharmLink();
         if (!RunState.IsBossRoom) SpawnBloodEssence();
         GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.OnEnemyKilled(this);
-        GetTree().CallGroup("run_manager", "QueueEnemyDefeat", RollBloodCoinsReward());
+        RollDefeatRewards(out var bloodCoins, out var cursedBlood);
+        GetTree().CallGroup("run_manager", "QueueEnemyDefeat", bloodCoins, cursedBlood, GlobalPosition);
         GetTree().CallGroup("player_skills", "OnEnemyDefeated");
         RunState.NotifyEnemyKilled();
 
@@ -1163,18 +1162,57 @@ public partial class EnemyBasic : CharacterBody3D
             .SetEase(Tween.EaseType.InOut);
     }
 
-    private int RollBloodCoinsReward()
+    /// <summary>
+    /// Recompensas da morte (economia v2). Moedas de Sangue vao para o saldo da run; Sangue Amaldicoado e permanente.
+    /// Boss: valores fixos por mapa (nao soma o bonus de Lendario nem o multiplicador de moedas da skill).
+    /// Lendario comum: Sangue Amaldicoado conforme o mapa. Os valores vem de CompendiumTuning (economy.*).
+    /// </summary>
+    private void RollDefeatRewards(out int bloodCoins, out int cursedBlood)
     {
-        var minReward = Mathf.Min(MinBloodCoinsReward, MaxBloodCoinsReward);
-        var maxReward = Mathf.Max(MinBloodCoinsReward, MaxBloodCoinsReward);
+        var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        if (GetNodeOrNull<BossController>("BossController") != null)
+        {
+            bloodCoins = CompendiumTuning.GetInt($"economy.coins.boss.{mapIndex}", new[] { 100, 130, 160, 0 }[mapIndex]);
+            cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.boss.{mapIndex}", new[] { 40, 60, 80, 120 }[mapIndex]);
+            return;
+        }
+
+        bloodCoins = RollBloodCoinsReward(mapIndex);
+        cursedBlood = 0;
+        if (Rarity == EnemyRarity.Legendary)
+        {
+            var chance = CompendiumTuning.GetFloat("economy.cursed_blood.legendary_drop_chance", 1.0f);
+            if (chance >= 1.0f || GD.Randf() < chance)
+                cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.legendary.{mapIndex}", new[] { 0, 6, 8, 8 }[mapIndex]);
+        }
+    }
+
+    private int RollBloodCoinsReward(int mapIndex)
+    {
+        var minReward = CompendiumTuning.GetInt("economy.coins.enemy.base_min", 3);
+        var maxReward = Mathf.Max(CompendiumTuning.GetInt("economy.coins.enemy.base_max", 7), minReward);
+        // GD.RandRange(int, int) e inclusivo nos dois lados: sorteia exatamente [min, max].
+        var roll = GD.RandRange(minReward, maxReward);
+
+        var archetypeMultiplier = Archetype switch
+        {
+            EnemyArchetype.Tank => CompendiumTuning.GetFloat("economy.coins.archetype.tank", 1.5f),
+            EnemyArchetype.Ranged => CompendiumTuning.GetFloat("economy.coins.archetype.ranged", 1.0f),
+            _ => CompendiumTuning.GetFloat("economy.coins.archetype.melee", 1.0f)
+        };
         var rarityMultiplier = Rarity switch
         {
-            EnemyRarity.Magic => 2.0f,
-            EnemyRarity.Rare => 4.0f,
-            EnemyRarity.Legendary => 8.0f,
-            _ => 1.0f
+            EnemyRarity.Magic => CompendiumTuning.GetFloat("economy.coins.rarity.magic", 2.0f),
+            EnemyRarity.Rare => CompendiumTuning.GetFloat("economy.coins.rarity.rare", 4.0f),
+            EnemyRarity.Legendary => CompendiumTuning.GetFloat("economy.coins.rarity.legendary", 8.0f),
+            _ => CompendiumTuning.GetFloat("economy.coins.rarity.normal", 1.0f)
         };
-        return Mathf.RoundToInt((int)GD.RandRange(minReward, maxReward + 1) * rarityMultiplier);
+        var mapFactor = CompendiumTuning.GetFloat($"economy.coins.map_factor.{mapIndex}", new[] { 1.0f, 0.6f, 0.5f, 0.5f }[mapIndex]);
+        var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
+        var skillMultiplier = skillController?.BloodCoinMultiplier() ?? 1.0f;
+
+        // Arredonda so no final (nunca multiplicando um inteiro ja arredondado); minimo 1.
+        return Mathf.Max(1, Mathf.RoundToInt(roll * archetypeMultiplier * rarityMultiplier * mapFactor * skillMultiplier));
     }
 
     private async void OnDamaged(float amount)

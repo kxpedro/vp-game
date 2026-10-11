@@ -52,6 +52,9 @@ public static class UiPalette
     public static readonly Color RarityMythic    = new Color(0.94f, 0.90f, 0.78f, 1.00f); // só artefatos (1 no catálogo)
     public static readonly Color RarityStirps    = new Color(0.70f, 0.16f, 0.34f, 1.00f); // vinho (≠ Vida, ≠ Sangramento)
 
+    // Sangue Amaldiçoado (recurso permanente do hub): violeta, só para o aviso "Sangue Amaldiçoado +N" e seu glifo (losango)
+    public static readonly Color CursedBlood = new Color(0.80f, 0.56f, 0.96f, 1.00f);
+
     // Aceita o id (en) e, por tolerância, o nome em português.
     public static Color Rarity(string rarity) => (rarity ?? "").Trim().ToLowerInvariant() switch
     {

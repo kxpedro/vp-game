@@ -11,6 +11,7 @@ public partial class HUD : CanvasLayer
 	private bool _roomFrameAlwaysVisible;
 	private readonly Queue<string> _gameLogEntries = new();
 	private Label _coinsLabel;
+	private Label _coinsNameLabel;
 	private Label _weaponLabel;
 	private Control _weaponBenchOverlay;
 	private Label _enemyProgressLabel;
@@ -20,9 +21,7 @@ public partial class HUD : CanvasLayer
 	private Control _characterSheetOverlay;
 	private Control _bloodFountainOverlay;
 	private Control _skillTreeCanvas;
-	private Button _bloodCoinCheatButton;
-	private Control _artifactChestOverlay;
-	private Control _artifactOfferOverlay;
+	private Button _cursedBloodCheatButton;
 	private Control _bloodBlessingOverlay;
 	private Label _bloodBlessingStatusLabel;
 	private VBoxContainer _bloodBlessingList;
@@ -69,7 +68,6 @@ public partial class HUD : CanvasLayer
 		GroupCombatHud();
 		RegisterModalShortcuts(_compendiumOverlay, HandleCompendiumShortcut);
 		RegisterModalShortcuts(_bloodBlessingOverlay, HandleBlessingOfferShortcut);
-		RegisterModalShortcuts(_artifactOfferOverlay, HandleArtifactOfferShortcut);
 		RegisterModalShortcuts(_characterSheetOverlay, HandleCharacterSheetShortcut);
 		// Overlays ainda fora da UiModalStack entram na pausa por esta fonte.
 		_legacyPauseSource = IsLegacyPauseRequested;
@@ -194,7 +192,7 @@ public partial class HUD : CanvasLayer
 
 	public bool IsGameplayInputBlocked()
 	{
-		// Ofertas, ficha, Fonte, baú e bancada estão na UiModalStack (AnyOpen); aqui só as camadas ainda legadas.
+		// Ofertas, ficha, Fonte, loja e bancada estão na UiModalStack (AnyOpen); aqui só as camadas ainda legadas.
 		return UiModalStack.AnyOpen
 			|| IsVisible(_pauseOverlay)
 			|| IsVisible(_compendiumOverlay)
@@ -220,7 +218,7 @@ public partial class HUD : CanvasLayer
 	// ---------- Idioma ----------
 
 	// Troca de idioma (opções da pausa): reconstrói os textos fixos do HUD e dos overlays. Telas montadas ao abrir
-	// (ficha, Fonte, baú, bancada, ofertas, Dicionário) são refeitas se estiverem abertas.
+	// (ficha, Fonte, loja, bancada, ofertas, Dicionário) são refeitas se estiverem abertas.
 	private void OnLanguageChanged(string language)
 	{
 		Callable.From(ApplyLanguage).CallDeferred();
@@ -241,6 +239,9 @@ public partial class HUD : CanvasLayer
 			SyncRoomInformation();
 		if (_coinGlyph != null)
 			_coinGlyph.TooltipText = Localization.Text("hud.blood_coins_name");
+		if (_cursedBloodGlyph != null)
+			_cursedBloodGlyph.TooltipText = Localization.Text("hud.cursed_blood_name");
+		RefreshResourceIndicator();
 		if (_furyResourceBar != null && _furyResourceBar.Bar != null)
 			_furyResourceBar.Bar.TooltipText = Localization.Text("hud.fury.tooltip_ready");
 		if (_roomClearTitle != null)
@@ -278,14 +279,6 @@ public partial class HUD : CanvasLayer
 		}
 		if (_bloodFountainOverlay != null && !IsVisible(_bloodFountainOverlay))
 			RebuildOverlay(_bloodFountainOverlay, () => BuildBloodFountainOverlay(_hudRoot), () => _bloodFountainOverlay);
-		if (_artifactChestOverlay != null && !IsVisible(_artifactChestOverlay))
-			RebuildOverlay(_artifactChestOverlay, () => BuildArtifactChestOverlay(_hudRoot), () => _artifactChestOverlay);
-		if (_artifactOfferOverlay != null && !IsVisible(_artifactOfferOverlay))
-		{
-			_modalShortcutHandlers.Remove(_artifactOfferOverlay);
-			RebuildOverlay(_artifactOfferOverlay, () => BuildArtifactOfferOverlay(_hudRoot), () => _artifactOfferOverlay);
-			RegisterModalShortcuts(_artifactOfferOverlay, HandleArtifactOfferShortcut);
-		}
 		if (_bloodBlessingOverlay != null && !IsVisible(_bloodBlessingOverlay) && !_blessingAbsorptionRunning)
 		{
 			_modalShortcutHandlers.Remove(_bloodBlessingOverlay);
@@ -303,6 +296,8 @@ public partial class HUD : CanvasLayer
 		}
 		if (_weaponBenchOverlay != null && !IsVisible(_weaponBenchOverlay))
 			RebuildOverlay(_weaponBenchOverlay, () => BuildWeaponBenchOverlay(_hudRoot), () => _weaponBenchOverlay);
+		if (_shopOverlay != null && !IsVisible(_shopOverlay))
+			RebuildOverlay(_shopOverlay, () => BuildShopOverlay(_hudRoot), () => _shopOverlay);
 	}
 
 	// Remove a camada antiga (sai da árvore já: listeners de TreeExiting rodam antes do novo Build) e põe a nova no mesmo índice.
@@ -337,7 +332,6 @@ public partial class HUD : CanvasLayer
 		{
 			("BloodFountain/BloodFountainLabel", Localization.Text("fountain.title")),
 			("WeaponBench/WeaponBenchLabel", Localization.Text("bench.title")),
-			("ArtifactChest/ArtifactChestLabel", Localization.Text("chest.title")),
 			("VirgilCoffin/CoffinLabel", Localization.Text("scene.crows_nest.coffin")),
 			("StartRunPortal/PortalLabel", Localization.Text("scene.crows_nest.start_portal"))
 		},
@@ -388,15 +382,6 @@ public partial class HUD : CanvasLayer
 			case "skill_popup":
 				OpenBloodFountainPreview(true);
 				return true;
-			case "artifact_chest":
-				// Dados fictícios em memória: equipar/remover só simulam.
-				OpenArtifactChestPreview();
-				return true;
-			case "artifact_offer":
-			case "artifact_offer_4":
-				// Sem RoomArtifact nem sorteio: escolher só coleta na run volátil, nada é consumido no mundo.
-				OpenArtifactOfferPreview(screen == "artifact_offer_4" ? 4 : 3);
-				return true;
 			case "blessing_offer":
 				// Caminho obrigatório: abre direto, sem a animação de absorção (reroll só simulado).
 				PreviewBlessingOffer(false);
@@ -406,6 +391,10 @@ public partial class HUD : CanvasLayer
 				return true;
 			case "weapon_bench":
 				OpenWeaponBench();
+				return true;
+			case "shop":
+				// Estoque e saldo fictícios: comprar só simula (nada no RunState nem no save).
+				OpenShopPreview();
 				return true;
 			case "compendium":
 				_selectedCompendiumTab = ResolvePreviewCompendiumTab(tab);

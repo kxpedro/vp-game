@@ -92,10 +92,17 @@ public partial class PlayerSkillController : Node
     }
 
     public float MaxHealthBonus() => EffectValue("MaxHealth");
-    public float ArtifactDropChanceBonus() => EffectValue("ArtifactDropChance");
+
+    /// <summary>
+    /// Desconto nos precos de artefatos da loja da Camara (humanitas.collector_eye: 0,05 por rank = 5/10/15%).
+    /// Estatico para a loja consultar pela cena da Camara sem depender do no do jogador (le o rank em CharacterSheet).
+    /// </summary>
+    public static float ShopPriceDiscount() => Mathf.Max(EffectValue("ShopPriceDiscount"), 0.0f);
+
     public float TemporaryEffectDurationMultiplier() => 1.0f + EffectValue("TemporaryEffectDuration");
     public float FuryDamageBonus() => EffectValue("FuryDamage");
 
+    /// <summary>Multiplicador das Moedas de Sangue da run (RunState.RunBloodCoins) durante a Furia; nao afeta o Sangue Amaldicoado permanente.</summary>
     public float BloodCoinMultiplier()
     {
         return _combat?.IsFuryActive == true ? 1.0f + EffectValue("BloodCoinsDuringFury") : 1.0f;

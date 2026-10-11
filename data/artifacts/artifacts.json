@@ -1,7 +1,7 @@
 {
     "version":  2,
     "bossDropPowerMultiplier":  1.75,
-    "notes":  "saveName e o identificador legado gravado no save (nao exibido, nao alterar). Nome, descricao e flavor ficam em data/localization/<idioma>/content.json (artifact.<id>.name/.desc/.flavor). Artefatos agora sao recompensas exclusivas de bosses. Este multiplicador fortalece todos os efeitos numericos.",
+    "notes":  "saveName e o identificador legado gravado no save (nao exibido, nao alterar). Nome, descricao e flavor ficam em data/localization/<idioma>/content.json (artifact.<id>.name/.desc/.flavor). Artefatos nao sao mais recompensa de boss nem colecao permanente: sao vendidos na loja da Camara de Hemomancia por Moedas de Sangue da run (preco por raridade em economy.shop.price.*), valem so na run e nao tem limite de quantidade. bossDropPowerMultiplier e o multiplicador de poder dos artefatos comprados (economy.shop.power_multiplier) e fortalece todos os efeitos numericos.",
     "artifacts":  [
                       {
                           "id":  "serrated_fang",

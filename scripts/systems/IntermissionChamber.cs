@@ -2,7 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// Câmara de Hemomancia (guia de UI §8.19): fonte de cura + altar que aprimora uma bênção pagando vida máxima.
+// Câmara de Hemomancia (guia de UI §8.19): fonte de cura + altar que aprimora uma bênção pagando vida máxima
+// + Loja de Artefatos (balcão criado em código, geometria provisória; a tela é o overlay HUD.Shop.cs).
 // O altar é um Window(Large) com ChoiceCard (o mesmo card das ofertas de bênção/artefato) e entra na UiModalStack.
 public partial class IntermissionChamber : Node3D
 {
@@ -15,6 +16,9 @@ public partial class IntermissionChamber : Node3D
     private Area3D _altarArea;
     private Label3D _fountainPrompt;
     private Label3D _altarPrompt;
+    private Area3D _shopArea;
+    private Label3D _shopPrompt;
+    private Label3D _shopTitle;
     private Control _uiRoot;
     private Control _statusRoot;
     private Label _statusTitleLabel;
@@ -28,6 +32,7 @@ public partial class IntermissionChamber : Node3D
     private Action<InputDevice> _deviceChangedHandler;
     private bool _insideFountain;
     private bool _insideAltar;
+    private bool _insideShop;
     private bool _fountainUsed;
     private bool _altarUsed;
 
@@ -43,12 +48,15 @@ public partial class IntermissionChamber : Node3D
         _altarArea = GetNode<Area3D>("SacrificeAltar/InteractionArea");
         _fountainPrompt = GetNode<Label3D>("BloodFountain/Prompt");
         _altarPrompt = GetNode<Label3D>("SacrificeAltar/Prompt");
+        BuildShopStand();
         SetupPromptLabels();
 
         _fountainArea.BodyEntered += body => SetFountainPresence(body, true);
         _fountainArea.BodyExited += body => SetFountainPresence(body, false);
         _altarArea.BodyEntered += body => SetAltarPresence(body, true);
         _altarArea.BodyExited += body => SetAltarPresence(body, false);
+        _shopArea.BodyEntered += body => SetShopPresence(body, true);
+        _shopArea.BodyExited += body => SetShopPresence(body, false);
         _health.HealthChanged += (_, _) =>
         {
             RefreshStatus();
@@ -68,6 +76,8 @@ public partial class IntermissionChamber : Node3D
     {
         if (_statusTitleLabel != null)
             _statusTitleLabel.Text = Localization.Text("chamber.title");
+        if (_shopTitle != null && IsInstanceValid(_shopTitle))
+            _shopTitle.Text = Localization.Text("chamber.shop.title");
         if (_altarWindow != null)
         {
             _altarWindow.SetTitle(Localization.Text("altar.title"));
@@ -113,6 +123,14 @@ public partial class IntermissionChamber : Node3D
             UseFountain();
         else if (_insideAltar)
             OpenUpgradeOverlay();
+        else if (_insideShop)
+            OpenShop();
+    }
+
+    // A tela da loja vive no HUD (HUD.Shop.cs), que guarda o estoque sorteado da visita.
+    private void OpenShop()
+    {
+        GetTree().CallGroup("hud", "OpenShop");
     }
 
     private void SetFountainPresence(Node3D body, bool inside)
@@ -126,6 +144,13 @@ public partial class IntermissionChamber : Node3D
     {
         if (!body.IsInGroup("player")) return;
         _insideAltar = inside;
+        RefreshPrompts();
+    }
+
+    private void SetShopPresence(Node3D body, bool inside)
+    {
+        if (!body.IsInGroup("player")) return;
+        _insideShop = inside;
         RefreshPrompts();
     }
 
@@ -559,8 +584,10 @@ public partial class IntermissionChamber : Node3D
     {
         StylePromptLabel(_fountainPrompt);
         StylePromptLabel(_altarPrompt);
+        StylePromptLabel(_shopPrompt);
         InteractPrompt.StyleTitlesAndAnchor(GetNode("BloodFountain"), _fountainPrompt);
         InteractPrompt.StyleTitlesAndAnchor(GetNode("SacrificeAltar"), _altarPrompt);
+        InteractPrompt.StyleTitlesAndAnchor(GetNode("ArtifactShop"), _shopPrompt);
         _deviceChangedHandler = _ => RefreshPrompts();
         UiInput.DeviceChanged += _deviceChangedHandler;
     }
@@ -589,6 +616,85 @@ public partial class IntermissionChamber : Node3D
             else
                 InteractPrompt.SetText(_altarPrompt, Localization.TextFormat("chamber.altar.prompt", SacrificePercentText()));
         }
+        if (_shopPrompt != null && IsInstanceValid(_shopPrompt))
+        {
+            _shopPrompt.Visible = _insideShop;
+            InteractPrompt.SetText(_shopPrompt, Localization.Text("chamber.shop.prompt"));
+        }
+    }
+
+    // ---------- Loja de Artefatos (balcão em geometria provisória, criado em código) ----------
+
+    // Posição livre na Câmara: entre a fonte (x −4,2) e o altar (x +4,2), no caminho do portal (z −9,2). Sem colisão,
+    // como a fonte e o altar. A Area3D fica na frente do balcão (+z), de onde o jogador chega.
+    private void BuildShopStand()
+    {
+        var stand = new Node3D { Name = "ArtifactShop", Position = new Vector3(0.0f, 0.15f, -4.6f) };
+        AddChild(stand);
+
+        var stone = new StandardMaterial3D { AlbedoColor = new Color(0.13f, 0.10f, 0.11f), Roughness = 0.86f, MetallicSpecular = 0.3f };
+        var bloodWood = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.20f, 0.04f, 0.06f),
+            Roughness = 0.6f,
+            EmissionEnabled = true,
+            Emission = new Color(0.45f, 0.02f, 0.04f),
+            EmissionEnergyMultiplier = 0.18f
+        };
+        var blood = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.65f, 0.015f, 0.035f),
+            Roughness = 0.42f,
+            EmissionEnabled = true,
+            Emission = new Color(1.0f, 0.01f, 0.025f),
+            EmissionEnergyMultiplier = 0.9f
+        };
+        var brass = new StandardMaterial3D { AlbedoColor = new Color(0.62f, 0.46f, 0.18f), Metallic = 0.8f, Roughness = 0.35f };
+
+        AddShopPart(stand, "Counter", new BoxMesh { Size = new Vector3(2.8f, 0.95f, 1.1f) }, stone, new Vector3(0.0f, 0.475f, 0.0f));
+        AddShopPart(stand, "CounterTop", new BoxMesh { Size = new Vector3(3.0f, 0.14f, 1.3f) }, bloodWood, new Vector3(0.0f, 1.02f, 0.0f));
+        AddShopPart(stand, "BackPanel", new BoxMesh { Size = new Vector3(3.0f, 1.5f, 0.18f) }, stone, new Vector3(0.0f, 1.84f, -0.55f));
+        AddShopPart(stand, "PillarLeft", new BoxMesh { Size = new Vector3(0.28f, 2.4f, 0.28f) }, stone, new Vector3(-1.5f, 1.2f, -0.55f));
+        AddShopPart(stand, "PillarRight", new BoxMesh { Size = new Vector3(0.28f, 2.4f, 0.28f) }, stone, new Vector3(1.5f, 1.2f, -0.55f));
+        AddShopPart(stand, "Banner", new BoxMesh { Size = new Vector3(1.1f, 1.2f, 0.04f) }, blood, new Vector3(0.0f, 1.95f, -0.44f));
+        // Oferendas sobre o balcão: gota de sangue, cálice e um relicário.
+        AddShopPart(stand, "OfferingBlood", new SphereMesh { Radius = 0.16f, Height = 0.32f }, blood, new Vector3(-0.8f, 1.25f, 0.05f));
+        AddShopPart(stand, "OfferingChalice", new CylinderMesh { TopRadius = 0.14f, BottomRadius = 0.08f, Height = 0.3f, RadialSegments = 16 }, brass, new Vector3(0.0f, 1.24f, 0.05f));
+        AddShopPart(stand, "OfferingRelic", new BoxMesh { Size = new Vector3(0.32f, 0.2f, 0.22f) }, brass, new Vector3(0.8f, 1.19f, 0.05f), new Vector3(0.0f, 25.0f, 0.0f));
+        stand.AddChild(new OmniLight3D
+        {
+            Name = "ShopGlow",
+            Position = new Vector3(0.0f, 1.8f, 0.8f),
+            LightColor = new Color(1.0f, 0.12f, 0.1f),
+            LightEnergy = 1.1f,
+            OmniRange = 3.6f
+        });
+
+        _shopTitle = new Label3D { Name = "Title", Text = Localization.Text("chamber.shop.title"), Position = new Vector3(0.0f, 2.75f, 0.0f) };
+        stand.AddChild(_shopTitle);
+        _shopPrompt = new Label3D { Name = "Prompt", Visible = false, Position = new Vector3(0.0f, 3.3f, 0.0f) };
+        stand.AddChild(_shopPrompt);
+
+        _shopArea = new Area3D { Name = "InteractionArea", Position = new Vector3(0.0f, 0.0f, 0.8f) };
+        _shopArea.AddChild(new CollisionShape3D
+        {
+            Name = "Collision",
+            Position = new Vector3(0.0f, 0.65f, 0.0f),
+            Shape = new CylinderShape3D { Height = 2.4f, Radius = 2.2f }
+        });
+        stand.AddChild(_shopArea);
+    }
+
+    private static void AddShopPart(Node3D parent, string name, Mesh mesh, Material material, Vector3 position, Vector3 rotationDegrees = default)
+    {
+        parent.AddChild(new MeshInstance3D
+        {
+            Name = name,
+            Mesh = mesh,
+            MaterialOverride = material,
+            Position = position,
+            RotationDegrees = rotationDegrees
+        });
     }
 
     // ---------- Pré-visualização (debug, --ui-preview=altar; ver UiPreview.cs) ----------

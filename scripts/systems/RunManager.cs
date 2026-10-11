@@ -19,7 +19,8 @@ public partial class RunManager : Node3D
     [Export] public NodePath ExitPortalPath { get; set; } = new("ExitPortal");
     [Export] public NodePath RoomGeneratorPath { get; set; } = new("RoomGenerator");
 
-    public int BloodCoins { get; private set; }
+    /// <summary>Saldo de moedas da run (RunState.RunBloodCoins); o Sangue Amaldicoado permanente fica no CharacterSheet.</summary>
+    public int BloodCoins => RunState.RunBloodCoins;
     public int LastBloodCoinsReward { get; private set; }
     public int DefeatedEnemies { get; private set; }
     public int TotalEnemies { get; private set; }
@@ -33,6 +34,9 @@ public partial class RunManager : Node3D
     private float _roomCheckTimer;
     private int _pendingDefeats;
     private int _pendingBloodCoins;
+    private int _pendingCursedBlood;
+    private Vector3 _lastDefeatPosition;
+    private bool _roomRewardsPaid;
     private readonly RandomNumberGenerator _rng = new();
     private bool _roomConfigured;
     // Rotulos 3D com texto de world.json; reescritos quando o idioma muda.
@@ -51,7 +55,6 @@ public partial class RunManager : Node3D
         SetPortalOpen(false);
         if (GetTree().GetNodeCountInGroup("enemy_spawn_pending") == 0)
             ConfigureRoom();
-        BloodCoins = CharacterSheet.BloodCoins;
 
         var roomHealthCost = RunState.GetEffectTotal("CurrentHealthCostOnRoomEnter.Multiplier");
         if (roomHealthCost > 0)
@@ -118,20 +121,25 @@ public partial class RunManager : Node3D
         GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {waveCount} inimigos surgiu ({DefeatedEnemies}/{TotalEnemies}).");
     }
 
-    public void QueueEnemyDefeat(int bloodCoins)
+    // Chamado via CallGroup("run_manager", "QueueEnemyDefeat", moedas, sangueAmaldicoado, posicao) por EnemyBasic.OnDied. Nao renomear.
+    // As moedas ja chegam finais (multiplicador de skill aplicado por inimigo; boss fixo). O Sangue Amaldicoado e permanente.
+    public void QueueEnemyDefeat(int bloodCoins, int cursedBlood, Vector3 deathPosition)
     {
         _pendingDefeats++;
         _pendingBloodCoins += bloodCoins;
+        _pendingCursedBlood += cursedBlood;
+        _lastDefeatPosition = deathPosition;
     }
 
     private void FlushDefeatBatch()
     {
         if (_pendingDefeats == 0) return;
-        var defeats = _pendingDefeats; var coins = _pendingBloodCoins;
-        _pendingDefeats = 0; _pendingBloodCoins = 0;
-        var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
-        coins = Mathf.RoundToInt(coins * (skillController?.BloodCoinMultiplier() ?? 1.0f));
-        AddBloodCoins(coins);
+        var defeats = _pendingDefeats; var coins = _pendingBloodCoins; var cursedBlood = _pendingCursedBlood;
+        _pendingDefeats = 0; _pendingBloodCoins = 0; _pendingCursedBlood = 0;
+        if (coins > 0)
+            AddBloodCoins(coins);
+        if (cursedBlood > 0)
+            AddCursedBlood(cursedBlood);
         DefeatedEnemies = Mathf.Min(DefeatedEnemies + defeats, TotalEnemies);
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
         GetTree().CallGroup("hud", "NotifyEnemyDefeated", DefeatedEnemies, TotalEnemies, coins);
@@ -141,15 +149,25 @@ public partial class RunManager : Node3D
     public void AddBloodCoins(int amount)
     {
         LastBloodCoinsReward = amount;
-        CharacterSheet.AddBloodCoins(amount);
-        BloodCoins = CharacterSheet.BloodCoins;
+        RunState.AddRunBloodCoins(amount);
         EmitSignal(SignalName.BloodCoinsChanged, BloodCoins);
         EmitSignal(SignalName.BloodCoinsRewarded, amount, BloodCoins);
         GetTree().CallGroup("hud", "NotifyBloodCoinsRewarded", amount, BloodCoins);
     }
 
+    /// <summary>Sangue Amaldicoado (permanente): vai direto ao save (CharacterSheet pede o autosave) e sobrevive a morte da run.</summary>
+    private void AddCursedBlood(int amount)
+    {
+        CharacterSheet.AddCursedBlood(amount);
+        GetTree().CallGroup("hud", "NotifyCursedBloodRewarded", amount, CharacterSheet.CursedBlood);
+    }
+
     private void CompleteRoom()
     {
+        // Idempotente: o pagamento da sala (bonus, fruta, portal) acontece uma unica vez por cena.
+        if (_roomRewardsPaid)
+            return;
+        _roomRewardsPaid = true;
         IsRoomCleared = true;
         if (RunState.IsBossRoom)
         {
@@ -162,10 +180,38 @@ public partial class RunManager : Node3D
         EmitSignal(SignalName.RoomCleared);
         GetTree().CallGroup("player_skills", "OnRoomCleared");
         GetTree().CallGroup("hud", "NotifyRoomCleared");
+        var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
         if (RunState.IsBossRoom)
-            SpawnArtifact();
+        {
+            // Sangue Amaldicoado e moedas do boss ja foram pagos em FlushDefeatBatch (QueueEnemyDefeat).
+            // Sem altar de artefato: fruta garantida (exceto no mapa final, que encerra a run) e portal aberto direto.
+            SpawnBossFruit(mapIndex);
+            UnlockExitAfterReward();
+        }
         else
+        {
+            var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", new[] { 12, 14, 16, 0 }[mapIndex]);
+            if (clearBonus > 0)
+                AddBloodCoins(clearBonus);
             GetTree().CallGroup("hud", "OpenBloodBlessingOffer");
+        }
+    }
+
+    private void SpawnBossFruit(int mapIndex)
+    {
+        var count = RunState.IsFinalMap
+            ? CompendiumTuning.GetInt("economy.fruit.boss_final_map", 0)
+            : CompendiumTuning.GetInt("economy.fruit.boss_guaranteed", 1);
+        for (var i = 0; i < count; i++)
+        {
+            // Perto de onde o boss morreu, ajustado para uma celula caminhavel com margem; sem gerador, cai no ponto de recompensa/centro.
+            var desired = _lastDefeatPosition + new Vector3(i * 0.9f, 0.0f, 0.0f);
+            var position = _roomGenerator != null
+                ? (_lastDefeatPosition == Vector3.Zero ? _roomGenerator.GetArtifactSpawnPosition() : _roomGenerator.ClampToWalkableArea(desired, 2))
+                : desired;
+            position.Y = 0.15f;
+            DevilsFruit.Spawn(this, position);
+        }
     }
 
     public void UnlockExitAfterReward()
@@ -218,8 +264,6 @@ public partial class RunManager : Node3D
             enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
             var archetypeDamage = enemy.Archetype == EnemyArchetype.Tank ? 1.52f : enemy.Archetype == EnemyArchetype.Ranged ? 0.8f : 1.0f;
             enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", 22.0f) + difficultyBonus * 2.0f) * mapDifficulty * 0.81f * archetypeDamage;
-            enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.min_blood_coins", enemy.MinBloodCoinsReward);
-            enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.basic.max_blood_coins", enemy.MaxBloodCoinsReward);
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
 
             var health = enemy.GetNodeOrNull<Health>("Health");
@@ -254,8 +298,8 @@ public partial class RunManager : Node3D
                 if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.75f;
                 else enemy.AttackWindup = 0.38f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
-                enemy.MinBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.min_blood_coins", 8);
-                enemy.MaxBloodCoinsReward = CompendiumTuning.GetInt("enemy.blood_mage.max_blood_coins", 10);
+                // Moedas e Sangue Amaldicoado do boss: valores fixos por mapa (economy.coins.boss.*, economy.cursed_blood.boss.*),
+                // pagos por EnemyBasic.RollDefeatRewards. As chaves legadas enemy.blood_mage.*_blood_coins ficam sem efeito.
 
                 var controller = new BossController { Name = "BossController" };
                 enemy.AddChild(controller);
@@ -305,79 +349,6 @@ public partial class RunManager : Node3D
         for (var i = 0; i < RunState.CurrentMapIndex; i++)
             total += CampaignCatalog.Get(i).CommonRoomCount + 1;
         return total;
-    }
-
-    private void SpawnArtifact()
-    {
-        var artifact = new RoomArtifact
-        {
-            Name = "BossArtifactAltar",
-            Position = _roomGenerator?.GetArtifactSpawnPosition() ?? new Vector3(_rng.RandfRange(-5.0f, 5.0f), 0.35f, _rng.RandfRange(-5.0f, 5.0f)),
-            ArtifactName = Localization.Text("room.artifact_altar.title")
-        };
-        AddChild(artifact);
-
-        var altarMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.11f, 0.075f, 0.09f),
-            Metallic = 0.55f,
-            Roughness = 0.42f,
-            EmissionEnabled = true,
-            Emission = new Color(0.34f, 0.0f, 0.08f),
-            EmissionEnergyMultiplier = 1.15f
-        };
-        artifact.AddChild(new MeshInstance3D
-        {
-            Name = "Pedestal",
-            Mesh = new CylinderMesh { TopRadius = 0.72f, BottomRadius = 0.9f, Height = 0.62f, RadialSegments = 8 },
-            MaterialOverride = altarMaterial,
-            Position = Vector3.Up * 0.31f
-        });
-        artifact.AddChild(new MeshInstance3D
-        {
-            Name = "AltarTop",
-            Mesh = new CylinderMesh { TopRadius = 0.82f, BottomRadius = 0.72f, Height = 0.18f, RadialSegments = 8 },
-            MaterialOverride = altarMaterial,
-            Position = Vector3.Up * 0.68f
-        });
-        var relic = new MeshInstance3D
-        {
-            Name = "ArtifactRelic",
-            Mesh = new SphereMesh { Radius = 0.28f, Height = 0.56f },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.92f, 0.03f, 0.18f),
-                EmissionEnabled = true,
-                Emission = new Color(1.0f, 0.0f, 0.24f),
-                EmissionEnergyMultiplier = 3.4f
-            },
-            Position = Vector3.Up * 1.12f
-        };
-        artifact.AddChild(relic);
-        var pulse = relic.CreateTween().SetLoops();
-        pulse.TweenProperty(relic, "position:y", 1.28f, 0.7f)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.InOut);
-        pulse.TweenProperty(relic, "position:y", 1.12f, 0.7f)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.InOut);
-        // Título de objeto em Gold (guia §2.2/§8.8); RoomArtifact ancora o prompt acima dele.
-        var altarTitle = new Label3D
-        {
-            Name = "AltarTitle",
-            Text = Localization.Text("room.artifact_altar.title"),
-            Position = Vector3.Up * InteractPrompt.TitleMinHeight
-        };
-        _localizedLabels.Add((altarTitle, () => Localization.Text("room.artifact_altar.title")));
-        InteractPrompt.StyleTitle(altarTitle);
-        artifact.AddChild(altarTitle);
-
-        var collision = new CollisionShape3D
-        {
-            Shape = new CylinderShape3D { Radius = 1.25f, Height = 2.0f },
-            Position = Vector3.Up
-        };
-        artifact.AddChild(collision);
     }
 
     private void CreateRoomLabel(Func<string> text)

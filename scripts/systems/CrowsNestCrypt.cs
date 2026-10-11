@@ -68,7 +68,6 @@ public partial class CrowsNestCrypt : Node3D
 
         PlaceDecoration(root + "Carpet.fbx", "CentralCarpet", new Vector3(0.0f, 0.02f, 0.0f), 6.4f);
         PlaceDecoration(root + "Entrance.fbx", "RunPortalArch", new Vector3(0.0f, 0.0f, -12.3f), 4.8f);
-        PlaceDecoration(root + "Chest.fbx", "ArtifactChestVisual", new Vector3(10.0f, 0.68f, 0.0f), 1.7f, -90.0f);
         PlaceDecoration(root + "Book_Open.fbx", "WeaponLoreBook", new Vector3(-10.0f, 0.69f, 0.0f), 0.62f, 90.0f);
         PlaceDecoration(root + "Bones.fbx", "CryptBonesWest", new Vector3(-3.15f, 0.02f, 10.15f), 1.7f, 18.0f);
         PlaceDecoration(root + "Bones.fbx", "CryptBonesEast", new Vector3(3.2f, 0.02f, 10.1f), 1.45f, -24.0f);

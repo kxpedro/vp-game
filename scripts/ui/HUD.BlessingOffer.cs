@@ -299,14 +299,36 @@ public partial class HUD
 		_bloodAbsorptionOverlay.AddChild(_bloodAbsorptionLabel);
 	}
 
+	// Margem interna na lista de cards: o anel de foco (expand 3 + brilho) do card não é cortado pelo ScrollContainer.
+	// Usado também pela Loja e pela bancada.
+	private static void PadChoiceCardScroll(ScrollContainer scroll, VBoxContainer list)
+	{
+		scroll.RemoveChild(list);
+		var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
+		foreach (var side in new[] { "margin_left", "margin_right", "margin_top", "margin_bottom" })
+			margin.AddThemeConstantOverride(side, UiMetrics.FocusExpand + 6);
+		margin.AddChild(list);
+		scroll.AddChild(margin);
+	}
+
 	private void BuildBloodBlessingChoices()
 	{
 		var rng = new RandomNumberGenerator(); rng.Randomize();
 		var choices = BloodBlessingCatalog.RollOffers(rng, 3, out var family, RunState.RunBlessings.Count == 0);
 		if (choices.Count == 0)
 		{
-			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
-			AppendGameLog("Todas as bênçãos únicas foram encontradas. Sangue convertido em 25 moedas.");
+			// Sem bênção nova para oferecer: o sangue vira Moedas no SALDO DA RUN (economy.coins.blessing_fallback, padrão 75).
+			var fallbackCoins = CompendiumTuning.GetInt("economy.coins.blessing_fallback", 75);
+			if (GetTree().GetFirstNodeInGroup("run_manager") is RunManager runManager)
+				runManager.AddBloodCoins(fallbackCoins);
+			else
+			{
+				RunState.AddRunBloodCoins(fallbackCoins);
+				NotifyBloodCoinsRewarded(fallbackCoins, RunState.RunBloodCoins);
+			}
+			var fallbackMessage = Localization.TextFormat("offer.blessing.all_found", fallbackCoins);
+			AppendGameLog(fallbackMessage);
+			ShowNotificationToast(fallbackMessage, true);
 			ClearBlessingCards();
 			UiModalStack.Pop(_bloodBlessingOverlay);
 			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");

@@ -34,11 +34,10 @@ public partial class HUD
 	// Dados exibidos (reais ou fictícios do preview).
 	private sealed class CharacterSheetData
 	{
-		public int Coins;
+		public int Balance;               // Moedas da run, ou Sangue Amaldiçoado quando CursedBalance
+		public bool CursedBalance;        // hub: o saldo do cabeçalho é o permanente
 		public List<BloodBlessingRecord> Blessings = new();
-		public List<ArtifactRecord> RunArtifacts = new();
-		public List<ArtifactRecord> Collection = new();
-		public string[] EquippedSlots = Array.Empty<string>();
+		public List<ArtifactRecord> RunArtifacts = new();   // artefatos comprados na Loja nesta run (não há coleção nem slots)
 		public List<(string Id, int Rank)> Skills = new();
 	}
 
@@ -47,6 +46,9 @@ public partial class HUD
 	private UiDetailPanel _characterSheetDetail;
 	private VBoxContainer _characterSheetList;
 	private Label _characterSheetCoinsLabel;
+	private Label _characterSheetCurrencyName;
+	private Control _characterSheetCoinGlyph;
+	private Control _characterSheetCursedGlyph;
 	private readonly List<CharacterSheetEntry> _characterSheetEntries = new();
 	private readonly List<CharacterSheetEntry> _characterSheetRowEntries = new();
 	private readonly List<Button> _characterSheetRows = new();
@@ -63,13 +65,21 @@ public partial class HUD
 		_characterSheetOverlay = _characterSheetWindow.Root;
 		_characterSheetOverlay.Visible = false;
 
-		// Moedas de Sangue no cabeçalho (§3.1 HeaderRight).
+		// Saldo no cabeçalho (§3.1 HeaderRight): Moedas de Sangue da run (gota dourada) ou, no hub, Sangue Amaldiçoado
+		// (losango violeta). O par glifo/rótulo é alternado em RebuildCharacterSheet.
 		var coins = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
 		coins.AddThemeConstantOverride("separation", UiMetrics.S2);
-		coins.AddChild(UiComponents.CoinGlyph(UiMetrics.IconGlyph));
+		_characterSheetCoinGlyph = UiComponents.CoinGlyph(UiMetrics.IconGlyph);
+		coins.AddChild(_characterSheetCoinGlyph);
+		_characterSheetCursedGlyph = UiComponents.CursedBloodGlyph(UiMetrics.IconGlyph);
+		_characterSheetCursedGlyph.Visible = false;
+		coins.AddChild(_characterSheetCursedGlyph);
 		_characterSheetCoinsLabel = UiComponents.MakeLabel("0", UiVariation.SectionGoldLabel);
 		_characterSheetCoinsLabel.Name = "CharacterSheetCoins";
 		coins.AddChild(_characterSheetCoinsLabel);
+		_characterSheetCurrencyName = UiComponents.MakeLabel(Localization.Text("hud.coins_label"), UiVariation.SecondaryLabel);
+		_characterSheetCurrencyName.VerticalAlignment = VerticalAlignment.Center;
+		coins.AddChild(_characterSheetCurrencyName);
 		_characterSheetWindow.HeaderRight.AddChild(coins);
 
 		var body = _characterSheetWindow.Body;
@@ -266,7 +276,20 @@ public partial class HUD
 
 	private void RebuildCharacterSheet(CharacterSheetData data, bool keepFocus)
 	{
-		_characterSheetCoinsLabel.Text = data.Coins.ToString();
+		_characterSheetCoinsLabel.Text = data.Balance.ToString();
+		_characterSheetCoinGlyph.Visible = !data.CursedBalance;
+		_characterSheetCursedGlyph.Visible = data.CursedBalance;
+		_characterSheetCurrencyName.Text = Localization.Text(data.CursedBalance ? "hud.cursed_blood_name" : "hud.coins_label");
+		if (data.CursedBalance)
+		{
+			_characterSheetCoinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+			_characterSheetCurrencyName.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+		}
+		else
+		{
+			_characterSheetCoinsLabel.RemoveThemeColorOverride("font_color");
+			_characterSheetCurrencyName.RemoveThemeColorOverride("font_color");
+		}
 
 		var hadFocus = keepFocus && ControllerUiSupport.IsFocusInside(_characterSheetList);
 		foreach (var child in _characterSheetList.GetChildren())
@@ -607,50 +630,14 @@ public partial class HUD
 		return string.Join("\n", lines);
 	}
 
+	// Aba Artefatos: só os da run atual (comprados na Loja da Câmara de Hemomancia). Não há coleção permanente nem slots.
 	private void BuildCharacterSheetArtifacts(CharacterSheetData data)
 	{
-		var equippedCount = data.EquippedSlots.Count(slot => !string.IsNullOrWhiteSpace(slot));
-		var equippedSection = Localization.TextFormat("sheet.section.equipped", equippedCount, data.EquippedSlots.Length);
-		for (var i = 0; i < data.EquippedSlots.Length; i++)
-		{
-			var slotLabel = Localization.TextFormat("ui.artifact_slot.number", i + 1);
-			var artifactName = data.EquippedSlots[i];
-			if (string.IsNullOrWhiteSpace(artifactName))
-			{
-				_characterSheetEntries.Add(new CharacterSheetEntry
-				{
-					Section = equippedSection,
-					BuildIcon = () => CreateSheetEmptySlotIcon(UiMetrics.IconM),
-					Title = Localization.Text("sheet.artifact.empty"),
-					TitleColor = UiPalette.TextDisabled,
-					Meta = slotLabel,
-					Detail = new DetailData
-					{
-						Title = slotLabel,
-						BadgeText = Localization.Text("sheet.artifact.empty"),
-						BadgeColor = UiPalette.PanelInset,
-						BodyBbcode = EscapeSheetBbcode(Localization.Text("sheet.artifact.empty.desc"))
-					}
-				});
-				continue;
-			}
-			var record = data.Collection.FirstOrDefault(artifact => artifact.Name == artifactName);
-			if (string.IsNullOrEmpty(record.Name))
-				record = new ArtifactRecord("", artifactName, "", "", 0.0f);
-			AddCharacterSheetArtifact(equippedSection, record, slotLabel);
-		}
-
 		var runSection = Localization.TextFormat("sheet.section.run_artifacts", data.RunArtifacts.Count);
 		if (data.RunArtifacts.Count == 0)
 			AddCharacterSheetEmptyNote(runSection, Localization.Text("sheet.empty.run_artifacts"));
 		foreach (var record in data.RunArtifacts)
-			AddCharacterSheetArtifact(runSection, record, Localization.Text("sheet.artifact.origin.run"));
-
-		var collectionSection = Localization.TextFormat("sheet.section.collection", data.Collection.Count);
-		if (data.Collection.Count == 0)
-			AddCharacterSheetEmptyNote(collectionSection, Localization.Text("sheet.empty.collection"));
-		foreach (var record in data.Collection)
-			AddCharacterSheetArtifact(collectionSection, record, Localization.Text("sheet.artifact.origin.collection"));
+			AddCharacterSheetArtifact(runSection, record, Localization.Text("sheet.artifact.origin.shop"));
 	}
 
 	private void AddCharacterSheetArtifact(string section, ArtifactRecord record, string origin)
@@ -660,21 +647,21 @@ public partial class HUD
 		var rarity = definition?.Rarity;
 		var slot = FormatSheetArtifactSlot(definition != null ? definition.Slot : record.Slot);
 		var meta = string.IsNullOrEmpty(slot) ? origin : $"{slot}  ·  {origin}";
-		var icon = definition != null ? LoadSheetArtifactIcon(definition) : null;
+		var icon = definition != null ? LoadArtifactIcon(definition) : null;
 
 		var body = new StringBuilder();
 		if (definition != null && !string.IsNullOrWhiteSpace(definition.Description))
 			body.Append(EscapeSheetBbcode(definition.Description)).Append("\n\n");
 		body.Append("[color=#").Append(UiPalette.Gold.ToHtml(false)).Append(']')
 			.Append(Localization.Text("sheet.detail.effects")).Append("[/color]\n");
-		// "Impacto dos artefatos" da ficha antiga fica fundido aqui. Com definição, usa o mesmo formatador do baú/oferta
-		// (valor × BossDropPowerMultiplier, como RunState aplica); o Amount do registro não tem esse multiplicador.
+		// "Impacto dos artefatos" da ficha antiga fica fundido aqui. Com definição, usa o mesmo cálculo da Loja
+		// (valor × ShopPowerMultiplier, como RunState aplica); o Amount do registro não tem esse multiplicador.
 		if (definition != null && definition.Effects != null && definition.Effects.Length > 0)
 		{
 			for (var i = 0; i < definition.Effects.Length; i++)
 			{
 				var effect = definition.Effects[i];
-				var value = CompendiumTuning.GetNumber($"{definition.Id}.effect.{i}.value", effect.Value) * ArtifactCatalog.BossDropPowerMultiplier;
+				var value = CompendiumTuning.GetNumber($"{definition.Id}.effect.{i}.value", effect.Value) * ArtifactCatalog.ShopPowerMultiplier;
 				if (i > 0)
 					body.Append('\n');
 				body.Append("• ").Append(EscapeSheetBbcode(ArtifactEffectRegistry.FormatEffect(effect.Type, effect.Operation, value)));
@@ -771,24 +758,23 @@ public partial class HUD
 
 		var data = new CharacterSheetData
 		{
-			Coins = CharacterSheet.BloodCoins,
+			// Mesmo critério do indicador do HUD: hub = Sangue Amaldiçoado permanente; run = Moedas de Sangue da run.
+			CursedBalance = ShowsCursedBloodIndicator(),
 			Blessings = RunState.RunBlessings.ToList(),
-			RunArtifacts = RunState.RunArtifacts.ToList(),
-			Collection = CharacterSheet.FoundArtifacts.ToList(),
-			EquippedSlots = new string[CharacterSheet.EquippedArtifactSlotCount]
+			RunArtifacts = RunState.RunArtifacts.ToList()
 		};
-		for (var i = 0; i < data.EquippedSlots.Length; i++)
-			data.EquippedSlots[i] = CharacterSheet.GetEquippedArtifactSlot(i);
+		data.Balance = data.CursedBalance ? CharacterSheet.CursedBlood : RunState.RunBloodCoins;
 		foreach (var skillId in CharacterSheet.AcquiredSkills)
 			data.Skills.Add((skillId, CharacterSheet.GetSkillRank(skillId)));
 		return data;
 	}
 
-	// Anexo A: 8 bênçãos (todas as raridades de bênção, níveis 1–3), artefatos Common/Epic/Mythic, 500 moedas.
+	// Anexo A: 8 bênçãos (todas as raridades de bênção, níveis 1–3), artefatos Common/Epic/Mythic da run, 500 moedas.
 	// Só exibição: não chama RunState.AddBloodBlessing/AddTemporaryArtifact (que marcariam descobertas no save).
-	private static CharacterSheetData BuildCharacterSheetPreviewData()
+	private CharacterSheetData BuildCharacterSheetPreviewData()
 	{
-		var data = new CharacterSheetData { Coins = 500, EquippedSlots = new string[CharacterSheet.EquippedArtifactSlotCount] };
+		var data = new CharacterSheetData { CursedBalance = ShowsCursedBloodIndicator() };
+		data.Balance = data.CursedBalance ? Math.Max(CharacterSheet.CursedBlood, 120) : 500;
 
 		var rarities = new[] { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Stirps", "Common", "Rare" };
 		var levels = new[] { 1, 2, 3, 1, 2, 1, 3, 2 };
@@ -805,14 +791,8 @@ public partial class HUD
 		{
 			var definition = ArtifactCatalog.All.FirstOrDefault(artifact => string.Equals(artifact.Rarity, rarity, StringComparison.OrdinalIgnoreCase));
 			if (definition != null)
-				data.Collection.Add(ArtifactCatalog.CreateRecord(definition));
+				data.RunArtifacts.Add(ArtifactCatalog.CreateRecord(definition));
 		}
-		if (data.Collection.Count > 0)
-			data.RunArtifacts.Add(data.Collection[data.Collection.Count - 1]);
-		if (data.Collection.Count > 1)
-			data.RunArtifacts.Add(data.Collection[1]);
-		for (var i = 0; i < data.EquippedSlots.Length; i++)
-			data.EquippedSlots[i] = i < 2 && i < data.Collection.Count ? data.Collection[i].Name : "";
 
 		var skills = SkillCatalog.All.Where(skill => skill.IsImplemented).ToList();
 		var bestialis = skills.Where(skill => skill.Tree == SkillTree.Bestialis).Take(2).ToList();
@@ -836,24 +816,51 @@ public partial class HUD
 			: ArtifactCatalog.TryGetByRecordName(record.Name, out var found) ? found : null;
 	}
 
-	// Ícone genérico vira monograma (guia §3.4).
-	private static Texture2D LoadSheetArtifactIcon(ArtifactDefinition definition)
+	// ---------- Texto e ícone de artefato (ficha e Loja) ----------
+
+	private const string ArtifactGenericIconPath = "res://images/generic.png";
+
+	// generic.png é o placeholder do catálogo: o card usa monograma (guia §3.4).
+	private static Texture2D LoadArtifactIcon(ArtifactDefinition artifact)
 	{
-		var path = definition?.IconPath;
-		if (string.IsNullOrWhiteSpace(path) || path.EndsWith("generic.png", StringComparison.OrdinalIgnoreCase) || !ResourceLoader.Exists(path))
+		if (artifact == null || string.IsNullOrEmpty(artifact.IconPath) || artifact.IconPath == ArtifactGenericIconPath)
 			return null;
-		return ResourceLoader.Load<Texture2D>(path);
+		return ResourceLoader.Exists(artifact.IconPath) ? ResourceLoader.Load<Texture2D>(artifact.IconPath) : null;
 	}
 
-	private static Control CreateSheetEmptySlotIcon(int size)
+	// Descrição + efeitos (valores com o mesmo cálculo do compêndio: ajuste salvo × poder da Loja).
+	private static string ArtifactBodyBbcode(ArtifactDefinition artifact)
 	{
-		var slot = new Panel
+		var gold = UiPalette.Gold.ToHtml(false);
+		var effects = FormatArtifactEffectList(artifact);
+		return $"{EscapeArtifactBbcode(artifact.Description)}\n[color=#{gold}]{Localization.Text("ui.common.effects")}:[/color] {EscapeArtifactBbcode(effects)}";
+	}
+
+	// Formato único de efeito ("Nome: +20%") na Loja e na ficha: ArtifactEffectRegistry.FormatEffect.
+	private static string FormatArtifactEffectList(ArtifactDefinition artifact)
+	{
+		if (artifact.Effects == null || artifact.Effects.Length == 0)
+			return Localization.Text("ui.common.none");
+
+		var parts = new List<string>();
+		for (var i = 0; i < artifact.Effects.Length; i++)
 		{
-			CustomMinimumSize = new Vector2(size, size),
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		slot.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, 0, 0));
-		return slot;
+			var effect = artifact.Effects[i];
+			var value = CompendiumTuning.GetNumber($"{artifact.Id}.effect.{i}.value", effect.Value) * ArtifactCatalog.ShopPowerMultiplier;
+			parts.Add(ArtifactEffectRegistry.FormatEffect(effect.Type, effect.Operation, value));
+		}
+		return string.Join(", ", parts);
+	}
+
+	// Registro antigo sem definição no catálogo: só tipo e valor (operação desconhecida, tratada como soma).
+	private static string FormatArtifactRecordEffect(ArtifactRecord record)
+	{
+		return ArtifactEffectRegistry.FormatEffect(record.Effect, "AddFlat", record.Amount);
+	}
+
+	private static string EscapeArtifactBbcode(string text)
+	{
+		return (text ?? "").Replace("[", "[lb]");
 	}
 
 	private static string FormatSheetArtifactSlot(string slot) => (slot ?? "").ToLowerInvariant() switch

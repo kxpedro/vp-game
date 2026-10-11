@@ -33,7 +33,7 @@ public partial class HUD
 	private const float SkillZoomSpeed = 1.2f;   // por segundo com gatilho/tecla segurados
 	private const float SkillPanSpeed = 900.0f;  // px/s com o analógico direito no máximo
 	private const float SkillViewMargin = UiMetrics.S5;
-	private const int SkillPreviewCoins = 700;
+	private const int SkillPreviewCursedBlood = 120;
 
 	// Ações lidas por quadro (sem converter string → StringName a cada chamada).
 	private static readonly StringName SkillPanLeftAction = "ui_scroll_left";
@@ -97,23 +97,26 @@ public partial class HUD
 		_bloodFountainOverlay.Visible = false;
 		_bloodFountainWindow.SetStatus(null);
 
-		// Cabeçalho: moedas à direita (CoinGlyph + número).
+		// Cabeçalho: saldo de Sangue Amaldiçoado à direita (losango violeta + número), nunca as Moedas da run.
 		var header = _bloodFountainWindow.HeaderRight;
-		header.AddChild(new Label
+		var currencyName = new Label
 		{
-			Text = Localization.Text("hud.blood_coins_name"),
+			Text = Localization.Text("hud.cursed_blood_name"),
 			ThemeTypeVariation = UiVariation.SecondaryLabel,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore
-		});
-		header.AddChild(UiComponents.CoinGlyph(24));
+		};
+		currencyName.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+		header.AddChild(currencyName);
+		header.AddChild(UiComponents.CursedBloodGlyph(24));
 		_bloodFountainCoinsLabel = new Label
 		{
-			Name = "BloodFountainCoins",
+			Name = "BloodFountainCursedBlood",
 			ThemeTypeVariation = UiVariation.SectionGoldLabel,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
+		_bloodFountainCoinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
 		header.AddChild(_bloodFountainCoinsLabel);
 
 		// Corpo: árvore à esquerda (ocupa o resto) e coluna de detalhes à direita (como na ficha).
@@ -161,11 +164,11 @@ public partial class HUD
 		detailColumn.AddChild(_skillDetailPanel.Root);
 		if (OS.IsDebugBuild())
 		{
-			// Ferramenta de teste: fora do build de debug ela permitiria farmar moedas (§7).
+			// Ferramenta de teste: fora do build de debug ela permitiria farmar Sangue Amaldiçoado (§7).
 			var dev = UiComponents.DevSection();
-			_bloodCoinCheatButton = UiComponents.MenuButton("+500 moedas", AddCheatBloodCoins, ButtonVariant.Secondary, ButtonSize.Small);
-			_bloodCoinCheatButton.Name = "BloodCoinCheatButton";
-			dev.Body.AddChild(_bloodCoinCheatButton);
+			_cursedBloodCheatButton = UiComponents.MenuButton("+500 Sangue Amaldiçoado", AddCheatCursedBlood, ButtonVariant.Secondary, ButtonSize.Small);
+			_cursedBloodCheatButton.Name = "CursedBloodCheatButton";
+			dev.Body.AddChild(_cursedBloodCheatButton);
 			detailColumn.AddChild(dev.Root);
 		}
 
@@ -336,7 +339,7 @@ public partial class HUD
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		view.CostRow.AddThemeConstantOverride("separation", UiMetrics.S1);
-		view.CostRow.AddChild(UiComponents.CoinGlyph(16));
+		view.CostRow.AddChild(UiComponents.CursedBloodGlyph(16));
 		view.CostLabel = new Label { ThemeTypeVariation = UiVariation.SecondaryLabel, VerticalAlignment = VerticalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
 		view.CostLabel.AddThemeFontSizeOverride("font_size", UiFont.Body);
 		view.CostRow.AddChild(view.CostLabel);
@@ -490,9 +493,9 @@ public partial class HUD
 			var down = FindNearestSkillNode(view, Vector2.Down);
 			if (down != null)
 				button.FocusNeighborBottom = button.GetPathTo(down.Button);
-			else if (_bloodCoinCheatButton != null)
+			else if (_cursedBloodCheatButton != null)
 			{
-				button.FocusNeighborBottom = button.GetPathTo(_bloodCoinCheatButton);
+				button.FocusNeighborBottom = button.GetPathTo(_cursedBloodCheatButton);
 				lastBottom = button;
 			}
 			else
@@ -505,8 +508,8 @@ public partial class HUD
 			button.FocusNext = button.GetPathTo(_skillNodeOrder[(i + 1) % count].Button);
 			button.FocusPrevious = button.GetPathTo(_skillNodeOrder[(i - 1 + count) % count].Button);
 		}
-		if (_bloodCoinCheatButton != null && lastBottom != null)
-			_bloodCoinCheatButton.FocusNeighborTop = _bloodCoinCheatButton.GetPathTo(lastBottom);
+		if (_cursedBloodCheatButton != null && lastBottom != null)
+			_cursedBloodCheatButton.FocusNeighborTop = _cursedBloodCheatButton.GetPathTo(lastBottom);
 	}
 
 	private NodePath PathToNearestSkillNode(SkillNodeView from, Vector2 direction)
@@ -582,7 +585,7 @@ public partial class HUD
 		if (_bloodFountainWindow == null)
 			return;
 
-		_bloodFountainCoinsLabel.Text = CharacterSheet.BloodCoins.ToString();
+		_bloodFountainCoinsLabel.Text = CharacterSheet.CursedBlood.ToString();
 		RefreshSkillTreeButtons();
 		_skillLinkLayer?.QueueRedraw();
 		ShowSkillDetail(_hoveredSkillId ?? _focusedSkillId);
@@ -598,7 +601,7 @@ public partial class HUD
 	{
 		var currentRank = CharacterSheet.GetSkillRank(definition.Id);
 		var maxRank = GetSkillMaxRank(definition);
-		var canAfford = CharacterSheet.BloodCoins >= GetSkillUpgradeCost(definition);
+		var canAfford = CharacterSheet.CursedBlood >= GetSkillUpgradeCost(definition);
 		if (!definition.IsImplemented)
 			return SkillNodeState.Planned;
 		if (currentRank >= maxRank)
@@ -686,7 +689,7 @@ public partial class HUD
 		var currentRank = CharacterSheet.GetSkillRank(definition.Id);
 		var maxRank = GetSkillMaxRank(definition);
 		var cost = GetSkillUpgradeCost(definition);
-		var coins = CharacterSheet.BloodCoins;
+		var balance = CharacterSheet.CursedBlood;
 
 		var (badgeText, badgeColor) = state switch
 		{
@@ -733,7 +736,7 @@ public partial class HUD
 				break;
 			case SkillNodeState.PurchasedNoCoins:
 			case SkillNodeState.AvailableNoCoins:
-				actionText = Localization.TextFormat("fountain.action.no_coins", cost, cost - coins);
+				actionText = Localization.TextFormat("fountain.action.no_cursed_blood", cost, cost - balance);
 				actionColor = UiPalette.Warn;
 				break;
 			default:
@@ -890,28 +893,28 @@ public partial class HUD
 		var cost = GetSkillUpgradeCost(definition);
 		if (_bloodFountainPreviewMode)
 		{
-			// Preview de debug: valida igual, mas não gasta moedas nem grava o save.
-			SetBloodFountainStatus(CharacterSheet.BloodCoins >= cost
+			// Preview de debug: valida igual, mas não gasta Sangue Amaldiçoado nem grava o save.
+			SetBloodFountainStatus(CharacterSheet.CursedBlood >= cost
 				? $"Prévia: compra de {definition.DisplayName} simulada (nada foi gravado)."
-				: Localization.TextFormat("fountain.status.no_coins", definition.DisplayName), CharacterSheet.BloodCoins < cost);
+				: Localization.TextFormat("fountain.status.no_cursed_blood", definition.DisplayName), CharacterSheet.CursedBlood < cost);
 			return;
 		}
 
-		if (!CharacterSheet.SpendBloodCoins(cost))
+		if (!CharacterSheet.SpendCursedBlood(cost))
 		{
-			SetBloodFountainStatus(Localization.TextFormat("fountain.status.no_coins", definition.DisplayName), true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.no_cursed_blood", definition.DisplayName), true);
 			return;
 		}
 
 		if (!CharacterSheet.AddSkill(skillId))
 		{
-			CharacterSheet.AddBloodCoins(cost);
+			CharacterSheet.AddCursedBlood(cost);
 			SetBloodFountainStatus(Localization.TextFormat("fountain.status.failed", definition.DisplayName), true);
 			return;
 		}
 
-		// §8.2: contador de moedas do HUD pelo caminho único (antes era texto fixo aqui).
-		OnBloodCoinsChanged(CharacterSheet.BloodCoins);
+		// §8.2: indicador de recurso do HUD pelo caminho único (no hub mostra o Sangue Amaldiçoado).
+		RefreshResourceIndicator();
 		RefreshCharacterSheet();
 		GetTree().CallGroup("player", "ApplyRuntimeTuning");
 		RefreshBloodFountain();
@@ -930,16 +933,17 @@ public partial class HUD
 		return Mathf.RoundToInt(baseCost * (1.0f + currentRank * 0.5f));
 	}
 
-	private void AddCheatBloodCoins()
+	private void AddCheatCursedBlood()
 	{
 		if (_bloodFountainPreviewMode)
 		{
-			SetBloodFountainStatus("Prévia: +500 moedas simuladas (nada foi gravado).", false);
+			SetBloodFountainStatus("Prévia: +500 Sangue Amaldiçoado simulado (nada foi gravado).", false);
 			return;
 		}
-		CharacterSheet.AddBloodCoins(500);
-		OnBloodCoinsChanged(CharacterSheet.BloodCoins);
-		SetBloodFountainStatus("+500 moedas adicionadas para teste.", false);
+		CharacterSheet.AddCursedBlood(500);
+		RefreshResourceIndicator();
+		RefreshBloodFountain();
+		SetBloodFountainStatus("+500 Sangue Amaldiçoado adicionado para teste.", false);
 	}
 
 	// Status de uma linha sob o título; aviso (moedas, bloqueio) em Warn.
@@ -1034,9 +1038,9 @@ public partial class HUD
 		foreach (var (id, ranks) in seed)
 			for (var i = 0; i < ranks; i++)
 				CharacterSheet.AddSkill(id);
-		if (CharacterSheet.BloodCoins < SkillPreviewCoins)
-			CharacterSheet.AddBloodCoins(SkillPreviewCoins - CharacterSheet.BloodCoins);
-		OnBloodCoinsChanged(CharacterSheet.BloodCoins);
+		if (CharacterSheet.CursedBlood < SkillPreviewCursedBlood)
+			CharacterSheet.AddCursedBlood(SkillPreviewCursedBlood - CharacterSheet.CursedBlood);
+		RefreshResourceIndicator();
 	}
 
 	// ---------- Zoom e pan ----------

@@ -301,17 +301,15 @@ public partial class MainMenu : Control
 		else
 		{
 			row.Date.Text = info.LastPlayedLocal.Year < 2000 ? "" : FormatDate(info.LastPlayedLocal);
-			var coin = UiComponents.CoinGlyph(18);
-			row.Summary.AddChild(coin);
-			var coins = UiComponents.MakeLabel(Localization.TextFormat("menu.slot_coins", info.BloodCoins), UiVariation.SecondaryLabel);
-			coins.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
-			row.Summary.AddChild(coins);
+			// Sangue Amaldiçoado do slot (recurso permanente, losango violeta); as Moedas de Sangue só existem na run.
+			var glyph = UiComponents.CursedBloodGlyph(18);
+			row.Summary.AddChild(glyph);
+			var cursedBlood = UiComponents.MakeLabel(Localization.TextFormat("menu.slot_cursed_blood", info.CursedBlood), UiVariation.SecondaryLabel);
+			cursedBlood.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+			row.Summary.AddChild(cursedBlood);
 			var details = new List<string>
 			{
-				Localization.TextFormat("menu.slot_skill_ranks", info.SkillRanks),
-				info.ArtifactCount == 1
-					? Localization.Text("menu.slot_artifacts_one")
-					: Localization.TextFormat("menu.slot_artifacts", info.ArtifactCount)
+				Localization.TextFormat("menu.slot_skill_ranks", info.SkillRanks)
 			};
 			var rest = UiComponents.MakeLabel("· " + string.Join(" · ", details), UiVariation.SecondaryLabel);
 			rest.SizeFlagsHorizontal = SizeFlags.ExpandFill;

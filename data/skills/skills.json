@@ -1,6 +1,6 @@
 {
     "schemaVersion": 3,
-    "currency": "blood_coins",
+    "currency": "cursed_blood",
     "design": {
         "maxGridColumns": 3,
         "purchaseMode": "permanent",
@@ -27,7 +27,7 @@
                     },
                     "progression": {
                         "tier": 1,
-                        "cost": 300,
+                        "cost": 20,
                         "maxRank": 5,
                         "position": {
                             "column": 1,
@@ -62,7 +62,7 @@
                     },
                     "progression": {
                         "tier": 2,
-                        "cost": 350,
+                        "cost": 24,
                         "maxRank": 5,
                         "position": {
                             "column": 1,
@@ -99,7 +99,7 @@
                     },
                     "progression": {
                         "tier": 2,
-                        "cost": 700,
+                        "cost": 50,
                         "maxRank": 3,
                         "position": {
                             "column": 1,
@@ -136,7 +136,7 @@
                     },
                     "progression": {
                         "tier": 3,
-                        "cost": 750,
+                        "cost": 56,
                         "maxRank": 3,
                         "position": {
                             "column": 1,
@@ -175,7 +175,7 @@
                     },
                     "progression": {
                         "tier": 3,
-                        "cost": 650,
+                        "cost": 46,
                         "maxRank": 3,
                         "position": {
                             "column": 2,
@@ -212,7 +212,7 @@
                     },
                     "progression": {
                         "tier": 4,
-                        "cost": 1800,
+                        "cost": 130,
                         "maxRank": 1,
                         "position": {
                             "column": 0,
@@ -261,7 +261,7 @@
                     },
                     "progression": {
                         "tier": 4,
-                        "cost": 1800,
+                        "cost": 130,
                         "maxRank": 1,
                         "position": {
                             "column": 1,
@@ -298,7 +298,7 @@
                     },
                     "progression": {
                         "tier": 5,
-                        "cost": 2200,
+                        "cost": 160,
                         "maxRank": 1,
                         "position": {
                             "column": 1,
@@ -342,7 +342,7 @@
                     },
                     "progression": {
                         "tier": 1,
-                        "cost": 300,
+                        "cost": 20,
                         "maxRank": 5,
                         "position": {
                             "column": 1,
@@ -377,7 +377,7 @@
                     },
                     "progression": {
                         "tier": 2,
-                        "cost": 350,
+                        "cost": 24,
                         "maxRank": 5,
                         "position": {
                             "column": 0,
@@ -414,7 +414,7 @@
                     },
                     "progression": {
                         "tier": 2,
-                        "cost": 300,
+                        "cost": 20,
                         "maxRank": 5,
                         "position": {
                             "column": 2,
@@ -452,7 +452,7 @@
                     },
                     "progression": {
                         "tier": 3,
-                        "cost": 700,
+                        "cost": 50,
                         "maxRank": 3,
                         "position": {
                             "column": 1,
@@ -489,7 +489,7 @@
                     },
                     "progression": {
                         "tier": 3,
-                        "cost": 750,
+                        "cost": 56,
                         "maxRank": 3,
                         "position": {
                             "column": 1,
@@ -522,13 +522,14 @@
                         "metalReference": "Motörhead — Ace of Spades",
                         "tags": [
                             "artifact",
-                            "drop_chance",
+                            "shop",
+                            "discount",
                             "economy"
                         ]
                     },
                     "progression": {
                         "tier": 3,
-                        "cost": 700,
+                        "cost": 50,
                         "maxRank": 3,
                         "position": {
                             "column": 1,
@@ -543,7 +544,7 @@
                         "status": "Implemented",
                         "effects": [
                             {
-                                "type": "ArtifactDropChance",
+                                "type": "ShopPriceDiscount",
                                 "operation": "AddFlat",
                                 "values": [
                                     0.05
@@ -559,13 +560,12 @@
                         "metalReference": "Blind Guardian — Mirror Mirror",
                         "tags": [
                             "reroll",
-                            "artifact",
                             "blessing"
                         ]
                     },
                     "progression": {
                         "tier": 4,
-                        "cost": 1800,
+                        "cost": 130,
                         "maxRank": 1,
                         "position": {
                             "column": 1,
@@ -588,8 +588,7 @@
                                 ],
                                 "parameters": {
                                     "blessings": true,
-                                    "resetScope": "map",
-                                    "artifacts": true
+                                    "resetScope": "map"
                                 }
                             }
                         ]
@@ -607,7 +606,7 @@
                     },
                     "progression": {
                         "tier": 4,
-                        "cost": 2500,
+                        "cost": 180,
                         "maxRank": 1,
                         "position": {
                             "column": 1,

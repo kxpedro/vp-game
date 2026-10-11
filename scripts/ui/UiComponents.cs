@@ -1899,6 +1899,23 @@ public static class UiComponents
         return node;
     }
 
+    // Sangue Amaldiçoado (recurso permanente do hub): losango violeta desenhado, para nunca ser confundido com a gota
+    // das Moedas de Sangue (forma própria além da cor). Mesmo glifo do aviso de recompensa (HUD.Notifications).
+    public static Control CursedBloodGlyph(int size = 24)
+    {
+        var node = new Control { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        var scale = size / 24.0f;
+        var diamond = new[] { new Vector2(12, 1) * scale, new Vector2(22, 12) * scale, new Vector2(12, 23) * scale, new Vector2(2, 12) * scale };
+        var outline = new[] { diamond[0], diamond[1], diamond[2], diamond[3], diamond[0] };
+        node.Draw += () =>
+        {
+            node.DrawColoredPolygon(diamond, UiPalette.CursedBlood);
+            node.DrawPolyline(outline, UiPalette.TextOutline, 1);
+            node.DrawLine(new Vector2(12, 5) * scale, new Vector2(12, 19) * scale, UiPalette.TextOutline, 1);
+        };
+        return node;
+    }
+
     // Cadeado desenhado (arco + corpo) em TextDisabled.
     public static Control LockGlyph(int size = UiMetrics.IconInline)
     {
@@ -1946,7 +1963,7 @@ public static class UiComponents
     {
         SkillNodeState.PurchasedNoCoins or SkillNodeState.AvailableNoCoins => UiPalette.Warn,
         SkillNodeState.Locked or SkillNodeState.Conflict or SkillNodeState.Planned => UiPalette.TextDisabled,
-        _ => UiPalette.Gold
+        _ => UiPalette.CursedBlood // custo em Sangue Amaldiçoado (violeta), distinto do dourado das Moedas/valores-chave
     };
 
     // Links da árvore: pré-requisito não comprado = 3 px Border; comprado = 4 px Gold.
