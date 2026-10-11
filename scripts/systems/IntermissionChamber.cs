@@ -57,14 +57,44 @@ public partial class IntermissionChamber : Node3D
         BuildInterface();
         RefreshPrompts();
         RefreshStatus();
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
         // Debug: --ui-preview=altar abre o altar com bênçãos fictícias (ver OpenPreviewScreen).
         UiPreview.Attach(this);
+    }
+
+    // Troca de idioma (pausa): reescreve título, rodapé do altar, estado e rótulos 3D. O altar aberto refaz os cards.
+    private void OnLanguageChanged(string language)
+    {
+        if (_statusTitleLabel != null)
+            _statusTitleLabel.Text = Localization.Text("chamber.title");
+        if (_altarWindow != null)
+        {
+            _altarWindow.SetTitle(Localization.Text("altar.title"));
+            BuildAltarFooter();
+        }
+        RefreshStatus();
+        RefreshPrompts();
+        if (_upgradeOverlay != null && UiModalStack.IsOpen(_upgradeOverlay))
+        {
+            UiModalStack.Pop(_upgradeOverlay);
+            OpenUpgradeOverlay();
+        }
+    }
+
+    private void BuildAltarFooter()
+    {
+        _altarWindow.Footer.Clear();
+        _altarWindow.Footer.Add(UiAction.Cancel, Localization.Text("ui.common.back"), CloseUpgradeOverlay, left: true);
+        _altarWindow.Footer.Add(UiAction.Accept, Localization.Text("ui.common.upgrade"), ChooseFocusedUpgrade);
     }
 
     public override void _ExitTree()
     {
         if (_deviceChangedHandler != null)
             UiInput.DeviceChanged -= _deviceChangedHandler;
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
         // Fecha o altar pela pilha (recalcula a pausa) em vez de escrever GetTree().Paused direto.
         if (_upgradeOverlay != null && IsInstanceValid(_upgradeOverlay))
             UiModalStack.Pop(_upgradeOverlay);
@@ -112,20 +142,19 @@ public partial class IntermissionChamber : Node3D
     {
         if (_fountainUsed)
         {
-            SetMessage(UiComponents.TextOr("chamber.fountain.used_message", "A fonte já entregou seu sangue nesta passagem."));
+            SetMessage(Localization.Text("chamber.fountain.used_message"));
             return;
         }
         if (_health.CurrentHealth >= _health.MaxHealth - 0.01f)
         {
-            SetMessage(UiComponents.TextOr("chamber.fountain.full_message", "Sua vida já está cheia."));
+            SetMessage(Localization.Text("chamber.fountain.full_message"));
             return;
         }
 
         var before = _health.CurrentHealth;
         _health.Heal(_health.MaxHealth * FountainHealFraction);
         _fountainUsed = true;
-        SetMessage(string.Format(
-            UiComponents.TextOr("chamber.fountain.healed_message", "A fonte restaurou {0} de vida."),
+        SetMessage(Localization.TextFormat("chamber.fountain.healed_message",
             Mathf.RoundToInt(_health.CurrentHealth - before)));
         RefreshPrompts();
         RefreshStatus();
@@ -137,7 +166,7 @@ public partial class IntermissionChamber : Node3D
     {
         if (_altarUsed)
         {
-            SetMessage(UiComponents.TextOr("altar.used_message", "O altar já aceitou um sacrifício nesta passagem."));
+            SetMessage(Localization.Text("altar.used_message"));
             return;
         }
 
@@ -147,7 +176,7 @@ public partial class IntermissionChamber : Node3D
                 eligible.Add(blessing);
         if (eligible.Count == 0)
         {
-            SetMessage(UiComponents.TextOr("altar.no_eligible", "Não há bênçãos equipadas que possam subir de nível."));
+            SetMessage(Localization.Text("altar.no_eligible"));
             return;
         }
 
@@ -177,7 +206,7 @@ public partial class IntermissionChamber : Node3D
         }
         if (_upgradeCards.Count == 0)
         {
-            SetMessage(UiComponents.TextOr("altar.no_eligible", "Não há bênçãos equipadas que possam subir de nível."));
+            SetMessage(Localization.Text("altar.no_eligible"));
             return;
         }
         SetUpgradeChoiceNeighbors();
@@ -194,8 +223,7 @@ public partial class IntermissionChamber : Node3D
     {
         var maximum = _health?.MaxHealth ?? 0.0f;
         var cost = maximum * BlessingSacrificeFraction;
-        return string.Format(
-            UiComponents.TextOr("altar.status", "Sacrifique {0}% da vida máxima (≈ {1} de {2}) para aprimorar uma bênção. A raridade é preservada."),
+        return Localization.TextFormat("altar.status",
             SacrificePercentText(),
             $"{cost:0.#}",
             Mathf.CeilToInt(maximum));
@@ -206,8 +234,8 @@ public partial class IntermissionChamber : Node3D
         BloodBlessingCatalog.TryGet(blessing.Id, out var definition);
         var metaParts = new List<string>();
         if (definition != null && !string.IsNullOrEmpty(definition.Family))
-            metaParts.Add(string.Format(UiComponents.TextOr("offer.blessing.lineage", "Linhagem {0}"), FormatLineage(definition)));
-        metaParts.Add(string.Format(UiComponents.TextOr("offer.blessing.level_up", "N{0} → N{1}"), blessing.Level, blessing.Level + 1));
+            metaParts.Add(Localization.TextFormat("offer.blessing.lineage", FormatLineage(definition)));
+        metaParts.Add(Localization.TextFormat("offer.blessing.level_up", blessing.Level, blessing.Level + 1));
         return new ChoiceCardData
         {
             Width = 1080.0f,
@@ -216,8 +244,8 @@ public partial class IntermissionChamber : Node3D
             RarityId = blessing.Rarity,
             Meta = string.Join("  ·  ", metaParts),
             PreviewBbcode = FormatPreviewBbcode(BuildUpgradePreview(blessing)),
-            ActionText = UiComponents.TextOr("ui.common.upgrade", "Aprimorar"),
-            CostText = string.Format(UiComponents.TextOr("altar.cost", "−{0}% vida máx."), SacrificePercentText()),
+            ActionText = Localization.Text("ui.common.upgrade"),
+            CostText = Localization.TextFormat("altar.cost", SacrificePercentText()),
             CostColor = UiPalette.Warn
         };
     }
@@ -263,7 +291,7 @@ public partial class IntermissionChamber : Node3D
     private static string BuildUpgradePreview(BloodBlessingRecord record)
     {
         if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
-            return UiComponents.TextOr("altar.preview_unavailable", "Efeitos indisponíveis para comparação.");
+            return Localization.Text("altar.preview_unavailable");
 
         var lines = new List<string>();
         var unchangedLines = new List<string>();
@@ -272,7 +300,7 @@ public partial class IntermissionChamber : Node3D
         {
             var currentCapacity = BloodBlessingCatalog.GetSummonedRatCapacity(record);
             var nextCapacity = BloodBlessingCatalog.GetSummonedRatCapacity(record with { Level = record.Level + 1 });
-            lines.Add($"{UiComponents.TextOr("altar.preview_rats", "Ratos simultâneos")}: {currentCapacity} → {nextCapacity}");
+            lines.Add($"{Localization.Text("altar.preview_rats")}: {currentCapacity} → {nextCapacity}");
             hasScalingLine = true;
         }
 
@@ -308,7 +336,7 @@ public partial class IntermissionChamber : Node3D
 
         lines.AddRange(unchangedLines);
         if (!hasScalingLine)
-            lines.Add(UiComponents.TextOr("altar.preview_no_numbers", "Esta melhoria não altera valores numéricos."));
+            lines.Add(Localization.Text("altar.preview_no_numbers"));
         return string.Join("\n", lines);
     }
 
@@ -326,8 +354,8 @@ public partial class IntermissionChamber : Node3D
                 (isBleed ? bleedDetails : details).Add(text);
         }
         if (bleedDetails.Count > 0)
-            details.Add(string.Format(UiComponents.TextOr("altar.param_bleed", "sangramento {0}"), string.Join(", ", bleedDetails)));
-        var unchanged = UiComponents.TextOr("altar.value_unchanged", "mantido");
+            details.Add(Localization.TextFormat("altar.param_bleed", string.Join(", ", bleedDetails)));
+        var unchanged = Localization.Text("altar.value_unchanged");
         var suffix = details.Count > 0 ? $" ({string.Join(" · ", details)})" : "";
         return $"{ArtifactEffectRegistry.FriendlyName(effect.Type)}: {unchanged}{suffix}";
     }
@@ -336,13 +364,13 @@ public partial class IntermissionChamber : Node3D
     {
         var lower = key.ToLowerInvariant();
         if (lower.Contains("duration") || lower.Contains("delay"))
-            return string.Format(UiComponents.TextOr("altar.param_seconds", "{0} s"), $"{value:0.#}");
+            return Localization.TextFormat("altar.param_seconds", $"{value:0.#}");
         if (lower.Contains("damagepersecond"))
-            return string.Format(UiComponents.TextOr("altar.param_dps", "{0} dano/s"), $"{value:0.#}");
+            return Localization.TextFormat("altar.param_dps", $"{value:0.#}");
         if (lower.Contains("maxstacks"))
-            return string.Format(UiComponents.TextOr("altar.param_stacks", "até {0} acúmulos"), $"{value:0}");
+            return Localization.TextFormat("altar.param_stacks", $"{value:0}");
         if (lower.Contains("radius"))
-            return string.Format(UiComponents.TextOr("altar.param_radius", "raio {0} m"), $"{value:0.#}");
+            return Localization.TextFormat("altar.param_radius", $"{value:0.#}");
         return "";
     }
 
@@ -350,13 +378,13 @@ public partial class IntermissionChamber : Node3D
     {
         if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
             return preview;
-        return $"{definition.DisplayName} [{UiComponents.RarityLabel(record.Rarity)}]\nN{record.Level} → N{record.Level + 1}\n\n{preview}";
+        return $"{definition.DisplayName} [{UiComponents.RarityLabel(record.Rarity)}]\n{Localization.TextFormat("offer.blessing.level_up", record.Level, record.Level + 1)}\n\n{preview}";
     }
 
     private static string FormatUpgradeValue(BloodBlessingEffectDefinition effect, float value)
     {
         if (effect.Operation is "Set" or "SetBool")
-            return value > 0.0f ? UiComponents.TextOr("altar.value_active", "ativo") : UiComponents.TextOr("altar.value_inactive", "inativo");
+            return value > 0.0f ? Localization.Text("altar.value_active") : Localization.Text("altar.value_inactive");
         if (effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase))
             value = Mathf.Clamp(value, 0.0f, 1.0f);
         if (effect.Type == "PestilenceSpreadTargets")
@@ -372,7 +400,7 @@ public partial class IntermissionChamber : Node3D
             return;
         if (!RunState.TryUpgradeBloodBlessing(blessingId, out var upgraded))
         {
-            SetMessage(UiComponents.TextOr("altar.cannot_upgrade", "Essa bênção não pode mais ser aprimorada."));
+            SetMessage(Localization.Text("altar.cannot_upgrade"));
             CloseUpgradeOverlay();
             return;
         }
@@ -386,9 +414,8 @@ public partial class IntermissionChamber : Node3D
         _altarUsed = true;
         var sacrificedMaximum = Mathf.Max(previousMaximum - _health.MaxHealth, 0.0f);
         GetTree().CallGroup("audio_manager", "PlayEffect", "blessing_upgrade");
-        SetMessage(string.Format(
-            UiComponents.TextOr("altar.upgraded_message", "{0} aprimorada para N{1} ({2} preservada). O altar consumiu {3} de vida máxima."),
-            upgraded.Name, upgraded.Level, UiComponents.RarityLabel(upgraded.Rarity), $"{sacrificedMaximum:0.#}"));
+        SetMessage(Localization.TextFormat("altar.upgraded_message",
+            upgraded.DisplayName, upgraded.Level, UiComponents.RarityLabel(upgraded.Rarity), $"{sacrificedMaximum:0.#}"));
         RefreshPrompts();
         RefreshStatus();
     }
@@ -471,7 +498,7 @@ public partial class IntermissionChamber : Node3D
         _statusRoot = status;
         _statusTitleLabel = new Label
         {
-            Text = UiComponents.TextOr("chamber.title", "Câmara de Hemomancia"),
+            Text = Localization.Text("chamber.title"),
             ThemeTypeVariation = UiVariation.SectionGoldLabel,
             HorizontalAlignment = HorizontalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore
@@ -491,13 +518,12 @@ public partial class IntermissionChamber : Node3D
         status.AddChild(_statusDetailLabel);
 
         _altarWindow = UiComponents.Window(_uiRoot, "BlessingUpgradeOverlay", WindowSize.Large,
-            UiComponents.TextOr("altar.title", "Altar do Sacrifício"));
+            Localization.Text("altar.title"));
         _upgradeOverlay = _altarWindow.Root;
         _upgradeOverlay.Visible = false;
         var scroll = UiComponents.ScrollList(0, out _upgradeChoices);
         _altarWindow.Body.AddChild(scroll);
-        _altarWindow.Footer.Add(UiAction.Cancel, UiComponents.TextOr("ui.common.back", "Voltar"), CloseUpgradeOverlay, left: true);
-        _altarWindow.Footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.upgrade", "Aprimorar"), ChooseFocusedUpgrade);
+        BuildAltarFooter();
     }
 
     // Esconde o título da Câmara enquanto houver tela modal/pausa (ele fica num CanvasLayer acima do HUD).
@@ -519,11 +545,11 @@ public partial class IntermissionChamber : Node3D
     {
         if (_statusDetailLabel == null) return;
         var fountain = _fountainUsed
-            ? UiComponents.TextOr("chamber.status.fountain_used", "Fonte: exaurida")
-            : UiComponents.TextOr("chamber.status.fountain_ready", "Fonte: disponível");
+            ? Localization.Text("chamber.status.fountain_used")
+            : Localization.Text("chamber.status.fountain_ready");
         var altar = _altarUsed
-            ? UiComponents.TextOr("chamber.status.altar_used", "Altar: saciado")
-            : UiComponents.TextOr("chamber.status.altar_ready", "Altar: disponível");
+            ? Localization.Text("chamber.status.altar_used")
+            : Localization.Text("chamber.status.altar_ready");
         _statusDetailLabel.Text = $"{fountain}  ·  {altar}";
     }
 
@@ -549,21 +575,19 @@ public partial class IntermissionChamber : Node3D
             _fountainPrompt.Visible = _insideFountain;
             var heal = FountainHealPreview();
             if (_fountainUsed)
-                _fountainPrompt.Text = UiComponents.TextOr("chamber.fountain.exhausted", "Fonte exaurida");
+                _fountainPrompt.Text = Localization.Text("chamber.fountain.exhausted");
             else if (heal <= 0)
-                _fountainPrompt.Text = UiComponents.TextOr("chamber.fountain.full", "Vida cheia");
+                _fountainPrompt.Text = Localization.Text("chamber.fountain.full");
             else
-                InteractPrompt.SetText(_fountainPrompt, string.Format(
-                    UiComponents.TextOr("chamber.fountain.prompt", "Beber: recuperar {0} de vida"), heal));
+                InteractPrompt.SetText(_fountainPrompt, Localization.TextFormat("chamber.fountain.prompt", heal));
         }
         if (_altarPrompt != null && IsInstanceValid(_altarPrompt))
         {
             _altarPrompt.Visible = _insideAltar;
             if (_altarUsed)
-                _altarPrompt.Text = UiComponents.TextOr("chamber.altar.sated", "Altar saciado");
+                _altarPrompt.Text = Localization.Text("chamber.altar.sated");
             else
-                InteractPrompt.SetText(_altarPrompt, string.Format(
-                    UiComponents.TextOr("chamber.altar.prompt", "Sacrificar {0}% da vida máx. por poder"), SacrificePercentText()));
+                InteractPrompt.SetText(_altarPrompt, Localization.TextFormat("chamber.altar.prompt", SacrificePercentText()));
         }
     }
 

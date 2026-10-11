@@ -2,7 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 public partial class HUD
 {
@@ -24,7 +23,7 @@ public partial class HUD
 		if (_blessingAbsorptionRunning || UiModalStack.IsOpen(_bloodBlessingOverlay)) return;
 		if (mandatory)
 		{
-			AppendGameLog("A fonte primordial revelou a primeira Bencao de Sangue desta run.");
+			AppendGameLog("A fonte primordial revelou a primeira Bênção de Sangue desta run.");
 			BuildBloodBlessingChoices();
 			return;
 		}
@@ -33,7 +32,7 @@ public partial class HUD
 		_bloodAbsorptionOverlay.Visible = true;
 		_bloodAbsorptionOverlay.Modulate = Colors.White;
 		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
-		_bloodAbsorptionLabel.Text = "Sanguis Purgatus";
+		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
 		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
 		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
 		var essences = new List<Node3D>();
@@ -102,7 +101,7 @@ public partial class HUD
 		_blessingAbsorptionRunning = false;
 		// Morreu durante a absorção: a oferta não abre por cima do game over.
 		if (_isGameOver) return;
-		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bencao de Sangue.");
+		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bênção de Sangue.");
 		BuildBloodBlessingChoices();
 	}
 
@@ -248,7 +247,7 @@ public partial class HUD
 
 	private void BuildBloodBlessingOverlay(Control root)
 	{
-		_blessingWindow = UiComponents.Window(root, "BloodBlessingOverlay", WindowSize.Large, "Hereditas Sanguinis");
+		_blessingWindow = UiComponents.Window(root, "BloodBlessingOverlay", WindowSize.Large, Localization.Text("offer.blessing.title"));
 		_blessingWindow.Mandatory = true;
 		_bloodBlessingOverlay = _blessingWindow.Root;
 		_bloodBlessingOverlay.Visible = false;
@@ -280,7 +279,7 @@ public partial class HUD
 		// Rodapé sem "Voltar" (oferta obrigatória). Direita: ui_alt (trocar), ui_accept (escolher).
 		_blessingRerollHint = _blessingWindow.Footer.Add(UiAction.Alt, "", RerollBlessingOffer);
 		_blessingRerollHint.Visible = false;
-		_blessingWindow.Footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.choose", "Escolher"), ChooseFocusedBlessing);
+		_blessingWindow.Footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"), ChooseFocusedBlessing);
 		// ui_alt (R / Y / △): HUD.RegisterModalShortcuts → HandleBlessingOfferShortcut (tecla/controle só chegam ao botão focado).
 
 		_bloodAbsorptionOverlay = new ColorRect
@@ -293,7 +292,7 @@ public partial class HUD
 		_bloodAbsorptionLabel = new Label
 		{
 			AnchorLeft = 0.2f, AnchorTop = 0.43f, AnchorRight = 0.8f, AnchorBottom = 0.57f,
-			Text = "Sanguis Purgatus", ThemeTypeVariation = UiVariation.BannerLabel, Uppercase = true,
+			Text = Localization.Text("hud.absorption.title"), ThemeTypeVariation = UiVariation.BannerLabel, Uppercase = true,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center
 		};
@@ -307,7 +306,7 @@ public partial class HUD
 		if (choices.Count == 0)
 		{
 			GetTree().CallGroup("run_manager", "AddBloodCoins", 25);
-			AppendGameLog("Todas as bencaos unicas foram encontradas. Sangue convertido em 25 moedas.");
+			AppendGameLog("Todas as bênçãos únicas foram encontradas. Sangue convertido em 25 moedas.");
 			ClearBlessingCards();
 			UiModalStack.Pop(_bloodBlessingOverlay);
 			GetTree().CallGroup("run_manager", "UnlockExitAfterReward");
@@ -373,9 +372,9 @@ public partial class HUD
 			BodyBbcode = FormatEffectKeywords(description),
 			// Aviso de substituição sempre visível (não depende de hover).
 			Warning = replaced != null
-				? string.Format(UiComponents.TextOr("offer.blessing.replaces", "Substitui: {0} (N{1})"), replaced.Name, replaced.Level)
+				? Localization.TextFormat("offer.blessing.replaces", replaced.DisplayName, replaced.Level)
 				: null,
-			ActionText = UiComponents.TextOr("ui.common.choose", "Escolher"),
+			ActionText = Localization.Text("ui.common.choose"),
 			Width = BlessingCardWidth
 		};
 	}
@@ -385,15 +384,15 @@ public partial class HUD
 	{
 		var parts = new List<string>
 		{
-			string.Format(UiComponents.TextOr("offer.blessing.lineage", "Linhagem {0}"), FormatBlessingLineage(blessing))
+			Localization.TextFormat("offer.blessing.lineage", FormatBlessingLineage(blessing))
 		};
 		var attacks = AffectedAttackLabels(blessing);
 		if (attacks.Count > 0)
 			parts.Add(string.Join(", ", attacks));
 		var owned = RunState.RunBlessings.FirstOrDefault(record => record.Id.Equals(blessing.Id, StringComparison.OrdinalIgnoreCase));
 		parts.Add(owned == null
-			? UiComponents.TextOr("offer.blessing.level_new", "Nova (N1)")
-			: string.Format(UiComponents.TextOr("offer.blessing.level_up", "N{0} → N{1}"), owned.Level, owned.Level + 1));
+			? Localization.Text("offer.blessing.level_new")
+			: Localization.TextFormat("offer.blessing.level_up", owned.Level, owned.Level + 1));
 		return string.Join("  ·  ", parts);
 	}
 
@@ -404,10 +403,10 @@ public partial class HUD
 		{
 			var label = tag?.ToLowerInvariant() switch
 			{
-				"basic_attack" => UiComponents.TextOr("ui.attack.basic", "Ataque básico"),
-				"quick_attack" => UiComponents.TextOr("ui.attack.quick", "Ataque rápido"),
-				"special_attack" => UiComponents.TextOr("ui.attack.special", "Ataque especial"),
-				"dash" => UiComponents.TextOr("ui.attack.dash", "Esquiva"),
+				"basic_attack" => Localization.Text("ui.attack.basic"),
+				"quick_attack" => Localization.Text("ui.attack.quick"),
+				"special_attack" => Localization.Text("ui.attack.special"),
+				"dash" => Localization.Text("ui.attack.dash"),
 				_ => null
 			};
 			if (label != null && !labels.Contains(label))
@@ -464,13 +463,13 @@ public partial class HUD
 		_blessingWindow.Status.RemoveThemeColorOverride("font_color");
 		_blessingWindow.SetStatus(string.IsNullOrEmpty(_blessingOfferFamily)
 			? Localization.Text("hud.blessing_choice")
-			: string.Format(UiComponents.TextOr("offer.blessing.status", "O sangue revelou a linhagem {0}. Escolha uma Bênção de Sangue."), _blessingOfferFamily));
+			: Localization.TextFormat("offer.blessing.status", _blessingOfferFamily));
 	}
 
 	// ui_cancel na oferta obrigatória: não fecha; avisa no status (Warn) e mantém o foco no card.
 	private void WarnBlessingOfferMandatory()
 	{
-		_blessingWindow.SetStatus(UiComponents.TextOr("offer.blessing.must_choose", "Escolha uma Bênção de Sangue para liberar a saída."));
+		_blessingWindow.SetStatus(Localization.Text("offer.blessing.must_choose"));
 		_blessingWindow.Status.AddThemeColorOverride("font_color", UiPalette.Warn);
 		FocusBlessingChoice(_focusedBlessingChoice);
 	}
@@ -514,11 +513,11 @@ public partial class HUD
 		_blessingRerollHint.Visible = hasSkill;
 		if (!hasSkill) return;
 		var remaining = _blessingOfferPreview || (GetPlayerSkillController()?.CanRerollReward() ?? false) ? 1 : 0;
-		_blessingRerollHint.SetLabel(string.Format(UiComponents.TextOr("offer.reroll_count", "Trocar ({0})"), remaining));
+		_blessingRerollHint.SetLabel(Localization.TextFormat("offer.reroll_count", remaining));
 		_blessingRerollHint.Button.Disabled = remaining == 0;
 		_blessingRerollHint.Button.TooltipText = remaining > 0
-			? UiComponents.TextOr("offer.reroll_tooltip", "Espelho do Destino: troca a oferta sem custo, uma vez por mapa.")
-			: UiComponents.TextOr("offer.reroll_used", "Espelho do Destino já usado neste mapa.");
+			? Localization.Text("offer.reroll_tooltip")
+			: Localization.Text("offer.reroll_used");
 	}
 
 	// Só leitura do catálogo/ficha: distingue "sem a skill" (oculta) de "usada neste mapa" (desabilitada).
@@ -540,7 +539,7 @@ public partial class HUD
 		if (!_blessingOfferPreview && GetPlayerSkillController()?.TryConsumeRewardReroll() != true) return;
 		BuildBloodBlessingChoices();
 		if (UiModalStack.IsOpen(_bloodBlessingOverlay))
-			_blessingWindow.SetStatus(UiComponents.TextOr("offer.blessing.rerolled", "O Espelho do Destino revelou uma nova linhagem."));
+			_blessingWindow.SetStatus(Localization.Text("offer.blessing.rerolled"));
 	}
 
 	private PlayerSkillController GetPlayerSkillController()
@@ -565,8 +564,8 @@ public partial class HUD
 		_blessingChoiceLocked = true;
 		GetTree().CallGroup("player", "ApplyRuntimeTuning");
 		GetTree().CallGroup("audio_manager", "PlayEffect", "blessing_select");
-		AppendGameLog($"Bencao adquirida: {blessing.DisplayName} [{offer.Rarity}].");
-		ShowNotificationToast($"{UiComponents.RarityLabel(offer.Rarity)}: {blessing.DisplayName}", true, LoadBlessingIcon(blessing));
+		AppendGameLog($"Bênção adquirida: {blessing.DisplayName} [{offer.Rarity}].");
+		ShowNotificationToast(Localization.TextFormat("hud.toast.blessing", UiComponents.RarityLabel(offer.Rarity), blessing.DisplayName), true, LoadBlessingIcon(blessing));
 		// Os cards ficam até a próxima oferta (removê-los aqui seria no meio do sinal do próprio botão/card).
 		UiModalStack.Pop(_bloodBlessingOverlay);
 		RefreshCharacterSheet();
@@ -606,155 +605,27 @@ public partial class HUD
 		PresentBlessingOffers(offers, group[1].Family);
 	}
 
-	// highlightValues: números calculados em negrito Gold (só na oferta, BBCode). Sem destaque, o texto sai puro (tooltips).
+	// Montagem do texto: BloodBlessingText (scripts/systems/blessings/BloodBlessingDefinition.cs). O modelo vem de
+	// content.json (blessing.<id>.desc) com {n} = valor do efeito n e marcação [kw=<id>]termo[/kw] para as palavras-chave.
+	// highlightValues: números em negrito Gold e marcação preservada (oferta/ficha/compêndio, BBCode). Sem destaque, texto puro (tooltips).
 	private static string FormatBloodBlessingDescription(BloodBlessingDefinition blessing, float effectivePowerMultiplier, bool highlightValues = false)
 	{
-		var description = blessing.Description;
-		// Com destaque, o valor entra como marcador sem dígitos e só vira BBCode no fim (o hex da cor não casa com o próximo número).
-		var highlighted = highlightValues ? new List<string>() : null;
-		for (var i = 0; i < blessing.Effects.Length; i++)
-		{
-			var effect = blessing.Effects[i];
-			if (effect.BooleanValue || effect.Operation is "Set" or "SetBool")
-				continue;
-
-			var baseValue = CompendiumTuning.GetFloat($"blessing.{blessing.Id}.effect.{i}.value", effect.Value);
-			var percentValue = effect.Value * 100.0f;
-			var percentPattern = NumberPattern(percentValue) + @"\s*%";
-			var usesPercent = effect.Operation.Contains("Multiplier", StringComparison.OrdinalIgnoreCase)
-				|| effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase)
-				|| Regex.IsMatch(description, percentPattern, RegexOptions.IgnoreCase);
-			var sourcePattern = usesPercent ? percentPattern : NumberPattern(effect.Value);
-			var effectiveValue = GetDisplayedBlessingValue(effect, baseValue * effectivePowerMultiplier);
-			if (effect.Type == "MaxHealth" && effect.Operation == "AddFlat")
-				effectiveValue *= RunState.MaxHealthMultiplier * RunState.SacrificedMaxHealthMultiplier;
-			var replacement = usesPercent
-				? $"{FormatLocalizedNumber(effectiveValue * 100.0f)}%"
-				: FormatLocalizedNumber(effectiveValue);
-			if (highlighted != null)
-			{
-				highlighted.Add(replacement);
-				replacement = BlessingValueMarker(highlighted.Count - 1);
-			}
-			description = ReplaceFirst(description, sourcePattern, replacement);
-		}
-		if (highlighted == null)
-			return description;
-		var gold = UiPalette.Gold.ToHtml(false);
-		for (var i = 0; i < highlighted.Count; i++)
-			description = description.Replace(BlessingValueMarker(i), $"[b][color=#{gold}]{highlighted[i]}[/color][/b]");
-		return description;
+		return BloodBlessingText.FormatDescription(blessing, effectivePowerMultiplier, highlightValues ? UiPalette.Gold.ToHtml(false) : null);
 	}
 
-	// Marcador sem dígitos nem letras comuns em texto: não casa com NumberPattern nem com as palavras-chave.
-	private static string BlessingValueMarker(int index) => $"\u0001{(char)('a' + index)}\u0002";
+	// Marcação [kw=...] -> BBCode colorido. Sem [hint]: o texto do card não recebe mouse e o glossário da oferta já explica o termo (§8.17).
+	private static string FormatEffectKeywords(string text) => BloodBlessingText.FormatKeywords(text);
 
-	private static float GetDisplayedBlessingValue(BloodBlessingEffectDefinition effect, float value)
-	{
-		if (effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase))
-			return Mathf.Clamp(value, 0.0f, 1.0f);
-		if (effect.Type == "PestilenceSpreadTargets")
-			return Mathf.Round(value);
-		return value;
-	}
+	private static float GetDisplayedBlessingValue(BloodBlessingEffectDefinition effect, float value) => BloodBlessingText.GetDisplayedValue(effect, value);
 
-	private static string NumberPattern(float value)
-	{
-		var invariant = value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-		return $@"(?<![\d.,]){Regex.Escape(invariant).Replace(@"\.", @"[.,]")}(?![\d.,])";
-	}
+	// Número com até 2 casas e o separador decimal do idioma atual.
+	private static string FormatLocalizedNumber(float value) => ArtifactEffectRegistry.FormatNumber(value);
 
-	private static string FormatLocalizedNumber(float value)
-	{
-		return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',');
-	}
-
-	private static string ReplaceFirst(string text, string pattern, string replacement)
-	{
-		var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-		if (!match.Success)
-			return text;
-		return text[..match.Index] + replacement + text[(match.Index + match.Length)..];
-	}
-
-	// Termo destacado nas descrições (cores mantidas, guia §9) e explicação usada no [hint] e no glossário da oferta.
-	private sealed record BlessingKeyword(string Term, string Color, bool Bold, string Hint);
-
-	private static BlessingKeyword ResolveAttackKeyword(string match)
-	{
-		var lower = match.ToLowerInvariant();
-		if (lower.Contains("básic"))
-			return new BlessingKeyword(UiComponents.TextOr("ui.attack.basic", "Ataque básico"), "#ffd166", true,
-				UiComponents.TextOr("hud.glossary.basic_attack", "Ataque principal; encadeia o combo da arma equipada."));
-		if (lower.Contains("rápid"))
-			return new BlessingKeyword(UiComponents.TextOr("ui.attack.quick", "Ataque rápido"), "#72e6ff", true,
-				UiComponents.TextOr("hud.glossary.quick_attack", "Golpe executado ao atacar durante a janela da esquiva."));
-		if (lower.Contains("especial"))
-			return new BlessingKeyword(UiComponents.TextOr("ui.attack.special", "Ataque especial"), "#d58cff", true,
-				UiComponents.TextOr("hud.glossary.special_attack", "Forma especial do ataque da arma; interrompe o combo básico."));
-		return new BlessingKeyword(UiComponents.TextOr("hud.glossary.fury.term", "Fúria Bestial"), "#ff4d5f", true,
-			UiComponents.TextOr("hud.glossary.fury", "Estado que consome a barra de Fúria para ampliar o poder ofensivo."));
-	}
-
-	private static BlessingKeyword ResolveStatusKeyword(string match)
-	{
-		var lower = match.ToLowerInvariant();
-		if (lower.StartsWith("sangr"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.bleed.term", "Sangramento"), "#ff4055", false,
-				UiComponents.TextOr("hud.glossary.bleed", "Causa dano periódico cumulativo em um único inimigo."));
-		if (lower.StartsWith("pest"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.pestilence.term", "Pestilência"), "#78d957", false,
-				UiComponents.TextOr("hud.glossary.pestilence", "Cada acúmulo aumenta o dano recebido; ao morrer, a infecção pode se espalhar."));
-		if (lower.StartsWith("barreira"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.barrier.term", "Barreira"), "#63c7ff", false,
-				UiComponents.TextOr("hud.glossary.barrier", "Vida temporária consumida antes da vida normal."));
-		if (lower.StartsWith("fasc"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.fascination.term", "Fascínio"), "#ff6fe8", false,
-				UiComponents.TextOr("hud.glossary.fascination", "Chefes e inimigos imunes a Encanto sofrem 25% mais dano."));
-		if (lower.StartsWith("hosp"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.host.term", "Hospedeiro"), "#b4ff6a", false,
-				UiComponents.TextOr("hud.glossary.host", "Recebem mais dano e espalham um acúmulo de Pestilência em área ao serem atingidos."));
-		if (lower.StartsWith("interromp"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.interrupt.term", "Interrupção"), "#ffd166", false,
-				UiComponents.TextOr("hud.glossary.interrupt", "Interrupção impede temporariamente a reação ou o ataque."));
-		if (lower.StartsWith("ferida"))
-			return new BlessingKeyword(UiComponents.TextOr("hud.glossary.wound.term", "Ferida recuperável"), "#ff9f9f", false,
-				UiComponents.TextOr("hud.glossary.wound", "Parte do dano é restaurada gradualmente se você não sofrer outro golpe."));
-		return new BlessingKeyword(UiComponents.TextOr("hud.glossary.charm.term", "Encanto"), "#dd77ff", false,
-			UiComponents.TextOr("hud.glossary.charm", "O inimigo passa a atacar outros inimigos; sem alvo, vagueia pela sala."));
-	}
-
-	private static readonly Regex AttackKeywordRegex = new(@"\b(Ataques? básicos?|Ataques? rápidos?|Ataques? especiais?|Fúria Bestial)\b", RegexOptions.IgnoreCase);
-	private static readonly Regex StatusKeywordRegex = new(@"\b(Sangramento|Sangrando|Pestilência|Pestilento|Pestilenta|Encanto|Encantar|Encantado|Encantada|Encantados|Encantadas|Barreira|Fascínio|Hospedeiro|Hospedeiros|Interrompido|Interrompida|Ferida recuperável)\b", RegexOptions.IgnoreCase);
-
-	private static string FormatEffectKeywords(string text)
-	{
-		text = AttackKeywordRegex.Replace(text, match => FormatKeyword(match.Value, ResolveAttackKeyword(match.Value)));
-		return StatusKeywordRegex.Replace(text, match => FormatKeyword(match.Value, ResolveStatusKeyword(match.Value)));
-	}
-
-	// Sem [hint]: o texto do card não recebe mouse e o glossário da oferta já explica o termo (§8.17).
-	private static string FormatKeyword(string word, BlessingKeyword keyword)
-	{
-		var body = keyword.Bold ? $"[b]{word}[/b]" : word;
-		return $"[color={keyword.Color}]{body}[/color]";
-	}
-
-	// Termos presentes no texto, em ordem de aparição e sem repetir (glossário da oferta).
-	private static void CollectBlessingKeywords(string text, List<BlessingKeyword> glossary)
-	{
-		var found = new List<(int Index, BlessingKeyword Keyword)>();
-		foreach (Match match in AttackKeywordRegex.Matches(text))
-			found.Add((match.Index, ResolveAttackKeyword(match.Value)));
-		foreach (Match match in StatusKeywordRegex.Matches(text))
-			found.Add((match.Index, ResolveStatusKeyword(match.Value)));
-		foreach (var entry in found.OrderBy(item => item.Index))
-			if (!glossary.Any(existing => existing.Term == entry.Keyword.Term))
-				glossary.Add(entry.Keyword);
-	}
+	// Termos marcados no texto, em ordem de aparição e sem repetir (glossário da oferta).
+	private static void CollectBlessingKeywords(string text, List<BlessingKeyword> glossary) => BloodBlessingText.CollectKeywords(text, glossary);
 
 	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier, int level = 1)
 	{
-		return $"{blessing.DisplayName} [{rarity}] — N{level}\n{FormatBloodBlessingDescription(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
+		return $"{blessing.DisplayName} [{rarity}] — {Localization.TextFormat("ui.common.level_short", level)}\n{FormatBloodBlessingDescription(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
 	}
 }

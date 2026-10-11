@@ -19,7 +19,7 @@ Bestialis deve formar uma cruz invertida e Humanitas uma cruz em pé. As posiç�
 
 Cada entrada separa:
 
-- `presentation`: nome, descrição, flavor, referência musical, texto do ícone e tags;
+- `presentation`: referência musical (`metalReference`) e tags. Nome, descrição, flavor e monograma **não** ficam no JSON: vão em `data/localization/<idioma>/content.json` (`pt-BR`, `en`, `es`, sempre os três) nas chaves `skill.<id>.name`, `skill.<id>.desc`, `skill.<id>.flavor` e `skill.<id>.icon` (2 letras do nó na Fonte de Sangue). `SkillDefinition.DisplayName`/`Description`/`FlavorText`/`IconText` resolvem no idioma atual. Não há validador de skills: conferir as 4 chaves nos 3 idiomas com `py tools/validate_localization.py` (paridade) e por busca manual da chave;
 - `progression`: tier, custo, ranks, posição, pré-requisitos e grupo exclusivo;
 - `runtime`: estado de implementação e efeitos parametrizados.
 

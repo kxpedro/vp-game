@@ -1,0 +1,432 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261004-1829-hud-localizacao",
+  "titulo": "HUD e menus — Fase 4: localização por idioma, revisão de textos e fechamento",
+  "status": "concluido",
+  "demanda": "revisar, ajustar e melhorar a HUD inteira do jogo, de todos os menus e etc..",
+  "objetivo": "Todo texto exibido ao jogador vem de um recurso de localização por idioma (pt-BR, en, es) — interface e conteúdo. No código ficam só chaves. Traduções e acentuação revisadas e corrigidas; interface verificada nos três idiomas; revisão final e documentação.",
+  "grupo": "20261004-1829-hud-auditoria",
+  "dependeDosPlanos": [
+    "20261004-1829-hud-ingame",
+    "20261004-1829-hud-menus-sistema",
+    "20261004-1829-hud-overlays-progressao"
+  ],
+  "criado": "2026-10-04T18:29:00-03:00",
+  "atualizado": "2026-10-11T05:09:57-03:00",
+  "commitInicial": "0c387de",
+  "versaoOrch": "0.3.0",
+  "ondas": [
+    [
+      "T1"
+    ],
+    [
+      "T2",
+      "T3",
+      "T4"
+    ],
+    [
+      "T5",
+      "T9"
+    ],
+    [
+      "T6",
+      "T7"
+    ],
+    [
+      "T8"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Reestruturar a localização em recursos por idioma",
+      "executor": "ui-hud",
+      "dependeDe": [],
+      "arquivos": [
+        "scripts/systems/Localization.cs",
+        "data/localization/**",
+        "tools/validate_localization.py"
+      ],
+      "prontoQuando": "Menu e HUD mostram os mesmos textos de antes nos três idiomas; validador passa; build limpo.",
+      "status": "concluida",
+      "inicio": "2026-10-06T12:57:35-03:00",
+      "fim": "2026-10-06T13:02:33-03:00",
+      "tentativas": 1,
+      "resultado": "Localização em data/localization/{pt-BR,en,es}/{ui,content,world}.json (36 chaves migradas para ui.json; game_texts.json removido). Localization.cs carrega por pasta, fallback idioma → pt-BR → chave, TextFormat protegido, Has(key) novo. tools/validate_localization.py criado. Build 0 avisos/0 erros, validador 0 erros (16 avisos: chaves de TextOr ainda não criadas), smokes MainMenu/TestArena limpos, menu verificado nos 3 idiomas via --ui-preview/--ui-lang."
+    },
+    {
+      "id": "T2",
+      "titulo": "Extrair textos da interface para ui.json",
+      "executor": "ui-hud",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "scripts/ui/*.cs",
+        "scripts/systems/IntermissionChamber.cs",
+        "scripts/systems/RunStartBlessingRoom.cs",
+        "scripts/systems/{ArtifactChest,BloodFountain,WeaponBench,ScenePortal}.cs",
+        "scripts/items/RoomArtifact.cs",
+        "data/localization/*/ui.json"
+      ],
+      "prontoQuando": "Nenhum literal de interface visível fora de ui.json (exceções de debug listadas); validador passa; build limpo.",
+      "status": "concluida",
+      "inicio": "2026-10-06T13:02:33-03:00",
+      "fim": "2026-10-06T19:31:19-03:00",
+      "tentativas": 1,
+      "resultado": "ui.json com 374 chaves por idioma (343 novas, 5 antigas removidas); ~237 chamadas de UI trocadas por Localization.Text/TextFormat; HUD, overlays, menu, Câmara, sala inicial e prompts 3D reagem a LanguageChanged; idioma também nas opções da pausa; PromptText dos portais nos .tscn passa a guardar chave. Build 0/0, validador 0 erros (4 avisos de portal.* referenciados só em .tscn), smokes das 5 cenas limpos. Exceções de debug mantidas literais."
+    },
+    {
+      "id": "T3",
+      "titulo": "Localizar conteúdo: bênçãos, artefatos, skills e armas",
+      "executor": "conteudo-run",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "data/blessings/blood_blessings.json",
+        "data/artifacts/artifacts.json",
+        "data/skills/skills.json",
+        "scripts/systems/{blessings,artifacts,skills,weapons}/*.cs",
+        "scripts/player/BloodBlessingRuntime.cs",
+        "data/localization/*/content.json",
+        ".codex/skills/*/scripts/*.py"
+      ],
+      "prontoQuando": "Ofertas, ficha, Fonte e compêndio mostram o conteúdo nos três idiomas; validadores de bênçãos/artefatos e de localização passam; build limpo.",
+      "status": "concluida",
+      "inicio": "2026-10-06T13:02:34-03:00",
+      "fim": "2026-10-06T19:32:20-03:00",
+      "tentativas": 1,
+      "resultado": "content.json com 467 chaves por idioma; catálogos guardam só IDs/números (artefatos ganham saveName para compatibilidade de save, com migração em CharacterSheet.WithResolvedId); descrição de bênção via BloodBlessingText com placeholders {n} e marcação [kw=...] (corrigiu 5 bênçãos que não mostravam valor escalado); validadores e SKILL.md atualizados. Verificação conjunta após T2+T3: validador de localização 904 chaves/0 erros/0 avisos, bênçãos 63/0/0, artefatos 20/0/0, build 0 erros, smoke TestArena limpo."
+    },
+    {
+      "id": "T4",
+      "titulo": "Localizar mundo: bosses, mapas, inimigos e mensagens de combate",
+      "executor": "inimigos-e-bosses",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "scripts/bosses/*.cs",
+        "scripts/systems/{CampaignCatalog,RunManager,RoomGenerator}.cs",
+        "scripts/enemies/*.cs",
+        "scripts/player/PlayerCombat.cs",
+        "data/localization/*/world.json"
+      ],
+      "prontoQuando": "Sem literal de mundo visível ao jogador fora de world.json; validador passa; build e smoke limpos.",
+      "status": "concluida",
+      "inicio": "2026-10-06T13:02:34-03:00",
+      "fim": "2026-10-06T13:16:25-03:00",
+      "tentativas": 1,
+      "resultado": "63 chaves de mundo em world.json (bosses e golpes, mapas e regras, raridades/arquétipos/lendários de inimigo, rótulos e marcadores de sala, portal da Câmara, avisos de Fúria, causas de morte em Health.cs). Nomes resolvidos na exibição (DisplayName/Name calculados); Label3D reagem a LanguageChanged; IDs inalterados. Build 0/0, smokes TestArena/CrowsNest/IntermissionChamber limpos, 0 erros do validador no domínio de mundo. Logs de debug mantidos literais."
+    },
+    {
+      "id": "T5",
+      "titulo": "Revisar traduções e acentuação em todos os idiomas",
+      "executor": "game-designer",
+      "dependeDe": [
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "arquivos": [
+        "data/localization/**"
+      ],
+      "prontoQuando": "Glossário no resultado; validador passa; lista das correções feitas.",
+      "status": "concluida",
+      "inicio": "2026-10-06T22:34:13.960Z",
+      "fim": "2026-10-06T22:40:55.049Z",
+      "tentativas": 1,
+      "resultado": "** T5 — Revisar traduções e acentuação concluída. O agente game-designer revisou 904 chaves de localização em 3 idiomas, corrigiu 1 erro (ícone de skill duplicado em pt-BR), gerou glossário de 15 termos-chave multiidioma, e executou validadores (0 erros, build limpo). Pronto para as tarefas subsequentes (T6 — verificação visual e T7 — revisão final).",
+      "modelo": "haiku",
+      "pasta": null,
+      "merge": null,
+      "sessaoApp": null
+    },
+    {
+      "id": "T6",
+      "titulo": "Verificar a interface em 3 idiomas e 3 resoluções",
+      "executor": "designer-ux-arte",
+      "dependeDe": [
+        "T5",
+        "T9"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Relatório com a matriz de capturas e problemas; severidade alta volta para T2–T5.",
+      "status": "concluida",
+      "inicio": "2026-10-10T22:23:51-03:00",
+      "fim": "2026-10-11T05:09:57-03:00",
+      "tentativas": 1,
+      "resultado": "Capturas: 108 PNGs (36 telas x 3 idiomas) geradas em UM processo do Godot via novo modo `--ui-batch` do UiPreview, repetidas depois das correções (0 erro de script, 0 chave ausente). Análise visual PARCIAL: o agente viu 58 das 108 imagens (quase só en/es; limite de API interrompeu duas vezes) e eu conferi mais algumas (Fonte de Sangue pt-BR/en, Ficha pt-BR/en, confirmação da pausa). Sem chave crua, acento quebrado ou estouro nas telas conferidas. Problemas: textos 'Prévia:', DEV, Codex DEV e log de eventos em português (só debug/preview, exceção aceita no plano; acentos do log corrigidos); separador decimal em en usava vírgula (corrigido: cultura da sessão segue o idioma); nomes de nó da Fonte e slot do baú truncados com '...' (igual em pt-BR, pré-existente, nome completo no painel de detalhe); diálogo de confirmação da pausa deixa vazar de leve o texto do menu atrás (visual, pendente). Não vistas: capturas pt-BR em sua maioria, hud_combat/toast em en/es, e textos que só aparecem com interação.",
+      "modelo": "sonnet",
+      "pasta": null,
+      "merge": null,
+      "sessaoApp": null
+    },
+    {
+      "id": "T7",
+      "titulo": "Revisão final de código e validação",
+      "executor": "orch:revisor",
+      "dependeDe": [
+        "T5",
+        "T9"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Sem achados de severidade alta; comandos verdes.",
+      "status": "concluida",
+      "inicio": "2026-10-10T22:23:51-03:00",
+      "fim": "2026-10-10T22:39:42-03:00",
+      "tentativas": 1,
+      "resultado": "Sem achados de severidade alta. 1 média corrigida (rótulo 'Sala de treinamento' do Ninho fixo em português: chave scene.crows_nest.training_hall + LanguageChanged) e baixas corrigidas: separador decimal agora segue o idioma do jogo (Localization.Format), prompts de portal passam a chave (ScenePortal.ToPromptKey removido) sem o prefixo 'E - ', tooltip da Fúria só reescreve quando muda, GetTunedAttack preserva NameKey. Pendentes baixas (não visíveis ao jogador): fontes de dano literais em PlayerCombat:910 e SummonedRat:66, hint de zoom da Fonte recalculado por quadro de pan. Verificados sem problema: CallGroup/assinaturas, pares += / -= de LanguageChanged, pausa/foco/UiModalStack, debug-only, comparações por ID. Build 0/0, validadores 0/0.",
+      "modelo": "sonnet",
+      "pasta": null,
+      "merge": null,
+      "sessaoApp": null
+    },
+    {
+      "id": "T9",
+      "titulo": "Exibir nomes localizados onde a UI ainda usa o nome gravado no save",
+      "executor": "ui-hud",
+      "dependeDe": [
+        "T2",
+        "T3"
+      ],
+      "arquivos": [
+        "scripts/ui/*.cs",
+        "scripts/systems/IntermissionChamber.cs"
+      ],
+      "prontoQuando": "Nenhum nome de save/idioma de aquisição exibido; build limpo; validadores passam.",
+      "status": "concluida",
+      "inicio": "2026-10-07T00:01:00-03:00",
+      "fim": "2026-10-07T00:03:00-03:00",
+      "tentativas": 1,
+      "resultado": "Nomes de artefato/bênção exibidos via catálogo (fallbacks em ArtifactChest/CharacterSheet, monograma em UiComponents); usings de Regex sem uso removidos. Build 0/0, validadores 0 erros. Prévia do altar (opcional) não alterada. _GLOSSARY.json movido para docs/design/glossario-localizacao.json (quebrava o validador).",
+      "modelo": "haiku",
+      "pasta": null,
+      "merge": null,
+      "sessaoApp": null
+    },
+    {
+      "id": "T8",
+      "titulo": "Atualizar documentação da interface e da localização",
+      "executor": "orch:documentador",
+      "dependeDe": [
+        "T6",
+        "T7"
+      ],
+      "arquivos": [
+        "docs/gameplay_systems.md",
+        "README.md",
+        "docs/design/ui-guia.md",
+        ".claude/orch/perfil.md"
+      ],
+      "prontoQuando": "Docs refletem o código final, sem informação inventada.",
+      "status": "concluida",
+      "inicio": "2026-10-11T05:09:57-03:00",
+      "fim": "2026-10-11T05:09:57-03:00",
+      "tentativas": 0,
+      "resultado": "README, docs/gameplay_systems.md, docs/design/ui-guia.md e perfil.md atualizados (localização por idioma, validadores, --ui-preview/--ui-batch, itens da fase 3a, estado verificado); referências a game_texts.json removidas também de .claude/agents/*.md. Divergências do guia corrigidas (OptionsPanel(true) na pausa; previews gallery/confirm/prompt não existem). docs/design/ui-auditoria.md ainda cita game_texts.json (histórico, não alterado)."
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-04T18:29:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-04T19:20:00-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Replanejado pela decisão D5 do usuário: recursos por idioma, conteúdo também localizado, revisão de textos em todos os idiomas (5 → 8 tarefas)"
+    },
+    {
+      "quando": "2026-10-06T12:57:35-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Execução iniciada (orch 0.4.0)"
+    },
+    {
+      "quando": "2026-10-06T12:57:35-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "T1 iniciada por ui-hud"
+    },
+    {
+      "quando": "2026-10-06T13:02:33-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "T1 concluída por ui-hud"
+    },
+    {
+      "quando": "2026-10-06T13:02:33-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "T2 iniciada"
+    },
+    {
+      "quando": "2026-10-06T13:02:34-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "T3 iniciada"
+    },
+    {
+      "quando": "2026-10-06T13:02:34-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-iniciada",
+      "texto": "T4 iniciada"
+    },
+    {
+      "quando": "2026-10-06T13:16:25-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-concluida",
+      "texto": "T4 concluída por inimigos-e-bosses (1 reenvio para ajustes)"
+    },
+    {
+      "quando": "2026-10-06T19:31:19-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "T2 concluída por ui-hud (retomada após limite de uso da API)"
+    },
+    {
+      "quando": "2026-10-06T19:32:20-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "T3 concluída por conteudo-run (retomada após limite de uso da API)"
+    },
+    {
+      "quando": "2026-10-06T19:32:46-03:00",
+      "tarefa": "T9",
+      "tipo": "replanejado",
+      "texto": "T9 adicionada (pendências de UI da T3); sufixo de arma e revisão de nomes en/es incluídos na T5. Execução pausada a pedido do usuário após T2 e T3."
+    },
+    {
+      "quando": "2026-10-06T19:33:35-03:00",
+      "tarefa": "T9",
+      "tipo": "replanejado",
+      "texto": "Ajuste: a T3 já removeu o sufixo \" Moveset em desenvolvimento.\" das armas (verificado); item saiu da T5 e a T9 passa a remover a constante obsoleta"
+    },
+    {
+      "quando": "2026-10-06T19:34:13-03:00",
+      "tarefa": "T5",
+      "tipo": "tarefa-iniciada",
+      "texto": "T5 iniciada por game-designer"
+    },
+    {
+      "quando": "2026-10-06T19:34:13-03:00",
+      "tarefa": "T9",
+      "tipo": "tarefa-iniciada",
+      "texto": "T9 iniciada por ui-hud"
+    },
+    {
+      "quando": "2026-10-06T19:34:51-03:00",
+      "tarefa": "T9",
+      "tipo": "tarefa-concluida",
+      "texto": "T9 concluída."
+    },
+    {
+      "quando": "2026-10-06T19:40:55-03:00",
+      "tarefa": "T5",
+      "tipo": "tarefa-concluida",
+      "texto": "T5 concluída."
+    },
+    {
+      "quando": "2026-10-06T19:56:12-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-iniciada",
+      "texto": "T6 iniciada por designer-ux-arte"
+    },
+    {
+      "quando": "2026-10-06T19:56:12-03:00",
+      "tarefa": "T7",
+      "tipo": "tarefa-iniciada",
+      "texto": "T7 iniciada por orch:revisor"
+    },
+    {
+      "quando": "2026-10-06T19:56:27-03:00",
+      "tarefa": "T7",
+      "tipo": "tarefa-concluida",
+      "texto": "T7 concluída."
+    },
+    {
+      "quando": "2026-10-06T19:56:33-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-concluida",
+      "texto": "T6 concluída."
+    },
+    {
+      "quando": "2026-10-07T00:00:00-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Retomada (--executar --paralelo 2): T6, T7 e T9 estavam concluídas sem evidência (resultado só 'delegado', 15–40 s); voltam a pendente e são reexecutadas. T5 mantida."
+    },
+    {
+      "quando": "2026-10-07T00:01:00-03:00",
+      "tarefa": "T9",
+      "tipo": "tarefa-iniciada",
+      "texto": "T9 iniciada por ui-hud"
+    },
+    {
+      "quando": "2026-10-07T00:03:00-03:00",
+      "tarefa": "T9",
+      "tipo": "tarefa-concluida",
+      "texto": "T9 concluída por ui-hud"
+    },
+    {
+      "quando": "2026-10-07T00:04:00-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-iniciada",
+      "texto": "T6 iniciada"
+    },
+    {
+      "quando": "2026-10-07T00:04:00-03:00",
+      "tarefa": "T7",
+      "tipo": "tarefa-iniciada",
+      "texto": "T7 iniciada"
+    },
+    {
+      "quando": "2026-10-10T22:23:51-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Retomada: T6 e T7 haviam sido cortadas por limite de sessao da API (06/10) e depois interrompidas pelo usuario (07/10) sem resultado; relancadas. Indice git corrigido (game_texts.json removido com os novos arquivos de localizacao adicionados), __pycache__ e execucoes/ ignorados."
+    },
+    {
+      "quando": "2026-10-10T22:23:51-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-reenviada",
+      "texto": "T6 reenviada a designer-ux-arte"
+    },
+    {
+      "quando": "2026-10-10T22:23:51-03:00",
+      "tarefa": "T7",
+      "tipo": "tarefa-reenviada",
+      "texto": "T7 reenviada a orch:revisor"
+    },
+    {
+      "quando": "2026-10-10T22:39:42-03:00",
+      "tarefa": "T7",
+      "tipo": "tarefa-concluida",
+      "texto": "T7 concluída por orch:revisor (achados corrigidos pelo orquestrador)"
+    },
+    {
+      "quando": "2026-10-11T05:09:57-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-concluida",
+      "texto": "T6 concluída por designer-ux-arte (cobertura parcial, ver resultado)"
+    },
+    {
+      "quando": "2026-10-11T05:09:57-03:00",
+      "tarefa": "T8",
+      "tipo": "tarefa-concluida",
+      "texto": "T8 concluída por orch:documentador"
+    },
+    {
+      "quando": "2026-10-11T05:09:57-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Plano concluído"
+    }
+  ],
+  "resultadoFinal": "Fase 4 concluída. Localização por idioma (pt-BR/en/es, 905 chaves cada) em data/localization/<idioma>/{ui,content,world}.json; catálogos sem texto, saves antigos migrados; T7 sem achados altos (média e baixas corrigidas); T6 com cobertura visual parcial (ver T6); docs atualizados. Build 0/0; validadores 0 erros/0 avisos; smokes TestArena, RunStartBlessingRoom, CrowsNest, IntermissionChamber e MainMenu limpos. Pendências: diálogo de confirmação da pausa translúcido, fontes de dano literais em PlayerCombat:910/SummonedRat:66, hint de zoom da Fonte por quadro, revisão visual completa em pt-BR. Nada foi commitado."
+}

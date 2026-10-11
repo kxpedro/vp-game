@@ -241,7 +241,7 @@ mesh = SubResource("PortalMesh")
 [node name="PortalArea" type="Area3D" parent="StartRunPortal"]
 script = ExtResource("4")
 TargetScenePath = "res://scenes/game/RunStartBlessingRoom.tscn"
-PromptText = "Interagir — iniciar a run"
+PromptText = "portal.start_run"
 PortalAction = 1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StartRunPortal/PortalArea"]

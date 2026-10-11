@@ -113,14 +113,14 @@ public partial class HUD
 		slot.AddChild(label);
 
 		var text = new StringBuilder();
-		text.Append(hiddenCount == 1 ? "Mais 1 bênção:" : $"Mais {hiddenCount} bênçãos:");
+		text.Append(hiddenCount == 1 ? Localization.Text("hud.blessing_bar.more_one") : Localization.TextFormat("hud.blessing_bar.more_other", hiddenCount));
 		for (var i = firstHidden; i < blessings.Count; i++)
 		{
 			var record = blessings[i];
-			text.Append('\n').Append("• ").Append(BlessingBarName(record))
-				.Append(" (").Append(UiComponents.RarityLabel(record.Rarity)).Append(", N").Append(record.Level).Append(')');
+			text.Append('\n').Append(Localization.TextFormat("hud.blessing_bar.overflow_entry",
+				BlessingBarName(record), UiComponents.RarityLabel(record.Rarity), record.Level));
 		}
-		text.Append("\n\nTodas as bênçãos estão na ficha do personagem.");
+		text.Append("\n\n").Append(Localization.Text("hud.blessing_bar.all_in_sheet"));
 		slot.TooltipText = text.ToString();
 		return slot;
 	}
@@ -139,7 +139,7 @@ public partial class HUD
 		glyph.MouseFilter = Control.MouseFilterEnum.Ignore;
 		glyph.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
 		hint.AddChild(glyph);
-		var label = UiComponents.MakeLabel("Ficha", UiVariation.SecondaryLabel);
+		var label = UiComponents.MakeLabel(Localization.Text("hud.blessing_bar.sheet_hint"), UiVariation.SecondaryLabel);
 		label.MouseFilter = Control.MouseFilterEnum.Ignore;
 		label.VerticalAlignment = VerticalAlignment.Center;
 		label.AddThemeConstantOverride("outline_size", 4);
@@ -159,7 +159,7 @@ public partial class HUD
 	// Texto simples (o TooltipLabel do tema não interpreta BBCode), quebrado em ~360 px.
 	private static string BlessingBarTooltip(BloodBlessingRecord record)
 	{
-		var meta = $"{UiComponents.RarityLabel(record.Rarity)} · Nível {record.Level}";
+		var meta = $"{UiComponents.RarityLabel(record.Rarity)} · {Localization.TextFormat("ui.common.level", record.Level)}";
 		if (!BloodBlessingCatalog.TryGet(record.Id, out var definition))
 			return $"{BlessingBarName(record)}\n{meta}";
 

@@ -117,6 +117,7 @@ public static class CharacterSheet
 
     public static void AddArtifact(ArtifactRecord artifact)
     {
+        artifact = WithResolvedId(artifact);
         if (string.IsNullOrWhiteSpace(artifact.Name) || HasArtifact(artifact.Name))
             return;
 
@@ -242,7 +243,9 @@ public static class CharacterSheet
             var rank = System.Math.Clamp(pair.Value, 0, System.Math.Max(maxRank, 1));
             if (rank > 0) SkillRanks[pair.Key] = rank;
         }
-        Artifacts.AddRange(data.Artifacts ?? new List<ArtifactRecord>());
+        // Registros antigos só têm o nome (SaveName): preenche o Id para a UI achar a definição sem depender do texto exibido.
+        foreach (var artifact in data.Artifacts ?? new List<ArtifactRecord>())
+            Artifacts.Add(WithResolvedId(artifact));
         var equippedArtifacts = data.EquippedArtifacts ?? System.Array.Empty<string>();
         for (var i = 0; i < EquippedArtifactSlots.Length && i < equippedArtifacts.Length; i++) EquippedArtifactSlots[i] = equippedArtifacts[i] ?? "";
         WeaponLoadout.Equip(data.EquippedWeaponId ?? "longsword");
@@ -269,6 +272,14 @@ public static class CharacterSheet
         CodexProgress.MarkSilently(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
     }
 
+    private static ArtifactRecord WithResolvedId(ArtifactRecord artifact)
+    {
+        if (!string.IsNullOrWhiteSpace(artifact.Id) || string.IsNullOrWhiteSpace(artifact.Name))
+            return artifact;
+        var id = ResolveArtifactId(artifact);
+        return string.IsNullOrEmpty(id) ? artifact : artifact with { Id = id };
+    }
+
     /// <summary>Id do catalogo; registros antigos (construtor por nome) tem Id vazio e sao resolvidos pelo nome.</summary>
     private static string ResolveArtifactId(ArtifactRecord artifact)
     {
@@ -277,7 +288,7 @@ public static class CharacterSheet
 
         foreach (var definition in ArtifactCatalog.All)
         {
-            if (definition.DisplayName == artifact.Name)
+            if (definition.SaveName == artifact.Name)
                 return definition.Id;
         }
 

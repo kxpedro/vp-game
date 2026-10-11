@@ -1,15 +1,17 @@
 using System.Collections.Generic;
 
+// Nomes de armas e golpes: chaves em data/localization/<idioma>/content.json (weapon.<id>.name, weapon.<id>.desc,
+// weapon.<id>.<golpe>.name). IDs são persistidos no save: não renomear sem mapear em Get.
 public static class WeaponCatalog
 {
     private static readonly WeaponDefinition[] Weapons =
     {
         new(
-            "longsword", "Espada Grande", "Dois cortes laterais e uma estocada; o ataque rapido gira em area e o especial desfere uma grande batida no chao.",
+            "longsword",
             new[]
             {
                 new WeaponAttackDefinition(
-                    "Espada grande I", 32, 0.12f, 0.12f, 4.2f, 1.55f, 1.65f, 0.25f,
+                    "weapon.longsword.basic_1.name", 32, 0.12f, 0.12f, 4.2f, 1.55f, 1.65f, 0.25f,
                     StaggerDuration: 0.20f,
                     Control: new(
                         InputBufferSeconds: 0.22f,
@@ -24,7 +26,7 @@ public static class WeaponCatalog
                         AimAssistStrength: 0.72f,
                         RetargetAtImpactStrength: 0.22f)),
                 new WeaponAttackDefinition(
-                    "Espada grande II", 38, 0.11f, 0.11f, 4.8f, 1.75f, 1.75f, -0.25f,
+                    "weapon.longsword.basic_2.name", 38, 0.11f, 0.11f, 4.8f, 1.75f, 1.75f, -0.25f,
                     StaggerDuration: 0.24f,
                     Control: new(
                         InputBufferSeconds: 0.20f,
@@ -39,7 +41,7 @@ public static class WeaponCatalog
                         AimAssistStrength: 0.68f,
                         RetargetAtImpactStrength: 0.18f)),
                 new WeaponAttackDefinition(
-                    "Estocada da espada grande", 52, 0.16f, 0.12f, 7.2f, 2.85f, 0.85f, 0,
+                    "weapon.longsword.basic_3.name", 52, 0.16f, 0.12f, 7.2f, 2.85f, 0.85f, 0,
                     WeaponAttackShape.Line, 0.34f,
                     Control: new(
                         InputBufferSeconds: 0.18f,
@@ -55,7 +57,7 @@ public static class WeaponCatalog
                         RetargetAtImpactStrength: 0.12f))
             },
             new(
-                "Corte em Rodopio", 68, 0.08f, 0.18f, 7.4f, 2.45f, 2.05f, -0.1f,
+                "weapon.longsword.quick.name", 68, 0.08f, 0.18f, 7.4f, 2.45f, 2.05f, -0.1f,
                 WeaponAttackShape.Radial, 0.28f,
                 Control: new(
                     InputBufferSeconds: 0.20f,
@@ -70,7 +72,7 @@ public static class WeaponCatalog
                     AimAssistStrength: 0.38f,
                     RetargetAtImpactStrength: 0.0f)),
             new(
-                "Queda Carmesim", 56, 0.12f, 0.30f, 11.0f, 3.15f, 3.15f, 0.0f,
+                "weapon.longsword.special.name", 56, 0.12f, 0.30f, 11.0f, 3.15f, 3.15f, 0.0f,
                 WeaponAttackShape.Radial, 0.44f,
                 Control: new(
                     InputBufferSeconds: 0.18f,
@@ -85,8 +87,8 @@ public static class WeaponCatalog
                     AimAssistStrength: 0.22f,
                     RetargetAtImpactStrength: 0.0f)),
             SpecialAttackCooldown: 1.0f),
-        Placeholder("dual_revolvers", "Revolver Duplo", "Combate a distancia, alternando disparos entre as maos."),
-        Placeholder("whip", "Chicote", "Grande alcance e controle de grupos.")
+        Placeholder("dual_revolvers"),
+        Placeholder("whip")
     };
 
     public static IReadOnlyList<WeaponDefinition> All => Weapons;
@@ -104,9 +106,10 @@ public static class WeaponCatalog
         return Weapons[0];
     }
 
-    private static WeaponDefinition Placeholder(string id, string name, string description)
+    // Textos (nome, descrição) em content.json: weapon.<id>.name/.desc. O golpe genérico usa o nome da arma.
+    private static WeaponDefinition Placeholder(string id)
     {
-        var attack = new WeaponAttackDefinition(name, 32, 0.6f, 0.3f, 4, 1.5f, 1.5f, 0);
-        return new(id, name, $"{description} Moveset em desenvolvimento.", new[] { attack }, attack, attack, IsImplemented: false);
+        var attack = new WeaponAttackDefinition($"weapon.{id}.name", 32, 0.6f, 0.3f, 4, 1.5f, 1.5f, 0);
+        return new(id, new[] { attack }, attack, attack, IsImplemented: false);
     }
 }

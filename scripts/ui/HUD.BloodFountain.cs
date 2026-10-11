@@ -92,7 +92,7 @@ public partial class HUD
 
 	private void BuildBloodFountainOverlay(Control root)
 	{
-		_bloodFountainWindow = UiComponents.Window(root, "BloodFountainOverlay", WindowSize.Full, "Fonte de Sangue");
+		_bloodFountainWindow = UiComponents.Window(root, "BloodFountainOverlay", WindowSize.Full, Localization.Text("fountain.title"));
 		_bloodFountainOverlay = _bloodFountainWindow.Root;
 		_bloodFountainOverlay.Visible = false;
 		_bloodFountainWindow.SetStatus(null);
@@ -101,7 +101,7 @@ public partial class HUD
 		var header = _bloodFountainWindow.HeaderRight;
 		header.AddChild(new Label
 		{
-			Text = "Moedas de Sangue",
+			Text = Localization.Text("hud.blood_coins_name"),
 			ThemeTypeVariation = UiVariation.SecondaryLabel,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore
@@ -170,11 +170,11 @@ public partial class HUD
 		}
 
 		var footer = _bloodFountainWindow.Footer;
-		footer.Add(UiAction.Cancel, UiComponents.TextOr("ui.common.close", "Fechar"), CloseBloodFountain, left: true);
-		footer.Add(UiAction.Scroll, "Mover");
+		footer.Add(UiAction.Cancel, Localization.Text("ui.common.close"), CloseBloodFountain, left: true);
+		footer.Add(UiAction.Scroll, Localization.Text("fountain.hint.move"));
 		footer.Add(UiAction.ZoomOut, "", () => AdjustBloodFountainZoom(-SkillZoomStep));
 		_bloodFountainZoomHint = footer.Add(UiAction.ZoomIn, "", () => AdjustBloodFountainZoom(SkillZoomStep));
-		footer.Add(UiAction.Accept, "Comprar", BuyFocusedSkill);
+		footer.Add(UiAction.Accept, Localization.Text("fountain.hint.buy"), BuyFocusedSkill);
 
 		LinkSkillNodeNeighbors();
 		ApplySkillTreeTransform();
@@ -252,7 +252,7 @@ public partial class HUD
 		header.AddThemeStyleboxOverride("panel", headerStyle);
 		var title = new Label
 		{
-			Text = tree.ToString(),
+			Text = SkillTreeName(tree),
 			ThemeTypeVariation = UiVariation.SectionLabel,
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
@@ -652,9 +652,9 @@ public partial class HUD
 		}
 		var badge = state switch
 		{
-			SkillNodeState.PurchasedMax => UiComponents.Badge("MÁX", UiPalette.GoldBright),
+			SkillNodeState.PurchasedMax => UiComponents.Badge(Localization.Text("ui.common.max"), UiPalette.GoldBright),
 			SkillNodeState.Purchased or SkillNodeState.PurchasedNoCoins => UiComponents.Badge($"{currentRank}/{maxRank}", UiPalette.Gold),
-			SkillNodeState.Planned => UiComponents.Badge("EM BREVE", UiPalette.PanelInset, UiPalette.TextSecondary),
+			SkillNodeState.Planned => UiComponents.Badge(Localization.Text("ui.common.coming_soon"), UiPalette.PanelInset, UiPalette.TextSecondary),
 			SkillNodeState.Available or SkillNodeState.AvailableNoCoins => UiComponents.Badge($"0/{maxRank}", UiPalette.PanelInset, UiPalette.TextSecondary),
 			_ => null
 		};
@@ -690,13 +690,13 @@ public partial class HUD
 
 		var (badgeText, badgeColor) = state switch
 		{
-			SkillNodeState.PurchasedMax => ("Nível máximo", UiPalette.GoldBright),
-			SkillNodeState.Purchased or SkillNodeState.PurchasedNoCoins => ($"Adquirida {currentRank}/{maxRank}", UiPalette.Gold),
-			SkillNodeState.Available => ("Disponível", UiPalette.TextPrimary),
-			SkillNodeState.AvailableNoCoins => ("Disponível", UiPalette.Border),
-			SkillNodeState.Conflict => ("Exclusiva", UiPalette.PanelInset),
-			SkillNodeState.Planned => ("Em breve", UiPalette.PanelInset),
-			_ => ("Bloqueada", UiPalette.PanelInset)
+			SkillNodeState.PurchasedMax => (Localization.Text("fountain.state.max"), UiPalette.GoldBright),
+			SkillNodeState.Purchased or SkillNodeState.PurchasedNoCoins => (Localization.TextFormat("fountain.state.purchased", currentRank, maxRank), UiPalette.Gold),
+			SkillNodeState.Available => (Localization.Text("fountain.state.available"), UiPalette.TextPrimary),
+			SkillNodeState.AvailableNoCoins => (Localization.Text("fountain.state.available"), UiPalette.Border),
+			SkillNodeState.Conflict => (Localization.Text("fountain.state.exclusive"), UiPalette.PanelInset),
+			SkillNodeState.Planned => (Localization.Text("ui.common.coming_soon"), UiPalette.PanelInset),
+			_ => (Localization.Text("fountain.state.locked"), UiPalette.PanelInset)
 		};
 
 		var body = EscapeSkillBbcode(definition.Description);
@@ -704,11 +704,11 @@ public partial class HUD
 		if (!string.IsNullOrEmpty(requirements))
 			body += "\n" + requirements;
 		if (state == SkillNodeState.Conflict)
-			body += $"\n[color=#{UiPalette.Warn.ToHtml(false)}]Exclusiva: não pode ser combinada com {EscapeSkillBbcode(FindExclusiveConflictName(definition))}.[/color]";
+			body += $"\n[color=#{UiPalette.Warn.ToHtml(false)}]{Localization.TextFormat("fountain.detail.exclusive", EscapeSkillBbcode(FindExclusiveConflictName(definition)))}[/color]";
 		if (state == SkillNodeState.Planned)
 			body += currentRank > 0
-				? "\nAdquirida em save anterior; efeito ainda em planejamento."
-				: "\nEfeito em planejamento; compra indisponível.";
+				? "\n" + Localization.Text("fountain.detail.planned_owned")
+				: "\n" + Localization.Text("fountain.detail.planned");
 
 		string actionText;
 		Color actionColor;
@@ -716,30 +716,30 @@ public partial class HUD
 		switch (state)
 		{
 			case SkillNodeState.PurchasedMax:
-				actionText = "Nível máximo atingido";
+				actionText = Localization.Text("fountain.action.max");
 				actionColor = UiPalette.TextSecondary;
 				break;
 			case SkillNodeState.Planned:
-				actionText = "Compra indisponível (em planejamento)";
+				actionText = Localization.Text("fountain.action.planned");
 				actionColor = UiPalette.TextSecondary;
 				break;
 			case SkillNodeState.Conflict:
-				actionText = "Bloqueada por escolha exclusiva";
+				actionText = Localization.Text("fountain.action.exclusive");
 				actionColor = UiPalette.TextSecondary;
 				break;
 			case SkillNodeState.Locked:
-				actionText = "Bloqueada: compre os pré-requisitos";
+				actionText = Localization.Text("fountain.action.locked");
 				actionColor = UiPalette.TextSecondary;
 				break;
 			case SkillNodeState.PurchasedNoCoins:
 			case SkillNodeState.AvailableNoCoins:
-				actionText = $"Moedas insuficientes: custa {cost}, faltam {cost - coins}";
+				actionText = Localization.TextFormat("fountain.action.no_coins", cost, cost - coins);
 				actionColor = UiPalette.Warn;
 				break;
 			default:
 				actionText = currentRank > 0
-					? $"Aprimorar para {currentRank + 1}/{maxRank} · {cost} moedas"
-					: $"Comprar · {cost} moedas";
+					? Localization.TextFormat("fountain.action.upgrade", currentRank + 1, maxRank, cost)
+					: Localization.TextFormat("fountain.action.buy", cost);
 				actionColor = UiPalette.Gold;
 				actionGlyph = UiAction.Accept;
 				break;
@@ -751,7 +751,7 @@ public partial class HUD
 			Title = definition.DisplayName,
 			BadgeText = badgeText,
 			BadgeColor = badgeColor,
-			Meta = $"{definition.Tree} · Passiva · Tier {definition.Tier} · Nível {currentRank}/{maxRank}",
+			Meta = Localization.TextFormat("fountain.detail.meta", SkillTreeName(definition.Tree), definition.Tier, currentRank, maxRank),
 			BodyBbcode = body,
 			Flavor = definition.FlavorText,
 			ActionText = actionText,
@@ -797,9 +797,9 @@ public partial class HUD
 		{
 			var name = SkillCatalog.TryGet(prerequisiteId, out var prerequisite) ? prerequisite.DisplayName : prerequisiteId;
 			var has = CharacterSheet.HasSkill(prerequisiteId);
-			parts.Add($"[color=#{(has ? owned : missing)}]{EscapeSkillBbcode(name)} ({(has ? "adquirida" : "falta")})[/color]");
+			parts.Add($"[color=#{(has ? owned : missing)}]{EscapeSkillBbcode((has ? Localization.TextFormat("fountain.requirement.owned", name) : Localization.TextFormat("fountain.requirement.missing", name)))}[/color]");
 		}
-		return $"[color=#{label}]Requer:[/color] {string.Join(", ", parts)}";
+		return $"[color=#{label}]{Localization.Text("fountain.requires")}[/color] {string.Join(", ", parts)}";
 	}
 
 	private static string FindExclusiveConflictName(SkillDefinition definition)
@@ -807,7 +807,7 @@ public partial class HUD
 		foreach (var candidate in SkillCatalog.All)
 			if (candidate.Id != definition.Id && candidate.ExclusiveGroup == definition.ExclusiveGroup && CharacterSheet.HasSkill(candidate.Id))
 				return candidate.DisplayName;
-		return "outra escolha já adquirida";
+		return Localization.Text("fountain.other_choice");
 	}
 
 	private static string EscapeSkillBbcode(string text) => (text ?? "").Replace("[", "[lb]");
@@ -828,7 +828,7 @@ public partial class HUD
 	private string FormatPrerequisites(SkillDefinition definition)
 	{
 		if (definition.Prerequisites.Length == 0)
-			return "nenhum";
+			return Localization.Text("ui.common.none");
 
 		var text = "";
 		for (var i = 0; i < definition.Prerequisites.Length; i++)
@@ -857,13 +857,13 @@ public partial class HUD
 	{
 		if (!SkillCatalog.TryGet(skillId, out var definition))
 		{
-			SetBloodFountainStatus("Habilidade desconhecida.", true);
+			SetBloodFountainStatus(Localization.Text("fountain.status.unknown"), true);
 			return;
 		}
 
 		if (!definition.IsImplemented)
 		{
-			SetBloodFountainStatus($"{definition.DisplayName} ainda está em planejamento.", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.planned", definition.DisplayName), true);
 			return;
 		}
 
@@ -871,19 +871,19 @@ public partial class HUD
 		var maxRank = GetSkillMaxRank(definition);
 		if (currentRank >= maxRank)
 		{
-			SetBloodFountainStatus($"{definition.DisplayName} já está no nível máximo ({maxRank}).", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.max", definition.DisplayName, maxRank), true);
 			return;
 		}
 
 		if (!SkillCatalog.HasPrerequisites(definition))
 		{
-			SetBloodFountainStatus($"{definition.DisplayName} ainda está bloqueada: faltam pré-requisitos.", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.locked", definition.DisplayName), true);
 			return;
 		}
 
 		if (SkillCatalog.HasExclusiveConflict(definition))
 		{
-			SetBloodFountainStatus($"{definition.DisplayName} conflita com outra escolha já adquirida.", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.conflict", definition.DisplayName), true);
 			return;
 		}
 
@@ -893,20 +893,20 @@ public partial class HUD
 			// Preview de debug: valida igual, mas não gasta moedas nem grava o save.
 			SetBloodFountainStatus(CharacterSheet.BloodCoins >= cost
 				? $"Prévia: compra de {definition.DisplayName} simulada (nada foi gravado)."
-				: $"Moedas insuficientes para {definition.DisplayName}.", CharacterSheet.BloodCoins < cost);
+				: Localization.TextFormat("fountain.status.no_coins", definition.DisplayName), CharacterSheet.BloodCoins < cost);
 			return;
 		}
 
 		if (!CharacterSheet.SpendBloodCoins(cost))
 		{
-			SetBloodFountainStatus($"Moedas insuficientes para {definition.DisplayName}.", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.no_coins", definition.DisplayName), true);
 			return;
 		}
 
 		if (!CharacterSheet.AddSkill(skillId))
 		{
 			CharacterSheet.AddBloodCoins(cost);
-			SetBloodFountainStatus($"Não foi possível adquirir {definition.DisplayName}.", true);
+			SetBloodFountainStatus(Localization.TextFormat("fountain.status.failed", definition.DisplayName), true);
 			return;
 		}
 
@@ -915,7 +915,7 @@ public partial class HUD
 		RefreshCharacterSheet();
 		GetTree().CallGroup("player", "ApplyRuntimeTuning");
 		RefreshBloodFountain();
-		SetBloodFountainStatus($"{definition.DisplayName} aprimorada para o nível {currentRank + 1}/{maxRank}.", false);
+		SetBloodFountainStatus(Localization.TextFormat("fountain.status.upgraded", definition.DisplayName, currentRank + 1, maxRank), false);
 	}
 
 	private static int GetSkillMaxRank(SkillDefinition definition)
@@ -1147,7 +1147,7 @@ public partial class HUD
 
 		_skillTreeCanvas.Scale = Vector2.One * _bloodFountainZoom;
 		_skillTreeCanvas.Position = _skillTreePan;
-		_bloodFountainZoomHint?.SetLabel($"Zoom {Mathf.RoundToInt(_bloodFountainZoom * 100.0f)}%");
+		_bloodFountainZoomHint?.SetLabel(Localization.TextFormat("fountain.hint.zoom", Mathf.RoundToInt(_bloodFountainZoom * 100.0f)));
 	}
 
 	// Leva o bloco do nó (nó + custo + nome) para dentro da área visível, com margem.

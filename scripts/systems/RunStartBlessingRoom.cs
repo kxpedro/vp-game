@@ -9,6 +9,7 @@ public partial class RunStartBlessingRoom : Node3D
     private bool _playerAtFountain;
     private bool _offerOpened;
     private bool _blessingClaimed;
+    private System.Action<InputDevice> _deviceChangedHandler;
 
     public override void _Ready()
     {
@@ -21,10 +22,34 @@ public partial class RunStartBlessingRoom : Node3D
         _fountainArea.BodyEntered += OnFountainBodyEntered;
         _fountainArea.BodyExited += OnFountainBodyExited;
         _exitPortal.SetPortalEnabled(false);
+        // Prompt da fonte com o mesmo visual e glifo dos demais interativos (InteractPrompt), no idioma atual.
+        InteractPrompt.StylePrompt(_fountainPrompt);
+        InteractPrompt.StyleTitlesAndAnchor(GetNode("BloodFountain"), _fountainPrompt);
+        RefreshFountainPrompt();
+        _deviceChangedHandler = _ => RefreshFountainPrompt();
+        UiInput.DeviceChanged += _deviceChangedHandler;
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
 
         // Reloading this scene must never grant a second starting blessing.
         if (RunState.RunBlessings.Count > 0)
             UnlockExitAfterReward();
+    }
+
+    public override void _ExitTree()
+    {
+        if (_deviceChangedHandler != null)
+            UiInput.DeviceChanged -= _deviceChangedHandler;
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(string language) => RefreshFountainPrompt();
+
+    private void RefreshFountainPrompt()
+    {
+        if (_fountainPrompt != null && IsInstanceValid(_fountainPrompt))
+            InteractPrompt.SetText(_fountainPrompt, Localization.Text("scene.start_room.fountain_prompt"));
     }
 
     public override void _Process(double delta)

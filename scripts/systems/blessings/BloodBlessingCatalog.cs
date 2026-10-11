@@ -189,9 +189,9 @@ public static class BloodBlessingCatalog
                 var familyName = S(element, "family");
                 var iconPath = S(element, "icon");
                 if (string.IsNullOrWhiteSpace(iconPath)) iconPath = FamilyIconPath(familyName);
+                // Nome, descrição e flavor não ficam no catálogo: vêm de content.json (blessing.<id>.name/.desc/.flavor).
                 var definition = new BloodBlessingDefinition(
-                    S(element, "id"), S(element, "name"), S(element, "rarity"), I(element, "weight"), 1,
-                    NormalizeDescription(S(element, "description")), S(element, "flavorText"), familyName,
+                    S(element, "id"), S(element, "rarity"), I(element, "weight"), 1, familyName,
                     iconPath, S(element, "exclusiveGroup"), parentFamilies, requiredAnyEffects, requiredAllEffects,
                     tags.ToArray(), effects.ToArray());
                 if (string.IsNullOrWhiteSpace(definition.Id) || ById.ContainsKey(definition.Id)) continue;
@@ -199,7 +199,7 @@ public static class BloodBlessingCatalog
             }
             if (document.RootElement.TryGetProperty("families", out var families))
                 foreach (var family in families.EnumerateArray())
-                    Families.Add(new BloodBlessingFamily(S(family, "id"), S(family, "name"), S(family, "theme"), S(family, "statusEffect")));
+                    Families.Add(new BloodBlessingFamily(S(family, "id"), S(family, "name"), S(family, "statusEffect")));
         }
         catch (Exception exception) { GD.PushError($"Failed to load blood blessing catalog: {exception.Message}"); }
     }
@@ -232,11 +232,6 @@ public static class BloodBlessingCatalog
         foreach (var effectType in definition.RequiredAllEffectTypes)
             if (!RunState.HasEffectType(effectType)) return false;
         return true;
-    }
-
-    private static string NormalizeDescription(string description)
-    {
-        return description;
     }
 
     private static BloodBlessingEffectDefinition ParseEffect(JsonElement effect)

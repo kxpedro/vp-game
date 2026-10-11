@@ -33,7 +33,38 @@ public static class ArtifactCatalog
             ? CompendiumTuning.GetFloat($"{definition.Id}.effect.0.value", effect.Value)
             : 0.0f;
 
-        return new ArtifactRecord(definition.Id, definition.DisplayName, definition.Slot, effect.Type, value);
+        return new ArtifactRecord(definition.Id, definition.SaveName, definition.Slot, effect.Type, value);
+    }
+
+    // Definição a partir do que o save guarda (Id ou SaveName legado de ArtifactRecord.Name / slot equipado).
+    public static bool TryGetByRecordName(string idOrSaveName, out ArtifactDefinition definition)
+    {
+        EnsureLoaded();
+        definition = null;
+        if (string.IsNullOrWhiteSpace(idOrSaveName))
+            return false;
+        if (DefinitionsById.TryGetValue(idOrSaveName, out definition))
+            return true;
+        foreach (var candidate in Definitions)
+        {
+            if (candidate.SaveName == idOrSaveName)
+            {
+                definition = candidate;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Nome exibido (idioma atual) para um ArtifactRecord.Name / slot equipado; sem definição, devolve o próprio texto.
+    public static string DisplayNameFor(string idOrSaveName)
+        => TryGetByRecordName(idOrSaveName, out var definition) ? definition.DisplayName : idOrSaveName ?? "";
+
+    public static string DisplayNameFor(ArtifactRecord record)
+    {
+        if (!string.IsNullOrWhiteSpace(record.Id) && TryGet(record.Id, out var definition))
+            return definition.DisplayName;
+        return DisplayNameFor(record.Name);
     }
 
     public static List<ArtifactDefinition> RollChoices(RandomNumberGenerator rng, int count, HashSet<string> excludedIds = null)
@@ -110,15 +141,15 @@ public static class ArtifactCatalog
 
     private static ArtifactDefinition ParseDefinition(JsonElement element)
     {
+        // Nome, descrição e flavor ficam em content.json (artifact.<id>.name/.desc/.flavor); "saveName" é só o
+        // identificador legado persistido no save.
         return new ArtifactDefinition(
             ReadString(element, "id"),
-            ReadString(element, "name"),
+            ReadString(element, "saveName"),
             ReadString(element, "icon"),
             ReadString(element, "rarity"),
             ReadString(element, "slot"),
             ReadInt(element, "weight"),
-            ReadString(element, "description"),
-            ReadString(element, "flavorText"),
             ReadStringArray(element, "tags"),
             ReadEffects(element)
         );

@@ -2,7 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 public partial class HUD : CanvasLayer
 {
@@ -77,11 +76,16 @@ public partial class HUD : CanvasLayer
 		_legacyAudioPauseSource = IsLegacyAudioPauseRequested;
 		UiModalStack.RegisterPauseSource(_legacyPauseSource, _legacyAudioPauseSource);
 		CallDeferred(nameof(BindRuntimeNodes));
+		Callable.From(LocalizeSceneLabels).CallDeferred();
+		if (Localization.Instance != null)
+			Localization.Instance.LanguageChanged += OnLanguageChanged;
 	}
 
 	public override void _ExitTree()
 	{
 		UiModalStack.UnregisterPauseSource(_legacyPauseSource);
+		if (Localization.Instance != null)
+			Localization.Instance.LanguageChanged -= OnLanguageChanged;
 	}
 
 	public override void _Input(InputEvent @event)
@@ -212,6 +216,142 @@ public partial class HUD : CanvasLayer
 	}
 
 	private static bool IsVisible(Control control) => control != null && control.Visible;
+
+	// ---------- Idioma ----------
+
+	// Troca de idioma (opções da pausa): reconstrói os textos fixos do HUD e dos overlays. Telas montadas ao abrir
+	// (ficha, Fonte, baú, bancada, ofertas, Dicionário) são refeitas se estiverem abertas.
+	private void OnLanguageChanged(string language)
+	{
+		Callable.From(ApplyLanguage).CallDeferred();
+	}
+
+	private void ApplyLanguage()
+	{
+		if (!IsInsideTree())
+			return;
+		LocalizeSceneLabels();
+		RefreshRoomProgressText();
+		if (_bossResourceBar != null && _bossHealthPanel != null && _bossHealthPanel.Visible && RunState.IsRunActive)
+		{
+			_bossDisplayName = BossCatalog.Get(RunState.CurrentMapIndex).DisplayName;
+			_bossResourceBar.SetName(_bossDisplayName);
+		}
+		if (_roomLabel != null && !string.IsNullOrEmpty(_roomLabel.Text) && RunState.IsRunActive)
+			SyncRoomInformation();
+		if (_coinGlyph != null)
+			_coinGlyph.TooltipText = Localization.Text("hud.blood_coins_name");
+		if (_furyResourceBar != null && _furyResourceBar.Bar != null)
+			_furyResourceBar.Bar.TooltipText = Localization.Text("hud.fury.tooltip_ready");
+		if (_roomClearTitle != null)
+			_roomClearTitle.Text = Localization.Text("hud.room_clear");
+		if (_roomClearSubtitle != null)
+			_roomClearSubtitle.Text = Localization.Text("hud.banner.choose_reward");
+		if (_weaponLabel != null)
+			_weaponLabel.Text = Localization.TextFormat("hud.weapon", WeaponLoadout.EquippedWeapon.DisplayName);
+		_furyResourceBar?.SetFuryBadgeText(Localization.Text("hud.fury"));
+		RefreshBlessingHud();
+		RebuildOverlaysForLanguage();
+	}
+
+	// Os overlays montam os textos fixos no Build*: na troca de idioma são recriados no mesmo lugar da árvore.
+	// A troca só acontece pelas opções da pausa, então só a pausa pode estar aberta (ela volta na página de opções);
+	// as demais telas fecham antes de a pausa abrir e se reconstroem com dados atuais ao abrir.
+	private void RebuildOverlaysForLanguage()
+	{
+		if (_hudRoot == null)
+			return;
+		RebuildOverlay(_gameOverOverlay, () => BuildGameOverOverlay(_hudRoot), () => _gameOverOverlay);
+		RebuildPauseForLanguage();
+		if (_compendiumOverlay != null && !IsVisible(_compendiumOverlay))
+		{
+			_modalShortcutHandlers.Remove(_compendiumOverlay);
+			_pauseCompendiumHooked = false;
+			RebuildOverlay(_compendiumOverlay, () => BuildCompendiumOverlay(_hudRoot), () => _compendiumOverlay);
+			RegisterModalShortcuts(_compendiumOverlay, HandleCompendiumShortcut);
+		}
+		if (_characterSheetOverlay != null && !IsVisible(_characterSheetOverlay))
+		{
+			_modalShortcutHandlers.Remove(_characterSheetOverlay);
+			RebuildOverlay(_characterSheetOverlay, () => BuildCharacterSheetOverlay(_hudRoot), () => _characterSheetOverlay);
+			RegisterModalShortcuts(_characterSheetOverlay, HandleCharacterSheetShortcut);
+		}
+		if (_bloodFountainOverlay != null && !IsVisible(_bloodFountainOverlay))
+			RebuildOverlay(_bloodFountainOverlay, () => BuildBloodFountainOverlay(_hudRoot), () => _bloodFountainOverlay);
+		if (_artifactChestOverlay != null && !IsVisible(_artifactChestOverlay))
+			RebuildOverlay(_artifactChestOverlay, () => BuildArtifactChestOverlay(_hudRoot), () => _artifactChestOverlay);
+		if (_artifactOfferOverlay != null && !IsVisible(_artifactOfferOverlay))
+		{
+			_modalShortcutHandlers.Remove(_artifactOfferOverlay);
+			RebuildOverlay(_artifactOfferOverlay, () => BuildArtifactOfferOverlay(_hudRoot), () => _artifactOfferOverlay);
+			RegisterModalShortcuts(_artifactOfferOverlay, HandleArtifactOfferShortcut);
+		}
+		if (_bloodBlessingOverlay != null && !IsVisible(_bloodBlessingOverlay) && !_blessingAbsorptionRunning)
+		{
+			_modalShortcutHandlers.Remove(_bloodBlessingOverlay);
+			// O builder também cria a camada da absorção (irmã logo depois da janela).
+			var absorption = _bloodAbsorptionOverlay;
+			RebuildOverlay(_bloodBlessingOverlay, () => BuildBloodBlessingOverlay(_hudRoot), () => _bloodBlessingOverlay);
+			if (absorption != null && IsInstanceValid(absorption))
+			{
+				var index = absorption.GetIndex();
+				absorption.GetParent()?.RemoveChild(absorption);
+				absorption.QueueFree();
+				_hudRoot.MoveChild(_bloodAbsorptionOverlay, Mathf.Min(index, _hudRoot.GetChildCount() - 1));
+			}
+			RegisterModalShortcuts(_bloodBlessingOverlay, HandleBlessingOfferShortcut);
+		}
+		if (_weaponBenchOverlay != null && !IsVisible(_weaponBenchOverlay))
+			RebuildOverlay(_weaponBenchOverlay, () => BuildWeaponBenchOverlay(_hudRoot), () => _weaponBenchOverlay);
+	}
+
+	// Remove a camada antiga (sai da árvore já: listeners de TreeExiting rodam antes do novo Build) e põe a nova no mesmo índice.
+	private void RebuildOverlay(Control old, Action build, Func<Control> current)
+	{
+		if (old == null || !IsInstanceValid(old) || old.GetParent() != _hudRoot)
+			return;
+		var index = old.GetIndex();
+		_hudRoot.RemoveChild(old);
+		old.QueueFree();
+		build();
+		var created = current();
+		if (created != null && created.GetParent() == _hudRoot)
+			_hudRoot.MoveChild(created, index);
+	}
+
+	// Rótulos 3D fixos das cenas (títulos de objetos), escritos aqui porque as cenas não têm script próprio para eles.
+	private void LocalizeSceneLabels()
+	{
+		var scene = GetTree().CurrentScene;
+		if (scene == null)
+			return;
+		var sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.SceneFilePath ?? "");
+		foreach (var (path, text) in SceneLabelTexts(sceneName))
+			if (scene.GetNodeOrNull<Label3D>(path) is Label3D label)
+				label.Text = text;
+	}
+
+	private static (string Path, string Text)[] SceneLabelTexts(string sceneName) => sceneName switch
+	{
+		"CrowsNest" => new[]
+		{
+			("BloodFountain/BloodFountainLabel", Localization.Text("fountain.title")),
+			("WeaponBench/WeaponBenchLabel", Localization.Text("bench.title")),
+			("ArtifactChest/ArtifactChestLabel", Localization.Text("chest.title")),
+			("VirgilCoffin/CoffinLabel", Localization.Text("scene.crows_nest.coffin")),
+			("StartRunPortal/PortalLabel", Localization.Text("scene.crows_nest.start_portal"))
+		},
+		"RunStartBlessingRoom" => new[]
+		{
+			("BloodFountain/Title", Localization.Text("scene.start_room.fountain"))
+		},
+		"IntermissionChamber" => new[]
+		{
+			("BloodFountain/Title", Localization.Text("chamber.fountain.title")),
+			("SacrificeAltar/Title", Localization.Text("altar.title"))
+		},
+		_ => Array.Empty<(string, string)>()
+	};
 
 	// Pré-visualização (debug, ver UiPreview.cs): abre a tela pedida com dados fictícios. False = nome desconhecido.
 	internal bool OpenPreviewScreen(string screen, string tab, Node dataParent)

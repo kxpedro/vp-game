@@ -255,7 +255,7 @@ public partial class MainMenu : Control
 		var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
 		top.AddThemeConstantOverride("separation", UiMetrics.S3);
 		column.AddChild(top);
-		row.Title = UiComponents.MakeLabel(string.Format(UiComponents.TextOr("menu.slot_title", "Slot {0}"), slot), UiVariation.SectionLabel);
+		row.Title = UiComponents.MakeLabel(Localization.TextFormat("menu.slot_title", slot), UiVariation.SectionLabel);
 		top.AddChild(row.Title);
 		row.Date = UiComponents.MakeLabel("", UiVariation.SecondaryLabel);
 		row.Date.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -287,7 +287,7 @@ public partial class MainMenu : Control
 		if (row.Corrupted)
 		{
 			row.Date.Text = "";
-			var unreadable = UiComponents.MakeLabel(UiComponents.TextOr("menu.slot_unreadable", "Save ilegível"), UiVariation.SecondaryLabel);
+			var unreadable = UiComponents.MakeLabel(Localization.Text("menu.slot_unreadable"), UiVariation.SecondaryLabel);
 			unreadable.AddThemeColorOverride("font_color", UiPalette.Warn);
 			row.Summary.AddChild(unreadable);
 		}
@@ -303,15 +303,15 @@ public partial class MainMenu : Control
 			row.Date.Text = info.LastPlayedLocal.Year < 2000 ? "" : FormatDate(info.LastPlayedLocal);
 			var coin = UiComponents.CoinGlyph(18);
 			row.Summary.AddChild(coin);
-			var coins = UiComponents.MakeLabel(string.Format(UiComponents.TextOr("menu.slot_coins", "{0} moedas"), info.BloodCoins), UiVariation.SecondaryLabel);
+			var coins = UiComponents.MakeLabel(Localization.TextFormat("menu.slot_coins", info.BloodCoins), UiVariation.SecondaryLabel);
 			coins.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
 			row.Summary.AddChild(coins);
 			var details = new List<string>
 			{
-				string.Format(UiComponents.TextOr("menu.slot_skill_ranks", "{0} ranks de habilidade"), info.SkillRanks),
+				Localization.TextFormat("menu.slot_skill_ranks", info.SkillRanks),
 				info.ArtifactCount == 1
-					? UiComponents.TextOr("menu.slot_artifacts_one", "1 artefato")
-					: string.Format(UiComponents.TextOr("menu.slot_artifacts", "{0} artefatos"), info.ArtifactCount)
+					? Localization.Text("menu.slot_artifacts_one")
+					: Localization.TextFormat("menu.slot_artifacts", info.ArtifactCount)
 			};
 			var rest = UiComponents.MakeLabel("· " + string.Join(" · ", details), UiVariation.SecondaryLabel);
 			rest.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -391,8 +391,8 @@ public partial class MainMenu : Control
 	private void RequestDeleteSlot(SlotRow row)
 	{
 		if (_confirm != null && _confirm.IsOpen) return;
-		var title = string.Format(UiComponents.TextOr("menu.delete_confirm_title", "Excluir Slot {0}?"), row.Slot);
-		var body = UiComponents.TextOr("menu.delete_confirm_body", "O progresso salvo neste slot (moedas, habilidades e artefatos) será apagado.");
+		var title = Localization.TextFormat("menu.delete_confirm_title", row.Slot);
+		var body = Localization.Text("menu.delete_confirm_body");
 		OpenMenuConfirm(title, body, Localization.Text("menu.delete"), () => OnDeleteConfirmed(row));
 	}
 
@@ -485,8 +485,8 @@ public partial class MainMenu : Control
 		root.OffsetTop = -UiMetrics.SafeMargin - UiMetrics.FooterHeight; root.OffsetBottom = -UiMetrics.SafeMargin;
 		AddChild(root);
 		_backHint = _hints.Add(UiAction.Cancel, Localization.Text("menu.back"), GoBack, true);
-		_scrollHint = _hints.Add(UiAction.Scroll, UiComponents.TextOr("ui.common.scroll", "Rolar"), null, true);
-		_hints.Add(UiAction.Accept, UiComponents.TextOr("ui.common.select", "Selecionar"), null, true);
+		_scrollHint = _hints.Add(UiAction.Scroll, Localization.Text("ui.common.scroll"), null, true);
+		_hints.Add(UiAction.Accept, Localization.Text("ui.common.select"), null, true);
 		var version = UiComponents.MakeLabel(GameVersionText(), UiVariation.SecondaryLabel);
 		version.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		_hints.Right.AddChild(version);
@@ -556,8 +556,8 @@ public partial class MainMenu : Control
 			LoadSlot(row.Slot);
 			return;
 		}
-		var title = string.Format(UiComponents.TextOr("menu.unreadable_confirm_title", "Slot {0}: save ilegível"), row.Slot);
-		var body = UiComponents.TextOr("menu.unreadable_confirm_body", "Este save não pôde ser lido. Começar um novo jogo substitui o arquivo atual (uma cópia é guardada na pasta de saves).");
+		var title = Localization.TextFormat("menu.unreadable_confirm_title", row.Slot);
+		var body = Localization.Text("menu.unreadable_confirm_body");
 		OpenMenuConfirm(title, body, Localization.Text("menu.new_game"), () => LoadSlot(row.Slot));
 	}
 

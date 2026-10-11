@@ -110,7 +110,12 @@ public partial class EnemyBasic : CharacterBody3D
     private EnemyBasic _charmLinkedEnemy;
     private MeshInstance3D _charmLinkVisual;
     private bool _pestilenceCloudTriggered;
-    private string _legendaryName = "";
+    // Fontes de dano internas (comparadas por igualdade); o texto exibido vem de world.json.
+    public const string BackstabDamageSource = "backstab";
+    public const string WallImpactDamageSource = "wall_impact";
+    private static readonly string[] LegendaryNameIds = { "vharos", "morcant", "seraph", "nerezza", "vorigan" };
+    // Guarda o id (nao o texto) para o nome acompanhar a troca de idioma.
+    private string _legendaryNameId = "";
     private float _bossActionAnimationTimer;
     public bool IsPestilent => _pestilenceStacks > 0;
     public bool IsBleeding => _bleedingStacks > 0;
@@ -179,8 +184,7 @@ public partial class EnemyBasic : CharacterBody3D
         _health.ShieldHits = tuning.FirstHitShield ? 1 : 0;
         if (rarity == EnemyRarity.Legendary && !Name.ToString().Contains("Boss"))
         {
-            string[] titles = { "Vharos, o Faminto", "Morcant, o Profano", "Seraph, o Rubro", "Nerezza, a Imortal", "Vorigan, o Carrasco" };
-            _legendaryName = titles[Mathf.Abs(Name.ToString().GetHashCode()) % titles.Length];
+            _legendaryNameId = LegendaryNameIds[Mathf.Abs(Name.ToString().GetHashCode()) % LegendaryNameIds.Length];
         }
 
         if (archetype == EnemyArchetype.Ranged)
@@ -871,7 +875,7 @@ public partial class EnemyBasic : CharacterBody3D
         _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(
             Mathf.Max(AttackDamage * ContactDamage, 0.0f),
             false,
-            $"{GetDisplayName()} (contato)");
+            Localization.TextFormat("enemy.damage.contact", GetDisplayName()));
         _contactDamageTimer = ContactDamageCooldown;
     }
 
@@ -968,7 +972,7 @@ public partial class EnemyBasic : CharacterBody3D
             var impactDamage = _pendingWallImpactDamage;
             _pendingWallImpactDamage = 0.0f;
             _knockbackVelocity = Vector3.Zero;
-            _health.ApplyDamage(impactDamage, false, "Impacto contra parede");
+            _health.ApplyDamage(impactDamage, false, WallImpactDamageSource);
             CombatFeedback.Instance?.PlayPlayerHit(1, false, true);
             return;
         }
@@ -1020,9 +1024,11 @@ public partial class EnemyBasic : CharacterBody3D
 
     public string GetDisplayName()
     {
-        if (Name.ToString().Contains("Boss")) return $"Chefe de {RunState.CurrentMap.Name}";
-        if (!string.IsNullOrWhiteSpace(_legendaryName)) return _legendaryName;
-        return $"{EnemyTuningCatalog.Get(Rarity).DisplayName} {Archetype}";
+        if (Name.ToString().Contains("Boss")) return BossCatalog.Get(RunState.CurrentMapIndex).DisplayName;
+        if (!string.IsNullOrWhiteSpace(_legendaryNameId)) return Localization.Text($"enemy.legendary.{_legendaryNameId}.name");
+        var archetypeName = EnemyTuningCatalog.ArchetypeName(Archetype);
+        if (Rarity == EnemyRarity.Normal) return archetypeName;
+        return Localization.TextFormat("enemy.display_name.with_rarity", archetypeName, EnemyTuningCatalog.Get(Rarity).DisplayName);
     }
 
     public void ApplyBossMoveTuning(BossMoveDefinition move, int phase)
@@ -1175,7 +1181,7 @@ public partial class EnemyBasic : CharacterBody3D
     {
         if (amount <= 0)
         {
-            SpawnCombatMarker("BLOQUEADO", new Color(0.72f, 0.86f, 1.0f));
+            SpawnCombatMarker(Localization.Text("enemy.marker.blocked"), new Color(0.72f, 0.86f, 1.0f));
             SpawnHitImpact(new Color(0.62f, 0.78f, 1.0f), 1.25f);
             GetTree().CallGroup("audio_manager", "PlayEffect", "armor_block");
             return;
@@ -1186,12 +1192,12 @@ public partial class EnemyBasic : CharacterBody3D
             SetHealthBarMeshesVisible(true);
         }
         SpawnDamageNumber(amount);
-        if (_health.LastDamageSource == "Ataque pelas costas")
+        if (_health.LastDamageSource == BackstabDamageSource)
         {
             SpawnHitImpact(new Color(0.95f, 0.08f, 0.32f), 1.45f);
             GetTree().CallGroup("audio_manager", "PlayEffect", "hit_backstab");
         }
-        else if (_health.LastDamageSource == "Impacto contra parede")
+        else if (_health.LastDamageSource == WallImpactDamageSource)
         {
             SpawnHitImpact(new Color(1.0f, 0.42f, 0.08f), 1.65f);
             GetTree().CallGroup("audio_manager", "PlayEffect", "wall_impact");
@@ -1512,8 +1518,8 @@ public partial class EnemyBasic : CharacterBody3D
         var isCritical = _health?.LastDamageWasCritical == true;
         var reason = _health?.LastDamageSource switch
         {
-            "Ataque pelas costas" => "\nCOSTAS +50%",
-            "Impacto contra parede" => "\nPAREDE +30%",
+            BackstabDamageSource => "\n" + Localization.TextFormat("enemy.marker.backstab", Mathf.RoundToInt((WeaponLoadout.EquippedWeapon.BackstabDamageMultiplier - 1.0f) * 100.0f)),
+            WallImpactDamageSource => "\n" + Localization.TextFormat("enemy.marker.wall_impact", 30),
             _ => ""
         };
         var label = new Label3D

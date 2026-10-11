@@ -1,4 +1,4 @@
-<!-- orch:perfil · versao-orch: 0.2.0 · analisado-em: 2026-10-04 · commit: 7d8926f+ (limpeza e atualizacao visual nao commitadas) · modo: analise · atualizado: 2026-10-04 -->
+<!-- orch:perfil · versao-orch: 0.2.0 · analisado-em: 2026-10-04 · commit: 7d8926f+ (limpeza e atualizacao visual nao commitadas) · modo: analise · atualizado: 2026-10-11 -->
 # Perfil do projeto — Vampire's Prey (VP0.1)
 
 Roguelite de ação 3D isométrico, dark fantasy, de autoria solo (Pedro Sarmento). O jogador (Virgil) atravessa salas procedurais em 4 mapas, combinando Bênçãos de Sangue temporárias com progressão permanente (skills Bestialis/Humanitas, artefatos). Protótipo jogável em desenvolvimento ativo, com parte dos visuais ainda em geometria provisória. Documentação de referência: `README.md` e `docs/*.md` (prevalecem sobre `GDD.txt`, que é a visão de 2022 e tem um adendo desatualizado).
@@ -11,36 +11,43 @@ Roguelite de ação 3D isométrico, dark fantasy, de autoria solo (Pedro Sarment
 | Engine | Godot 4.7 Mono, Forward Plus, d3d12 no Windows, Jolt Physics | `project.godot:15,112-118` |
 | SDK / runtime | `Godot.NET.Sdk/4.7.0`, `net8.0`; SDK local instalado: 10.0.401 | `VP0.1.csproj:1-4` |
 | Pacotes | nenhum NuGet explícito | `VP0.1.csproj` |
-| Dados | catálogos JSON/JSONC em `data/`; save JSON em `user://save_slot_{1..3}.json` | `SaveGameManager.cs:78` |
-| Ferramentas | Python (`py`) para validadores dos catálogos | `.codex/skills/*/scripts/` |
+| Dados | catálogos JSON/JSONC em `data/` (só IDs e números); textos em `data/localization/<idioma>/*.json`; save JSON em `user://save_slot_{1..3}.json` | `SaveGameManager.cs:78`, `Localization.cs:15` |
+| Ferramentas | Python (`py`) para validadores dos catálogos e da localização | `.codex/skills/*/scripts/`, `tools/validate_localization.py` |
 
 ## Comandos
 
 | Ação | Comando | Status |
 |---|---|---|
 | Instalar dependências | não há (só restauração implícita do `dotnet build`) | — |
-| Build | `dotnet build VP0.1.sln` (o `jogar.bat` usa `VP0.1.csproj`) | não verificado |
+| Build | `dotnet build VP0.1.sln` (o `jogar.bat` usa `VP0.1.csproj`) | verificado (0 erros, 0 avisos) |
 | Rodar | `jogar.bat` (build + `F:\GODOT\App\Godot.exe --path .`) ou F5 no editor | executável do Godot verificado |
 | Rodar cena | `F:/GODOT/App/Godot.exe --path . res://scenes/game/<Cena>.tscn` | não verificado |
-| Smoke headless | `F:/GODOT/App/Godot.exe --headless --path . --quit-after 180 res://scenes/game/TestArena.tscn` (também `CrowsNest` e `IntermissionChamber` com 120) | não verificado |
-| Validar bênçãos | `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py` | verificado (63, 0 erros, 26 avisos) |
-| Validar artefatos | `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` | verificado (20, 0 erros, 16 avisos) |
+| Smoke headless | `F:/GODOT/App/Godot.exe --headless --path . --quit-after 180 res://scenes/game/TestArena.tscn` (também `CrowsNest` e `IntermissionChamber` com 120) | `TestArena` e `RunStartBlessingRoom` verificados em headless; `CrowsNest`, `IntermissionChamber` e `MainMenu` verificados pelo `--ui-batch` (janela) |
+| Validar bênçãos | `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py` (inclui as chaves de `content.json`) | verificado (63, 0 erros, 0 avisos) |
+| Validar artefatos | `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` (inclui as chaves de `content.json`) | verificado (20, 0 erros, 0 avisos) |
+| Validar localização | `py tools/validate_localization.py` (`-v` lista chaves `TextOr` pendentes) | verificado (905 chaves por idioma, 0 erros, 0 avisos) |
+| Pré-visualizar telas (só debug) | `F:/GODOT/App/Godot.exe --path . res://scenes/game/<Cena>.tscn -- --ui-preview=<tela> [--ui-lang=] [--ui-device=] [--ui-tab=] [--ui-codex-locked]` | verificado em headless (`pause`, `en` e `es`) |
+| Pré-visualizar em lote (só debug) | `F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=<pasta> [--ui-langs=pt-BR,en,es] [--ui-screens=a,b]` | verificado: 108 capturas (36 telas × 3 idiomas) em 1 processo, saída 0 |
 | Testes unitários | não encontrado (não há framework) | — |
 | Lint / format | não encontrado (`.editorconfig` só define utf-8) | — |
 | Export Windows | `exportar_windows.bat` (restore win-x64, build Release, `--export-release "Windows Desktop"`, saída em `builds/`) | não verificado |
 
-O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os avisos "no quoted C# reference" dos validadores são preexistentes; erros contam, avisos não. Não há CI.
+O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os validadores estão sem erros e sem avisos; erro conta (saída 1), aviso não. Não há CI.
+
+O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas num único processo do Godot, recarregando a cena entre uma e outra, e grava PNGs em `--ui-shots=<pasta>` (padrão `user://ui_shots`): use-o em vez de abrir o jogo uma vez por tela. Os argumentos de usuário vêm depois de `--`, e tudo isso só funciona em build de debug.
 
 ## Estrutura
 
 | Caminho | Responsabilidade |
 |---|---|
-| `scripts/ui/` (~4,1k linhas) | UI 100% por código: `HUD` em `partial class` (`HUD.cs` = campos e ciclo de vida; `HUD.<Area>.cs` = StatusBars, Notifications, WeaponBench, CharacterSheet, BloodFountain, ArtifactChest, ArtifactOffer, BlessingOffer, BlessingBar, Pause, Compendium), `MainMenu` (com página de Créditos), `UIThemeFactory`, `ControllerUiSupport`, `GameCursor` |
+| `scripts/ui/` (~4,1k linhas) | UI 100% por código: `HUD` em `partial class` (`HUD.cs` = campos e ciclo de vida; `HUD.<Area>.cs` = StatusBars, Notifications, WeaponBench, CharacterSheet, BloodFountain, ArtifactChest, ArtifactOffer, BlessingOffer, BlessingBar, Pause, Compendium), `MainMenu` (com página de Créditos), `UIThemeFactory`, `UiComponents`, `ControllerUiSupport`, `GameCursor`, `UiPreview` (pré-visualização de telas, só debug) |
 | `scripts/player/` (~3,2k) | `PlayerController` (raiz), `PlayerCombat`, `PlayerAnimator`, `PlayerWeaponVisual`, `PlayerSkillController`, `BloodBlessingRuntime`, `SummonedRat` |
 | `scripts/enemies/`, `scripts/bosses/`, `scripts/combat/` (~2,4k) | `EnemyBasic` (IA, status, stagger, APIs de boss), tuning/visual catalogs, projétil, `BossCatalog` + `BossController`, `Health` |
 | `scripts/systems/` (~2,3k + catálogos) | Run e salas (`RunState`, `RunManager`, `RoomGenerator`, `CampaignCatalog`, `ScenePortal`), hub e salas especiais, autoloads, `CharacterSheet` |
 | `scripts/systems/{blessings,skills,artifacts,weapons}/` | catálogos estáticos de conteúdo |
-| `data/` | `blessings/blood_blessings.json` (JSONC), `skills/skills.json`, `artifacts/artifacts.json`, `localization/game_texts.json` |
+| `data/` | `blessings/blood_blessings.json` (JSONC), `skills/skills.json`, `artifacts/artifacts.json` (só IDs e números, sem texto), `localization/<pt-BR,en,es>/{ui,content,world}.json` (textos; 905 chaves por idioma) |
+| `tools/` | `validate_localization.py` (paridade de chaves entre idiomas, placeholders, JSON válido, chaves literais do C#) |
+| `docs/design/` | `ui-guia.md` (guia de UI e especificação das telas; Anexo A = previews, Anexo D = localização), `glossario-localizacao.json` (termos pt-BR/en/es) |
 | `scenes/` | `ui/MainMenu`, `ui/HUD` (só um CanvasLayer), `game/{CrowsNest,RunStartBlessingRoom,TestArena,IntermissionChamber}`, `player/Player`, `enemies/EnemyBasic` |
 | `.codex/skills/vp-create-*` | guias e validadores para criar bênção, artefato, skill, inimigo e boss: **leia o SKILL.md correspondente antes de criar conteúdo** |
 | `assets/`, `audio/`, `images/` | binários; origem em `SOURCE.md` por pacote e `CREDITS.md` (música, alguns efeitos e imagens ainda sem origem registrada — ver `CREDITS.md`). `assets/materials/dungeon_stone.tres` = pedra compartilhada das salas fixas e do hub |
@@ -59,9 +66,9 @@ O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os avisos "no quoted
   - O boss é um `EnemyBasic` com um `BossController` filho, escolhido por `BossCatalog.Get(mapIndex)`.
 - **Comunicação:** grupos + `GetTree().CallGroup("hud", "Metodo", ...)`, com nomes de método em string (`RoomGenerator.cs:317`). Singletons usam `public static X Instance` atribuído em `_Ready`.
 - **Referências para algo novo:**
-  - Bênção: entrada em `data/blessings/blood_blessings.json`. Efeito novo em `BloodBlessingRuntime.cs`/`RunState`.
-  - Artefato: `data/artifacts/artifacts.json` + `ArtifactEffectRegistry.cs`.
-  - Skill: `data/skills/skills.json` (IDs `bestialis.*`/`humanitas.*`).
+  - Bênção: entrada em `data/blessings/blood_blessings.json` (só IDs e números) + `blessing.<id>.name/.desc/.flavor` em `content.json` nos 3 idiomas. Efeito novo em `BloodBlessingRuntime.cs`/`RunState`.
+  - Artefato: `data/artifacts/artifacts.json` (com `saveName` único) + `artifact.<id>.name/.desc/.flavor` em `content.json` + `ArtifactEffectRegistry.cs` (e `artifact.effect.<Tipo>` se o efeito for novo).
+  - Skill: `data/skills/skills.json` (IDs `bestialis.*`/`humanitas.*`) + `skill.<id>.name/.desc/.flavor/.icon` em `content.json`.
   - Inimigo: `EnemyBasic.ConfigureVariant` + `EnemyTuningCatalog` + `RoomGenerator.RollEnemyArchetype`.
   - Boss: `BossCatalog.cs` + case em `BossController.ExecuteMove` (linha 80).
   - Arma: `weapons/WeaponCatalog.cs` (array C#, sem JSON) + `WeaponVisualCatalog.cs`.
@@ -82,14 +89,21 @@ O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os avisos "no quoted
   - Comentários e logs misturam português e inglês.
 - **Dependências entre nós:** `GetNode<T>` para as obrigatórias, `GetNodeOrNull<T>` para as opcionais.
 - **Erros:** `GD.PushError` para falha de carga (com try/catch em JSON e save) e `GD.PushWarning` + placeholder para asset ausente.
-- **Textos:** chave em `game_texts.json` com `pt-BR`, `en` e `es`, lida via `Localization.Text`/`TextFormat`. Chave ausente aparece na tela crua. Muito texto legado está hardcoded em português (HUD, RunManager, BossCatalog); texto novo de UI deve usar chave.
+- **Textos:**
+  - Todo texto exibido vem de `data/localization/<idioma>/{ui,content,world}.json` (JSON plano `"chave": "texto"`; idiomas `pt-BR`, `en`, `es`). `ui.json` = interface; `content.json` = bênçãos, artefatos, skills, armas e efeitos; `world.json` = bosses, mapas, inimigos e mensagens de combate.
+  - Leitura via `Localization.Text`/`TextFormat`/`Has` (`Localization.cs`). Resolução: idioma atual → `pt-BR` → a própria chave (aviso em debug, uma vez por chave). Overlays e rótulos 3D reagem ao sinal `LanguageChanged`. A cultura da sessão segue o idioma (`en` com ponto decimal; `pt-BR` e `es` com vírgula).
+  - Chave nova entra nos **três** idiomas (o validador cobra paridade e placeholders iguais) e, se for literal no C#, deve existir em `pt-BR`. Rode `py tools/validate_localization.py`.
+  - `PromptText` dos interativos (`ScenePortal`, `BloodFountain`, `WeaponBench`, `ArtifactChest`, inclusive nos `.tscn`) guarda uma chave (`portal.*`, por exemplo), resolvida na exibição.
+  - Só texto de debug (log de eventos, seção DEV, linhas "Prévia:" dos previews) pode ficar literal. Hoje o log de eventos do HUD (`AppendGameLog`) ainda tem frases literais em português.
+  - Idioma novo: `Localization.Languages`/`NormalizeLanguage`, o seletor de `UiComponents.OptionsPanel` (três opções fixas) e a lista `LANGUAGES` dos três validadores Python.
 - **Commits:** conventional commits (`feat:`, `fix:`, `docs:`, `chore:`), em português ou inglês. Branches `codex/*` com merge via PR.
 
 ## Testes
 
 - **Framework:** não encontrado. `scripts/tests/` só tem o `CodexBossTelegraphSmoke.cs.uid` órfão, e `scenes/tests/` está vazia.
-- **Validação usada:** `dotnet build` + os 2 validadores Python + smoke headless da `TestArena`. Para validador novo, imite `validate_artifacts.py` (stdlib, raiz em `parents[4]`, sai com 1 se houver erro).
-- **Sem validador:** `skills.json`, `game_texts.json`, inimigos e bosses.
+- **Validação usada:** `dotnet build` + os 3 validadores Python (bênçãos, artefatos, `tools/validate_localization.py`) + smoke headless da `TestArena`. Para validador novo, imite `validate_artifacts.py` (stdlib, raiz em `parents[4]`, sai com 1 se houver erro) ou `tools/validate_localization.py` (raiz em `parents[1]`).
+- **Sem validador:** `skills.json`, inimigos e bosses. Para eles só vale a paridade de chaves de `validate_localization.py`; o conteúdo em si não é checado.
+- **Conferência visual:** `--ui-preview`/`--ui-batch` (só debug, ver Comandos) geram capturas das telas por idioma; não são testes automáticos.
 
 ## Cuidados
 
@@ -99,6 +113,7 @@ O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os avisos "no quoted
   - Não mexer em `.tscn` à mão além do necessário.
 - **Saves:**
   - Nunca renomear ou remover IDs persistidos (skills, artefatos, arma equipada) sem mapear o ID antigo para o novo. Exemplo: `WeaponCatalog.Get` mapeia `greatsword`/`dual_blades` → `longsword`.
+  - O `saveName` de cada artefato em `artifacts.json` é o identificador legado gravado nos saves: nunca alterar. Registros antigos são resolvidos para o `Id` em `CharacterSheet.WithResolvedId`.
   - `GameSaveData.Version` existe, mas não é usado para migrar.
   - `SaveGameManager.RequestAutosave()` agenda a gravação (agrupa chamadas em 1,5 s) e grava de forma atômica (`.tmp` + rename). Use `FlushPendingSave()` se precisar garantir a escrita imediata.
 - **Assets novos:** exigem `SOURCE.md` e uma entrada em `CREDITS.md`. Atenção às licenças CC BY / OGA-BY, que exigem atribuição.
@@ -114,6 +129,6 @@ O `godot` não está no PATH: use `F:/GODOT/App/Godot.exe`. Os avisos "no quoted
 |---|---|
 | `conteudo-run` | Bênçãos, artefatos e skills: `data/{blessings,artifacts,skills}`, `scripts/systems/{blessings,artifacts,skills}`, `BloodBlessingRuntime`, `PlayerSkillController`, `RunState`, `CharacterSheet` |
 | `inimigos-e-bosses` | `scripts/enemies`, `scripts/bosses`, `RoomGenerator`, `RunManager`, `CampaignCatalog`: IA, telegraph, waves, bosses |
-| `ui-hud` | `scripts/ui` (`HUD.cs`), `scenes/ui`, `UIThemeFactory`, navegação por controle, `game_texts.json`/`Localization` |
+| `ui-hud` | `scripts/ui` (`HUD.cs`), `scenes/ui`, `UIThemeFactory`, navegação por controle, `data/localization/<idioma>/*.json`/`Localization`/`tools/validate_localization.py`, `UiPreview` |
 | `game-designer` | Mecânicas, balanceamento, level design e narrativa, de ponta a ponta: docs, GDD, `data/*.json` e C# de tuning e regras |
 | `designer-ux-arte` | Direção de arte, leitura de combate, layout e UX; implementa no código de apresentação (UI, feedback, visuais, cenas) |

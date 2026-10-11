@@ -9,7 +9,6 @@ using System.Collections.Generic;
 public partial class HUD
 {
 	private const float WeaponBenchBodyWidth = 880.0f;
-	private const string WeaponPlaceholderSuffix = " Moveset em desenvolvimento.";
 	// Regra única de equipar armas placeholder (IsImplemented == false). false = card "Em breve" desabilitado.
 	// Pendente de confirmação do usuário: trocar para true libera equipar (o card continua com a tag "Em breve").
 	private const bool AllowEquipPlaceholderWeapons = false;
@@ -36,7 +35,7 @@ public partial class HUD
 	private void BuildWeaponBenchOverlay(Control root)
 	{
 		_weaponBenchWindow = UiComponents.Window(root, "WeaponBenchOverlay", WindowSize.Large,
-			UiComponents.TextOr("bench.title", "Bancada de Armas"));
+			Localization.Text("bench.title"));
 		_weaponBenchOverlay = _weaponBenchWindow.Root;
 		_weaponBenchOverlay.Visible = false;
 
@@ -46,8 +45,8 @@ public partial class HUD
 		_weaponBenchWindow.Body.AddChild(scroll);
 
 		var footer = _weaponBenchWindow.Footer;
-		footer.Add(UiAction.Cancel, UiComponents.TextOr("ui.common.close", "Fechar"), CloseWeaponBench, left: true);
-		footer.Add(UiAction.Accept, UiComponents.TextOr("ui.common.equip", "Equipar"));
+		footer.Add(UiAction.Cancel, Localization.Text("ui.common.close"), CloseWeaponBench, left: true);
+		footer.Add(UiAction.Accept, Localization.Text("ui.common.equip"));
 	}
 
 	private void RefreshWeaponBench()
@@ -78,16 +77,14 @@ public partial class HUD
 	{
 		var placeholder = IsPlaceholderWeapon(weapon);
 		var description = weapon.Description ?? "";
-		if (placeholder && description.EndsWith(WeaponPlaceholderSuffix))
-			description = description.Substring(0, description.Length - WeaponPlaceholderSuffix.Length);
 
 		var data = new ChoiceCardData
 		{
 			IconText = UiComponents.MonogramText(weapon.DisplayName),
 			Title = weapon.DisplayName,
 			Meta = placeholder
-				? UiComponents.TextOr("bench.meta_placeholder", "Moveset em desenvolvimento")
-				: $"{UiComponents.TextOr("bench.quick", "Rápido")}: {weapon.QuickAttack.Name} · {UiComponents.TextOr("bench.special", "Especial")}: {weapon.SpecialAttack.Name}",
+				? Localization.Text("bench.meta_placeholder")
+				: Localization.TextFormat("bench.meta", weapon.QuickAttack.Name, weapon.SpecialAttack.Name),
 			BodyBbcode = description.Replace("[", "[lb]"),
 			Width = WeaponBenchBodyWidth
 		};
@@ -96,21 +93,21 @@ public partial class HUD
 		{
 			// Equipada: continua focável (foco inicial), a ação só confirma o estado.
 			data.Accent = UiPalette.Gold;
-			data.Tag = UiComponents.TextOr("ui.common.equipped", "Equipada");
+			data.Tag = Localization.Text("ui.common.equipped");
 			data.TagColor = UiPalette.Gold;
-			data.ActionText = UiComponents.TextOr("ui.common.equipped", "Equipada");
+			data.ActionText = Localization.Text("ui.common.equipped");
 			// Save antigo com placeholder equipado: mostra os dois selos ("Em breve" no lugar do selo de raridade).
 			if (placeholder)
-				data.RarityLabel = UiComponents.TextOr("ui.common.coming_soon", "Em breve");
+				data.RarityLabel = Localization.Text("ui.common.coming_soon");
 			return UiComponents.ChoiceCard(data, () => SetWeaponBenchStatus(
-				UiComponents.TextOr("bench.already_equipped", "{0} já está equipada.").Replace("{0}", weapon.DisplayName)));
+				Localization.TextFormat("bench.already_equipped", weapon.DisplayName)));
 		}
 
-		data.ActionText = UiComponents.TextOr("ui.common.equip", "Equipar");
+		data.ActionText = Localization.Text("ui.common.equip");
 		if (placeholder)
 		{
 			// "Em breve" aparece uma vez só: no selo (com fundo visível), sem repetir como motivo sob o botão.
-			data.Tag = UiComponents.TextOr("ui.common.coming_soon", "Em breve");
+			data.Tag = Localization.Text("ui.common.coming_soon");
 			data.TagColor = UiPalette.Border;
 		}
 		if (placeholder && !AllowEquipPlaceholderWeapons)
@@ -129,8 +126,8 @@ public partial class HUD
 		WeaponLoadout.Equip(weaponId);
 		var weapon = WeaponLoadout.EquippedWeapon;
 		if (_weaponLabel != null)
-			_weaponLabel.Text = $"Arma: {weapon.DisplayName}";
-		SetWeaponBenchStatus(UiComponents.TextOr("bench.equipped_now", "{0} equipada.").Replace("{0}", weapon.DisplayName));
+			_weaponLabel.Text = Localization.TextFormat("hud.weapon", weapon.DisplayName);
+		SetWeaponBenchStatus(Localization.TextFormat("bench.equipped_now", weapon.DisplayName));
 		RefreshWeaponBench();
 		// Os cards foram recriados: refoca a arma recém-equipada.
 		ControllerUiSupport.FocusInitial(WeaponBenchTarget(weapon.Id), _weaponBenchOverlay);
@@ -144,7 +141,7 @@ public partial class HUD
 	private void SetWeaponBenchStatus(string text)
 	{
 		_weaponBenchWindow?.SetStatus(string.IsNullOrEmpty(text)
-			? $"{UiComponents.TextOr("bench.current", "Equipada")}: {WeaponLoadout.EquippedWeapon.DisplayName}"
+			? Localization.TextFormat("bench.current", WeaponLoadout.EquippedWeapon.DisplayName)
 			: text);
 	}
 

@@ -283,7 +283,7 @@ material_override = SubResource("PortalMaterial")
 [node name="PortalArea" type="Area3D" parent="ExitPortal"]
 script = ExtResource("4")
 TargetScenePath = "res://scenes/game/TestArena.tscn"
-PromptText = "Interagir — seguir para a próxima ala"
+PromptText = "portal.next_wing"
 
 [node name="Collision" type="CollisionShape3D" parent="ExitPortal/PortalArea"]
 position = Vector3(0, 1, 0)

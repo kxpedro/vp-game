@@ -1,0 +1,226 @@
+{
+  "glossary": {
+    "description": "Termos-chave de localização para Vampire's Prey (pt-BR, en, es)",
+    "last_updated": "2026-10-06",
+    "terms": [
+      {
+        "id": "blessing",
+        "pt-BR": "Bênção de Sangue",
+        "en": "Blood Blessing",
+        "es": "Bendición de Sangre",
+        "context": "Poder temporário adquirido durante a run"
+      },
+      {
+        "id": "artifact",
+        "pt-BR": "Artefato",
+        "en": "Artifact",
+        "es": "Artefacto",
+        "context": "Item permanente coletado na run"
+      },
+      {
+        "id": "skill",
+        "pt-BR": "Habilidade",
+        "en": "Skill",
+        "es": "Habilidad",
+        "context": "Progressão permanente de poder (Bestialis/Humanitas)"
+      },
+      {
+        "id": "weapon",
+        "pt-BR": "Arma",
+        "en": "Weapon",
+        "es": "Arma",
+        "context": "Equipamento que modifica o moveset"
+      },
+      {
+        "id": "boss",
+        "pt-BR": "Chefe",
+        "en": "Boss",
+        "es": "Jefe",
+        "context": "Inimigo líder de um mapa"
+      },
+      {
+        "id": "map",
+        "pt-BR": "Mapa",
+        "en": "Map",
+        "es": "Mapa",
+        "context": "Ala/andar do castelo"
+      },
+      {
+        "id": "room",
+        "pt-BR": "Sala",
+        "en": "Room",
+        "es": "Sala",
+        "context": "Câmara individual de combate"
+      },
+      {
+        "id": "bestial_fury",
+        "pt-BR": "Fúria Bestial",
+        "en": "Bestial Fury",
+        "es": "Furia Bestial",
+        "context": "Modo especial desbloqueado por bênção"
+      },
+      {
+        "id": "charm",
+        "pt-BR": "Encanto",
+        "en": "Charm",
+        "es": "Encanto",
+        "context": "Efeito de controlar inimigos (Karnstein)"
+      },
+      {
+        "id": "bleed",
+        "pt-BR": "Sangramento",
+        "en": "Bleed",
+        "es": "Sangrado",
+        "context": "Dano periódico cumulativo"
+      },
+      {
+        "id": "pestilence",
+        "pt-BR": "Pestilência",
+        "en": "Pestilence",
+        "es": "Pestilencia",
+        "context": "Condição de contágio (Orlok)"
+      },
+      {
+        "id": "barrier",
+        "pt-BR": "Barreira",
+        "en": "Barrier",
+        "es": "Barrera",
+        "context": "Vida temporária que se consome primeiro"
+      },
+      {
+        "id": "damage",
+        "pt-BR": "Dano",
+        "en": "Damage",
+        "es": "Daño",
+        "context": "Harm dealt or taken"
+      },
+      {
+        "id": "health",
+        "pt-BR": "Vida",
+        "en": "Health",
+        "es": "Vida",
+        "context": "Hit points"
+      },
+      {
+        "id": "speed",
+        "pt-BR": "Velocidade",
+        "en": "Speed",
+        "es": "Velocidad",
+        "context": "Attack or movement rate"
+      },
+      {
+        "id": "basic_attack",
+        "pt-BR": "Ataque básico",
+        "en": "Basic Attack",
+        "es": "Ataque básico",
+        "context": "Primary combo attack"
+      },
+      {
+        "id": "quick_attack",
+        "pt-BR": "Ataque rápido",
+        "en": "Quick Attack",
+        "es": "Ataque rápido",
+        "context": "Attack during dodge window"
+      },
+      {
+        "id": "special_attack",
+        "pt-BR": "Ataque especial",
+        "en": "Special Attack",
+        "es": "Ataque especial",
+        "context": "Weapon-specific alternate attack"
+      },
+      {
+        "id": "blood_coins",
+        "pt-BR": "Moedas de Sangue",
+        "en": "Blood Coins",
+        "es": "Monedas de Sangre",
+        "context": "In-run currency"
+      },
+      {
+        "id": "lineage",
+        "pt-BR": "Linhagem",
+        "en": "Lineage",
+        "es": "Linaje",
+        "context": "Blessing family (Dracul, Bathory, Karnstein, Orlok, Stirps)"
+      },
+      {
+        "id": "wing",
+        "pt-BR": "Ala",
+        "en": "Wing",
+        "es": "Ala",
+        "context": "Map group/section"
+      },
+      {
+        "id": "level_abbr",
+        "pt-BR": "N",
+        "en": "Lv",
+        "es": "Nv",
+        "context": "Abbreviation for level (each language has its own)"
+      },
+      {
+        "id": "wound",
+        "pt-BR": "Ferida Recuperável",
+        "en": "Recoverable Wound",
+        "es": "Herida Recuperable",
+        "context": "Partial damage recovery mechanism"
+      },
+      {
+        "id": "fascination",
+        "pt-BR": "Fascínio",
+        "en": "Fascination",
+        "es": "Fascinación",
+        "context": "Charm variant for bosses (Karnstein)"
+      },
+      {
+        "id": "interrupt",
+        "pt-BR": "Interrupção",
+        "en": "Interruption",
+        "es": "Interrupción",
+        "context": "Status effect blocking actions"
+      },
+      {
+        "id": "codex",
+        "pt-BR": "Dicionário",
+        "en": "Codex",
+        "es": "Códice",
+        "context": "Discovery/lore system"
+      },
+      {
+        "id": "fountain",
+        "pt-BR": "Fonte de Sangue",
+        "en": "Blood Fountain",
+        "es": "Fuente de Sangre",
+        "context": "Hub for permanent progression (skills/artifacts)"
+      },
+      {
+        "id": "chest",
+        "pt-BR": "Baú de Artefatos",
+        "en": "Artifact Chest",
+        "es": "Cofre de Artefactos",
+        "context": "Equipment management hub"
+      }
+    ]
+  },
+  "corrections": {
+    "description": "Correções aplicadas na revisão T5",
+    "date": "2026-10-06",
+    "changes": [
+      {
+        "file": "data/localization/pt-BR/content.json",
+        "line": 412,
+        "issue": "Ícone duplicado: skill 'predatory_reflex' tinha 'CR' (conflitava com 'blood_hunt')",
+        "before": "\"skill.bestialis.predatory_reflex.icon\": \"CR\"",
+        "after": "\"skill.bestialis.predatory_reflex.icon\": \"RL\"",
+        "category": "skill_icon",
+        "severity": "low"
+      }
+    ]
+  },
+  "notes": {
+    "stamina_vs_vigor": "EN usa 'stamina' enquanto PT-BR e ES usam 'vigor' na descrição de Dexterity. Ambas são traduções semânticas válidas (stamina=endurance, vigor=vitality). Mantido como está.",
+    "level_abbreviation": "Cada idioma tem sua própria abreviação de nível: PT-BR=N, EN=Lv, ES=Nv. Isso está correto e esperado.",
+    "tier_term": "PT-BR mantém 'Tier' em inglês em 'fountain.detail.meta' (convenção comum em jogos). Aceitável.",
+    "translation_quality": "Arquivos bem traduzidos (374+467+63=904 chaves em 3 idiomas). Apenas 1 erro detectado após revisão completa.",
+    "validation": "100% das bênçãos e artefatos validadas com sucesso. Build limpo sem erros."
+  }
+}

@@ -132,6 +132,8 @@ Raridade e nível são independentes. A raridade é sorteada uma vez e determina
 
 As descrições das ofertas substituem o valor-base pelo valor efetivo da raridade, sem exibir uma segunda linha redundante de “Efeito”. Termos de ataque básico, rápido, especial e Fúria Bestial são destacados e explicados por hover/foco.
 
+Nome, descrição e flavor não ficam em `blood_blessings.json` (só IDs e números), e sim em `data/localization/<idioma>/content.json`, nas chaves `blessing.<id>.name`, `.desc` e `.flavor`. A descrição é um modelo: `{n}` é o valor do efeito `n` e `[kw=<id>]termo[/kw]` marca uma palavra-chave (`BloodBlessingText`). O nome do termo e sua explicação ficam em `blessing.keyword.<id>.term` e `.hint`; o tema de cada família, em `blessing.family.<id>.theme`. Ver [Localização](#localização).
+
 ### Exclusividade por ataque
 
 - bênçãos diretas do ataque básico compartilham seu grupo exclusivo;
@@ -197,7 +199,35 @@ Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue 
 - HUD permanece disponível na Câmara de Hemomancia;
 - vida e Fúria ficam ocultas no Ninho do Corvo;
 - a barra de Fúria também fica oculta durante a run até existir uma bênção que desbloqueie Fúria Bestial;
-- barreira é representada em azul como extensão do total de vida, sem label separado.
+- barreira é representada em azul como extensão do total de vida, sem label separado;
+- o título da sala mostra o nome do mapa e, abaixo, “Sala x/y · n/m”; ao limpar a sala a linha vira “Sala limpa” e, quando o portal de saída abre de fato (depois da recompensa; no boss, depois do artefato), vira “Portal aberto” com um toast (`NotifyPortalOpened`);
+- o aviso de wave mostra a contagem regressiva num rótulo próprio, e o “+N” de moedas aparece ao lado da moldura do contador;
+- dano recebido em golpes seguidos (menos de 0,35 s de intervalo) abre os números em leque, no máximo três ao mesmo tempo.
+
+## Localização
+
+Os textos exibidos ficam em `data/localization/<idioma>/` (`pt-BR`, `en`, `es`), em JSON plano `"chave": "texto"`. O antigo `data/localization/game_texts.json` foi removido.
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `ui.json` | interface: menus, HUD, opções, prompts (inclui quase todas as `portal.*`; `portal.hemomancy_chamber` está em `world.json`) |
+| `content.json` | bênçãos, artefatos, skills, armas e nomes de efeitos |
+| `world.json` | bosses e golpes, mapas, inimigos e mensagens de combate |
+
+- `Localization` (autoload) carrega todos os `.json` da pasta do idioma. A resolução é idioma atual → `pt-BR` → a própria chave; em debug, cada chave ausente gera um aviso uma única vez.
+- API: `Localization.Text(chave)`, `Localization.TextFormat(chave, args)`, `Localization.Has(chave)` e o sinal `LanguageChanged`. Se uma tradução tiver o formato malformado, o jogo tenta o texto `pt-BR` e, por fim, mostra o texto cru.
+- A cultura da sessão segue o idioma do jogo: `en` usa ponto decimal; `pt-BR` e `es`, vírgula.
+- Overlays, o HUD e os rótulos 3D (prompts de fonte, baú, bancada, portais, artefatos no chão) assinam `LanguageChanged` e se atualizam ao trocar o idioma.
+- Chaves de conteúdo: `blessing.<id>.name/.desc/.flavor`, `artifact.<id>.name/.desc/.flavor`, `skill.<id>.name/.desc/.flavor/.icon`, `weapon.<arma>.name/.desc` (e os nomes dos golpes, como `weapon.longsword.basic_1.name`, `.quick.name` e `.special.name`), `artifact.effect.<Tipo>` (nome do efeito), `blessing.family.<id>.theme` e `blessing.keyword.<id>.term/.hint`. Os catálogos JSON guardam só IDs e números.
+- Chaves de mundo: `boss.<id>.name`, `boss.<id>.move.<golpe>.name`, `map.<id>.name/.rule`, `enemy.rarity.<id>.name`, `enemy.archetype.<id>.name` e `enemy.legendary.<id>.name`.
+- `PromptText` de `ScenePortal` (inclusive nos `.tscn`), `BloodFountain`, `WeaponBench` e `ArtifactChest` guarda uma chave (por exemplo `portal.start_run`); se a chave existir, a UI mostra o texto traduzido, senão mostra o valor literal.
+- Cada artefato tem `saveName` em `artifacts.json`: identificador legado gravado nos saves, que nunca deve ser alterado. Registros antigos do save são resolvidos para o ID atual em `CharacterSheet.WithResolvedId`.
+
+Validação: `py tools/validate_localization.py` confere JSON válido, paridade de chaves entre os idiomas, placeholders iguais e se as chaves literais do C# existem. `validate_blessings.py` e `validate_artifacts.py` conferem as chaves de `content.json` dos seus catálogos. Skills, inimigos e bosses só têm a checagem de paridade. Termos de referência: `docs/design/glossario-localizacao.json`.
+
+Para adicionar um texto, crie a chave nos três idiomas. Um idioma novo exige alterar `Localization.Languages` e `NormalizeLanguage`, o seletor de `UiComponents.OptionsPanel` e a lista `LANGUAGES` dos três validadores. Textos só de debug (log de eventos, seção DEV, linhas “Prévia:” dos previews) podem ficar literais.
+
+Em build de debug, `scripts/ui/UiPreview.cs` abre telas de UI com dados fictícios (`--ui-preview=<tela>`, `--ui-lang=`, `--ui-device=`, `--ui-tab=`) e tem o modo em lote `--ui-batch`, que percorre telas × idiomas num único processo e grava PNGs; ver o cabeçalho do arquivo e o Anexo A de `docs/design/ui-guia.md`.
 
 ## Salas especiais
 
@@ -238,10 +268,14 @@ O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` r
 - `scripts/systems/weapons/WeaponCatalog.cs`;
 - `scripts/systems/weapons/WeaponVisualCatalog.cs`;
 - `scripts/systems/AudioManager.cs`;
+- `scripts/systems/Localization.cs`;
+- `scripts/ui/UiPreview.cs`;
+- `tools/validate_localization.py`;
 - `scripts/systems/RunState.cs`;
 - `scripts/systems/RunManager.cs`;
 - `scripts/systems/RoomGenerator.cs`;
 - `scripts/systems/RunStartBlessingRoom.cs`;
 - `scripts/systems/IntermissionChamber.cs`;
 - `scripts/systems/TrainingDummy.cs`;
-- `data/blessings/blood_blessings.json`.
+- `data/blessings/blood_blessings.json`;
+- `data/localization/<idioma>/{ui,content,world}.json`.

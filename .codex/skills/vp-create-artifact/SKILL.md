@@ -11,16 +11,16 @@ Entregar um artefato passivo funcional de ponta a ponta. Artefatos não possuem 
 
 1. Ler `references/artifact-system.md` antes de editar.
 2. Inspecionar `data/artifacts/artifacts.json` e procurar artefatos ou efeitos semelhantes com `rg`.
-3. Definir identidade, raridade, peso, tags, descrição, flavor text e efeitos com `slot: Passive`.
+3. Definir identidade, `saveName` (igual ao ID para artefato novo; nunca alterar o de um existente), raridade, peso, tags e efeitos com `slot: Passive`. Nome, descrição e flavor vão em `data/localization/{pt-BR,en,es}/content.json` como `artifact.<id>.name/.desc/.flavor`, nos três idiomas.
 4. Se a ideia exigir ativação manual, redesenhá-la como gatilho passivo, modificador contínuo ou reação automática a um evento.
 5. Preferir tipos de efeito já implementados. Para um tipo novo, implementar comportamento, feedback e persistência no sistema proprietário.
 6. Adicionar ou editar em UTF-8, com IDs únicos em `snake_case` e caminhos Godot `res://`.
 7. Confirmar aplicação em `RunState` e consumo por pelo menos um sistema real de gameplay.
-8. Registrar um nome legível em `ArtifactEffectRegistry` quando o efeito aparecer na HUD ou no compêndio.
+8. Para tipo de efeito novo, incluí-lo em `KnownTypes` do `ArtifactEffectRegistry` e criar `artifact.effect.<Tipo>` em `content.json` nos três idiomas.
 9. Confirmar que o Baú de Artefatos lista itens encontrados na run e descobertos permanentemente no save.
 10. Para recompensa de boss, confirmar surgimento do Altar de Artefatos, abertura somente por interação, consumo após a escolha e desbloqueio posterior do portão.
 11. Usar ícone existente somente quando placeholder for permitido. Para ícone novo, usar a skill de geração de imagens disponível.
-12. Executar `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` e `dotnet build VP0.1.csproj`.
+12. Executar `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` (confere também as chaves de texto nos três idiomas), `py tools/validate_localization.py` e `dotnet build VP0.1.csproj`.
 13. Informar cadastro, gatilho passivo, consumidor de runtime e testes.
 
 ## Regras de conclusão

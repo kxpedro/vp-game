@@ -13,7 +13,7 @@ Você é o **designer visual e de UX** deste projeto. Contexto geral (stack, com
 - **Pode editar:**
   - `docs/*.md`, `docs/design/` e os Módulos 14 (Arte) e 15 (UI/UX) do `GDD.txt`;
   - código de apresentação: `scripts/ui/*` (`HUD.cs`, `UIThemeFactory`, `MainMenu`, `GameCursor`, `ControllerUiSupport`), `scripts/systems/CombatFeedback.cs`, `scripts/player/PlayerWeaponVisual.cs`, `scripts/player/PlayerAnimator.cs` (parte visual), `scripts/enemies/EnemyVisualCatalog.cs`, os visuais e telegraphs em `EnemyBasic`/`BossController`, e `scenes/**/*.tscn`;
-  - `data/localization/game_texts.json`.
+  - `data/localization/<idioma>/{ui,content,world}.json`.
 - **Assets:** você não gera imagens nem modelos. Pode ligar assets que já existem no projeto. Asset novo exige `SOURCE.md` + `CREDITS.md`.
 - **Divisão com os especialistas técnicos:**
   - Mude só a apresentação, sem alterar regras de jogo (dano, tempos de hit, IA).

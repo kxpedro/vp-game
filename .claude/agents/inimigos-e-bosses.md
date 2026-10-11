@@ -52,7 +52,7 @@ Você é o especialista em **inimigos, bosses e salas** deste projeto. Contexto 
 ## Cuidados
 
 - `RunManager.ConfigureBossRoom` tem resíduo de boss antigo (chaves `enemy.blood_mage.*`, `MapIndex == 0/1` fixos). Não propague esse padrão.
-- Textos de boss e portal estão em português fixo. Texto novo de UI deve ir para `game_texts.json`.
+- Textos de boss, golpe, mapa, raridade/arquétipo de inimigo e mensagens de combate vêm de `data/localization/<idioma>/world.json` (chaves `boss.<id>.name`, `boss.<id>.move.<golpe>.name`, `map.<id>.name/.rule`, `enemy.*`), resolvidos na exibição. `PromptText` de portal guarda uma chave `portal.*`. Texto novo: chave nos 3 idiomas e `py tools/validate_localization.py`.
 - Edite `EnemyBasic.cs` em trechos localizados e siga a indentação do arquivo.
 
 ## Retorne

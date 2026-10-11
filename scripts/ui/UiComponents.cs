@@ -255,6 +255,14 @@ public sealed class UiResourceBar
         if (NameLabel != null) NameLabel.Text = name ?? "";
     }
 
+    // Fury: texto do selo (troca de idioma).
+    public void SetFuryBadgeText(string text)
+    {
+        if (FuryBadge == null) return;
+        foreach (var child in FuryBadge.GetChildren())
+            if (child is Label label) label.Text = text ?? "";
+    }
+
     // Fury: cheia = borda FuryReady pulsando + glifo; ativa = borda fixa.
     public void SetFuryState(bool ready, bool active)
     {
@@ -774,11 +782,11 @@ public static class UiComponents
 {
     // ---------- Texto ----------
 
-    // Texto localizado com fallback enquanto a chave não existir em game_texts.json (fase 4 cria as chaves).
+    // Texto localizado com fallback quando a chave não existe em data/localization/<idioma>/*.json.
+    // Texto novo de UI usa Localization.Text direto; TextOr fica para chaves opcionais.
     public static string TextOr(string key, string fallback)
     {
-        var text = Localization.Text(key);
-        return string.IsNullOrEmpty(text) || text == key ? fallback : text;
+        return Localization.Has(key) ? Localization.Text(key) : fallback;
     }
 
     public static Label MakeLabel(string text, string variation = UiVariation.BodyLabel, bool autowrap = false)
@@ -798,13 +806,13 @@ public static class UiComponents
         var id = (rarity ?? "").Trim().ToLowerInvariant();
         return id switch
         {
-            "uncommon" or "incomum" => TextOr("ui.rarity.uncommon", "Incomum"),
-            "rare" or "raro" or "rara" => TextOr("ui.rarity.rare", "Raro"),
-            "epic" or "épico" or "épica" => TextOr("ui.rarity.epic", "Épico"),
-            "legendary" or "lendário" or "lendária" => TextOr("ui.rarity.legendary", "Lendário"),
-            "mythic" or "mítico" or "mítica" => TextOr("ui.rarity.mythic", "Mítico"),
-            "stirps" => TextOr("ui.rarity.stirps", "Stirps"),
-            _ => TextOr("ui.rarity.common", "Comum")
+            "uncommon" or "incomum" => Localization.Text("ui.rarity.uncommon"),
+            "rare" or "raro" or "rara" => Localization.Text("ui.rarity.rare"),
+            "epic" or "épico" or "épica" => Localization.Text("ui.rarity.epic"),
+            "legendary" or "lendário" or "lendária" => Localization.Text("ui.rarity.legendary"),
+            "mythic" or "mítico" or "mítica" => Localization.Text("ui.rarity.mythic"),
+            "stirps" => Localization.Text("ui.rarity.stirps"),
+            _ => Localization.Text("ui.rarity.common")
         };
     }
 
@@ -899,14 +907,14 @@ public static class UiComponents
         if (kind == ConfirmKind.Destructive)
             window.Body.AddChild(new Label
             {
-                Text = TextOr("ui.confirm.irreversible", "Esta ação não pode ser desfeita."),
+                Text = Localization.Text("ui.confirm.irreversible"),
                 ThemeTypeVariation = UiVariation.SecondaryLabel,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 HorizontalAlignment = HorizontalAlignment.Center
             });
-        confirm.CancelButton = MenuButton(TextOr("ui.common.cancel", "Cancelar"), confirm.Cancel, ButtonVariant.Secondary, ButtonSize.Medium);
+        confirm.CancelButton = MenuButton(Localization.Text("ui.common.cancel"), confirm.Cancel, ButtonVariant.Secondary, ButtonSize.Medium);
         confirm.ConfirmButton = MenuButton(
-            string.IsNullOrEmpty(confirmText) ? TextOr("ui.common.confirm", "Confirmar") : confirmText,
+            string.IsNullOrEmpty(confirmText) ? Localization.Text("ui.common.confirm") : confirmText,
             confirm.Accept,
             kind == ConfirmKind.Destructive ? ButtonVariant.Destructive : ButtonVariant.Primary,
             ButtonSize.Medium);
@@ -916,8 +924,8 @@ public static class UiComponents
         window.Actions.AddChild(confirm.ConfirmButton);
         // Rodapé (§3.3/§3.11): voltar à esquerda, aceitar à direita; glifos seguem o último dispositivo.
         // Aceitar ativa o botão focado (o foco inicial é Cancelar), por isso o rótulo é "Escolher" e não "Confirmar".
-        window.Footer.Add(UiAction.Cancel, TextOr("ui.common.cancel", "Cancelar"), confirm.Cancel, left: true);
-        window.Footer.Add(UiAction.Accept, TextOr("ui.common.choose", "Escolher"));
+        window.Footer.Add(UiAction.Cancel, Localization.Text("ui.common.cancel"), confirm.Cancel, left: true);
+        window.Footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"));
         window.Root.GuiInput += input =>
         {
             if (!input.IsActionPressed("ui_cancel")) return;
@@ -1213,7 +1221,7 @@ public static class UiComponents
                 column.AddThemeConstantOverride("separation", UiMetrics.S1);
                 var header = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
                 header.AddThemeConstantOverride("separation", UiMetrics.S2);
-                bar.FuryBadge = Badge(TextOr("hud.fury", "Fúria"), UiPalette.PanelInset, UiPalette.Fury);
+                bar.FuryBadge = Badge(Localization.Text("hud.fury"), UiPalette.PanelInset, UiPalette.Fury);
                 header.AddChild(bar.FuryBadge);
                 bar.FuryGlyph = ButtonGlyph(UiAction.Fury);
                 bar.FuryGlyph.Visible = false;
@@ -1268,7 +1276,7 @@ public static class UiComponents
         panel.Root.AddChild(stack);
         panel.Empty = new Label
         {
-            Text = TextOr("ui.common.select_item", "Selecione um item"), ThemeTypeVariation = UiVariation.SecondaryLabel,
+            Text = Localization.Text("ui.common.select_item"), ThemeTypeVariation = UiVariation.SecondaryLabel,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
         };
         panel.Empty.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
@@ -1723,7 +1731,7 @@ public static class UiComponents
         row.Value.Text = ToggleText(value);
     }
 
-    private static string ToggleText(bool on) => on ? TextOr("ui.common.on", "Ligado") : TextOr("ui.common.off", "Desligado");
+    private static string ToggleText(bool on) => on ? Localization.Text("ui.common.on") : Localization.Text("ui.common.off");
 
     private static UiOptionRow OptionRowBase(string label, Control control, bool showValue)
     {
@@ -1765,7 +1773,7 @@ public static class UiComponents
         var settings = GlobalSettings.Instance?.Data;
         if (showLanguage)
         {
-            var language = settings?.Language ?? "pt-BR";
+            var language = Localization.Instance?.CurrentLanguage ?? settings?.Language ?? "pt-BR";
             panel.AddChild(OptionRow(
                 Localization.Text("options.language"),
                 new[] { Localization.Text("options.language.pt_br"), Localization.Text("options.language.en"), Localization.Text("options.language.es") },
@@ -1774,7 +1782,7 @@ public static class UiComponents
         }
         UiOptionRow fullscreen = null;
         panel.AddChild(OptionRow(
-            TextOr("options.resolution", "Resolução"),
+            Localization.Text("options.resolution"),
             new[] { "1280 x 720", "1600 x 900", "1920 x 1080" },
             settings?.ResolutionIndex ?? 1,
             index =>
@@ -1820,7 +1828,7 @@ public static class UiComponents
         var control = BlessingIcon(icon, record.Rarity, record.Level, size, showLevel);
         if (icon == null)
         {
-            var monogram = Monogram(record.Name, size - 8);
+            var monogram = Monogram(BloodBlessingCatalog.TryGet(record.Id, out var monogramDefinition) && !string.IsNullOrEmpty(monogramDefinition.DisplayName) ? monogramDefinition.DisplayName : record.Name, size - 8);
             monogram.Position = new Vector2(4, 4);
             control.AddChild(monogram);
         }
@@ -1852,7 +1860,7 @@ public static class UiComponents
         }
         if (showLevel && level > 1)
         {
-            var badge = Badge($"N{level}", UiPalette.PanelInset, UiPalette.Gold);
+            var badge = Badge(Localization.TextFormat("ui.common.level_short", level), UiPalette.PanelInset, UiPalette.Gold);
             badge.AnchorLeft = 1; badge.AnchorTop = 1; badge.AnchorRight = 1; badge.AnchorBottom = 1;
             badge.OffsetLeft = 2; badge.OffsetTop = 2; badge.OffsetRight = 2; badge.OffsetBottom = 2;
             badge.GrowHorizontal = Control.GrowDirection.Begin;
@@ -1989,7 +1997,7 @@ public static class UiComponents
         section.Body.AddThemeConstantOverride("separation", UiMetrics.S2);
         var header = new HBoxContainer();
         header.AddThemeConstantOverride("separation", UiMetrics.S2);
-        var label = new Label { Text = title ?? TextOr("ui.common.dev_tools", "Ferramentas de desenvolvimento"), ThemeTypeVariation = UiVariation.SectionLabel };
+        var label = new Label { Text = title ?? Localization.Text("ui.common.dev_tools"), ThemeTypeVariation = UiVariation.SectionLabel };
         label.AddThemeColorOverride("font_color", UiPalette.TextSecondary);
         header.AddChild(label);
         var badge = Badge("DEV", UiPalette.PanelInset, UiPalette.TextSecondary);

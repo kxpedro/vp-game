@@ -18,11 +18,7 @@
                 {
                     "id": "bestialis.vampire_fangs",
                     "presentation": {
-                        "name": "Presas que Bebem o Sangue",
-                        "description": "Aumenta todo o dano causado em 10% por nivel.",
-                        "flavorText": "A noite não pede permissão para beber.",
                         "metalReference": "Powerwolf — We Drink Your Blood",
-                        "iconText": "PS",
                         "tags": [
                             "heal",
                             "kill",
@@ -57,11 +53,7 @@
                 {
                     "id": "bestialis.opening_strike",
                     "presentation": {
-                        "name": "Acenda as Trevas",
-                        "description": "Ataques basicos causam 8% mais dano por nivel.",
-                        "flavorText": "Toda carnificina começa com uma única faísca.",
                         "metalReference": "Metallica — Hit the Lights",
-                        "iconText": "AT",
                         "tags": [
                             "damage",
                             "opening",
@@ -98,11 +90,7 @@
                 {
                     "id": "bestialis.shadow_attack",
                     "presentation": {
-                        "name": "Medo do Escuro",
-                        "description": "Ataques pelas costas causam 15% mais dano por nivel.",
-                        "flavorText": "O castelo aprende tarde demais que também pode temer a escuridão.",
                         "metalReference": "Iron Maiden — Fear of the Dark",
-                        "iconText": "ME",
                         "tags": [
                             "damage",
                             "backstab",
@@ -139,11 +127,7 @@
                 {
                     "id": "bestialis.marked_prey",
                     "presentation": {
-                        "name": "Marcado para Destruir",
-                        "description": "Causa 10% mais dano por nivel contra inimigos afetados por uma condicao negativa.",
-                        "flavorText": "Depois da marca, resta apenas procurar e destruir.",
                         "metalReference": "Metallica — Seek \u0026 Destroy",
-                        "iconText": "MD",
                         "tags": [
                             "damage",
                             "status",
@@ -182,11 +166,7 @@
                 {
                     "id": "bestialis.predatory_reflex",
                     "presentation": {
-                        "name": "Cavalgue o Relâmpago",
-                        "description": "Aumenta a velocidade de movimento em 6% por nivel.",
-                        "flavorText": "Quando o golpe cai, a fera já virou trovão.",
                         "metalReference": "Metallica — Ride the Lightning",
-                        "iconText": "CR",
                         "tags": [
                             "perfect_dodge",
                             "damage",
@@ -223,11 +203,7 @@
                 {
                     "id": "bestialis.terminal_frenzy",
                     "presentation": {
-                        "name": "Sinfonia da Carnificina",
-                        "description": "Abaixo de 30% de vida, causa 25% mais dano e recebe 20% menos dano.",
-                        "flavorText": "Cada ferida acrescenta um novo instrumento à orquestra.",
                         "metalReference": "Megadeth — Symphony of Destruction",
-                        "iconText": "SC",
                         "tags": [
                             "low_health",
                             "damage",
@@ -276,11 +252,7 @@
                 {
                     "id": "bestialis.bestial_transformation",
                     "presentation": {
-                        "name": "Mestre das Feras",
-                        "description": "A Furia Bestial causa 25% mais dano quando estiver desbloqueada por uma Bencao de Sangue.",
-                        "flavorText": "A fera não serve a Virgil; ambos obedecem à mesma fome.",
                         "metalReference": "Metallica — Master of Puppets",
-                        "iconText": "MF",
                         "tags": [
                             "passive",
                             "fury",
@@ -317,11 +289,7 @@
                 {
                     "id": "bestialis.blood_hunt",
                     "presentation": {
-                        "name": "Chuva Rubra",
-                        "description": "Durante a Furia Bestial, inimigos derrotados concedem 30% mais Moedas de Sangue.",
-                        "flavorText": "Quando o céu sangra, a caça finalmente começa.",
                         "metalReference": "Slayer — Raining Blood",
-                        "iconText": "CR",
                         "tags": [
                             "fury",
                             "economy",
@@ -365,11 +333,7 @@
                 {
                     "id": "humanitas.survival_instinct",
                     "presentation": {
-                        "name": "A Última Resistência",
-                        "description": "Adiciona 20 pontos de vida maxima por nivel.",
-                        "flavorText": "Quando todos recuam, Virgil finca os pés no chão.",
                         "metalReference": "Sabaton — The Last Stand",
-                        "iconText": "UR",
                         "tags": [
                             "low_health",
                             "speed",
@@ -404,11 +368,7 @@
                 {
                     "id": "humanitas.thick_skin",
                     "presentation": {
-                        "name": "Mais Forte que o Aço",
-                        "description": "Reduz todo o dano recebido em 4% por nivel.",
-                        "flavorText": "Carne falha. Convicção temperada não.",
                         "metalReference": "Pantera — Stronger Than All; Judas Priest — British Steel",
-                        "iconText": "FA",
                         "tags": [
                             "max_health",
                             "defense",
@@ -445,11 +405,7 @@
                 {
                     "id": "humanitas.methodical_recovery",
                     "presentation": {
-                        "name": "De Botas até a Morte",
-                        "description": "Ao concluir uma sala, restaura 3 pontos de vida por nivel.",
-                        "flavorText": "Descansar é permitido. Cair descalço, jamais.",
                         "metalReference": "Iron Maiden — Die With Your Boots On",
-                        "iconText": "BM",
                         "tags": [
                             "heal",
                             "room_clear",
@@ -486,11 +442,7 @@
                 {
                     "id": "humanitas.pocket_watch",
                     "presentation": {
-                        "name": "Guardião das Horas",
-                        "description": "Efeitos temporarios de bencaos e a Furia Bestial duram 10% mais por nivel.",
-                        "flavorText": "Sete chaves guardam o tempo; uma oitava abre a fuga.",
                         "metalReference": "Helloween — Keeper of the Seven Keys",
-                        "iconText": "GH",
                         "tags": [
                             "duration",
                             "artifacts",
@@ -528,11 +480,7 @@
                 {
                     "id": "humanitas.iron_will",
                     "presentation": {
-                        "name": "Vontade de Ferro",
-                        "description": "Abaixo de 30% de vida, recebe 10% menos dano por nivel.",
-                        "flavorText": "A donzela pode ser de ferro; a vontade precisa ser ainda mais dura.",
                         "metalReference": "Iron Maiden — referência ao nome da banda",
-                        "iconText": "VF",
                         "tags": [
                             "low_health",
                             "damage_reduction",
@@ -571,11 +519,7 @@
                 {
                     "id": "humanitas.collector_eye",
                     "presentation": {
-                        "name": "Ás das Relíquias",
-                        "description": "Aumenta em 5 pontos percentuais por nivel a chance de o Altar de Artefatos oferecer uma quarta opcao apos derrotar um chefe.",
-                        "flavorText": "No baralho do castelo, Virgil sempre guarda um ás na manga.",
                         "metalReference": "Motörhead — Ace of Spades",
-                        "iconText": "AR",
                         "tags": [
                             "artifact",
                             "drop_chance",
@@ -612,11 +556,7 @@
                 {
                     "id": "humanitas.rewritten_fate",
                     "presentation": {
-                        "name": "Espelho do Destino",
-                        "description": "Permite trocar uma oferta de artefato ou bencao uma vez por mapa.",
-                        "flavorText": "O espelho mente. Virgil aprendeu a mentir de volta.",
                         "metalReference": "Blind Guardian — Mirror Mirror",
-                        "iconText": "ED",
                         "tags": [
                             "reroll",
                             "artifact",
@@ -658,11 +598,7 @@
                 {
                     "id": "humanitas.last_stand",
                     "presentation": {
-                        "name": "Entre o Céu e o Inferno",
-                        "description": "Uma vez por run, revive ao sofrer dano fatal e restaura 50% da vida maxima, continuando a mesma run.",
-                        "flavorText": "Nem o céu o aceita. Nem o inferno consegue mantê-lo.",
                         "metalReference": "Black Sabbath — Heaven and Hell",
-                        "iconText": "CI",
                         "tags": [
                             "death_defiance",
                             "heal",

@@ -9,8 +9,9 @@
 - `scripts/player/BloodBlessingRuntime.cs`: comportamentos condicionais e reações a combate/movimento/cura.
 - `scripts/player/PlayerCombat.cs`: ataque básico, rápido, especial e Fúria Bestial.
 - `scripts/player/PlayerController.cs`, `scripts/combat/Health.cs` e `scripts/enemies/EnemyBasic.cs`: consumidores adicionais.
-- `scripts/systems/artifacts/ArtifactEffectRegistry.cs`: nomes amigáveis também usados na formatação das bênçãos.
-- `scripts/ui/HUD.cs`: oferta, formatação e compêndio.
+- `scripts/systems/artifacts/ArtifactEffectRegistry.cs`: tipos conhecidos e formatação de valores; nomes amigáveis em `content.json` (`artifact.effect.<Tipo>`).
+- `data/localization/<idioma>/content.json`: nome, descrição (modelo) e flavor de cada bênção.
+- `scripts/ui/HUD.BlessingOffer.cs`, `HUD.BlessingBar.cs`, `HUD.CharacterSheet.cs`, `HUD.Compendium.cs`: oferta, barra, ficha e compêndio (só chamam `BloodBlessingText`).
 
 ## Moveset obrigatório
 
@@ -23,7 +24,24 @@ As bênçãos são a camada temporária que altera diretamente esses ataques. Ma
 
 ## Forma da entrada
 
-Campos principais: `id`, `name`, `family`, `rarity`, `weight`, `maxStacks`, `description`, `flavorText`, `tags` e `effects`.
+Campos principais: `id`, `family`, `rarity`, `weight`, `maxStacks`, `tags` e `effects` (mais `exclusiveGroup`, `parentFamilies`, `requiresAnyEffects`/`requiresAllEffects` e `icon` quando aplicáveis). O catálogo **não** guarda texto: `name`, `description` e `flavorText` no JSON são erro no validador.
+
+## Textos (localização)
+
+Nome, descrição e flavor ficam em `data/localization/<idioma>/content.json` (`pt-BR`, `en`, `es`, sempre os três), com chaves derivadas do ID:
+
+- `blessing.<id>.name`, `blessing.<id>.desc`, `blessing.<id>.flavor`;
+- `artifact.effect.<Tipo>`: nome amigável de cada `type` de efeito (compartilhado com artefatos; o tipo também deve constar em `KnownTypes` do `ArtifactEffectRegistry`);
+- `blessing.keyword.<kw>.term` / `.hint`: termo e explicação do glossário da oferta;
+- `blessing.family.<familia>.theme`: tema da linhagem. Os nomes das linhagens (Dracul, Bathory, Karnstein, Orlok, Stirps) não se traduzem e continuam no campo `families[].name`.
+
+A descrição é um **modelo**:
+
+- `{n}` recebe o valor exibido do efeito de índice `n` (base × raridade × nível × tuning do compêndio; em `%` quando a operação contém `Multiplier`, o tipo contém `Chance` ou o tipo é fracionário em `ArtifactEffectRegistry.FlatPercentTypes`; o sinal fica no texto, ex.: "{0} menos dano"). Efeitos booleanos/`Set`/`SetBool` não têm valor: não usar `{n}` para eles. Os três idiomas precisam usar os mesmos índices.
+- Parâmetros estruturais (duração, limiar, acúmulos) que não escalam ficam escritos no texto de cada idioma.
+- Palavras-chave são marcadas na própria string: `[kw=<id>]texto[/kw]`, com `<id>` em `basic_attack`, `quick_attack`, `special_attack`, `fury`, `bleed`, `pestilence`, `barrier`, `fascination`, `host`, `interrupt`, `wound`, `charm`. A UI converte em BBCode colorido e monta o glossário (`BloodBlessingText.FormatKeywords`/`CollectKeywords`); tooltips recebem o texto sem marcação. Id novo exige cor em `BloodBlessingText.KeywordStyles`, chaves `.term`/`.hint` e entrada em `KEYWORD_IDS` do validador.
+
+A montagem fica em `BloodBlessingText.FormatDescription` (`scripts/systems/blessings/BloodBlessingDefinition.cs`); `BloodBlessingDefinition.DisplayName`/`Description`/`FlavorText` resolvem a chave no idioma atual a cada leitura (a troca de idioma vale sem recarregar o catálogo). `BloodBlessingRecord.Name` é só o nome no momento da aquisição; para exibir use `DisplayName`.
 
 O arquivo é JSONC: `BloodBlessingCatalog` ignora comentários e vírgulas finais, e o validador local remove `//` e `/* ... */` antes do parse. Para desativar sem perder conteúdo, comentar o objeto inteiro. O pool atual possui 63 entradas ativas: 15 Dracul, 15 Bathory, 14 Orlok, 15 Karnstein e 4 Stirps.
 
