@@ -14,6 +14,8 @@ public partial class ScenePortal : Area3D
 
     // Mesmo valor de RoomGenerator.CellSize: as portas de recompensa ficam a +-1 celula do centro da saida.
     private const float DoorCellSize = 1.45f;
+    // Folga entre a face interna da parede e a face da moldura que olha para a sala (docs/design/portas-recompensas.md, 6.3).
+    public const float WallClearance = 0.05f;
     // Queda das barras ao fechar (barra com 2,25 m de altura, docs/design/portas-recompensas.md, 7.2).
     private const float DoorBarDrop = 2.3f;
 
@@ -146,9 +148,9 @@ public partial class ScenePortal : Area3D
     {
         // Sem título no portal (salas da run): prompt acima do lintel (~2,9 m). No hub, ancora no título irmão.
         _promptLabel = InteractPrompt.CreatePrompt(this, ResolvePromptText(), 3.2f);
-        // Porta de recompensa: o prompt tem duas linhas e fica acima do ícone da porta (RewardIcon, 3,1 m).
+        // Porta de recompensa: o prompt (uma ou duas linhas) fica acima do medalhão (RewardIcon, centro a 3,5 m; topo do brilho ~4,1 m).
         if (RewardDoor != null)
-            _promptLabel.Position = Vector3.Up * 3.9f;
+            _promptLabel.Position = Vector3.Up * 4.45f;
         InteractPrompt.StyleSiblingTitlesAndAnchor(this, _promptLabel);
     }
 
@@ -223,8 +225,50 @@ public partial class ScenePortal : Area3D
     }
 
     /// <summary>
+    /// Base de uma porta encostada numa parede: +Z local aponta para dentro da sala (<paramref name="inward"/>), +Y para cima
+    /// e +X ao longo da parede. Assim a frente do arco e do ícone olha para a sala, e as duas portas de um conjunto ficam
+    /// lado a lado ao longo da parede (±X local).
+    /// </summary>
+    public static Basis WallBasis(Vector3 inward)
+    {
+        var forward = new Vector3(inward.X, 0.0f, inward.Z).Normalized();
+        var right = Vector3.Up.Cross(forward);
+        return new Basis(right, Vector3.Up, forward);
+    }
+
+    /// <summary>
+    /// Põe o modelo de saída (template) encostado na face interna da parede, com a frente voltada para a sala.
+    /// <paramref name="wallCenterline"/> é o centro da espessura da parede; a face da moldura que olha para a sala
+    /// fica <see cref="WallClearance"/> m à frente da face interna (sem atravessar a parede). A origem do modelo é o
+    /// centro da profundidade da moldura, então ela recua metade da profundidade a partir dessa face.
+    /// </summary>
+    public static void PlaceOnWall(Node3D template, Vector3 wallCenterline, Vector3 inward, float wallThickness)
+    {
+        var basis = WallBasis(inward);
+        // basis.Z é a direção horizontal para dentro da sala (ver WallBasis).
+        var towardRoom = basis.Z;
+        var frontFromCenterline = wallThickness * 0.5f + WallClearance;
+        var originFromCenterline = frontFromCenterline - FrameDepth(template) * 0.5f;
+        template.Transform = new Transform3D(basis, wallCenterline + towardRoom * originFromCenterline);
+    }
+
+    // Profundidade da moldura do template (Z do pilar), em metros. Fallback = profundidade de TestArena.tscn.
+    private static float FrameDepth(Node3D template)
+    {
+        foreach (var child in template.GetChildren())
+        {
+            if (child is MeshInstance3D piece
+                && piece.Name.ToString().StartsWith("Pillar", StringComparison.Ordinal)
+                && piece.Mesh is BoxMesh box)
+                return box.Size.Z;
+        }
+        return 0.42f;
+    }
+
+    /// <summary>
     /// Monta as portas de recompensa de uma saída a partir do portal modelo (docs/design/portas-recompensas.md, 6.3).
-    /// Uma porta fica no centro do modelo; duas ficam a ±1 célula, com a moldura em 60% da largura.
+    /// Uma porta fica no centro do modelo; duas ficam a ±1 célula ao longo da base do modelo (+X = direita de quem olha
+    /// a porta de frente, ver WallBasis), com a moldura em 60% da largura. Quem chama põe o modelo na parede com PlaceOnWall.
     /// Cada porta vira a raiz "RewardDoor_i" (com a moldura copiada, um ícone provisório e o ScenePortal "PortalArea").
     /// O modelo fica escondido. Devolve as portas na ordem de <see cref="RoomRewardSet.Doors"/> (0 = esquerda).
     /// <paramref name="startEnabled"/> = false deixa as portas travadas até a recompensa ser resolvida.
@@ -252,7 +296,8 @@ public partial class ScenePortal : Area3D
             };
             parent.AddChild(root);
             CopyDoorFrame(template, root, frameScale);
-            AddRewardIcon(root, set.Doors[i]);
+            // Rótulo do medalhão para fora do conjunto: a porta da esquerda o põe à esquerda, a da direita à direita.
+            AddRewardIcon(root, set.Doors[i], lateral < 0.0f ? -1 : 1);
             doors.Add(CreateDoorArea(templatePortal, root, set.Doors[i], targetScenePath, action, startEnabled));
         }
 
@@ -309,12 +354,13 @@ public partial class ScenePortal : Area3D
         return area;
     }
 
-    // Ícone provisório (a arte é da T4): geometria e rótulo por tipo em DoorRewardIcon, docs/design/portas-recompensas.md, secao 8.
-    private static void AddRewardIcon(Node3D root, RoomRewardDoor door)
+    // Medalhão da porta: por tipo em DoorRewardIcon (na Bênção, o ícone da família sorteada), docs/design/portas-recompensas.md, secao 8.
+    // Centro a 3,5 m: o lintel do modelo vai até ~2,87 m; o disco visível tem raio ~0,54 m, então a borda inferior fica ~3,0 m (acima do lintel).
+    private static void AddRewardIcon(Node3D root, RoomRewardDoor door, int labelSide)
     {
-        var icon = new Node3D { Name = "RewardIcon", Position = new Vector3(0.0f, 3.1f, 0.0f) };
+        var icon = new Node3D { Name = "RewardIcon", Position = new Vector3(0.0f, 3.5f, 0.0f) };
         root.AddChild(icon);
-        DoorRewardIcon.Populate(icon, door);
+        DoorRewardIcon.PopulateDoor(icon, door, labelSide);
     }
 
     private static string RewardDoorPromptText(RoomRewardDoor door)
@@ -324,8 +370,9 @@ public partial class ScenePortal : Area3D
         switch (door.Type)
         {
             case RoomRewardType.Blessing:
-                label = Localization.Text("reward.door.blessing.short");
-                hint = Localization.Text("reward.door.blessing.hint");
+                // "Atravessar: Bênção <Família>": com plano, a família já diz o que vem (sem lista de nomes); sem plano, o texto genérico.
+                label = DoorRewardIcon.ShortLabel(door);
+                hint = string.IsNullOrEmpty(door.BlessingPlan?.Family) ? Localization.Text("reward.door.blessing.hint") : null;
                 break;
             case RoomRewardType.DevilsFruit:
                 label = Localization.Text("reward.door.fruit.short");
@@ -336,7 +383,8 @@ public partial class ScenePortal : Area3D
                 hint = Localization.TextFormat("reward.door.coins.hint", door.CoinAmount);
                 break;
         }
-        return Localization.TextFormat("reward.door.prompt", label) + "\n" + hint;
+        var prompt = Localization.TextFormat("reward.door.prompt", label);
+        return hint == null ? prompt : prompt + "\n" + hint;
     }
 
     private static List<MeshInstance3D> BarsOf(Node3D root)

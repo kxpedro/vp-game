@@ -314,7 +314,20 @@ public partial class HUD
 	private void BuildBloodBlessingChoices()
 	{
 		var rng = new RandomNumberGenerator(); rng.Randomize();
-		var choices = BloodBlessingCatalog.RollOffers(rng, 3, out var family, RunState.RunBlessings.Count == 0);
+		// Bênção de porta (RunState.TakeDeliveredBlessingPlan): as 3 opções que o jogador viu na porta, reamostradas
+		// só nas que a run já ganhou ou que não são mais elegíveis. Sem plano (Fonte, início da run) e no reroll: sorteio normal.
+		var guaranteeBasicAttack = RunState.RunBlessings.Count == 0;
+		var planned = RunState.TakeDeliveredBlessingPlan();
+		List<BloodBlessingOffer> choices;
+		string family;
+		if (planned != null)
+		{
+			choices = BloodBlessingCatalog.ReviewPlannedOffers(rng, planned.Offers, planned.Family, guaranteeBasicAttack, out var replacedCount);
+			family = planned.Family;
+			GD.Print($"Porta de Bênção: {replacedCount} de {planned.Offers.Count} opções reamostradas (linhagem {family}).");
+		}
+		else
+			choices = BloodBlessingCatalog.RollOffers(rng, 3, out family, guaranteeBasicAttack);
 		if (choices.Count == 0)
 		{
 			// Sem bênção nova para oferecer: o sangue vira Moedas no SALDO DA RUN (economy.coins.blessing_fallback, padrão 75).

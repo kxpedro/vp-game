@@ -82,6 +82,10 @@ public partial class IntermissionChamber : Node3D
         var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
         if (exit == null || set == null)
             return;
+        // Parede norte (NorthWall, sala de 24x24) virada para dentro (+Z). Sem conjunto (mapa 4), a saída única fica onde está.
+        var wall = GetNode<Node3D>("NorthWall");
+        var thickness = (wall.GetNode<CollisionShape3D>("Collision").Shape as BoxShape3D)?.Size.Z ?? 0.45f;
+        ScenePortal.PlaceOnWall(exit, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
         ScenePortal.BuildRewardDoors(exit, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);
     }
 

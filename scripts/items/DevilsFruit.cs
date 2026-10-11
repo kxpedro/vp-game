@@ -1,20 +1,23 @@
 using Godot;
 
 /// <summary>
-/// Fruta do Diabo: fruto de sangue coagulado. Coletada ao encostar (grupo "player"), soma vida maxima so na run
-/// (RunState.AddDevilsFruit) e cura o jogador. Visual provisorio em geometria. Reutilizavel via DevilsFruit.Spawn
-/// (boss, portas de recompensa, loja).
+/// Fruta do Diabo: fruto de sangue coagulado. Coletada por interação (tecla "interact") com o jogador na área, com o
+/// prompt "Pegar: Fruta" (InteractPrompt). Soma vida maxima so na run (RunState.AddDevilsFruit) e cura o jogador.
+/// Visual provisorio em geometria. Reutilizavel via DevilsFruit.Spawn (boss, portas de recompensa, loja).
 /// </summary>
 public partial class DevilsFruit : Area3D
 {
-    // Emitido ao ser coletada. As portas de recompensa (RunManager) esperam por ele quando a sala paga Fruta.
+    // Emitido ao ser coletada. As recompensas de sala (RunManager) esperam por ele quando a sala paga Fruta.
     [Signal]
     public delegate void CollectedEventHandler();
 
     private const float PickupRadius = 0.9f;
     private const float HoverHeight = 0.9f;
+    private const float PromptHeight = 1.9f;
 
     private Node3D _visual;
+    private Label3D _promptLabel;
+    private Node3D _playerBody;
     private float _time;
     private bool _collected;
 
@@ -48,7 +51,17 @@ public partial class DevilsFruit : Area3D
 
         BuildVisual();
         _time = GD.Randf() * Mathf.Tau;
+        _promptLabel = InteractPrompt.CreatePrompt(this, PromptText(), PromptHeight);
         BodyEntered += OnBodyEntered;
+        BodyExited += OnBodyExited;
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged += OnLanguageChanged;
+    }
+
+    public override void _ExitTree()
+    {
+        if (Localization.Instance != null)
+            Localization.Instance.LanguageChanged -= OnLanguageChanged;
     }
 
     public override void _Process(double delta)
@@ -59,6 +72,17 @@ public partial class DevilsFruit : Area3D
         _time += (float)delta;
         _visual.Position = new Vector3(0.0f, HoverHeight + Mathf.Sin(_time * 2.2f) * 0.1f, 0.0f);
         _visual.RotateY((float)delta * 1.1f);
+
+        if (!_collected && _playerBody != null && IsInstanceValid(_playerBody) && InteractPrompt.ConsumeInteract(this))
+            TryCollect();
+    }
+
+    private string PromptText() => Localization.TextFormat("reward.pickup.prompt", Localization.Text("reward.door.fruit.short"));
+
+    private void OnLanguageChanged(string language)
+    {
+        if (_promptLabel != null)
+            InteractPrompt.SetText(_promptLabel, PromptText());
     }
 
     private void BuildVisual()
@@ -111,12 +135,35 @@ public partial class DevilsFruit : Area3D
         if (_collected || !body.IsInGroup("player"))
             return;
 
-        var health = body.GetNodeOrNull<Health>("Health");
+        _playerBody = body;
+        UpdatePromptVisibility();
+    }
+
+    private void OnBodyExited(Node3D body)
+    {
+        if (!body.IsInGroup("player"))
+            return;
+
+        if (ReferenceEquals(body, _playerBody))
+            _playerBody = null;
+        UpdatePromptVisibility();
+    }
+
+    private void UpdatePromptVisibility()
+    {
+        if (_promptLabel != null)
+            _promptLabel.Visible = !_collected && _playerBody != null;
+    }
+
+    private void TryCollect()
+    {
+        var health = _playerBody.GetNodeOrNull<Health>("Health");
         if (health != null && health.IsDead)
             return;
 
         _collected = true;
-        Collect(body as PlayerController, health);
+        UpdatePromptVisibility();
+        Collect(_playerBody as PlayerController, health);
     }
 
     private void Collect(PlayerController player, Health health)

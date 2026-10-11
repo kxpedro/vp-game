@@ -67,7 +67,9 @@ public partial class CrowsNestCrypt : Node3D
         const string root = "res://assets/environment/quaternius_medieval_dungeon/";
 
         PlaceDecoration(root + "Carpet.fbx", "CentralCarpet", new Vector3(0.0f, 0.02f, 0.0f), 6.4f);
-        PlaceDecoration(root + "Entrance.fbx", "RunPortalArch", new Vector3(0.0f, 0.0f, -12.3f), 4.8f);
+        // Entrance.fbx tem as pernas ao longo de Z. A câmera isométrica olha a 45° de yaw: com 135° o arco fica de frente
+        // para ela (simétrico, disco do portal no meio das pernas). Com 0° ou 90° ele aparece na diagonal, "torto".
+        PlaceDecoration(root + "Entrance.fbx", "RunPortalArch", new Vector3(0.0f, 0.0f, -12.3f), 4.8f, 135.0f);
         PlaceDecoration(root + "Book_Open.fbx", "WeaponLoreBook", new Vector3(-10.0f, 0.69f, 0.0f), 0.62f, 90.0f);
         PlaceDecoration(root + "Bones.fbx", "CryptBonesWest", new Vector3(-3.15f, 0.02f, 10.15f), 1.7f, 18.0f);
         PlaceDecoration(root + "Bones.fbx", "CryptBonesEast", new Vector3(3.2f, 0.02f, 10.1f), 1.45f, -24.0f);

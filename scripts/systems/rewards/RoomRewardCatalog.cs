@@ -14,9 +14,14 @@ public enum RoomRewardType
     Coins
 }
 
+// Opcoes pre-sorteadas de uma porta de Bencao: a linhagem sorteada e as bencoes (com raridade ja rolada), na ordem
+// em que aparecem no prompt e no ícone da porta. A oferta ao pegar a recompensa usa estas opcoes (RunState, HUD).
+public sealed record RoomBlessingPlan(string Family, IReadOnlyList<BloodBlessingOffer> Offers);
+
 // Uma porta do conjunto. MapIndex e o mapa que recebe a sala (define o valor de moedas).
 // CoinAmount so tem valor quando Type == Coins; nos outros tipos e 0.
-public sealed record RoomRewardDoor(RoomRewardType Type, int MapIndex, int CoinAmount);
+// BlessingPlan so e preenchido na porta de Bencao (null nos demais tipos e quando nao ha bencao para oferecer).
+public sealed record RoomRewardDoor(RoomRewardType Type, int MapIndex, int CoinAmount, RoomBlessingPlan BlessingPlan = null);
 
 // Conjunto de portas (CP) de uma saida. OriginRoom 0 = entrada do mapa (Sala Inicial ou Camara).
 // Doors[0] fica a esquerda e Doors[1] a direita (ordem ja sorteada 50/50 quando ha duas portas).
@@ -56,6 +61,9 @@ public static class RoomRewardCatalog
     private const int DefaultFruitRunCapFromDoors = 3;
 
     private const float DoorSwapChance = 0.5f;
+
+    // Quantidade de bencaos pre-sorteadas por porta de Bencao (mesmo tamanho da oferta da Fonte de Sangue).
+    private const int BlessingPlanSize = 3;
 
     /// <summary>Teto de Frutas do Diabo de porta por run (economy.fruit.run_cap_from_doors).</summary>
     public static int FruitDoorRunCap => CompendiumTuning.GetInt("economy.fruit.run_cap_from_doors", DefaultFruitRunCapFromDoors);
@@ -134,6 +142,32 @@ public static class RoomRewardCatalog
             doors.Add(new RoomRewardDoor(type, mapIndex, type == RoomRewardType.Coins ? CoinPackAmount(mapIndex) : 0));
 
         return new RoomRewardSet(mapIndex, originRoom, doors);
+    }
+
+    /// <summary>
+    /// Pre-sorteia as bencaos de uma porta de Bencao (mesma regra da Fonte de Sangue: uma linhagem, sem repetir, com
+    /// a garantia de ataque basico quando a run ainda nao tem bencao). Devolve null se nao houver nenhuma para oferecer.
+    /// Chamar ao criar o conjunto (RunState.GetOrRollRoomRewardSet), nao ao abrir a oferta.
+    /// </summary>
+    public static RoomBlessingPlan PlanBlessings(RandomNumberGenerator rng, bool guaranteeBasicAttack)
+    {
+        if (rng == null)
+            return null;
+
+        var offers = BloodBlessingCatalog.RollOffers(rng, BlessingPlanSize, out var family, guaranteeBasicAttack);
+        return offers.Count == 0 ? null : new RoomBlessingPlan(family, offers);
+    }
+
+    /// <summary>Devolve o conjunto com o plano de bencaos gravado na porta de Bencao (as demais portas ficam iguais).</summary>
+    public static RoomRewardSet WithBlessingPlan(RoomRewardSet set, RoomBlessingPlan plan)
+    {
+        if (set == null || plan == null || !set.HasBlessing)
+            return set;
+
+        var doors = new List<RoomRewardDoor>(set.Doors.Count);
+        foreach (var door in set.Doors)
+            doors.Add(door.Type == RoomRewardType.Blessing ? door with { BlessingPlan = plan } : door);
+        return set with { Doors = doors };
     }
 
     private static bool TryDrawType(
