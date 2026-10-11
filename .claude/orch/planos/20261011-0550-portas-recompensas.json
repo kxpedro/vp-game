@@ -2,7 +2,7 @@
   "schema": "orch.plano/1",
   "id": "20261011-0550-portas-recompensas",
   "titulo": "Portas com recompensa visível (fase 2): ícone da recompensa da próxima sala na porta, como no Hades",
-  "status": "planejado",
+  "status": "concluido",
   "demanda": "Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.",
   "objetivo": "Cada sala limpa abre 1 ou 2 portas (quantidade e tipos por RNG); cada porta exibe o ícone do tipo de recompensa da sala seguinte (Bênção de Sangue, Fruta do Diabo ou Moedas de Sangue) e a recompensa da sala é a da porta que o jogador escolheu.",
   "grupo": "20261011-0550-economia-recompensas",
@@ -10,7 +10,7 @@
     "20261011-0550-economia-recompensas"
   ],
   "criado": "2026-10-11T05:50:00-03:00",
-  "atualizado": "2026-10-11T05:50:00-03:00",
+  "atualizado": "2026-10-11T17:07:19-03:00",
   "commitInicial": "3c2e257",
   "versaoOrch": "0.5.0",
   "ondas": [
@@ -37,11 +37,11 @@
         "docs/design/portas-recompensas.md"
       ],
       "prontoQuando": "Documento com tabelas e regras, sem número sem justificativa.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T16:33:24-03:00",
+      "fim": "2026-10-11T16:46:03-03:00",
+      "tentativas": 1,
+      "resultado": "docs/design/portas-recompensas.md criado: conjunto de portas por saida de sala (24 por run), 1 ou 2 portas (base 30/35/40% por mapa), pesos Bencao/Fruta/Moedas por mapa, pity de Bencao, moedas de porta 150/130/110, fruta de porta ~15% das CPs com teto ajustado de 4 para 3. Duas opcoes de progressao para o usuario decidir: A (recomendada: 22 ofertas de Bencao por run) ou B (25 ofertas, com Fruta e Moedas so na segunda porta). Simulacao Monte Carlo em arquivos temporarios (fora do repo). Nada de codigo alterado.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -60,11 +60,11 @@
         "data/localization/*/content.json"
       ],
       "prontoQuando": "Build 0/0; rolagem reprodutível por seed verificada em preview/smoke; validadores sem erro.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T16:49:03-03:00",
+      "fim": "2026-10-11T16:53:41-03:00",
+      "tentativas": 1,
+      "resultado": "RoomRewardCatalog (static, rolagem pura da secao 7.4 na Opcao B: Bencao em toda CP, Fruta/Moedas na 2a porta, pity e teto 3 de frutas) e RunState (conjunto por sala guardado na run, escolha pendente, contadores, semente da run; zera em StartRun/FailRun/campanha). Textos reward.type.* nos 3 idiomas. Build 0/0; localizacao 0/0. Simulacao Python de 1000 runs: 25 ofertas de Bencao, 10,5 CPs com 2 portas, teto de frutas atingido em 19%. Pendencias: teto 3 a confirmar; secoes 9.3 e 11 do documento ainda com numeros da Opcao A; reward.door.* e hud.room.choose_door ficam para T3/T4; reproducao por semente no Godot nao verificada.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -86,11 +86,11 @@
         "data/localization/*/world.json"
       ],
       "prontoQuando": "Sala limpa abre portas com tipo; a recompensa entregue bate com a porta; build e smokes limpos.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T16:53:41-03:00",
+      "fim": "2026-10-11T17:04:02-03:00",
+      "tentativas": 1,
+      "resultado": "Portas de recompensa criadas em codigo a partir do ExitPortal (ScenePortal.BuildRewardDoors, 1 ou 2 portas, moldura a 60% com 2 portas), escolha grava RunState.ChooseRoomRewardDoor antes da troca de cena, outra porta fecha em 0,3 s; RunManager.CompleteRoom consome a pendencia e entrega (Bencao abre oferta, Fruta spawna e trava portas, Moedas creditam); Sala Inicial e Camara montam conjunto de origem 0; boss e mapa 4 sem conjunto. DevilsFruit ganhou sinal Collected. 9 chaves em world.json. Build 0/0; validador 0 erros, 1 aviso (hud.room.choose_door sem uso). Godot nao aberto: fluxo conferido so por leitura. Pendencias de teste em jogo: leitura das duas portas, fruta entre as portas, Camara sem invadir paredes, prompt de porta.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -106,14 +106,15 @@
       "arquivos": [
         "scripts/systems/DoorRewardIcon.cs",
         "scripts/systems/ScenePortal.cs",
-        "data/localization/*/ui.json"
+        "data/localization/*/ui.json",
+        "scripts/ui/HUD.Notifications.cs (so o aviso de sala limpa)"
       ],
       "prontoQuando": "Capturas (uma rodada de `--ui-batch`/preview) mostram os 3 tipos distinguíveis com 1 e 2 portas e o rótulo nos 3 idiomas.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T17:04:02-03:00",
+      "fim": "2026-10-11T17:07:19-03:00",
+      "tentativas": 1,
+      "resultado": "DoorRewardIcon (NOVO): icones provisorios por tipo (losango dourado, esfera vermelha com haste emissiva so na fruta, pilha de discos bronze) + rotulo curto localizado; ScenePortal.AddRewardIcon so cria o ponto de encaixe; HUD.Notifications mostra hud.room.choose_door quando a sala tem portas (NotifyPortalOpened mantido). Build 0/0; validador 0/0 (aviso de choose_door resolvido). Sem checagem visual (Godot nao aberto). DoorRewardIcon.cs.uid nao gerado (o Godot gera ao abrir o projeto). Pendencias: toast hud.toast.portal_open e log 'O portal de saida foi aberto' ainda dizem portal aberto com portas de recompensa; decisao do usuario.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -126,7 +127,91 @@
       "tarefa": null,
       "tipo": "plano-criado",
       "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T16:33:24-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Execucao iniciada pelo orquestrador (orch 0.5.0)"
+    },
+    {
+      "quando": "2026-10-11T16:33:24-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "T1 iniciada por game-designer"
+    },
+    {
+      "quando": "2026-10-11T16:46:03-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "T1 concluída por game-designer"
+    },
+    {
+      "quando": "2026-10-11T16:46:03-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Decisao pendente do usuario antes do T2: opcao A (22 ofertas de Bencao por run) ou B (25 ofertas). Tambem: teto de frutas de porta 4 -> 3 altera economia-v2 (sec. 5.2 e 9.3), que precisa de atualizacao."
+    },
+    {
+      "quando": "2026-10-11T16:49:03-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Decisao do usuario (Opcao B): toda sala tem Bencao em uma das portas (25 ofertas por run, como hoje); Fruta e Moedas aparecem so na segunda porta. O teto de frutas de porta (4 -> 3, economy.fruit.run_cap_from_doors) segue a proposta do T1 e fica a confirmar."
+    },
+    {
+      "quando": "2026-10-11T16:49:03-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "T2 iniciada por conteudo-run"
+    },
+    {
+      "quando": "2026-10-11T16:53:41-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "T2 concluída por conteudo-run"
+    },
+    {
+      "quando": "2026-10-11T16:53:41-03:00",
+      "tarefa": null,
+      "tipo": "replanejado",
+      "texto": "Pendencia para o usuario: teto de frutas de porta em 3 (ainda nao confirmado). Documento precisa de atualizacao nas secoes 9.3 e 11 para a Opcao B."
+    },
+    {
+      "quando": "2026-10-11T16:53:41-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "T3 iniciada por inimigos-e-bosses"
+    },
+    {
+      "quando": "2026-10-11T17:04:02-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "T3 concluída por inimigos-e-bosses"
+    },
+    {
+      "quando": "2026-10-11T17:04:02-03:00",
+      "tarefa": "T4",
+      "tipo": "replanejado",
+      "texto": "T4 escopo ampliado: HUD.Notifications.cs (so o aviso de sala limpa passa a usar hud.room.choose_door quando ha portas; hoje mostra Portal aberto), para resolver o aviso do validador."
+    },
+    {
+      "quando": "2026-10-11T17:04:02-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-iniciada",
+      "texto": "T4 iniciada por designer-ux-arte"
+    },
+    {
+      "quando": "2026-10-11T17:07:19-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-concluida",
+      "texto": "T4 concluída por designer-ux-arte"
+    },
+    {
+      "quando": "2026-10-11T17:07:19-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Plano concluido: 4/4 tarefas (T1 a T4), com checagem visual pendente de jogo"
     }
   ],
-  "resultadoFinal": null
+  "resultadoFinal": "Plano concluido. Entregue: docs/design/portas-recompensas.md (Opcao B escolhida pelo usuario); RoomRewardCatalog e estado da run por sala (conjunto, escolha pendente, pity, teto de frutas de porta em 3); portas de recompensa criadas a partir da saida (1 ou 2 por sala, escolha paga na sala seguinte, Fruta trava as portas ate ser coletada); icones provisorios com rotulo e aviso de escolha. Build 0 erros/0 avisos; validadores 0/0. Pendencias: teste em jogo (legibilidade e colisao das duas portas, Camara sem invadir paredes, fluxo completo), DoorRewardIcon.cs.uid a gerar, decisoes do usuario sobre o teto de frutas (3 ou 4) e o toast 'portal aberto'; docs/design/portas-recompensas.md (secoes 9.3 e 11) ainda com numeros da Opcao A; docs/gameplay_systems.md ainda sem as portas. Nada commitado ainda."
 }

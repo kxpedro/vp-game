@@ -26,6 +26,22 @@ public static class RunState
     private static bool _fatalProtectionConsumed;
     private static bool _skillFatalProtectionConsumed;
     private static int _skillRerollConsumedMap = -1;
+
+    // Portas com recompensa visivel (docs/design/portas-recompensas.md). Zeram em StartRun, FailRun e no fim da
+    // campanha; NAO zeram ao trocar de sala nem em recarga de cena (o conjunto sorteado fica guardado na run).
+    private static readonly System.Collections.Generic.Dictionary<(int MapIndex, int OriginRoom), RoomRewardSet> RoomRewardSets = new();
+    private static Godot.RandomNumberGenerator _rewardRng;
+    private static int _setsWithoutBlessing;
+    private static int _fruitDoorsChosen;
+    private static RoomRewardDoor _pendingRoomReward;
+    public static ulong RunSeed { get; private set; }
+    /// <summary>Porta escolhida, a ser paga ao limpar a sala que ela leva (null se nada estiver pendente).</summary>
+    public static RoomRewardDoor PendingRoomReward => _pendingRoomReward;
+    /// <summary>CPs seguidas sem Bencao (pity, RoomRewardCatalog.Roll).</summary>
+    public static int SetsWithoutBlessing => _setsWithoutBlessing;
+    /// <summary>Frutas do Diabo de porta escolhidas na run (teto em RoomRewardCatalog.FruitDoorRunCap).</summary>
+    public static int FruitDoorsChosen => _fruitDoorsChosen;
+
     private static float _killAttackSpeedBonus, _killAttackSpeedTimer, _moveOnHitBonus, _moveOnHitTimer;
     private static float _flawlessDamage, _flawlessLifeSteal, _fatalDamageBonus, _fatalDamageTimer, _healPenalty, _healPenaltyTimer;
     private static float _temporaryMoveSpeed, _temporaryCriticalChance, _temporaryCriticalDamage, _temporaryBuffTimer;
@@ -75,6 +91,8 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
+        SetRunSeed(((ulong)Godot.GD.Randi() << 32) | Godot.GD.Randi());
         CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
     }
 
@@ -117,6 +135,7 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
     }
 
     public static void FailRun()
@@ -143,6 +162,85 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
+    }
+
+    /// <summary>
+    /// Semente das recompensas de porta. StartRun sorteia uma nova; use SetRunSeed para reproduzir uma run
+    /// (mesma semente + mesma ordem de saidas = mesmas portas).
+    /// </summary>
+    public static void SetRunSeed(ulong seed)
+    {
+        RunSeed = seed;
+        RewardRandom().Seed = seed;
+    }
+
+    /// <summary>Conjunto de portas guardado para a saida (mapIndex, originRoom), ou null se ainda nao foi sorteado.</summary>
+    public static RoomRewardSet GetRoomRewardSet(int mapIndex, int originRoom)
+        => RoomRewardSets.TryGetValue((mapIndex, originRoom), out var set) ? set : null;
+
+    /// <summary>
+    /// Devolve o conjunto da saida, sorteando e guardando na primeira vez. Chamar ao limpar a sala de origem
+    /// (origem 0 = entrada do mapa, na Sala Inicial ou na Camara), em ordem crescente de origem.
+    /// Devolve null se a origem nao tem CP (boss, mapa sem salas comuns).
+    /// </summary>
+    public static RoomRewardSet GetOrRollRoomRewardSet(int mapIndex, int originRoom)
+    {
+        var existing = GetRoomRewardSet(mapIndex, originRoom);
+        if (existing != null)
+            return existing;
+
+        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom());
+        if (set == null)
+            return null;
+
+        RoomRewardSets[(mapIndex, originRoom)] = set;
+        _setsWithoutBlessing = set.HasBlessing ? 0 : _setsWithoutBlessing + 1;
+        return set;
+    }
+
+    /// <summary>
+    /// Commit da escolha ao interagir com a porta: guarda a porta como recompensa pendente (paga ao limpar a sala
+    /// seguinte) e conta a Fruta de porta para o teto. Falha se ja houver recompensa pendente ou a porta for nula.
+    /// </summary>
+    public static bool ChooseRoomRewardDoor(RoomRewardDoor door)
+    {
+        if (door == null || _pendingRoomReward != null)
+            return false;
+
+        _pendingRoomReward = door;
+        if (door.Type == RoomRewardType.DevilsFruit)
+            _fruitDoorsChosen++;
+        return true;
+    }
+
+    /// <summary>
+    /// Entrega ao limpar a sala que a porta levou. Devolve a porta pendente e a limpa; null se nada estiver pendente
+    /// (chamadas repetidas nao pagam duas vezes).
+    /// </summary>
+    public static RoomRewardDoor ConsumePendingRoomReward()
+    {
+        var door = _pendingRoomReward;
+        _pendingRoomReward = null;
+        return door;
+    }
+
+    private static void ResetRoomRewards()
+    {
+        RoomRewardSets.Clear();
+        _setsWithoutBlessing = 0;
+        _fruitDoorsChosen = 0;
+        _pendingRoomReward = null;
+    }
+
+    private static Godot.RandomNumberGenerator RewardRandom()
+    {
+        if (_rewardRng == null)
+        {
+            _rewardRng = new Godot.RandomNumberGenerator();
+            _rewardRng.Randomize();
+        }
+        return _rewardRng;
     }
 
     public static void SavePlayerHealth(float currentHealth)

@@ -39,6 +39,9 @@ public partial class RunManager : Node3D
     private bool _roomRewardsPaid;
     private readonly RandomNumberGenerator _rng = new();
     private bool _roomConfigured;
+    // Portas de recompensa desta sala (docs/design/portas-recompensas.md). Vazia = saída única (sala de boss ou sala sem conjunto).
+    private readonly List<ScenePortal> _rewardDoors = new();
+    private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
     // Rotulos 3D com texto de world.json; reescritos quando o idioma muda.
     private readonly List<(Label3D Label, Func<string> Text)> _localizedLabels = new();
 
@@ -181,19 +184,108 @@ public partial class RunManager : Node3D
         GetTree().CallGroup("player_skills", "OnRoomCleared");
         GetTree().CallGroup("hud", "NotifyRoomCleared");
         var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        // Limpar a sala paga a porta escolhida na sala anterior (ConsumePendingRoomReward, idempotente) e monta o
+        // conjunto desta saida (docs/design/portas-recompensas.md, 7.4). A sala N (saida para o boss) e o boss nao tem conjunto.
+        var pending = RunState.ConsumePendingRoomReward();
         if (RunState.IsBossRoom)
         {
             // Sangue Amaldicoado e moedas do boss ja foram pagos em FlushDefeatBatch (QueueEnemyDefeat).
-            // Sem altar de artefato: fruta garantida (exceto no mapa final, que encerra a run) e portal aberto direto.
+            // Sem altar de artefato: fruta garantida (exceto no mapa final, que encerra a run) e saida liberada direto.
             SpawnBossFruit(mapIndex);
-            UnlockExitAfterReward();
+            ResolveRoomReward(pending);
         }
         else
         {
+            // As portas nascem travadas: abrem quando a recompensa desta sala for resolvida (ResolveRoomReward).
+            BuildRewardDoors(mapIndex);
             var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", new[] { 12, 14, 16, 0 }[mapIndex]);
             if (clearBonus > 0)
                 AddBloodCoins(clearBonus);
-            GetTree().CallGroup("hud", "OpenBloodBlessingOffer");
+            ResolveRoomReward(pending);
+        }
+    }
+
+    // Sorteia (ou recupera, se a cena foi recarregada) o conjunto de portas da saida desta sala e monta as portas travadas.
+    // Sem conjunto (sala N), nada muda: a saida continua unica e leva ao boss.
+    private void BuildRewardDoors(int mapIndex)
+    {
+        if (_exitPortal == null || _rewardDoors.Count > 0)
+            return;
+
+        var set = RunState.GetOrRollRoomRewardSet(mapIndex, RunState.CurrentRoom);
+        if (set == null)
+            return;
+
+        _rewardDoors.AddRange(ScenePortal.BuildRewardDoors(_exitPortal, set, RoomScenePath, ScenePortal.RunPortalAction.AdvanceRoom, false));
+        foreach (var door in _rewardDoors)
+            door.SetBarsMaterial(_lockedPortalMaterial);
+    }
+
+    // Entrega a recompensa da porta escolhida na sala anterior (ou nada) e libera a saida quando ela estiver resolvida.
+    // Bencao: a oferta chama UnlockExitAfterReward ao fechar (tambem no fallback sem bencao).
+    // Fruta: a saida espera a coleta (OnRewardFruitCollected). Moedas: paga e libera na hora.
+    private void ResolveRoomReward(RoomRewardDoor pending)
+    {
+        if (pending == null)
+        {
+            UnlockExitAfterReward();
+            return;
+        }
+
+        switch (pending.Type)
+        {
+            case RoomRewardType.Blessing:
+                GetTree().CallGroup("hud", "OpenBloodBlessingOffer");
+                break;
+            case RoomRewardType.DevilsFruit:
+            {
+                var fruit = DevilsFruit.Spawn(this, RewardFruitPosition());
+                fruit.Collected += OnRewardFruitCollected;
+                LockRewardDoorsForFruit();
+                break;
+            }
+            default:
+                AddBloodCoins(pending.CoinAmount);
+                UnlockExitAfterReward();
+                break;
+        }
+    }
+
+    // Mesmo ponto de recompensa da sala (RoomGenerator.GetArtifactSpawnPosition), ao nível do chão, como a fruta do boss.
+    private Vector3 RewardFruitPosition()
+    {
+        var position = _roomGenerator != null
+            ? _roomGenerator.GetArtifactSpawnPosition()
+            : (_exitPortal?.Position ?? Vector3.Zero);
+        position.Y = 0.15f;
+        return position;
+    }
+
+    // Chamado pelo sinal DevilsFruit.Collected da fruta paga por porta: libera a saída desta sala.
+    private void OnRewardFruitCollected()
+    {
+        UnlockExitAfterReward();
+    }
+
+    private void LockRewardDoorsForFruit()
+    {
+        foreach (var door in _rewardDoors)
+        {
+            if (IsInstanceValid(door))
+                door.SetFruitLockHint(true);
+        }
+    }
+
+    private void OpenRewardDoors()
+    {
+        foreach (var door in _rewardDoors)
+        {
+            if (!IsInstanceValid(door))
+                continue;
+            door.SetFruitLockHint(false);
+            door.SetBarsMaterial(_openPortalMaterial);
+            door.SetPortalEnabled(true);
+            door.PlayOpenPulse();
         }
     }
 
@@ -214,17 +306,26 @@ public partial class RunManager : Node3D
         }
     }
 
+    // Chamado pela oferta de bênção ao fechar (HUD.BlessingOffer, inclusive no fallback sem bênção) e pela coleta da fruta de porta.
+    // Com conjunto de portas, abre as portas; sem ele (boss, sala N), abre a saída única como antes.
     public void UnlockExitAfterReward()
     {
         if (_exitPortal == null) return;
-        ConfigureExitPortal();
-        SetPortalOpen(true);
+        if (_rewardDoors.Count > 0)
+        {
+            OpenRewardDoors();
+        }
+        else
+        {
+            ConfigureExitPortal();
+            SetPortalOpen(true);
+            var tween = _exitPortal.CreateTween();
+            _exitPortal.Scale = Vector3.One * 0.78f;
+            tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);
+            tween.TweenProperty(_exitPortal, "scale", Vector3.One, 0.12f);
+        }
         // HUD: título secundário "Sala limpa" → "Portal aberto" + toast (HUD.Notifications.cs, NotifyPortalOpened).
         GetTree().CallGroup("hud", "NotifyPortalOpened");
-        var tween = _exitPortal.CreateTween();
-        _exitPortal.Scale = Vector3.One * 0.78f;
-        tween.TweenProperty(_exitPortal, "scale", Vector3.One * 1.12f, 0.18f);
-        tween.TweenProperty(_exitPortal, "scale", Vector3.One, 0.12f);
     }
 
     private void ConfigureRoom()

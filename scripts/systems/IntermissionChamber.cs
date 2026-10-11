@@ -10,6 +10,8 @@ public partial class IntermissionChamber : Node3D
     [Export] public float FountainHealFraction { get; set; } = 0.35f;
     [Export] public float BlessingSacrificeFraction { get; set; } = 0.05f;
 
+    private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
+
     private PlayerController _player;
     private Health _health;
     private Area3D _fountainArea;
@@ -65,10 +67,22 @@ public partial class IntermissionChamber : Node3D
         BuildInterface();
         RefreshPrompts();
         RefreshStatus();
+        BuildRewardDoors();
         if (Localization.Instance != null)
             Localization.Instance.LanguageChanged += OnLanguageChanged;
         // Debug: --ui-preview=altar abre o altar com bênçãos fictícias (ver OpenPreviewScreen).
         UiPreview.Attach(this);
+    }
+
+    // Portas da entrada do mapa seguinte (origem 0, docs/design/portas-recompensas.md, 7.3). Não há recompensa pendente
+    // na Câmara (o boss não tem porta), então as portas já nascem abertas. Antes do mapa 4 não há conjunto: a saída é única.
+    private void BuildRewardDoors()
+    {
+        var exit = GetNodeOrNull<Node3D>("ExitPortal");
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
+        if (exit == null || set == null)
+            return;
+        ScenePortal.BuildRewardDoors(exit, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);
     }
 
     // Troca de idioma (pausa): reescreve título, rodapé do altar, estado e rótulos 3D. O altar aberto refaz os cards.

@@ -7,6 +7,10 @@ using Godot;
 /// </summary>
 public partial class DevilsFruit : Area3D
 {
+    // Emitido ao ser coletada. As portas de recompensa (RunManager) esperam por ele quando a sala paga Fruta.
+    [Signal]
+    public delegate void CollectedEventHandler();
+
     private const float PickupRadius = 0.9f;
     private const float HoverHeight = 0.9f;
 
@@ -130,6 +134,7 @@ public partial class DevilsFruit : Area3D
         GetTree().CallGroup("audio_manager", "PlayEffect", "treasure");
         GetTree().CallGroup("hud", "NotifySkillMessage",
             Localization.TextFormat("reward.devils_fruit.toast", Mathf.RoundToInt(maxHealthGain)));
+        EmitSignal(SignalName.Collected);
         QueueFree();
     }
 }

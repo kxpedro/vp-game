@@ -2,6 +2,8 @@ using Godot;
 
 public partial class RunStartBlessingRoom : Node3D
 {
+    private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
+
     private Area3D _fountainArea;
     private Label3D _fountainPrompt;
     private Node3D _exitPortalRoot;
@@ -70,6 +72,20 @@ public partial class RunStartBlessingRoom : Node3D
         _blessingClaimed = true;
         _offerOpened = true;
         _fountainPrompt.Visible = false;
+
+        // Entrada do mapa 1 (origem 0): sorteia o conjunto de portas (docs/design/portas-recompensas.md, 7.3).
+        // Reabrir a cena não rola de novo: o conjunto fica guardado na run.
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
+        var doors = set == null
+            ? null
+            : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);
+        if (doors is { Count: > 0 })
+        {
+            foreach (var door in doors)
+                door.PlayOpenPulse();
+            return;
+        }
+
         _exitPortal.SetPortalEnabled(true);
         var tween = _exitPortalRoot.CreateTween();
         _exitPortalRoot.Scale = Vector3.One * 0.78f;
