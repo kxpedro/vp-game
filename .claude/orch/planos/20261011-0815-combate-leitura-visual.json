@@ -1,0 +1,184 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261011-0815-combate-leitura-visual",
+  "titulo": "Animações de ataque e telegraph legíveis (jogador e inimigos)",
+  "status": "concluido",
+  "demanda": "Pedro (2026-10-11), texto colado: (1) analisar videos, imagens da gameplay do Hades e Sworn como referencia; verificar se o jogo e parecido mecanicamente, identificar e destacar as principais diferencas e se e possivel implementar; analisar toda e qualquer mecanica. (2) melhorar visualmente as animacoes de ataque do jogador e dos inimigos, deixar mais obvio quando um inimigo for atacar, usando Hades e Sworn como referencia. (3) desenvolver mecanica de dialogo, usando Hades como referencia. (4) focar um pouco nas configuracoes graficas do jogo, dar uma revisada.",
+  "objetivo": "Os ataques do jogador ganham anticipation, trail, hit-stop e feedback mais fortes; inimigos e bosses avisam claramente cada ataque (indicador no chão, cor por tipo, tempo de aviso, silhueta) no estilo Hades/Sworn, sem mudar dano nem balanceamento.",
+  "grupo": "20261011-0815-referencia-hades-sworn",
+  "dependeDosPlanos": [
+    "20261011-0815-referencia-hades-sworn"
+  ],
+  "criado": "2026-10-11T08:15:00-03:00",
+  "atualizado": "2026-10-11T10:40:00-03:00",
+  "commitInicial": "bd370e4",
+  "versaoOrch": "0.5.0",
+  "ondas": [
+    [
+      "T1"
+    ],
+    [
+      "T2",
+      "T3"
+    ],
+    [
+      "T4"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Auditar telegraphs e animações atuais de jogador, inimigos e bosses",
+      "executor": "orch:pesquisador",
+      "dependeDe": [],
+      "arquivos": [],
+      "prontoQuando": "Relatório do que existe hoje (EnemyBasic, BossController, EnemyProjectile, PlayerAnimator, PlayerWeaponVisual, CombatFeedback), tempos de wind-up por arquétipo e lacunas de leitura.",
+      "status": "concluida",
+      "inicio": "2026-10-11T09:20:00-03:00",
+      "fim": "2026-10-11T09:35:00-03:00",
+      "tentativas": 1,
+      "resultado": "Auditoria feita: melee/tank com caixa de alfa 0,22 sem flash/som; ranged sem indicador no chão; bosses com círculos visíveis mas avisos de 0,34-0,48 s e sem som; animação de ataque única e dessincronizada; jogador sem anticipation, Roll/RecieveHit sem uso, indicador de ataque no mesmo vermelho do perigo, sem hit-stop/shake/som ao ser atingido.",
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T2",
+      "titulo": "Melhorar animações e feedback de ataque do jogador",
+      "executor": "designer-ux-arte",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "scripts/player/PlayerAnimator.cs",
+        "scripts/player/PlayerWeaponVisual.cs",
+        "scripts/player/PlayerCombat.cs",
+        "scripts/systems/CombatFeedback.cs",
+        "scripts/systems/weapons/WeaponVisualCatalog.cs"
+      ],
+      "prontoQuando": "Anticipation/follow-through, arco ou trail do golpe, hit-stop curto e screen shake discretos, por arma; `dotnet build VP0.1.sln` com 0 erros/0 avisos; smoke headless da TestArena sem erro.",
+      "status": "concluida",
+      "inicio": "2026-10-11T09:35:00-03:00",
+      "fim": "2026-10-11T09:55:00-03:00",
+      "tentativas": 1,
+      "resultado": "Jogador: feedback ao receber dano (hit-stop 45 ms, shake, flash, RecieveHit), anticipation com speed ramp por golpe sem mudar tempos do catálogo, Roll na esquiva, trail da espada, indicador de ataque ciano/branco-dourado com preview, hit-stop ponderado por golpe. Build 0/0; pontos de golpe das animações são palpite a conferir em jogo.",
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T3",
+      "titulo": "Tornar óbvio o ataque dos inimigos e bosses (telegraph)",
+      "executor": "inimigos-e-bosses",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "scripts/enemies/",
+        "scripts/bosses/",
+        "scripts/combat/"
+      ],
+      "prontoQuando": "Indicador de área/direção no chão com preenchimento progressivo, flash/cor de aviso, distinção melee/ranged/tank/boss e aviso mínimo; `dotnet build VP0.1.sln` com 0 erros/0 avisos; smoke headless da TestArena sem erro.",
+      "status": "concluida",
+      "inicio": "2026-10-11T09:35:00-03:00",
+      "fim": "2026-10-11T10:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Ranged com linha magenta e mira que trava 0,25 s (projétil sai pela direção travada); telegraph melee/tank com borda fixa e preenchimento da base; flash, ping do '!' e sons de aviso (reaproveitando áudio existente); bosses com contorno fixo, chevrons, impacto, aviso de teleporte e pausa de 0,5 s na troca de fase; pisos de aviso centralizados no BossController. Build 0/0.",
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T4",
+      "titulo": "Revisar o conjunto (regressões, performance, contraste/daltonismo)",
+      "executor": "orch:revisor",
+      "dependeDe": [
+        "T2",
+        "T3"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Sem achados altos; sem alocação por frame desnecessária nos efeitos; telegraphs legíveis sem depender só de cor.",
+      "status": "concluida",
+      "inicio": "2026-10-11T10:10:00-03:00",
+      "fim": "2026-10-11T10:40:00-03:00",
+      "tentativas": 1,
+      "resultado": "Revisão sem achados altos; corrigidos M1 (animação de ataque cortada), M2 (esquiva perfeita na carga do boss), M3 (troca de fase cancela o golpe), B1, B2, B6 e um erro de add_child do trail achado no smoke. Build 0/0; smoke TestArena e CrowsNest sem erro; localização ok.",
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-11T08:15:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T09:20:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Plano em-execucao"
+    },
+    {
+      "quando": "2026-10-11T09:20:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T09:35:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "Auditoria feita: melee/tank com caixa de alfa 0,22 sem flash/som; ranged sem indicador no chão; bosses com círculos visíveis mas avisos de 0,34-0,48 s e sem som; animação de ataque única e dessincronizada; jogador sem anticipation, Roll/RecieveHit sem uso, indicador de ataque no mesmo vermelho do perigo, sem hit-stop/shake/som ao ser atingido."
+    },
+    {
+      "quando": "2026-10-11T09:35:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T09:35:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T09:55:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "Jogador: feedback ao receber dano (hit-stop 45 ms, shake, flash, RecieveHit), anticipation com speed ramp por golpe sem mudar tempos do catálogo, Roll na esquiva, trail da espada, indicador de ataque ciano/branco-dourado com preview, hit-stop ponderado por golpe. Build 0/0; pontos de golpe das animações são palpite a conferir em jogo."
+    },
+    {
+      "quando": "2026-10-11T10:10:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "Ranged com linha magenta e mira que trava 0,25 s (projétil sai pela direção travada); telegraph melee/tank com borda fixa e preenchimento da base; flash, ping do '!' e sons de aviso (reaproveitando áudio existente); bosses com contorno fixo, chevrons, impacto, aviso de teleporte e pausa de 0,5 s na troca de fase; pisos de aviso centralizados no BossController. Build 0/0."
+    },
+    {
+      "quando": "2026-10-11T10:10:00-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T10:40:00-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-concluida",
+      "texto": "Revisão sem achados altos; corrigidos M1 (animação de ataque cortada), M2 (esquiva perfeita na carga do boss), M3 (troca de fase cancela o golpe), B1, B2, B6 e um erro de add_child do trail achado no smoke. Build 0/0; smoke TestArena e CrowsNest sem erro; localização ok."
+    },
+    {
+      "quando": "2026-10-11T10:40:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Jogador ganhou feedback ao ser atingido, anticipation, Roll, trail e indicador ciano; inimigos ganharam telegraph legível (ranged com linha e mira travada, melee/tank com preenchimento), flash e sons de aviso; bosses ganharam avisos mais legíveis, pisos de aviso, aviso de teleporte e pausa na troca de fase. Nada foi visto em jogo: pontos de golpe das animações, trail, cores e sons (reaproveitados) precisam de teste manual. Pendências baixas: B3, B4, B5."
+    }
+  ],
+  "resultadoFinal": "Jogador ganhou feedback ao ser atingido, anticipation, Roll, trail e indicador ciano; inimigos ganharam telegraph legível (ranged com linha e mira travada, melee/tank com preenchimento), flash e sons de aviso; bosses ganharam avisos mais legíveis, pisos de aviso, aviso de teleporte e pausa na troca de fase. Nada foi visto em jogo: pontos de golpe das animações, trail, cores e sons (reaproveitados) precisam de teste manual. Pendências baixas: B3, B4, B5."
+}

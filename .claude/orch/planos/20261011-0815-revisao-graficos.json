@@ -1,0 +1,99 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261011-0815-revisao-graficos",
+  "titulo": "Revisão das configurações gráficas",
+  "status": "planejado",
+  "demanda": "Pedro (2026-10-11), texto colado: (1) analisar videos, imagens da gameplay do Hades e Sworn como referencia; verificar se o jogo e parecido mecanicamente, identificar e destacar as principais diferencas e se e possivel implementar; analisar toda e qualquer mecanica. (2) melhorar visualmente as animacoes de ataque do jogador e dos inimigos, deixar mais obvio quando um inimigo for atacar, usando Hades e Sworn como referencia. (3) desenvolver mecanica de dialogo, usando Hades como referencia. (4) focar um pouco nas configuracoes graficas do jogo, dar uma revisada.",
+  "objetivo": "Menu de opções gráficas completo, aplicado em tempo real e persistido: modo de janela, resolução, VSync, limite de FPS, escala de renderização, qualidade de sombras/MSAA/efeitos e brilho, com presets e padrões sensatos, nos 3 idiomas.",
+  "grupo": "20261011-0815-referencia-hades-sworn",
+  "dependeDosPlanos": [
+    "20261011-0815-sistema-dialogo"
+  ],
+  "criado": "2026-10-11T08:15:00-03:00",
+  "atualizado": "2026-10-11T08:15:00-03:00",
+  "commitInicial": "bd370e4",
+  "versaoOrch": "0.5.0",
+  "ondas": [
+    [
+      "T1"
+    ],
+    [
+      "T2"
+    ],
+    [
+      "T3"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Auditar as configurações gráficas atuais (project.godot, GlobalSettings, OptionsPanel)",
+      "executor": "orch:pesquisador",
+      "dependeDe": [],
+      "arquivos": [],
+      "prontoQuando": "Relatório: o que existe, o que é aplicado de fato, o que está solto; gargalos prováveis (sombras, glow, SSAO, MSAA) e lista recomendada de opções com padrões por perfil.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T2",
+      "titulo": "Implementar e aplicar as opções gráficas (menu, runtime, persistência)",
+      "executor": "ui-hud",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [
+        "scripts/systems/GlobalSettings.cs",
+        "scripts/ui/UiComponents.cs",
+        "scripts/ui/UiPreview.cs",
+        "data/localization/*/ui.json",
+        "project.godot"
+      ],
+      "prontoQuando": "Opções aplicam em tempo real e persistem; foco por controle; presets baixo/médio/alto; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `py tools/validate_localization.py` sem erro; captura da tela de opções nos 3 idiomas.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T3",
+      "titulo": "Revisar (aplicação, persistência, compatibilidade com opções antigas)",
+      "executor": "orch:revisor",
+      "dependeDe": [
+        "T2"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Sem achados altos; arquivo de opções antigo carrega com os padrões.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-11T08:15:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    }
+  ],
+  "resultadoFinal": null
+}

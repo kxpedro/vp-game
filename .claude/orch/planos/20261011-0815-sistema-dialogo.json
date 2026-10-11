@@ -1,0 +1,172 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261011-0815-sistema-dialogo",
+  "titulo": "Mecânica de diálogo no estilo Hades",
+  "status": "planejado",
+  "demanda": "Pedro (2026-10-11), texto colado: (1) analisar videos, imagens da gameplay do Hades e Sworn como referencia; verificar se o jogo e parecido mecanicamente, identificar e destacar as principais diferencas e se e possivel implementar; analisar toda e qualquer mecanica. (2) melhorar visualmente as animacoes de ataque do jogador e dos inimigos, deixar mais obvio quando um inimigo for atacar, usando Hades e Sworn como referencia. (3) desenvolver mecanica de dialogo, usando Hades como referencia. (4) focar um pouco nas configuracoes graficas do jogo, dar uma revisada.",
+  "objetivo": "Sistema de diálogo reutilizável: conversas com NPC no hub e falas curtas na run, caixa com retrato, nome e texto progressivo, escolhas opcionais, condições (primeira vez, boss derrotado, número da run), falas já vistas persistidas no save, tudo localizado nos 3 idiomas e jogável por teclado e controle. Entrega com 1 NPC de exemplo.",
+  "grupo": "20261011-0815-referencia-hades-sworn",
+  "dependeDosPlanos": [
+    "20261011-0815-referencia-hades-sworn"
+  ],
+  "criado": "2026-10-11T08:15:00-03:00",
+  "atualizado": "2026-10-11T08:15:00-03:00",
+  "commitInicial": "bd370e4",
+  "versaoOrch": "0.5.0",
+  "ondas": [
+    [
+      "T1"
+    ],
+    [
+      "T2"
+    ],
+    [
+      "T3"
+    ],
+    [
+      "T4",
+      "T5"
+    ],
+    [
+      "T6"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Pesquisar o sistema de diálogo do Hades (estrutura, gatilhos, prioridade, repetição, UI)",
+      "executor": "orch:pesquisador",
+      "dependeDe": [],
+      "arquivos": [],
+      "prontoQuando": "Resumo com fontes: tipos de conversa, prioridade e condições, caixa de diálogo, voz, interrupções.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T2",
+      "titulo": "Projetar arquitetura, formato de dados e fluxo",
+      "executor": "orch:planejador",
+      "dependeDe": [
+        "T1"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Spec com classes, JSON de exemplo, condições suportadas, integração com RunState/SaveGameManager/ScenePortal/input e plano de verificação.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T3",
+      "titulo": "Implementar o núcleo (catálogo, gerenciador, condições, persistência de falas vistas)",
+      "executor": "conteudo-run",
+      "dependeDe": [
+        "T2"
+      ],
+      "arquivos": [
+        "scripts/systems/dialogue/",
+        "data/dialogue/",
+        "scripts/systems/SaveGameManager.cs",
+        "scripts/systems/CharacterSheet.cs"
+      ],
+      "prontoQuando": "Carrega o JSON com try/catch e PushError; avalia condições; API para abrir conversa; falas vistas gravadas no save; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `.cs.uid` dos arquivos novos.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T4",
+      "titulo": "Criar a UI do diálogo (overlay, retrato, escolhas, controle) e integrar ao input",
+      "executor": "ui-hud",
+      "dependeDe": [
+        "T3"
+      ],
+      "arquivos": [
+        "scripts/ui/HUD.Dialogue.cs",
+        "scripts/ui/HUD.cs",
+        "scripts/ui/UiPreview.cs",
+        "data/localization/*/ui.json"
+      ],
+      "prontoQuando": "Overlay com texto progressivo, avançar/pular, escolhas com foco por controle, pausa o jogo, reage a `LanguageChanged`; tela no `--ui-batch` nos 3 idiomas; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `py tools/validate_localization.py` sem erro.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T5",
+      "titulo": "Escrever o conteúdo inicial e a localização (NPC do hub e falas de run)",
+      "executor": "game-designer",
+      "dependeDe": [
+        "T3"
+      ],
+      "arquivos": [
+        "data/dialogue/",
+        "data/localization/*/dialogue.json",
+        "docs/design/dialogos.md"
+      ],
+      "prontoQuando": "Falas em pt-BR, en e es no tom dark fantasy e coerentes com a lore (Virgil, Armand, linhagens); paridade de chaves nos 3 idiomas; guia de escrita.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T6",
+      "titulo": "Revisar o sistema (save, input travando o jogo, localização, regressões)",
+      "executor": "orch:revisor",
+      "dependeDe": [
+        "T4",
+        "T5"
+      ],
+      "arquivos": [],
+      "prontoQuando": "Sem achados altos; diálogo não trava jogo nem input ao fechar; saves antigos carregam.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-11T08:15:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    }
+  ],
+  "resultadoFinal": null
+}

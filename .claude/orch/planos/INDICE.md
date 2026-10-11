@@ -2,6 +2,10 @@
 
 | Data | Plano | Demanda | Status | Tarefas |
 |---|---|---|---|---|
+| 2026-10-11 08:15 | [revisao-graficos](20261011-0815-revisao-graficos.md) | Revisão das configurações gráficas | planejado | 0/3 |
+| 2026-10-11 08:15 | [sistema-dialogo](20261011-0815-sistema-dialogo.md) | Mecânica de diálogo no estilo Hades | planejado | 0/6 |
+| 2026-10-11 08:15 | [combate-leitura-visual](20261011-0815-combate-leitura-visual.md) | Animações de ataque e telegraph legíveis (jogador e inimigos) | em-execucao | 0/4 |
+| 2026-10-11 08:15 | [referencia-hades-sworn](20261011-0815-referencia-hades-sworn.md) | Referência Hades e Sworn: comparativo mecânico e viabilidade | em-execucao | 0/4 |
 | 2026-10-11 05:50 | [fechamento-v2](20261011-0550-fechamento-v2.md) | Fechamento (fase 3): revisão, verificação em 3 idiomas e documentação dos novos sistemas | concluido | 3/3 |
 | 2026-10-11 05:50 | [hub-personagens](20261011-0550-hub-personagens.md) | Hub: pontos reservados para os personagens desbloqueáveis e atributos ocultos | concluido | 3/3 |
 | 2026-10-11 05:50 | [portas-recompensas](20261011-0550-portas-recompensas.md) | Portas com recompensa visível (fase 2): ícone da recompensa da próxima sala na porta, como no Hades | concluido | 4/4 |
