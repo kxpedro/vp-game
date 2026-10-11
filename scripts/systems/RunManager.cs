@@ -445,9 +445,9 @@ public partial class RunManager : Node3D
                 if (enemy.GetNodeOrNull<Node3D>("Visual") is { } bossVisual)
                     bossVisual.Scale = Vector3.One * 1.55f;
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
-                enemy.MoveSpeed *= RunState.CurrentMapIndex == 0 ? 1.4f : 1.85f;
+                enemy.MoveSpeed *= bossDefinition.Id == "silver_dragonkin" ? 1.4f : 1.85f;
                 enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f) * 0.9f;
-                if (RunState.CurrentMapIndex == 0) enemy.AttackWindup = 0.75f;
+                if (bossDefinition.Id == "silver_dragonkin") enemy.AttackWindup = 0.75f;
                 else enemy.AttackWindup = 0.38f;
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
                 // Moedas e Sangue Amaldicoado do boss: valores fixos por mapa (economy.coins.boss.*, economy.cursed_blood.boss.*),

@@ -1,4 +1,4 @@
-<!-- orch:plano · id: 20261011-0550-hub-personagens · status: planejado · criado: 2026-10-11 05:50 · commit-inicial: 3c2e257 · versao-orch: 0.5.0 -->
+<!-- orch:plano · id: 20261011-0550-hub-personagens · status: concluido · criado: 2026-10-11 05:50 · commit-inicial: 3c2e257 · versao-orch: 0.5.0 -->
 # Hub: pontos reservados para os personagens desbloqueáveis e atributos ocultos
 
 **Demanda original:** Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.
@@ -22,9 +22,9 @@ O hub ganha 3 pontos reservados (placeholders) para os futuros personagens desbl
 
 | ID | Tarefa | Executor | Depende de | Arquivos (escrita) | Status |
 |---|---|---|---|---|---|
-| T1 | Placeholders dos personagens no hub | `designer-ux-arte` | — | `scripts/systems/CharacterPlaceholder.cs` (+ .cs.uid, novo), `scripts/systems/CrowsNestCrypt.cs`, `scripts/ui/HUD.cs` (SceneLabelTexts, se o rótulo seguir o padrão), `data/localization/*/ui.json` | pendente |
-| T2 | Ocultar a aba Atributos da Ficha | `ui-hud` | — | `scripts/ui/HUD.CharacterSheet.cs`, `scripts/ui/UiPreview.cs` | pendente |
-| T3 | Documentar o elenco futuro | `game-designer` | — | `docs/design/personagens-futuros.md` (novo) | pendente |
+| T1 | Placeholders dos personagens no hub | `designer-ux-arte` | — | `scripts/systems/CharacterPlaceholder.cs` (+ .cs.uid, novo), `scripts/systems/CrowsNestCrypt.cs`, `scripts/ui/HUD.cs` (SceneLabelTexts, se o rótulo seguir o padrão), `data/localization/*/ui.json` | concluida |
+| T2 | Ocultar a aba Atributos da Ficha | `ui-hud` | — | `scripts/ui/HUD.CharacterSheet.cs`, `scripts/ui/UiPreview.cs` | concluida |
+| T3 | Documentar o elenco futuro | `game-designer` | — | `docs/design/personagens-futuros.md` (novo) | concluida |
 
 Status: `pendente` · `em-andamento` · `concluida` · `falhou` · `pulada`
 
@@ -42,26 +42,28 @@ Caminho crítico: T1. Uma tarefa começa assim que **todas** as suas dependênci
 - **Executor:** `designer-ux-arte`
 - **Faz:** Define o layout no hub (lê `CrowsNestCrypt` e a cena), cria 3 marcadores em código (sem editar .tscn à mão), rótulos e prompt "Em breve" localizados e reagindo a `LanguageChanged`, leitura visual coerente com o hub. Sem interação funcional.
 - **Pronto quando:** Captura do hub com os 3 pontos nos 3 idiomas, sem erro; nenhuma lógica de personagem.
-- **Resultado:** —
+- **Resultado:** 3 sarcófagos placeholder na parede leste do hub (CharacterPlaceholder.cs, CrowsNestCrypt.cs), título "???/Bloqueado" e prompt "Em breve", chaves nos 3 idiomas. Build e validador OK; sem captura visual.
 
 ### T2 — Ocultar a aba Atributos da Ficha
 - **Executor:** `ui-hud`
 - **Faz:** Remove a aba Atributos e os "Totais da run" fora de debug (navegação Q/E, foco inicial e abas ajustados); mantém `CharacterSheet.GetAttribute` e os efeitos; ajusta o preview `--ui-tab=Attributes` (só debug) e a lista do `--ui-batch`; procura textos de release que ainda mencionem pontos de atributo.
 - **Pronto quando:** Ficha sem a aba em release e com ela em debug (gate `OS.IsDebugBuild()`); cálculos intactos; build e validadores sem erro.
-- **Resultado:** —
+- **Resultado:** Aba Atributos e Totais da run ocultos em release (HUD.CharacterSheet.cs), mantidos em debug; cálculos intactos. Build e validadores OK.
 
 ### T3 — Documentar o elenco futuro
 - **Executor:** `game-designer`
 - **Faz:** Registra D9–D11 e o que foi conversado como especificação: hipótese de quais 3 bosses, poderes únicos, atributos base ocultos, 4 armas por personagem (a elaborar), progressão compartilhada, lista de perguntas em aberto e esboço do plano futuro (modelo de personagem, desbloqueio, seleção, armas, visuais). Só documento, sem números de balanceamento inventados.
 - **Pronto quando:** Documento claro e completo, sem código.
-- **Resultado:** —
+- **Resultado:** Criado docs/design/personagens-futuros.md com D9–D11, hipótese de bosses, poderes, atributos ocultos, armas, perguntas em aberto e esboço do plano futuro.
 
 ## Registro de execução
 
 | Quando | Evento |
 |---|---|
 | 2026-10-11 05:50 | Plano criado |
+| 2026-10-11 06:00 | Plano iniciado; T1, T2, T3 disparadas em paralelo |
+| 2026-10-11 06:10 | T1, T2, T3 concluídas; plano concluído |
 
 ## Resultado final
 
-—
+Hub com 3 placeholders de personagens, aba Atributos oculta em release e elenco futuro documentado. Falta conferência visual do hub no jogo.

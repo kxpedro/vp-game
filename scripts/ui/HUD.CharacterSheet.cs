@@ -14,6 +14,9 @@ public partial class HUD
 {
 	// IDs de aba (usados em --ui-tab; não renomear).
 	private static readonly string[] CharacterSheetTabIds = { "Attributes", "Blessings", "Artifacts", "Skills" };
+	// Atributos ficam invisíveis ao jogador em release (continuam computados): a aba 0 só existe em debug.
+	// _characterSheetTab e _characterSheetSelected usam o índice lógico (CharacterSheetTabIds); os botões, o índice - offset.
+	private static int CharacterSheetTabOffset => OS.IsDebugBuild() ? 0 : 1;
 	private const float CharacterSheetDetailWidth = 520.0f;
 	private const float CharacterSheetRowHeight = 64.0f;
 
@@ -83,19 +86,20 @@ public partial class HUD
 		_characterSheetWindow.HeaderRight.AddChild(coins);
 
 		var body = _characterSheetWindow.Body;
-		_characterSheetTabs = UiComponents.Tabs(new[]
-		{
-			Localization.Text("sheet.tab.attributes"),
-			Localization.Text("sheet.tab.blessings"),
-			Localization.Text("sheet.tab.artifacts"),
-			Localization.Text("sheet.tab.skills")
-		}, OnCharacterSheetTabChanged);
+		var tabOffset = CharacterSheetTabOffset;
+		var tabLabels = new List<string>();
+		if (tabOffset == 0)
+			tabLabels.Add(Localization.Text("sheet.tab.attributes"));
+		tabLabels.Add(Localization.Text("sheet.tab.blessings"));
+		tabLabels.Add(Localization.Text("sheet.tab.artifacts"));
+		tabLabels.Add(Localization.Text("sheet.tab.skills"));
+		_characterSheetTabs = UiComponents.Tabs(tabLabels.ToArray(), index => OnCharacterSheetTabChanged(index + tabOffset));
 		_characterSheetTabs.Root.Name = "CharacterSheetTabs";
 		_characterSheetTabs.Root.Alignment = BoxContainer.AlignmentMode.Center;
 		for (var i = 0; i < _characterSheetTabs.Buttons.Count; i++)
 		{
 			var tabButton = _characterSheetTabs.Buttons[i];
-			tabButton.Name = $"CharacterSheet{CharacterSheetTabIds[i]}Tab";
+			tabButton.Name = $"CharacterSheet{CharacterSheetTabIds[i + tabOffset]}Tab";
 			tabButton.GuiInput += input => OnCharacterSheetItemInput(tabButton, input, false);
 		}
 		body.AddChild(_characterSheetTabs.Root);
@@ -163,13 +167,14 @@ public partial class HUD
 		var tab = Array.FindIndex(CharacterSheetTabIds, id => string.Equals(id, tabId, StringComparison.OrdinalIgnoreCase));
 		if (tab < 0)
 			tab = data.Blessings.Count > 0 ? 1 : 0;
+		tab = Math.Max(tab, CharacterSheetTabOffset);
 		_characterSheetTab = tab;
-		_characterSheetTabs.Select(tab, false);
+		_characterSheetTabs.Select(tab - CharacterSheetTabOffset, false);
 		RebuildCharacterSheet(data, false);
 
 		Control initialFocus = _characterSheetRows.Count > 0
 			? _characterSheetRows[Mathf.Clamp(_characterSheetSelected[tab], 0, _characterSheetRows.Count - 1)]
-			: _characterSheetTabs.Buttons[tab];
+			: _characterSheetTabs.Buttons[tab - CharacterSheetTabOffset];
 		UiModalStack.Push(_characterSheetOverlay, true, initialFocus, CloseCharacterSheet);
 		_characterSheetTabs.Arm();
 		_characterSheetWindow.FadeIn();
@@ -200,14 +205,14 @@ public partial class HUD
 
 	private void OnCharacterSheetTabChanged(int index)
 	{
-		if (index < 0 || index >= CharacterSheetTabIds.Length)
+		if (index < CharacterSheetTabOffset || index >= CharacterSheetTabIds.Length)
 			return;
 		_characterSheetTab = index;
 		RebuildCharacterSheet(GetCharacterSheetData(), false);
 		if (_characterSheetRows.Count > 0)
 			FocusCharacterSheetRow(Mathf.Clamp(_characterSheetSelected[index], 0, _characterSheetRows.Count - 1));
 		else
-			_characterSheetTabs.Buttons[index].CallDeferred(Control.MethodName.GrabFocus);
+			_characterSheetTabs.Buttons[index - CharacterSheetTabOffset].CallDeferred(Control.MethodName.GrabFocus);
 	}
 
 	// L1/R1 (Q/E) e esquerda/direita nas linhas trocam de aba; analógico direito rola o detalhe.
@@ -447,7 +452,7 @@ public partial class HUD
 	// Cima/baixo explícitos; cima na primeira linha vai à aba ativa; esquerda/direita ficam na linha (o GuiInput troca a aba).
 	private void LinkCharacterSheetFocus()
 	{
-		var tabButton = _characterSheetTabs.Buttons[_characterSheetTab];
+		var tabButton = _characterSheetTabs.Buttons[_characterSheetTab - CharacterSheetTabOffset];
 		for (var i = 0; i < _characterSheetRows.Count; i++)
 		{
 			var row = _characterSheetRows[i];

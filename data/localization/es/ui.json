@@ -250,6 +250,8 @@
   "portal.start_run": "Iniciar la partida",
   "prompt.blood_fountain": "Abrir Fuente de Sangre",
   "prompt.weapon_bench": "Elegir arma",
+  "scene.crows_nest.character_locked": "???\nBloqueado",
+  "prompt.character_soon": "Próximamente",
   "scene.crows_nest.coffin": "Ataúd de Virgil",
   "scene.crows_nest.start_portal": "Ascenso al Castillo de Armand",
   "scene.crows_nest.training_hall": "SALA DE ENTRENAMIENTO\nMuñeco regenerativo",

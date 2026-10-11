@@ -121,7 +121,7 @@ A Bênção dos Ratos exige a morte de um inimigo sob Pestilência. Cada rato du
 - melee usa o modelo Ninja;
 - ranged usa o modelo Demon;
 - tank usa o modelo Orc;
-- bosses usam Dragon Evolved, Ghost Skull, Orc Skull e Blue Demon;
+- bosses usam Ghost Skull, Orc Skull, Dragon Evolved e Blue Demon (ordem por indice de mapa);
 - os modelos reproduzem idle, locomoção, ataque e reação a dano;
 - inimigos aparecem mais separados e o empurrão dos ataques do jogador está ativo;
 - ranged pode recuar ou buscar distância tática;

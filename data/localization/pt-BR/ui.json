@@ -250,6 +250,8 @@
   "portal.start_run": "Iniciar a run",
   "prompt.blood_fountain": "Abrir Fonte de Sangue",
   "prompt.weapon_bench": "Escolher arma",
+  "scene.crows_nest.character_locked": "???\nBloqueado",
+  "prompt.character_soon": "Em breve",
   "scene.crows_nest.coffin": "Caixão de Virgil",
   "scene.crows_nest.start_portal": "Subida ao Castelo de Armand",
   "scene.crows_nest.training_hall": "SALA DE TREINAMENTO\nBoneco regenerativo",

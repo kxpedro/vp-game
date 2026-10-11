@@ -21,10 +21,10 @@ public static class CampaignCatalog
     // BossId deve coincidir com o Id do BossCatalog no mesmo indice de mapa.
     private static readonly MapDefinition[] Maps =
     {
-        new("armands_dungeons", 6, "silver_dragonkin", 1.0f),
-        new("blood_garden", 8, "invisible_woman", 1.35f),
+        new("armands_dungeons", 6, "invisible_woman", 1.0f),
+        new("blood_garden", 8, "labyrinth_keeper", 1.35f),
         // Novos andares entram aqui sem alterar o fluxo de RunState/RunManager.
-        new("upper_castle", 10, "labyrinth_keeper", 1.75f),
+        new("upper_castle", 10, "silver_dragonkin", 1.75f),
         new("armands_throne", 0, "armand", 2.25f)
     };
 

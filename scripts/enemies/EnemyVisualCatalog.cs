@@ -56,15 +56,16 @@ public static class EnemyVisualCatalog
 
     public static EnemyVisualDefinition GetBoss(int mapIndex) => mapIndex switch
     {
+        // Indice do mapa = boss: 0 invisible_woman, 1 labyrinth_keeper, 2 silver_dragonkin, 3 armand.
         0 => new(
-            "res://assets/enemies/quaternius_ultimate_monsters/Dragon_Evolved.gltf",
-            1.0f, "Flying_Idle", 1.2f, true, 2.15f, 180.0f, "Fast_Flying", "Headbutt", "HitReact"),
-        1 => new(
             "res://assets/enemies/quaternius_ultimate_monsters/Ghost_Skull.gltf",
             1.0f, "Flying_Idle", 0.95f, true, 1.85f, 180.0f, "Fast_Flying", "Punch", "HitReact"),
-        2 => new(
+        1 => new(
             "res://assets/enemies/quaternius_ultimate_monsters/Orc_Skull.gltf",
             1.0f, "Idle", 1.05f, true, 1.9f, 180.0f, "Run", "Weapon", "HitReact"),
+        2 => new(
+            "res://assets/enemies/quaternius_ultimate_monsters/Dragon_Evolved.gltf",
+            1.0f, "Flying_Idle", 1.2f, true, 2.15f, 180.0f, "Fast_Flying", "Headbutt", "HitReact"),
         3 => new(
             "res://assets/enemies/quaternius_ultimate_monsters/BlueDemon.gltf",
             1.0f, "Idle", 1.05f, true, 2.05f, 180.0f, "Run", "Punch", "HitReact"),
