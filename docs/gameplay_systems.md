@@ -94,7 +94,7 @@ Os inimigos básicos usam modelos animados do pacote Ultimate Monsters:
 - melee: Ninja;
 - ranged: Demon;
 - tank: Orc;
-- bosses: Dragon Evolved, Ghost Skull, Orc Skull e Blue Demon;
+- bosses: Ghost Skull, Orc Skull, Dragon Evolved e Blue Demon (ordem por indice de mapa);
 - escala é normalizada em relação à altura do jogador;
 - idle, locomoção, ataque e reação a hit usam animações do asset, com root motion removido para manter a física autoritativa.
 
