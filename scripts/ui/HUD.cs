@@ -412,6 +412,11 @@ public partial class HUD : CanvasLayer
 			case "boss_bar":
 				BindPreviewBoss(dataParent);
 				return true;
+			case "hub":
+				// Só a cena do hub, sem nenhuma tela por cima (captura do cenário), com o jogador junto do arco de entrada.
+				if (GetTree().GetFirstNodeInGroup("player") is Node3D hubPlayer)
+					hubPlayer.GlobalPosition = new Vector3(0.0f, hubPlayer.GlobalPosition.Y, -8.5f);
+				return true;
 		}
 		// Pausa, opções, ajustes, confirmações e game over: HUD.Pause.cs.
 		return OpenPausePreviewScreen(screen);

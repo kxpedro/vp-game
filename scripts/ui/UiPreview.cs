@@ -91,7 +91,7 @@ public partial class UiPreview : Node
 		("blessing_offer_replace", null, SceneArena), ("toast", null, SceneArena), ("wave_warning", null, SceneArena),
 		("room_clear", null, SceneArena), ("boss_bar", null, SceneArena),
 		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
-		("weapon_bench", null, SceneNest),
+		("weapon_bench", null, SceneNest), ("hub", null, SceneNest),
 		("altar", null, SceneChamber), ("shop", null, SceneChamber)
 	};
 

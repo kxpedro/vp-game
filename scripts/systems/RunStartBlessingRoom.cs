@@ -2,6 +2,8 @@ using Godot;
 
 public partial class RunStartBlessingRoom : Node3D
 {
+    private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
+
     private Area3D _fountainArea;
     private Label3D _fountainPrompt;
     private Node3D _exitPortalRoot;
@@ -70,6 +72,27 @@ public partial class RunStartBlessingRoom : Node3D
         _blessingClaimed = true;
         _offerOpened = true;
         _fountainPrompt.Visible = false;
+
+        // Entrada do mapa 1 (origem 0): sorteia o conjunto de portas (docs/design/portas-recompensas.md, 7.3).
+        // Reabrir a cena não rola de novo: o conjunto fica guardado na run.
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
+        // Com conjunto, as portas vão para a parede norte (NorthWall, sala de 20x20) virada para dentro (+Z).
+        if (set != null)
+        {
+            var wall = GetNode<Node3D>("NorthWall");
+            var thickness = (wall.GetNode<CollisionShape3D>("Collision").Shape as BoxShape3D)?.Size.Z ?? 0.45f;
+            ScenePortal.PlaceOnWall(_exitPortalRoot, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
+        }
+        var doors = set == null
+            ? null
+            : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);
+        if (doors is { Count: > 0 })
+        {
+            foreach (var door in doors)
+                door.PlayOpenPulse();
+            return;
+        }
+
         _exitPortal.SetPortalEnabled(true);
         var tween = _exitPortalRoot.CreateTween();
         _exitPortalRoot.Scale = Vector3.One * 0.78f;

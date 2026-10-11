@@ -48,15 +48,104 @@ public static class BloodBlessingCatalog
         var definitions = RollChoices(rng, count, out selectedFamily, guaranteeBasicAttack);
         var offers = new List<BloodBlessingOffer>();
         foreach (var definition in definitions)
-        {
-            var rarity = definition.Rarity.Equals("Stirps", StringComparison.OrdinalIgnoreCase)
-                ? new BloodBlessingRarity("stirps", "Stirps", 1.0f, 1.0f)
-                : RollRarity(rng);
-            offers.Add(new BloodBlessingOffer(definition, rarity.DisplayName, rarity.PowerMultiplier));
-            // Diario de descobertas: bencao oferecida na Fonte de Sangue conta como vista.
-            CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
-        }
+            offers.Add(RollOffer(rng, definition));
         return offers;
+    }
+
+    /// <summary>
+    /// Reamostra uma oferta pré-sorteada (porta de Bênção, RoomRewardCatalog.PlanBlessings) ao abri-la. Cada opção que
+    /// ainda é elegível (mesmas regras de RollChoices: sem bênção já adquirida e pré-requisitos atendidos) fica no
+    /// mesmo lugar, com a raridade já sorteada. As demais são trocadas por outras da mesma linhagem, sem repetir;
+    /// sem bênção da linhagem sobrando, usa as de outra linhagem. Devolve menos opções só se não houver mais nenhuma.
+    /// <paramref name="replacedCount"/> = quantas opções foram trocadas (para log/teste).
+    /// </summary>
+    public static List<BloodBlessingOffer> ReviewPlannedOffers(RandomNumberGenerator rng, IReadOnlyList<BloodBlessingOffer> planned, string family, bool guaranteeBasicAttack, out int replacedCount)
+    {
+        EnsureLoaded();
+        replacedCount = 0;
+        if (planned == null || planned.Count == 0)
+            return new List<BloodBlessingOffer>();
+
+        var slots = new BloodBlessingOffer[planned.Count];
+        var missing = new List<int>();
+        for (var i = 0; i < planned.Count; i++)
+        {
+            var offer = planned[i];
+            if (offer?.Definition != null && IsEligible(offer.Definition))
+                slots[i] = offer;
+            else
+                missing.Add(i);
+        }
+        replacedCount = missing.Count;
+
+        var needBasicAttack = guaranteeBasicAttack && !HasBasicAttackOffer(slots);
+        foreach (var slot in missing)
+        {
+            var pool = ReplacementPool(family, slots, true);
+            if (pool.Count == 0)
+                pool = ReplacementPool(family, slots, false);
+
+            var candidates = pool;
+            if (needBasicAttack)
+            {
+                var basicPool = pool.FindAll(definition => HasTag(definition, "basic_attack"));
+                if (basicPool.Count == 0)
+                    basicPool = ReplacementPool(family, slots, false).FindAll(definition => HasTag(definition, "basic_attack"));
+                if (basicPool.Count > 0)
+                {
+                    candidates = basicPool;
+                    needBasicAttack = false;
+                }
+            }
+            if (candidates.Count == 0)
+                continue;
+
+            slots[slot] = RollOffer(rng, SelectWeighted(rng, candidates));
+        }
+
+        var result = new List<BloodBlessingOffer>(planned.Count);
+        foreach (var offer in slots)
+            if (offer != null)
+                result.Add(offer);
+        return result;
+    }
+
+    // Uma oferta com raridade sorteada (Stirps tem raridade fixa). Marca a bênção como vista no diário (Fonte/porta).
+    private static BloodBlessingOffer RollOffer(RandomNumberGenerator rng, BloodBlessingDefinition definition)
+    {
+        var rarity = definition.Rarity.Equals("Stirps", StringComparison.OrdinalIgnoreCase)
+            ? new BloodBlessingRarity("stirps", "Stirps", 1.0f, 1.0f)
+            : RollRarity(rng);
+        // Diario de descobertas: bencao oferecida na Fonte de Sangue (ou numa porta) conta como vista.
+        CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
+        return new BloodBlessingOffer(definition, rarity.DisplayName, rarity.PowerMultiplier);
+    }
+
+    // Candidatas para trocar uma opção: elegíveis, sem repetir as que já estão nas opções. Só da linhagem ou de qualquer uma.
+    private static List<BloodBlessingDefinition> ReplacementPool(string family, IReadOnlyList<BloodBlessingOffer> slots, bool sameFamilyOnly)
+    {
+        var pool = new List<BloodBlessingDefinition>();
+        foreach (var definition in Definitions)
+        {
+            if (sameFamilyOnly && !definition.Family.Equals(family, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsEligible(definition) || IsInSlots(definition.Id, slots)) continue;
+            pool.Add(definition);
+        }
+        return pool;
+    }
+
+    private static bool IsInSlots(string id, IReadOnlyList<BloodBlessingOffer> slots)
+    {
+        foreach (var offer in slots)
+            if (offer != null && offer.Definition.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private static bool HasBasicAttackOffer(IReadOnlyList<BloodBlessingOffer> slots)
+    {
+        foreach (var offer in slots)
+            if (offer != null && HasTag(offer.Definition, "basic_attack")) return true;
+        return false;
     }
 
     public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false)

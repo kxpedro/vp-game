@@ -48,13 +48,19 @@ public partial class HUD
 	}
 
 	// §8.3: parte secundária do título — "Sala x/y · n/m" (antes da 1ª wave só "Sala x/y"; chefe: "Chefe").
-	// Depois de limpar fica "Sala limpa" e, quando o portal abre de fato, "Portal aberto" (NotifyPortalOpened).
+	// Depois de limpar fica "Sala limpa" e, quando a saída abre de fato, "Portal aberto" ou, com portas de recompensa,
+	// "escolha uma porta" (NotifyPortalOpened).
 	public void SyncEnemyProgress(int defeatedEnemies, int totalEnemies)
 	{
 		_lastDefeatedEnemies = defeatedEnemies;
 		_lastTotalEnemies = totalEnemies;
 		RefreshRoomProgressText();
 	}
+
+	// A saída desta sala tem conjunto de portas de recompensa (RunState guarda o conjunto por origem = sala atual).
+	// O boss e a saída única não têm conjunto, então devolvem false.
+	private static bool RoomHasRewardDoors() =>
+		RunState.GetRoomRewardSet(RunState.CurrentMapIndex, RunState.CurrentRoom) != null;
 
 	// Reescreve a parte secundária do título no idioma atual (também chamado na troca de idioma).
 	private void RefreshRoomProgressText()
@@ -63,7 +69,11 @@ public partial class HUD
 			return;
 		if (_portalOpenAnnounced)
 		{
-			_enemyProgressLabel.Text = Localization.Text("hud.room.portal_open");
+			// Com portas de recompensa, a sala pede a escolha; sem elas (boss, saída única), segue "Portal aberto".
+			if (RoomHasRewardDoors())
+				_enemyProgressLabel.Text = Localization.Text("hud.room.choose_door");
+			else
+				_enemyProgressLabel.Text = Localization.Text("hud.room.portal_open");
 			return;
 		}
 		if (_roomClearAnnounced)

@@ -26,6 +26,24 @@ public static class RunState
     private static bool _fatalProtectionConsumed;
     private static bool _skillFatalProtectionConsumed;
     private static int _skillRerollConsumedMap = -1;
+
+    // Portas com recompensa visivel (docs/design/portas-recompensas.md). Zeram em StartRun, FailRun e no fim da
+    // campanha; NAO zeram ao trocar de sala nem em recarga de cena (o conjunto sorteado fica guardado na run).
+    private static readonly System.Collections.Generic.Dictionary<(int MapIndex, int OriginRoom), RoomRewardSet> RoomRewardSets = new();
+    private static Godot.RandomNumberGenerator _rewardRng;
+    private static int _setsWithoutBlessing;
+    private static int _fruitDoorsChosen;
+    private static RoomRewardDoor _pendingRoomReward;
+    // Plano de bencaos da porta de Bencao entregue (ConsumePendingRoomReward), guardado ate a oferta abrir (TakeDeliveredBlessingPlan).
+    private static RoomBlessingPlan _deliveredBlessingPlan;
+    public static ulong RunSeed { get; private set; }
+    /// <summary>Porta escolhida, a ser paga ao limpar a sala que ela leva (null se nada estiver pendente).</summary>
+    public static RoomRewardDoor PendingRoomReward => _pendingRoomReward;
+    /// <summary>CPs seguidas sem Bencao (pity, RoomRewardCatalog.Roll).</summary>
+    public static int SetsWithoutBlessing => _setsWithoutBlessing;
+    /// <summary>Frutas do Diabo de porta escolhidas na run (teto em RoomRewardCatalog.FruitDoorRunCap).</summary>
+    public static int FruitDoorsChosen => _fruitDoorsChosen;
+
     private static float _killAttackSpeedBonus, _killAttackSpeedTimer, _moveOnHitBonus, _moveOnHitTimer;
     private static float _flawlessDamage, _flawlessLifeSteal, _fatalDamageBonus, _fatalDamageTimer, _healPenalty, _healPenaltyTimer;
     private static float _temporaryMoveSpeed, _temporaryCriticalChance, _temporaryCriticalDamage, _temporaryBuffTimer;
@@ -75,6 +93,8 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
+        SetRunSeed(((ulong)Godot.GD.Randi() << 32) | Godot.GD.Randi());
         CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
     }
 
@@ -117,6 +137,7 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
     }
 
     public static void FailRun()
@@ -143,6 +164,119 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
+        ResetRoomRewards();
+    }
+
+    /// <summary>
+    /// Semente das recompensas de porta. StartRun sorteia uma nova; use SetRunSeed para reproduzir uma run
+    /// (mesma semente + mesma ordem de saidas = mesmas portas).
+    /// </summary>
+    public static void SetRunSeed(ulong seed)
+    {
+        RunSeed = seed;
+        RewardRandom().Seed = seed;
+    }
+
+    /// <summary>Conjunto de portas guardado para a saida (mapIndex, originRoom), ou null se ainda nao foi sorteado.</summary>
+    public static RoomRewardSet GetRoomRewardSet(int mapIndex, int originRoom)
+        => RoomRewardSets.TryGetValue((mapIndex, originRoom), out var set) ? set : null;
+
+    /// <summary>
+    /// Devolve o conjunto da saida, sorteando e guardando na primeira vez. Chamar ao limpar a sala de origem
+    /// (origem 0 = entrada do mapa, na Sala Inicial ou na Camara), em ordem crescente de origem.
+    /// Devolve null se a origem nao tem CP (boss, mapa sem salas comuns).
+    /// </summary>
+    public static RoomRewardSet GetOrRollRoomRewardSet(int mapIndex, int originRoom)
+    {
+        var existing = GetRoomRewardSet(mapIndex, originRoom);
+        if (existing != null)
+            return existing;
+
+        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom());
+        if (set == null)
+            return null;
+
+        // Porta de Bencao: as 3 opcoes sao sorteadas agora e ficam no conjunto (a oferta usa essas, com reamostragem).
+        if (set.HasBlessing)
+            set = RoomRewardCatalog.WithBlessingPlan(set, RoomRewardCatalog.PlanBlessings(RewardRandom(), BloodBlessings.Count == 0));
+
+        RoomRewardSets[(mapIndex, originRoom)] = set;
+        _setsWithoutBlessing = set.HasBlessing ? 0 : _setsWithoutBlessing + 1;
+        return set;
+    }
+
+    /// <summary>
+    /// Commit da escolha ao interagir com a porta: guarda a porta como recompensa pendente (paga ao limpar a sala
+    /// seguinte) e conta a Fruta de porta para o teto. Falha se ja houver recompensa pendente ou a porta for nula.
+    /// </summary>
+    public static bool ChooseRoomRewardDoor(RoomRewardDoor door)
+    {
+        if (door == null || _pendingRoomReward != null)
+            return false;
+
+        _pendingRoomReward = door;
+        if (door.Type == RoomRewardType.DevilsFruit)
+            _fruitDoorsChosen++;
+        return true;
+    }
+
+    /// <summary>
+    /// Entrega ao limpar a sala que a porta levou. Devolve a porta pendente e a limpa; null se nada estiver pendente
+    /// (chamadas repetidas nao pagam duas vezes).
+    /// </summary>
+    public static RoomRewardDoor ConsumePendingRoomReward()
+    {
+        var door = _pendingRoomReward;
+        _pendingRoomReward = null;
+        // A Bencao entregue leva as opcoes que o jogador viu na porta: a oferta que abre em seguida usa estas.
+        if (door?.BlessingPlan != null)
+            _deliveredBlessingPlan = door.BlessingPlan;
+        return door;
+    }
+
+    /// <summary>
+    /// Opcoes pre-sorteadas da porta de Bencao da saida (mapIndex, originRoom), ou null se o conjunto nao tem porta de
+    /// Bencao (ou ainda nao foi sorteado). Leitura para o prompt da porta e o ícone.
+    /// </summary>
+    public static RoomBlessingPlan GetRoomBlessingPlan(int mapIndex, int originRoom)
+    {
+        var set = GetRoomRewardSet(mapIndex, originRoom);
+        if (set == null)
+            return null;
+        foreach (var door in set.Doors)
+            if (door.Type == RoomRewardType.Blessing)
+                return door.BlessingPlan;
+        return null;
+    }
+
+    /// <summary>
+    /// Devolve e limpa o plano da Bencao entregue ao pegar a recompensa no chao (null se a oferta nao veio de uma porta
+    /// ou se o plano ja foi usado). A oferta chama isto uma vez, ao montar as opcoes; reroll nao reusa o plano.
+    /// </summary>
+    public static RoomBlessingPlan TakeDeliveredBlessingPlan()
+    {
+        var plan = _deliveredBlessingPlan;
+        _deliveredBlessingPlan = null;
+        return plan;
+    }
+
+    private static void ResetRoomRewards()
+    {
+        RoomRewardSets.Clear();
+        _setsWithoutBlessing = 0;
+        _fruitDoorsChosen = 0;
+        _pendingRoomReward = null;
+        _deliveredBlessingPlan = null;
+    }
+
+    private static Godot.RandomNumberGenerator RewardRandom()
+    {
+        if (_rewardRng == null)
+        {
+            _rewardRng = new Godot.RandomNumberGenerator();
+            _rewardRng.Randomize();
+        }
+        return _rewardRng;
     }
 
     public static void SavePlayerHealth(float currentHealth)

@@ -17,6 +17,8 @@ public partial class RoomGenerator : Node3D
     public float MapCellSize => CellSize;
 
     private const float CellSize = 1.45f;
+    // Espessura das paredes de borda geradas (AddBoundaryWalls). A moldura da saída usa este valor para encostar na face interna.
+    private const float WallThickness = 0.28f;
     private const float FloorHeight = 0.22f;
     private const float WallHeight = 2.35f;
     private const int RegionSpacing = 1;
@@ -35,6 +37,11 @@ public partial class RoomGenerator : Node3D
     private Vector2I _exitCell = new(0, -4);
     private Vector2I _rewardCell = new(0, -12);
     private Vector2I _focusCell = Vector2I.Zero;
+    // Direção (célula) para fora da parede onde fica a saída, quando a sala tem conjunto de portas (docs/design/portas-recompensas.md, 6.3).
+    // Zero = saída no centro da célula (boss, mapa sem conjunto, sala N).
+    private Vector2I _exitWallDirection = Vector2I.Zero;
+    // true = a saída tem conjunto de portas (esconde o visual antigo "Saída"). A sala N tem saída na parede, mas sem portas.
+    private bool _exitHasDoors;
 
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
@@ -134,6 +141,8 @@ public partial class RoomGenerator : Node3D
     {
         _walkableCells.Clear();
         _roomCells.Clear();
+        _exitWallDirection = Vector2I.Zero;
+        _exitHasDoors = false;
 
         if (RunState.IsBossRoom)
         {
@@ -157,6 +166,55 @@ public partial class RoomGenerator : Node3D
 
         for (var i = 0; i < rooms.Length; i++)
             AddRoom(rooms[i], 9, 9);
+
+        // Toda saída de sala comum vai para a parede de borda. Com conjunto de portas esconde o visual antigo;
+        // na sala N (sem conjunto, leva ao boss) é só a saída única na parede.
+        _exitHasDoors = RoomRewardCatalog.HasRoomRewardSet(RunState.CurrentMapIndex, RunState.CurrentRoom);
+        PlaceExitOnFarWall(rooms[3], _entranceCell);
+    }
+
+    // Escolhe a parede de borda mais distante da entrada (a oposta à ligação com a sala anterior) e põe a saída no meio dela.
+    // Só vale parede com 3 células caminháveis e parede sólida atrás (sem corredor de ligação), para caber duas portas (±1 célula).
+    private void PlaceExitOnFarWall(Vector2I room, Vector2I entrance)
+    {
+        const int halfCells = 4; // sala de 9x9 (AddRoom(..., 9, 9))
+        var bestDistance = -1;
+        foreach (var outward in new[] { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right })
+        {
+            var middle = room + outward * halfCells;
+            var along = new Vector2I(Mathf.Abs(outward.Y), Mathf.Abs(outward.X));
+            var fits = true;
+            for (var step = -1; step <= 1 && fits; step++)
+            {
+                var cell = middle + along * step;
+                fits = _walkableCells.Contains(cell) && !_walkableCells.Contains(cell + outward);
+            }
+            if (!fits)
+                continue;
+
+            var delta = middle - entrance;
+            var distance = delta.X * delta.X + delta.Y * delta.Y;
+            if (distance <= bestDistance)
+                continue;
+            bestDistance = distance;
+            _exitCell = middle;
+            _exitWallDirection = outward;
+        }
+
+        if (!HasExitOnWall)
+            GD.PushWarning("RoomGenerator: nenhuma parede livre para a saida com portas; a saida fica no centro da sala.");
+    }
+
+    private bool HasExitOnWall => _exitWallDirection != Vector2I.Zero;
+
+    // Direção para fora da parede da saída, no mundo (célula (x, y) → mundo (x, 0, y), como CellToWorld).
+    private Vector3 OutwardWorld() => new(_exitWallDirection.X, 0.0f, _exitWallDirection.Y);
+
+    // Linha da saída no mundo: a própria célula, ou a linha da parede (meia célula para fora) quando a saída está na parede.
+    private Vector3 ExitLineWorld()
+    {
+        var cell = CellToWorld(_exitCell);
+        return HasExitOnWall ? cell + OutwardWorld() * (CellSize * 0.5f) : cell;
     }
 
     private void BuildBossMap()
@@ -207,17 +265,19 @@ public partial class RoomGenerator : Node3D
             }
         }
 
+        // Com conjunto de portas, o visual antigo de saída (gate) não aparece: a saída são as portas na parede.
         var gateScene = ResourceLoader.Load<PackedScene>(DungeonGatePath);
-        if (gateScene == null)
+        if (gateScene == null || _exitHasDoors)
             return;
 
         var gate = gateScene.Instantiate<Node3D>();
         gate.Name = "DungeonExitGateVisual";
-        gate.Position = CellToWorld(_exitCell);
+        gate.Position = ExitLineWorld();
         gate.Scale = Vector3.One * 0.9f;
         AddChild(gate);
 
-        var towardRoom = CellToWorld(_focusCell) - gate.Position;
+        // Saída na parede: o gate olha para dentro da sala. Sem parede (boss), olha para o centro focal, como antes.
+        var towardRoom = HasExitOnWall ? -OutwardWorld() : CellToWorld(_focusCell) - gate.Position;
         towardRoom.Y = 0.0f;
         if (towardRoom.LengthSquared() > 0.001f)
             gate.LookAt(gate.GlobalPosition + towardRoom.Normalized(), Vector3.Up);
@@ -237,7 +297,8 @@ public partial class RoomGenerator : Node3D
         CreatePointOfInterest("Entrance", () => Localization.Text("room.poi.entrance"), CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
         if (RunState.IsBossRoom)
             CreatePointOfInterest("FinalGate", () => Localization.Text("room.poi.final_gate"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
-        else
+        else if (!_exitHasDoors)
+            // Com conjunto de portas não há marcador "Saída" no piso: as portas da parede são a saída.
             CreatePointOfInterest("Exit", () => Localization.Text("room.poi.exit"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
         if (!RunState.IsBossRoom)
@@ -471,16 +532,22 @@ public partial class RoomGenerator : Node3D
     {
         var playerSpawn = CellToWorld(_entranceCell);
         PlayerSpawnPosition = new Vector3(playerSpawn.X, 0.2f, playerSpawn.Z);
-        var exitPortal = CellToWorld(_exitCell);
-        ExitPortalPosition = new Vector3(exitPortal.X, 0.18f, exitPortal.Z);
+        var exitLine = ExitLineWorld();
+        ExitPortalPosition = new Vector3(exitLine.X, 0.18f, exitLine.Z);
         _rewardCell = NearestWalkableCell(_rewardCell);
         _focusCell = NearestWalkableCell(_focusCell);
 
         if (GetParent().GetNodeOrNull<Node3D>("Player") is { } player)
             player.Position = PlayerSpawnPosition;
 
+        // Saída na parede: o modelo (moldura e, sem conjunto de portas, a saída única) fica virado para a sala.
         if (GetParent().GetNodeOrNull<Node3D>("ExitPortal") is { } portal)
-            portal.Position = ExitPortalPosition;
+        {
+            if (HasExitOnWall)
+                ScenePortal.PlaceOnWall(portal, ExitPortalPosition, -OutwardWorld(), WallThickness);
+            else
+                portal.Position = ExitPortalPosition;
+        }
 
         _reservedPositions.Add(PlayerSpawnPosition);
         _reservedPositions.Add(ExitPortalPosition);
@@ -513,10 +580,10 @@ public partial class RoomGenerator : Node3D
 
     private void AddBoundaryWalls(Vector2I cell)
     {
-        AddWallIfEmpty(cell, Vector2I.Up, new Vector3(0.0f, WallHeight * 0.5f, -CellSize * 0.5f), new Vector3(CellSize, WallHeight, 0.28f));
-        AddWallIfEmpty(cell, Vector2I.Down, new Vector3(0.0f, WallHeight * 0.5f, CellSize * 0.5f), new Vector3(CellSize, WallHeight, 0.28f));
-        AddWallIfEmpty(cell, Vector2I.Left, new Vector3(-CellSize * 0.5f, WallHeight * 0.5f, 0.0f), new Vector3(0.28f, WallHeight, CellSize));
-        AddWallIfEmpty(cell, Vector2I.Right, new Vector3(CellSize * 0.5f, WallHeight * 0.5f, 0.0f), new Vector3(0.28f, WallHeight, CellSize));
+        AddWallIfEmpty(cell, Vector2I.Up, new Vector3(0.0f, WallHeight * 0.5f, -CellSize * 0.5f), new Vector3(CellSize, WallHeight, WallThickness));
+        AddWallIfEmpty(cell, Vector2I.Down, new Vector3(0.0f, WallHeight * 0.5f, CellSize * 0.5f), new Vector3(CellSize, WallHeight, WallThickness));
+        AddWallIfEmpty(cell, Vector2I.Left, new Vector3(-CellSize * 0.5f, WallHeight * 0.5f, 0.0f), new Vector3(WallThickness, WallHeight, CellSize));
+        AddWallIfEmpty(cell, Vector2I.Right, new Vector3(CellSize * 0.5f, WallHeight * 0.5f, 0.0f), new Vector3(WallThickness, WallHeight, CellSize));
     }
 
     private void AddWallIfEmpty(Vector2I cell, Vector2I direction, Vector3 localOffset, Vector3 size)
@@ -812,10 +879,20 @@ public partial class RoomGenerator : Node3D
         // Ordem pseudoaleatoria estavel para espalhar as tochas pela sala inteira.
         candidates.Sort((a, b) => (unchecked(a.X * 73856093 ^ a.Y * 19349663) & int.MaxValue).CompareTo(unchecked(b.X * 73856093 ^ b.Y * 19349663) & int.MaxValue));
 
+        var exitLine = ExitLineWorld();
         foreach (var cell in candidates)
         {
             if (placed.Count >= maxLights)
                 break;
+
+            // Sem tocha perto das portas da parede de saída (a moldura e o ícone precisam da parede livre).
+            if (HasExitOnWall)
+            {
+                var toExit = CellToWorld(cell) - exitLine;
+                toExit.Y = 0.0f;
+                if (toExit.Length() < 2.6f)
+                    continue;
+            }
 
             var wallSide = Vector2I.Zero;
             foreach (var dir in new[] { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right })
