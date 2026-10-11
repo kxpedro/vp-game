@@ -179,16 +179,23 @@ public partial class RoomGenerator : Node3D
     {
         const int halfCells = 4; // sala de 9x9 (AddRoom(..., 9, 9))
         var bestDistance = -1;
+        // strictness 0 = regra completa (3 celulas + parede atras); 1 = so a celula central com parede atras; 2 = qualquer borda da sala.
+        for (var strictness = 0; strictness <= 2 && !HasExitOnWall; strictness++)
         foreach (var outward in new[] { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right })
         {
             var middle = room + outward * halfCells;
             var along = new Vector2I(Mathf.Abs(outward.Y), Mathf.Abs(outward.X));
             var fits = true;
-            for (var step = -1; step <= 1 && fits; step++)
+            if (strictness == 0)
             {
-                var cell = middle + along * step;
-                fits = _walkableCells.Contains(cell) && !_walkableCells.Contains(cell + outward);
+                for (var step = -1; step <= 1 && fits; step++)
+                {
+                    var cell = middle + along * step;
+                    fits = _walkableCells.Contains(cell) && !_walkableCells.Contains(cell + outward);
+                }
             }
+            else if (strictness == 1)
+                fits = _walkableCells.Contains(middle) && !_walkableCells.Contains(middle + outward);
             if (!fits)
                 continue;
 

@@ -269,6 +269,7 @@ Texto nunca corta: largura mínima, crescendo com o texto (`en`/`es` ~30% maiore
 
 - `Window(Small)`: título `Section 22` `Gold`; corpo `Body` autowrap (largura 512); segunda linha `Secondary` "Esta ação não pode ser desfeita." quando irreversível.
 - Botões no rodapé: **[Cancelar] `Secondary` à esquerda com foco inicial**, [Confirmar] `Destructive` à direita. `ui_cancel` = Cancelar.
+- Painel 100% opaco (o texto da tela de baixo não vaza); se já há modal por baixo, o scrim é leve (0,6).
 - Empilha sobre a tela atual (Push); ao fechar, o foco volta ao botão que abriu.
 - Usos obrigatórios: excluir slot (menu), desistir da run, voltar ao menu principal com run ativa, "Redefinir valores originais" (debug).
 
@@ -606,6 +607,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 ### 8.13 Ficha do personagem (Aud §13) — **P1** (P0 para o acesso às bênçãos por controle)
 
 - **Tarefa:** hud-overlays T1 (`HUD.CharacterSheet.cs`).
+- **Atributos só em debug:** em release a aba Atributos não é criada (os atributos continuam computados, só ocultos); o preview `character_sheet_Attributes` do lote exige build de debug.
 - **Componentes:** `Window(Full)`, `Tabs` (Atributos · Bênçãos · Artefatos · Habilidades), `ScrollList`, linhas `Flat` focáveis, `BlessingIcon(48)`, `DetailPanel(Right)`, `HintBar` ("[○] Fechar").
 - **Muda:** abas em vez de 4 colunas fixas (resolve estouro e scroll); cada linha focável alimenta o painel de detalhes (descrição completa da bênção/artefato/skill); raridade localizada com selo; efeitos via `ArtifactEffectRegistry.FriendlyName` + `FormatArtifactOperation`; "Artefatos da run" e "Impacto" fundidos; "Dano tuning" só em debug. Abre na aba Bênçãos se houver bênçãos, senão Atributos.
 - **Bugs junto:** `RefreshCharacterSheet` com a ficha fechada (só marcar "sujo" e reconstruir ao abrir); ficha aberta atrás de outros overlays (`Push` faz `MoveToFront`).
@@ -621,6 +623,8 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 
 ### 8.15 Baú de artefatos (Aud §15) — **P0** (bug) / P1
 
+> Histórico: o Baú de artefatos (`HUD.ArtifactChest.cs`) não existe mais no código. Artefatos agora só são comprados na Loja da Câmara (`HUD.Shop.cs`, preview `shop`).
+
 - **Tarefa:** hud-overlays T4 (`HUD.ArtifactChest.cs`).
 - **Componentes:** `Window(Large)`; coluna esquerda (260) com slots como cards pequenos (`IconM`, nome ou "Vazio", `Badge` do slot) usando estado **selecionado** (§3); coluna direita `ScrollList` de linhas de coleção (ícone 48/monograma, nome em `Rarity`, selo de origem "Run"/"Coleção", efeitos `Secondary`); `DetailPanel(Bottom)` opcional; `HintBar` ("[○] Fechar · [✕] Equipar").
 - **Muda:** foco começa no slot 1; ✕ no slot seleciona e leva o foco à coleção; ✕ num item equipa no slot selecionado e devolve o foco ao slot.
@@ -628,6 +632,8 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 - **Previews:** `artifact_chest`.
 
 ### 8.16 Oferta de artefatos (Aud §16) — **P1**
+
+> Histórico: a oferta de artefatos do boss (`HUD.ArtifactOffer.cs`) não existe mais. A Loja usa o mesmo `ChoiceCard` em `Window(Large)`.
 
 - **Tarefa:** hud-overlays T4 (`HUD.ArtifactOffer.cs`).
 - **Componentes:** `Window(Large)` "Tesouro de Artefatos", `ChoiceCard` ×3–4 (meta = slot localizado; corpo = efeitos via `FriendlyName`), `ScrollList`, `HintBar`.
@@ -733,11 +739,15 @@ Apelidos: `skill_detail` = `skill_popup`, `pause_tuning` = `tuning`, `wave_alert
 | `menu_main`, `menu_slots`, `menu_confirm_delete`, `menu_options`, `menu_credits` | `MainMenu` | 8.9 |
 | `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `wave_warning`, `room_clear`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
 | `pause`, `options`, `tuning`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
-| `character_sheet`, `blessing_offer`, `blessing_offer_replace`, `artifact_offer`, `artifact_offer_4` | `TestArena` | 8.13, 8.16, 8.17 |
-| `blood_fountain`, `skill_popup`, `artifact_chest`, `weapon_bench` | `CrowsNest` | 8.14, 8.15, 8.18 |
-| `altar` | `IntermissionChamber` | 8.19 |
+| `character_sheet`, `blessing_offer`, `blessing_offer_replace` | `TestArena` | 8.13, 8.17 |
+| `blood_fountain`, `skill_popup`, `weapon_bench`, `hub` | `CrowsNest` | 8.14, 8.18 (`hub` = só o cenário) |
+| `altar`, `shop` | `IntermissionChamber` | 8.19 (`shop` = Loja de Artefatos, `HUD.Shop.cs`) |
 
-As telas do HUD abrem em qualquer cena com HUD (`CrowsNest`, `RunStartBlessingRoom`, `TestArena`, `IntermissionChamber`). `pause` e `pause_confirm_*` iniciam uma run volátil se não houver, para mostrar "Desistir da run". Os previews `gallery`, `confirm` e `prompt` previstos na fundação não foram implementados.
+As telas do HUD abrem em qualquer cena com HUD (`CrowsNest`, `RunStartBlessingRoom`, `TestArena`, `IntermissionChamber`). `pause` e `pause_confirm_*` iniciam uma run volátil se não houver, para mostrar "Desistir da run". Os previews `gallery`, `confirm` e `prompt` previstos na fundação não foram implementados. Os previews `artifact_chest`, `artifact_offer` e `artifact_offer_4` deixaram de existir junto com o Baú e a Oferta de artefatos (as seções 8.15 e 8.16 acima são histórico).
+
+**Lote padrão (`UiPreview.BatchScreens`):** 37 telas × 3 idiomas = 111 PNGs, com `--ui-batch` e sem `--ui-screens`. As 37 são: 5 de `MainMenu` (`menu_*`), 8 de `TestArena` sem abas (`hud_combat`, `blessing_bar`, `pause`, `options`, `tuning`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`), 6 abas do compêndio, 4 abas da ficha (`character_sheet_Attributes`, `_Blessings`, `_Artifacts`, `_Skills`), 6 de `TestArena` (`blessing_offer`, `blessing_offer_replace`, `toast`, `wave_warning`, `room_clear`, `boss_bar`), 5 de `CrowsNest` (`blood_fountain`, `skill_popup`, `weapon_bench`, `hub`, `hub_cast` = enquadra os 3 sarcófagos de personagens) e 3 de `IntermissionChamber` (`altar`, `shop`, `reward_doors` = jogador diante das portas de recompensa). Ficam fora do lote (só via `--ui-preview=`): `critical_health`, `damage_flash`, `damage_number` e `event_log`. A captura `character_sheet_Attributes` abre a aba Atributos, que só existe em build de debug.
+
+**Sem preview:** os itens de recompensa no chão (`RewardPickup`, `DevilsFruit`). As portas com recompensa têm `reward_doors` e os `CharacterPlaceholder` do hub têm `hub_cast`.
 
 Dados fictícios: 8 bênçãos (todas as raridades de bênção, níveis 1–3), 3 artefatos (Common/Epic/Mythic), 500 moedas, vida 83/100 + barreira 20, fúria cheia, chefe com 60% de vida.
 

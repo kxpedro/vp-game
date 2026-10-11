@@ -109,34 +109,6 @@ public static class ArtifactCatalog
         return DisplayNameFor(record.Name);
     }
 
-    public static List<ArtifactDefinition> RollChoices(RandomNumberGenerator rng, int count, HashSet<string> excludedIds = null)
-    {
-        EnsureLoaded();
-        var pool = new List<ArtifactDefinition>();
-        foreach (var definition in Definitions)
-        {
-            if (excludedIds != null && excludedIds.Contains(definition.Id))
-                continue;
-
-            pool.Add(definition);
-        }
-        var choices = new List<ArtifactDefinition>();
-
-        while (choices.Count < count && pool.Count > 0)
-        {
-            var selected = RollOne(rng, pool);
-            if (selected == null)
-                break;
-
-            choices.Add(selected);
-            pool.Remove(selected);
-            // Diario de descobertas: artefato oferecido no altar conta como visto.
-            CodexProgress.MarkDiscovered(CodexCategory.Artifact, selected.Id);
-        }
-
-        return choices;
-    }
-
     /// <summary>Preco base (sem desconto) da raridade do artefato: economy.shop.price.[raridade] (250/420/700/1.100/1.700/2.400).</summary>
     public static int GetShopBasePrice(ArtifactDefinition definition)
     {

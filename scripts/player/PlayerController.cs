@@ -224,7 +224,8 @@ public partial class PlayerController : CharacterBody3D
 		var tunedMaxHealth = ((_baseMaxHealth + attributeHealthBonus) * GameTuning.GetHealthMultiplier()
 			+ RunState.MaxHealthBonus)
 			* RunState.MaxHealthMultiplier
-			* RunState.SacrificedMaxHealthMultiplier;
+			* RunState.SacrificedMaxHealthMultiplier
+			+ RunState.DevilsFruitMaxHealthTotal;
 		_health?.SetMaxHealthPreservingMissingHealth(tunedMaxHealth);
 	}
 

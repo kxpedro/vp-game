@@ -324,7 +324,8 @@ public partial class HUD
 		{
 			choices = BloodBlessingCatalog.ReviewPlannedOffers(rng, planned.Offers, planned.Family, guaranteeBasicAttack, out var replacedCount);
 			family = planned.Family;
-			GD.Print($"Porta de Bênção: {replacedCount} de {planned.Offers.Count} opções reamostradas (linhagem {family}).");
+			if (OS.IsDebugBuild())
+				GD.Print($"Porta de Bênção: {replacedCount} de {planned.Offers.Count} opções reamostradas (linhagem {family}).");
 		}
 		else
 			choices = BloodBlessingCatalog.RollOffers(rng, 3, out family, guaranteeBasicAttack);

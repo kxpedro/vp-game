@@ -10,7 +10,9 @@ public static class RunState
     private static float _devilsFruitMaxHealth;
     /// <summary>Frutas do Diabo coletadas na run (zera em StartRun/FailRun/fim da campanha).</summary>
     public static int DevilsFruitCount { get; private set; }
-    public static float MaxHealthBonus => _artifactMaxHealthBonus + _devilsFruitMaxHealth;
+    public static float MaxHealthBonus => _artifactMaxHealthBonus;
+    /// <summary>Vida maxima da Fruta do Diabo: somada depois dos multiplicadores, para valer exatamente o valor da fruta.</summary>
+    public static float DevilsFruitMaxHealthTotal => _devilsFruitMaxHealth;
     public static float MaxHealthMultiplier => 1.0f + GetEffectTotal("MaxHealth.Multiplier");
     public static float SacrificedMaxHealthMultiplier { get; private set; } = 1.0f;
     public static float SavedPlayerHealth { get; private set; } = -1.0f;

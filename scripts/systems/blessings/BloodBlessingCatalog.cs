@@ -43,12 +43,12 @@ public static class BloodBlessingCatalog
 
     public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count) => RollChoices(rng, count, out _);
 
-    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false)
+    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false, bool markDiscovered = true)
     {
         var definitions = RollChoices(rng, count, out selectedFamily, guaranteeBasicAttack);
         var offers = new List<BloodBlessingOffer>();
         foreach (var definition in definitions)
-            offers.Add(RollOffer(rng, definition));
+            offers.Add(RollOffer(rng, definition, markDiscovered));
         return offers;
     }
 
@@ -100,24 +100,29 @@ public static class BloodBlessingCatalog
             if (candidates.Count == 0)
                 continue;
 
-            slots[slot] = RollOffer(rng, SelectWeighted(rng, candidates));
+            slots[slot] = RollOffer(rng, SelectWeighted(rng, candidates), false);
         }
 
         var result = new List<BloodBlessingOffer>(planned.Count);
         foreach (var offer in slots)
             if (offer != null)
+            {
                 result.Add(offer);
+                // A oferta esta sendo aberta ao jogador: so agora conta como vista no diario.
+                CodexProgress.MarkDiscovered(CodexCategory.Blessing, offer.Definition.Id);
+            }
         return result;
     }
 
     // Uma oferta com raridade sorteada (Stirps tem raridade fixa). Marca a bênção como vista no diário (Fonte/porta).
-    private static BloodBlessingOffer RollOffer(RandomNumberGenerator rng, BloodBlessingDefinition definition)
+    private static BloodBlessingOffer RollOffer(RandomNumberGenerator rng, BloodBlessingDefinition definition, bool markDiscovered = true)
     {
         var rarity = definition.Rarity.Equals("Stirps", StringComparison.OrdinalIgnoreCase)
             ? new BloodBlessingRarity("stirps", "Stirps", 1.0f, 1.0f)
             : RollRarity(rng);
         // Diario de descobertas: bencao oferecida na Fonte de Sangue (ou numa porta) conta como vista.
-        CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
+        if (markDiscovered)
+            CodexProgress.MarkDiscovered(CodexCategory.Blessing, definition.Id);
         return new BloodBlessingOffer(definition, rarity.DisplayName, rarity.PowerMultiplier);
     }
 

@@ -232,7 +232,7 @@ public partial class HUD
 	}
 
 	// Chamado via CallGroup("hud", "NotifyPortalOpened") por RunManager.UnlockExitAfterReward, quando o portal de
-	// saída abre de fato (depois da recompensa; no chefe, depois de pegar o artefato). Não renomear sem procurar
+	// saída abre de fato (depois de pegar o último item do chão ou fechar a oferta de bênção; sem portas de recompensa, como no chefe, abre a saída única). Não renomear sem procurar
 	// a string em scripts/. Idempotente: UnlockExitAfterReward pode ser chamado mais de uma vez pelas ofertas.
 	public void NotifyPortalOpened()
 	{
@@ -414,9 +414,9 @@ public partial class HUD
 	internal void PreviewToasts()
 	{
 		_lastToastText = null;
-		ShowNotificationToast(Localization.TextFormat("hud.toast.artifact", "Cálice Rachado"), true);
+		ShowNotificationToast(Localization.TextFormat("hud.toast.artifact", Localization.Text("artifact.ashen_heart.name")), true);
 		_lastToastText = null;
-		ShowNotificationToast(Localization.TextFormat("hud.toast.blessing", UiComponents.RarityLabel("rare"), "Sede Escarlate"), true);
+		ShowNotificationToast(Localization.TextFormat("hud.toast.blessing", UiComponents.RarityLabel("rare"), Localization.Text("blessing.bathory_crimson_bath.name")), true);
 		_lastToastText = null;
 		ShowNotificationToast(Localization.TextFormat("combat.fury.not_ready", 40, 100), false);
 		_toastStack?.ShowKill(_resourceFrame, 5);

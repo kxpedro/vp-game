@@ -417,6 +417,17 @@ public partial class HUD : CanvasLayer
 				if (GetTree().GetFirstNodeInGroup("player") is Node3D hubPlayer)
 					hubPlayer.GlobalPosition = new Vector3(0.0f, hubPlayer.GlobalPosition.Y, -8.5f);
 				return true;
+			case "hub_cast":
+				// Hub com o jogador diante dos 3 sarcófagos de personagens (sala leste; CrowsNestCrypt.CreateCharacterPlaceholders).
+				if (GetTree().GetFirstNodeInGroup("player") is Node3D castPlayer)
+					castPlayer.GlobalPosition = new Vector3(9.0f, castPlayer.GlobalPosition.Y, 0.0f);
+				return true;
+			case "reward_doors":
+				// Câmara de Intervalo: o jogador diante das portas de recompensa da parede norte (IntermissionChamber.BuildRewardDoors).
+				if (GetTree().CurrentScene?.GetNodeOrNull<Node3D>("NorthWall") is Node3D northWall
+					&& GetTree().GetFirstNodeInGroup("player") is Node3D doorsPlayer)
+					doorsPlayer.GlobalPosition = new Vector3(0.0f, doorsPlayer.GlobalPosition.Y, northWall.Position.Z + 4.0f);
+				return true;
 		}
 		// Pausa, opções, ajustes, confirmações e game over: HUD.Pause.cs.
 		return OpenPausePreviewScreen(screen);

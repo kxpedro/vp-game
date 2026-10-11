@@ -157,18 +157,23 @@ public partial class SaveGameManager : Node
         }
         try
         {
-            var data = JsonSerializer.Deserialize<GameSaveData>(text);
-            if (data != null)
+            // Save v1 real (campo Version presente, >= 1 e < 2): formato descontinuado, preservado como .v1.json.
+            // Version ausente/invalido NAO e v1: segue o fluxo normal (e, se falhar, o de slot corrompido).
+            using (var document = JsonDocument.Parse(text))
             {
-                // Decisao de design (saves v1 descartados): JSON valido com Version < 2 (ou sem o campo) e excluido.
-                // Arquivos ilegiveis/corrompidos NUNCA passam por aqui: caem no catch abaixo e seguem o fluxo de slot corrompido.
-                if (data.Version < GameSaveData.CurrentSaveVersion)
+                if (document.RootElement.ValueKind == JsonValueKind.Object
+                    && document.RootElement.TryGetProperty("Version", out var versionElement)
+                    && versionElement.ValueKind == JsonValueKind.Number
+                    && versionElement.TryGetInt32(out var version)
+                    && version >= 1 && version < GameSaveData.CurrentSaveVersion)
                 {
-                    DiscardLegacySlot(slot, path, data.Version);
+                    ArchiveLegacySlot(slot, path, version);
                     return null;
                 }
-                return data;
             }
+            var data = JsonSerializer.Deserialize<GameSaveData>(text);
+            if (data != null)
+                return data;
             corrupted = true;
             ReportUnreadableSlot(path, $"Save corrompido no slot {slot}: conteudo vazio");
             return null;
@@ -181,13 +186,14 @@ public partial class SaveGameManager : Node
         }
     }
 
-    private static void DiscardLegacySlot(int slot, string path, int version)
+    private static void ArchiveLegacySlot(int slot, string path, int version)
     {
-        var error = DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(path));
+        var archive = ProjectSettings.GlobalizePath($"user://save_slot_{Math.Clamp(slot, 1, 3)}.v1.json");
+        var error = DirAccess.RenameAbsolute(ProjectSettings.GlobalizePath(path), archive);
         if (error == Error.Ok)
-            GD.PushWarning($"Save do slot {slot} excluido: versao {version} e anterior a {GameSaveData.CurrentSaveVersion} (formato descontinuado).");
+            GD.PushWarning($"Save do slot {slot} (versao {version}) e anterior a {GameSaveData.CurrentSaveVersion}: preservado como save_slot_{Math.Clamp(slot, 1, 3)}.v1.json e o slot comeca vazio.");
         else
-            GD.PushWarning($"Save do slot {slot} (versao {version}) e anterior a {GameSaveData.CurrentSaveVersion} mas nao pode ser excluido: {error}. O slot sera tratado como vazio e sobrescrito ao iniciar.");
+            GD.PushWarning($"Save do slot {slot} (versao {version}) e anterior a {GameSaveData.CurrentSaveVersion} mas nao pode ser arquivado: {error}. O slot sera tratado como vazio e sobrescrito ao iniciar.");
     }
 
     private static void ReportUnreadableSlot(string path, string message)

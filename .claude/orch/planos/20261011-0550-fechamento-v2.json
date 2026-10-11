@@ -2,7 +2,7 @@
   "schema": "orch.plano/1",
   "id": "20261011-0550-fechamento-v2",
   "titulo": "Fechamento (fase 3): revisão, verificação em 3 idiomas e documentação dos novos sistemas",
-  "status": "planejado",
+  "status": "concluido",
   "demanda": "Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.",
   "objetivo": "Revisão estática do conjunto, verificação visual nos 3 idiomas com um único processo do Godot e documentação atualizada de economia, loja, portas, saves v2 e hub.",
   "grupo": "20261011-0550-economia-recompensas",
@@ -12,7 +12,7 @@
     "20261011-0550-hub-personagens"
   ],
   "criado": "2026-10-11T05:50:00-03:00",
-  "atualizado": "2026-10-11T05:50:00-03:00",
+  "atualizado": "2026-10-11T07:30:00-03:00",
   "commitInicial": "3c2e257",
   "versaoOrch": "0.5.0",
   "ondas": [
@@ -32,11 +32,11 @@
       "dependeDe": [],
       "arquivos": [],
       "prontoQuando": "Sem achados de severidade alta.",
-      "status": "pendente",
+      "status": "concluida",
       "inicio": null,
-      "fim": null,
+      "fim": "2026-10-11T07:30:00-03:00",
       "tentativas": 0,
-      "resultado": null,
+      "resultado": "Sem achados altos. Médios: save sem campo Version é excluído; Fruta do Diabo passa pelos multiplicadores (não é exatamente +15).",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -49,11 +49,11 @@
       "dependeDe": [],
       "arquivos": [],
       "prontoQuando": "Relatório com matriz telas × idiomas e problemas por severidade.",
-      "status": "pendente",
+      "status": "concluida",
       "inicio": null,
-      "fim": null,
+      "fim": "2026-10-11T07:30:00-03:00",
       "tentativas": 0,
-      "resultado": null,
+      "resultado": "Sem achados altos. Médios: texto do menu vaza atrás dos modais de confirmação; dica da Fonte estoura o painel em pt-BR. Cobertura parcial (pt-BR quase não aberto; sem preview de portas/placeholders).",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -74,11 +74,11 @@
         ".claude/orch/perfil.md"
       ],
       "prontoQuando": "Docs refletem o código final, sem informação inventada.",
-      "status": "pendente",
+      "status": "concluida",
       "inicio": null,
-      "fim": null,
+      "fim": "2026-10-11T07:30:00-03:00",
       "tentativas": 0,
-      "resultado": null,
+      "resultado": "README, gameplay_systems, ui-guia e perfil atualizados; contagem de previews corrigida (35 telas, 105 capturas).",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -91,7 +91,31 @@
       "tarefa": null,
       "tipo": "plano-criado",
       "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T07:30:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "Sem achados altos. Médios: save sem campo Version é excluído; Fruta do Diabo passa pelos multiplicadores (não é exatamente +15)."
+    },
+    {
+      "quando": "2026-10-11T07:30:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "Sem achados altos. Médios: texto do menu vaza atrás dos modais de confirmação; dica da Fonte estoura o painel em pt-BR. Cobertura parcial (pt-BR quase não aberto; sem preview de portas/placeholders)."
+    },
+    {
+      "quando": "2026-10-11T07:30:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "README, gameplay_systems, ui-guia e perfil atualizados; contagem de previews corrigida (35 telas, 105 capturas)."
+    },
+    {
+      "quando": "2026-10-11T07:30:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Fechamento concluído: build 0/0, validadores sem erro, smoke TestArena ok. Pendências: 2 bugs médios (save sem Version, Fruta) e ajustes de UI."
     }
   ],
-  "resultadoFinal": null
+  "resultadoFinal": "Fechamento concluído: build 0/0, validadores sem erro, smoke TestArena ok. Pendências: 2 bugs médios (save sem Version, Fruta) e ajustes de UI."
 }

@@ -94,7 +94,7 @@ Os inimigos básicos usam modelos animados do pacote Ultimate Monsters:
 - melee: Ninja;
 - ranged: Demon;
 - tank: Orc;
-- bosses: Ghost Skull, Orc Skull, Dragon Evolved e Blue Demon (ordem por indice de mapa);
+- bosses, por índice de mapa: `invisible_woman` (Guardiã Invisível, modelo Ghost Skull), `labyrinth_keeper` (Guardião do Labirinto, Orc Skull), `silver_dragonkin` (Dragonkin Prateado, Dragon Evolved) e `armand` (Lorde Armand, Blue Demon); `CampaignCatalog.BossId` coincide com o `Id` do `BossCatalog` no mesmo índice;
 - escala é normalizada em relação à altura do jogador;
 - idle, locomoção, ataque e reação a hit usam animações do asset, com root motion removido para manter a física autoritativa.
 
@@ -121,8 +121,8 @@ Encostar no corpo de um inimigo causa, a cada cooldown de contato, 5% do dano de
 - reposicionamentos de `kinetic_shift` e `mirror_dash` são projetados para uma célula navegável com margem de duas células das paredes;
 - investidas continuam usando colisão física e telegraph linear;
 - bosses recebem somente 5% do empurrão e do dano de impacto contra parede;
-- após a morte, surge um Altar de Artefatos na arena;
-- a oferta só abre quando o jogador entra na área e interage; o portão permanece bloqueado até a escolha.
+- após a morte, o boss paga Moedas de Sangue e Sangue Amaldiçoado fixos por mapa e solta uma Fruta do Diabo (exceto no mapa final); não há Altar de Artefatos nem drop de artefato;
+- a saída libera quando a Fruta é pega; ver [Economia e recompensas](#economia-e-recompensas).
 
 ## Bênçãos de Sangue
 
@@ -179,7 +179,7 @@ As poças usam uma malha irregular de baixo brilho, com uma camada interna sutil
 - a barreira espera 8 segundos depois de ser obtida ou parcialmente consumida, então perde 0,25 ponto por segundo; é zerada na troca de sala e aparece como segmento azul junto da vida;
 - Sangue Espesso recalcula a vida máxima preservando os pontos que já faltavam, atualiza imediatamente o sinal da HUD e exibe na descrição o ganho efetivo após os multiplicadores ativos;
 - a trilha de roubo de vida entra na árvore antes de receber `GlobalPosition`, evitando `!is_inside_tree()`;
-- artefatos voltaram a ser oferecidos após bosses por meio do altar interativo.
+- artefatos não vêm mais de bosses: são vendidos na Loja da Câmara de Hemomancia (ver [Economia e recompensas](#economia-e-recompensas)).
 
 Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue composta, abandona o movimento de espera sem disputar a transformação principal e percorre uma espiral até o jogador. Partículas em coordenadas globais formam o rastro e um pulso de condensação conclui a absorção antes da oferta obrigatória.
 
@@ -194,13 +194,14 @@ Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue 
 - ícones exibem `N2` a `N10`; N1 fica implícito, e a ficha mostra nível e raridade separadamente;
 - ficha em `C` com coluna rolável para todas as bênçãos e descrições por hover/foco;
 - passivas permanentes da Fonte de Sangue visíveis com descrição;
-- ficha pausa o jogo;
+- ficha pausa o jogo; a aba Atributos só aparece em build de debug (em release os atributos continuam computados, mas ficam ocultos: `CharacterSheetTabOffset` em `HUD.CharacterSheet.cs`);
+- o contador de recursos mostra as Moedas de Sangue da run e, no Ninho do Corvo, o Sangue Amaldiçoado;
 - Fonte de Sangue usa scroll e layout responsivo, sem botão fechar sobre o texto;
 - HUD permanece disponível na Câmara de Hemomancia;
 - vida e Fúria ficam ocultas no Ninho do Corvo;
 - a barra de Fúria também fica oculta durante a run até existir uma bênção que desbloqueie Fúria Bestial;
 - barreira é representada em azul como extensão do total de vida, sem label separado;
-- o título da sala mostra o nome do mapa e, abaixo, “Sala x/y · n/m”; ao limpar a sala a linha vira “Sala limpa” e, quando o portal de saída abre de fato (depois da recompensa; no boss, depois do artefato), vira “Portal aberto” com um toast (`NotifyPortalOpened`);
+- o título da sala mostra o nome do mapa e, abaixo, “Sala x/y · n/m”; ao limpar a sala a linha vira “Sala limpa” e, quando o portal de saída abre de fato (depois de pegar os itens do chão da sala), vira “Portal aberto” com um toast (`NotifyPortalOpened`);
 - o aviso de wave mostra a contagem regressiva num rótulo próprio, e o “+N” de moedas aparece ao lado da moldura do contador;
 - dano recebido em golpes seguidos (menos de 0,35 s de intervalo) abre os números em leque, no máximo três ao mesmo tempo.
 
@@ -220,7 +221,7 @@ Os textos exibidos ficam em `data/localization/<idioma>/` (`pt-BR`, `en`, `es`),
 - Overlays, o HUD e os rótulos 3D (prompts de fonte, baú, bancada, portais, artefatos no chão) assinam `LanguageChanged` e se atualizam ao trocar o idioma.
 - Chaves de conteúdo: `blessing.<id>.name/.desc/.flavor`, `artifact.<id>.name/.desc/.flavor`, `skill.<id>.name/.desc/.flavor/.icon`, `weapon.<arma>.name/.desc` (e os nomes dos golpes, como `weapon.longsword.basic_1.name`, `.quick.name` e `.special.name`), `artifact.effect.<Tipo>` (nome do efeito), `blessing.family.<id>.theme` e `blessing.keyword.<id>.term/.hint`. Os catálogos JSON guardam só IDs e números.
 - Chaves de mundo: `boss.<id>.name`, `boss.<id>.move.<golpe>.name`, `map.<id>.name/.rule`, `enemy.rarity.<id>.name`, `enemy.archetype.<id>.name` e `enemy.legendary.<id>.name`.
-- `PromptText` de `ScenePortal` (inclusive nos `.tscn`), `BloodFountain`, `WeaponBench` e `ArtifactChest` guarda uma chave (por exemplo `portal.start_run`); se a chave existir, a UI mostra o texto traduzido, senão mostra o valor literal.
+- `PromptText` de `ScenePortal` (inclusive nos `.tscn`), `BloodFountain` e `WeaponBench` guarda uma chave (por exemplo `portal.start_run`); se a chave existir, a UI mostra o texto traduzido, senão mostra o valor literal.
 - Cada artefato tem `saveName` em `artifacts.json`: identificador legado gravado nos saves, que nunca deve ser alterado. Registros antigos do save são resolvidos para o ID atual em `CharacterSheet.WithResolvedId`.
 
 Validação: `py tools/validate_localization.py` confere JSON válido, paridade de chaves entre os idiomas, placeholders iguais e se as chaves literais do C# existem. `validate_blessings.py` e `validate_artifacts.py` conferem as chaves de `content.json` dos seus catálogos. Skills, inimigos e bosses só têm a checagem de paridade. Termos de referência: `docs/design/glossario-localizacao.json`.
@@ -228,6 +229,38 @@ Validação: `py tools/validate_localization.py` confere JSON válido, paridade 
 Para adicionar um texto, crie a chave nos três idiomas. Um idioma novo exige alterar `Localization.Languages` e `NormalizeLanguage`, o seletor de `UiComponents.OptionsPanel` e a lista `LANGUAGES` dos três validadores. Textos só de debug (log de eventos, seção DEV, linhas “Prévia:” dos previews) podem ficar literais.
 
 Em build de debug, `scripts/ui/UiPreview.cs` abre telas de UI com dados fictícios (`--ui-preview=<tela>`, `--ui-lang=`, `--ui-device=`, `--ui-tab=`) e tem o modo em lote `--ui-batch`, que percorre telas × idiomas num único processo e grava PNGs; ver o cabeçalho do arquivo e o Anexo A de `docs/design/ui-guia.md`.
+
+## Economia e recompensas
+
+Valores vêm de `CompendiumTuning` (chaves `economy.*` e `reward.*`); os números abaixo são os padrões do código. Design em `docs/design/economia-v2.md` e `docs/design/portas-recompensas.md`.
+
+### Moedas de Sangue × Sangue Amaldiçoado
+
+- **Moedas de Sangue** (`RunState.RunBloodCoins`): só na run, nunca no save. Pagas por inimigos (`RunManager.QueueEnemyDefeat` → `AddBloodCoins`), pelo bônus de sala limpa (`economy.coins.room_clear_bonus.*`, 12/14/16/0), por boss (`economy.coins.boss.*`, 100/130/160/0) e por portas de Moedas. Gastas na Loja (`RunState.TrySpendRunBloodCoins`). Zeram em `StartRun`, `FailRun` e em `CompleteBoss` do mapa final; não zeram entre mapas.
+- **Sangue Amaldiçoado** (`CharacterSheet.CursedBlood`): permanente, serializado no slot. Pago pelo boss (`economy.cursed_blood.boss.*`, 40/60/80/120) e por inimigo Lendário comum (`economy.cursed_blood.legendary.*`, 0/6/8/8, com chance `economy.cursed_blood.legendary_drop_chance`, padrão 1,0). Gasto só na Fonte de Sangue, para comprar skills (`CharacterSheet.SpendCursedBlood`). Sobrevive à morte da run.
+
+### Fruta do Diabo
+
+`DevilsFruit` (Area3D, `scripts/items/DevilsFruit.cs`) é coletada com `interact`, soma `economy.fruit.max_health` (padrão 15) de vida máxima só na run (`RunState.AddDevilsFruit`) e cura `economy.fruit.heal` (padrão 15; se for maior que o ganho de vida máxima, cura a diferença). Emite `Collected`, que o `RunManager` usa para liberar a saída. Zera em `StartRun`, `FailRun` e no fim da campanha.
+
+O ganho é exato: `RunState.DevilsFruitMaxHealthTotal` é somado em `PlayerController.ApplyRuntimeTuning` depois dos multiplicadores de vida máxima (`MaxHealthMultiplier`, `SacrificedMaxHealthMultiplier`), fora de `MaxHealthBonus`; cada Fruta dá +15.
+
+### Portas com recompensa
+
+- `RoomRewardCatalog` (classe pura) sorteia o conjunto de portas de cada saída: tipos `Blessing`, `DevilsFruit` e `Coins`, 1 ou 2 portas (chance de duas: base 0,30/0,35/0,40 por mapa + 0,05 a cada 2 salas, teto 0,55), sem repetir tipo na mesma saída. Com o padrão `reward.blessing.max_sets_without_blessing` = 0, toda saída tem uma porta de Bênção; Fruta e Moedas só aparecem na segunda porta. Moedas de porta: 150/130/110 por mapa. Teto de Frutas de porta por run: 3.
+- `RunState` guarda o conjunto sorteado (`GetOrRollRoomRewardSet`, sobrevive a recarga de cena), a porta escolhida (`ChooseRoomRewardDoor`, `PendingRoomReward`) e as três bênçãos pré-sorteadas da porta de Bênção. Reinicia com a run e uma `RunSeed` nova.
+- `ScenePortal.BuildRewardDoors` monta uma porta por recompensa a partir do portal-modelo da sala; `DoorRewardIcon` desenha o medalhão provisório e o rótulo, e o prompt informa o tipo (`reward.door.*`).
+- A oferta de uma porta de Bênção é pré-sorteada sem marcar o diário; as bênçãos só são marcadas como descobertas quando a oferta abre, depois de `BloodBlessingCatalog.ReviewPlannedOffers` trocar as opções que deixaram de ser elegíveis. A troca de cena do `ScenePortal` usa um timer que não corre com a árvore pausada, então não ocorre com a pausa aberta. `RoomGenerator.PlaceExitOnFarWall` tenta a parede de saída em 3 níveis de rigor (3 células com parede atrás; só a central; qualquer borda).
+- Ao limpar a sala, `RunManager.CompleteRoom` constrói as portas **travadas** e põe no chão o bônus de sala limpa e a recompensa da porta escolhida na sala anterior: `RewardPickup` para Bênção e Moedas, `DevilsFruit` para Fruta. Cada item é pego por `interact`; a Bênção abre a oferta (`OpenBloodBlessingOffer`) e a saída só abre (`UnlockExitAfterReward`) quando não restar item no chão.
+- A saída da última sala comum (para o boss) e a do boss não têm conjunto de portas: saída única, liberada pelo mesmo mecanismo.
+
+### Loja da Câmara
+
+Ver [Câmara de Hemomancia](#câmara-de-hemomancia). Artefatos só existem na Loja; O sorteio do antigo altar do boss (`ArtifactCatalog.RollChoices`) foi removido.
+
+### Save v2
+
+`GameSaveData.Version` = 2 (`CurrentSaveVersion`). `SaveGameManager.ReadSlot` só trata como v1 um JSON com `Version` presente, inteiro e `>= 1` e `< 2`; esse arquivo é renomeado para `save_slot_N.v1.json` (`ArchiveLegacySlot`), sem migração, e o slot começa vazio. JSON válido sem `Version` é carregado normalmente; JSON inválido segue o fluxo de slot corrompido (backup).
 
 ## Salas especiais
 
@@ -239,6 +272,10 @@ Em build de debug, `scripts/ui/UiPreview.cs` abre telas de UI com dados fictíci
 
 O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` recebe dano, stagger, estados e empurrão, mas restaura a vida para testes contínuos.
 
+### Placeholders de personagens (hub)
+
+`CrowsNestCrypt.CreateCharacterPlaceholders` põe três `CharacterPlaceholder` na sala leste do hub: sarcófagos em geometria provisória, com título "???/Bloqueado" (`scene.crows_nest.character_locked`) e o aviso "Em breve" (`prompt.character_soon`) ao chegar perto. Não têm interação nem escolha de personagem; os personagens jogáveis futuros não estão implementados (ver `docs/design/personagens-futuros.md`).
+
 ### Câmara de Hemomancia
 
 `IntermissionChamber.tscn` aparece depois de bosses não finais.
@@ -249,7 +286,8 @@ O Ninho do Corvo possui área de treinamento e boneco central. `TrainingDummy` r
 - a redução persiste entre salas e é cumulativa (`100 → 95 → 90,25`), sendo removida ao terminar a run;
 - cada card mostra ícone, raridade, `N atual → próximo N` e compara os valores efetivos;
 - nível máximo: N10; cada aprimoramento acrescenta 25% do valor-base escalado pela raridade;
-- cada serviço pode ser usado uma vez;
+- cada serviço (fonte e altar) pode ser usado uma vez;
+- Loja de Artefatos: balcão no centro da Câmara que abre `HUD.Shop.cs` (`OpenShop`). O estoque é sorteado uma vez por visita (`ArtifactCatalog.RollShopStock`): 3 artefatos, com 50% de chance de um quarto, sem repetir no estoque nem oferecer os que a run já tem, e o primeiro slot sempre Common ou Uncommon; os pesos de raridade mudam conforme a visita. Preço-base por raridade `economy.shop.price.*` (250/420/700/1.100/1.700/2.400), com desconto da skill `humanitas.collector_eye` (0,05 por rank, máx. 0,9). Comprar (`RunState.TryBuyShopArtifact`) gasta Moedas de Sangue da run e adiciona o artefato à run, com poder multiplicado por `economy.shop.power_multiplier` (padrão 1,75). Fechar e reabrir mostra o mesmo estoque;
 - HUD e ficha continuam disponíveis.
 
 ## Arquivos centrais

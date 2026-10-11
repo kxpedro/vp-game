@@ -254,6 +254,8 @@ public partial class RunManager : Node3D
         if (pickup == null)
         {
             _roomPickupsLeft--;
+            if (isPendingReward)
+                RunState.ConsumePendingRoomReward();
             return;
         }
         pickup.Claimed += () => OnRoomPickupClaimed(door, isPendingReward);
@@ -446,6 +448,7 @@ public partial class RunManager : Node3D
                     bossVisual.Scale = Vector3.One * 1.55f;
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
                 enemy.MoveSpeed *= bossDefinition.Id == "silver_dragonkin" ? 1.4f : 1.85f;
+                // 1.35f e dificuldade do mapa (indice de mapa == 1), nao do boss especifico.
                 enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f) * 0.9f;
                 if (bossDefinition.Id == "silver_dragonkin") enemy.AttackWindup = 0.75f;
                 else enemy.AttackWindup = 0.38f;

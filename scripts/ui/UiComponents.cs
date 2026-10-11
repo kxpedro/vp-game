@@ -895,6 +895,10 @@ public static class UiComponents
         var stacked = UiModalStack.AnyOpen || IsUnderModalScrim(parent);
         var window = Window(parent, "ConfirmDialog", WindowSize.Small, title);
         confirm.Window = window;
+        // Painel 100% opaco: o texto da tela de baixo (menu de pausa etc.) não pode vazar pelo corpo do modal.
+        var opaqueBox = UIThemeFactory.WindowBox();
+        opaqueBox.BgColor = new Color(UiPalette.Panel, 1.0f);
+        window.Panel.AddThemeStyleboxOverride("panel", opaqueBox);
         if (stacked) window.Root.Color = new Color(UiPalette.Scrim, StackedConfirmScrimAlpha);
         window.Title.ThemeTypeVariation = UiVariation.SectionGoldLabel;
         window.Body.AddChild(new Label
@@ -945,7 +949,7 @@ public static class UiComponents
     }
 
     // Opacidade do scrim do Confirm quando já existe uma tela modal por baixo (evita dois scrims de 0,85).
-    private const float StackedConfirmScrimAlpha = 0.4f;
+    private const float StackedConfirmScrimAlpha = 0.6f;
 
     private static bool IsUnderModalScrim(Node node)
     {
@@ -1328,7 +1332,13 @@ public static class UiComponents
         scrollContent.AddChild(panel.Flavor);
         panel.ActionRow = new HBoxContainer();
         panel.ActionRow.AddThemeConstantOverride("separation", UiMetrics.S2);
-        panel.ActionLabel = new Label { ThemeTypeVariation = UiVariation.BodyLabel, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        panel.ActionLabel = new Label
+        {
+            ThemeTypeVariation = UiVariation.BodyLabel,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
         panel.ActionLabel.AddThemeColorOverride("font_color", UiPalette.Gold);
         panel.ActionRow.AddChild(panel.ActionLabel);
         right.AddChild(panel.ActionRow);
