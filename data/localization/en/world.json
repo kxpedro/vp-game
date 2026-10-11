@@ -54,7 +54,6 @@
   "map.upper_castle.name": "Upper Castle Wing",
   "map.upper_castle.rule": "A floor reserved for the next stage of the ascent",
   "portal.hemomancy_chamber": "Enter the Hemomancy Chamber",
-  "room.artifact_altar.title": "Artifact Altar",
   "room.label.boss": "{0} - Boss: {1}",
   "room.label.common": "{0} - Room {1}/{2}",
   "room.poi.boss_arena": "Boss Arena",

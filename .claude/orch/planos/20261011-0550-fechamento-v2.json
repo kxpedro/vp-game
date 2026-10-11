@@ -1,0 +1,97 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261011-0550-fechamento-v2",
+  "titulo": "Fechamento (fase 3): revisão, verificação em 3 idiomas e documentação dos novos sistemas",
+  "status": "planejado",
+  "demanda": "Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.",
+  "objetivo": "Revisão estática do conjunto, verificação visual nos 3 idiomas com um único processo do Godot e documentação atualizada de economia, loja, portas, saves v2 e hub.",
+  "grupo": "20261011-0550-economia-recompensas",
+  "dependeDosPlanos": [
+    "20261011-0550-economia-recompensas",
+    "20261011-0550-portas-recompensas",
+    "20261011-0550-hub-personagens"
+  ],
+  "criado": "2026-10-11T05:50:00-03:00",
+  "atualizado": "2026-10-11T05:50:00-03:00",
+  "commitInicial": "3c2e257",
+  "versaoOrch": "0.5.0",
+  "ondas": [
+    [
+      "T1",
+      "T2"
+    ],
+    [
+      "T3"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Revisão final de código e saves",
+      "executor": "orch:revisor",
+      "dependeDe": [],
+      "arquivos": [],
+      "prontoQuando": "Sem achados de severidade alta.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T2",
+      "titulo": "Verificar a interface em 3 idiomas",
+      "executor": "designer-ux-arte",
+      "dependeDe": [],
+      "arquivos": [],
+      "prontoQuando": "Relatório com matriz telas × idiomas e problemas por severidade.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T3",
+      "titulo": "Atualizar a documentação dos novos sistemas",
+      "executor": "orch:documentador",
+      "dependeDe": [
+        "T1",
+        "T2"
+      ],
+      "arquivos": [
+        "README.md",
+        "docs/gameplay_systems.md",
+        "docs/design/ui-guia.md",
+        ".claude/orch/perfil.md"
+      ],
+      "prontoQuando": "Docs refletem o código final, sem informação inventada.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-11T05:50:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    }
+  ],
+  "resultadoFinal": null
+}

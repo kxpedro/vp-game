@@ -148,7 +148,9 @@ public partial class HUD
 			AddGameOverSummaryLine(Localization.TextFormat("gameover.reached", map.Name, room));
 			AddGameOverSummaryLine(Localization.TextFormat("gameover.run_summary", RunState.RunBlessings.Count, RunState.RunArtifacts.Count));
 		}
-		AddGameOverSummaryLine(Localization.TextFormat("hud.blood_coins", CharacterSheet.BloodCoins));
+		// Moedas de Sangue desta run (RunState.RunBloodCoins), lidas aqui: o saldo só zera em RunState.FailRun, que roda
+		// depois (ContinueAfterGameOver / ReturnToMainMenuAfterGameOver). O Sangue Amaldiçoado permanente não entra no resumo.
+		AddGameOverSummaryLine(Localization.TextFormat("hud.blood_coins", RunState.RunBloodCoins));
 	}
 
 	private void AddGameOverSummaryLine(string text)
@@ -167,8 +169,8 @@ public partial class HUD
 		FlushCompendiumApply();
 		foreach (var overlay in new[]
 		{
-			_pauseOverlay, _artifactOfferOverlay, _bloodBlessingOverlay, _compendiumOverlay, _characterSheetOverlay,
-			_bloodFountainOverlay, _artifactChestOverlay, _weaponBenchOverlay,
+			_pauseOverlay, _bloodBlessingOverlay, _compendiumOverlay, _characterSheetOverlay,
+			_bloodFountainOverlay, _weaponBenchOverlay,
 			_playerHudFrame, _blessingHudList, _bossHealthPanel
 		})
 		{

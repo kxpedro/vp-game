@@ -659,7 +659,7 @@ public partial class HUD
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Raridade: {definition.Rarity} · Slot: {definition.Slot} · Tags: {FormatTags(definition.Tags)}"));
-					AddCompendiumNumberEditor(section, "Peso de drop", $"{definition.Id}.weight", definition.Weight);
+					AddCompendiumNumberEditor(section, "Peso na loja", $"{definition.Id}.weight", definition.Weight);
 					for (var i = 0; i < definition.Effects.Length; i++)
 					{
 						var effect = definition.Effects[i];
@@ -736,7 +736,7 @@ public partial class HUD
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Tier {definition.Tier} · grade {definition.GridColumn},{definition.GridRow} · {definition.ImplementationStatus}"));
-					AddCompendiumNumberEditor(section, "Custo", $"{definition.Id}.cost", definition.Cost);
+					AddCompendiumNumberEditor(section, "Custo base (Sangue Amaldiçoado)", $"{definition.Id}.cost", definition.Cost);
 					AddCompendiumNumberEditor(section, "Rank máximo", $"{definition.Id}.max_rank", definition.MaxRank);
 				}
 			});
@@ -842,8 +842,9 @@ public partial class HUD
 					AddCompendiumNumberEditor(section, "Dano", "enemy.blood_mage.damage", 30.0);
 					AddCompendiumNumberEditor(section, "Velocidade", "enemy.blood_mage.move_speed", 2.7, 0.1, 100.0);
 					AddCompendiumNumberEditor(section, "Alcance", "enemy.blood_mage.attack_range", 2.25, 0.05, 100.0);
-					AddCompendiumNumberEditor(section, "Recompensa mínima", "enemy.blood_mage.min_blood_coins", 8.0);
-					AddCompendiumNumberEditor(section, "Recompensa máxima", "enemy.blood_mage.max_blood_coins", 10.0);
+					var rewardIndex = Mathf.Clamp(mapNumber - 1, 0, 3);
+					AddCompendiumNumberEditor(section, "Moedas da run (fixo)", $"economy.coins.boss.{rewardIndex}", new[] { 100.0, 130.0, 160.0, 0.0 }[rewardIndex]);
+					AddCompendiumNumberEditor(section, "Sangue Amaldiçoado (fixo)", $"economy.cursed_blood.boss.{rewardIndex}", new[] { 40.0, 60.0, 80.0, 120.0 }[rewardIndex]);
 				}
 			});
 		}
@@ -881,8 +882,8 @@ public partial class HUD
 				AddCompendiumNumberEditor(section, "Vida base", "enemy.basic.health", 110.0);
 				AddCompendiumNumberEditor(section, "Dano base", "enemy.basic.damage", 22.0);
 				AddCompendiumNumberEditor(section, "Velocidade", "enemy.basic.move_speed", 3.2, 0.1, 100.0);
-				AddCompendiumNumberEditor(section, "Recompensa mínima", "enemy.basic.min_blood_coins", 1.0);
-				AddCompendiumNumberEditor(section, "Recompensa máxima", "enemy.basic.max_blood_coins", 10.0);
+				AddCompendiumNumberEditor(section, "Moedas da run: sorteio mínimo", "economy.coins.enemy.base_min", 3.0);
+				AddCompendiumNumberEditor(section, "Moedas da run: sorteio máximo", "economy.coins.enemy.base_max", 7.0);
 				AddCompendiumNumberEditor(section, "Fúria ao morrer", "enemy.basic.fury_on_death", 12.0);
 			}
 		});
@@ -1079,7 +1080,7 @@ public partial class HUD
 
 	// ---------- Formatação ----------
 
-	// Usado também pelo baú e pela oferta de artefatos (HUD.ArtifactChest/ArtifactOffer).
+	// Valores dos efeitos de artefato com o poder da Loja (ArtifactCatalog.ShopPowerMultiplier), como RunState aplica.
 	private string FormatArtifactEffects(ArtifactDefinition artifact)
 	{
 		if (artifact.Effects.Length == 0)
@@ -1089,7 +1090,7 @@ public partial class HUD
 		for (var i = 0; i < artifact.Effects.Length; i++)
 		{
 			var effect = artifact.Effects[i];
-			var value = GetCompendiumNumber($"{artifact.Id}.effect.{i}.value", effect.Value) * ArtifactCatalog.BossDropPowerMultiplier;
+			var value = GetCompendiumNumber($"{artifact.Id}.effect.{i}.value", effect.Value) * ArtifactCatalog.ShopPowerMultiplier;
 			text += $"{ArtifactEffectRegistry.FriendlyName(effect.Type)}: {FormatArtifactOperation(effect.Operation, value)}";
 
 			if (i < artifact.Effects.Length - 1)

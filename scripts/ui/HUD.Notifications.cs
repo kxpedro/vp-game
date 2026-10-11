@@ -103,6 +103,118 @@ public partial class HUD
 		OnBloodCoinsChanged(totalAmount);
 	}
 
+	// Sangue Amaldiçoado (recurso PERMANENTE do hub, não as Moedas da run): aviso próprio logo abaixo do painel de Moedas,
+	// em violeta com losango e linha de total, para nunca ser confundido com o "+N" dourado das Moedas.
+	// Chamado via CallGroup("hud", "NotifyCursedBloodRewarded", amount, total). Não renomear sem procurar a string em scripts/.
+	private const float CursedBloodHold = 2.6f;
+	private PanelContainer _cursedBloodPopup;
+	private Label _cursedBloodRewardLabel;
+	private Label _cursedBloodTotalLabel;
+	private Tween _cursedBloodTween;
+
+	public void NotifyCursedBloodRewarded(int amount, int total)
+	{
+		if (amount <= 0)
+			return;
+		AppendGameLog(Localization.TextFormat("hud.cursed_blood.reward", amount));
+		ShowCursedBloodPopup(amount, total);
+	}
+
+	private void ShowCursedBloodPopup(int amount, int total)
+	{
+		if (_resourceFrame == null || !IsInstanceValid(_resourceFrame) || !_resourceFrame.IsInsideTree())
+			return;
+		if (_cursedBloodPopup == null || !IsInstanceValid(_cursedBloodPopup))
+			BuildCursedBloodPopup();
+		if (_cursedBloodPopup == null)
+			return;
+
+		_cursedBloodRewardLabel.Text = Localization.TextFormat("hud.cursed_blood.reward", amount);
+		_cursedBloodTotalLabel.Text = Localization.TextFormat("hud.cursed_blood.total", total);
+		// Abaixo da moldura de Moedas (mesmo canto, mesma margem); o painel cresce para a direita e para baixo.
+		var frameHeight = Mathf.Max(_resourceFrame.Size.Y, _resourceFrame.GetCombinedMinimumSize().Y);
+		var top = _resourceFrame.OffsetTop + frameHeight + UiMetrics.S2;
+		_cursedBloodPopup.OffsetLeft = _resourceFrame.OffsetLeft;
+		_cursedBloodPopup.OffsetRight = _resourceFrame.OffsetLeft;
+		_cursedBloodPopup.OffsetTop = top;
+		_cursedBloodPopup.OffsetBottom = top;
+
+		_cursedBloodTween?.Kill();
+		_cursedBloodPopup.Visible = true;
+		_cursedBloodPopup.Modulate = new Color(1, 1, 1, 0);
+		var popup = _cursedBloodPopup;
+		_cursedBloodTween = popup.CreateTween();
+		_cursedBloodTween.TweenProperty(popup, "modulate:a", 1.0f, UiMotion.ToastIn);
+		_cursedBloodTween.TweenInterval(CursedBloodHold);
+		_cursedBloodTween.TweenProperty(popup, "modulate:a", 0.0f, UiMotion.ToastOut);
+		_cursedBloodTween.TweenCallback(Callable.From(() =>
+		{
+			if (IsInstanceValid(popup))
+				popup.Visible = false;
+		}));
+	}
+
+	private void BuildCursedBloodPopup()
+	{
+		var parent = _resourceFrame.GetParent() as Control;
+		if (parent == null)
+			return;
+
+		var popup = new PanelContainer
+		{
+			Name = "CursedBloodPopup",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			ProcessMode = ProcessModeEnum.Pausable,
+			Visible = false,
+			GrowHorizontal = Control.GrowDirection.End,
+			GrowVertical = Control.GrowDirection.End
+		};
+		popup.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.CursedBlood, UiMetrics.BorderWindow, UiMetrics.S4, UiMetrics.S2));
+		parent.AddChild(popup);
+
+		var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+		row.AddThemeConstantOverride("separation", UiMetrics.S2);
+		popup.AddChild(row);
+
+		// Losango violeta (a gota é das Moedas): forma própria além da cor.
+		var glyph = new Control
+		{
+			CustomMinimumSize = new Vector2(24, 24),
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+		};
+		var diamond = new[] { new Vector2(12, 1), new Vector2(22, 12), new Vector2(12, 23), new Vector2(2, 12) };
+		var outline = new[] { diamond[0], diamond[1], diamond[2], diamond[3], diamond[0] };
+		glyph.Draw += () =>
+		{
+			glyph.DrawColoredPolygon(diamond, UiPalette.CursedBlood);
+			glyph.DrawPolyline(outline, UiPalette.TextOutline, 1);
+			glyph.DrawLine(new Vector2(12, 5), new Vector2(12, 19), UiPalette.TextOutline, 1);
+		};
+		row.AddChild(glyph);
+
+		var column = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+		column.AddThemeConstantOverride("separation", 0);
+		row.AddChild(column);
+		_cursedBloodRewardLabel = new Label
+		{
+			Name = "CursedBloodRewardLabel",
+			ThemeTypeVariation = UiVariation.HudValueLabel,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_cursedBloodRewardLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
+		column.AddChild(_cursedBloodRewardLabel);
+		_cursedBloodTotalLabel = new Label
+		{
+			Name = "CursedBloodTotalLabel",
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_cursedBloodTotalLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		column.AddChild(_cursedBloodTotalLabel);
+		_cursedBloodPopup = popup;
+	}
+
 	public void NotifyRoomCleared()
 	{
 		AppendGameLog("Sala limpa. Escolha sua recompensa.");
@@ -298,5 +410,6 @@ public partial class HUD
 		_lastToastText = null;
 		ShowNotificationToast(Localization.TextFormat("combat.fury.not_ready", 40, 100), false);
 		_toastStack?.ShowKill(_resourceFrame, 5);
+		NotifyCursedBloodRewarded(25, 140);
 	}
 }

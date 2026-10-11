@@ -23,12 +23,16 @@ using System.Collections.Generic;
 /// Telas (cena sugerida):
 ///   MainMenu:   menu_main, menu_slots, menu_confirm_delete, menu_options, menu_credits
 ///   TestArena:  hud_combat, critical_health, damage_flash, damage_number, blessing_bar, event_log,
-///               character_sheet, artifact_offer, artifact_offer_4, blessing_offer, blessing_offer_replace,
+///               character_sheet, blessing_offer, blessing_offer_replace,
 ///               pause, options, tuning, pause_confirm_abandon, pause_confirm_menu,
 ///               compendium, game_over, room_clear, toast, wave_warning, boss_bar
 ///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
-///   CrowsNest:  blood_fountain, skill_popup, artifact_chest, weapon_bench
+///   CrowsNest:  blood_fountain, skill_popup, weapon_bench
+///               (a Fonte mostra o saldo de Sangue Amaldiçoado; compras e cheat só simulam)
 ///   IntermissionChamber: altar (host = a própria Câmara)
+///   IntermissionChamber: shop (Loja de Artefatos; host = HUD. Estoque de 4 artefatos fictícios em raridades variadas:
+///               Incomum já comprado, Raro ao alcance, Épico e Lendário caros demais, saldo fictício de 1000 Moedas.
+///               Comprar só simula; nada é gravado nem toca o RunState.)
 ///   (as telas do HUD abrem em qualquer cena com HUD: CrowsNest, RunStartBlessingRoom, TestArena, IntermissionChamber)
 /// Lote (um único processo do Godot, sem --write-movie): percorre as telas x idiomas, recarregando a cena entre uma e outra,
 /// e salva um PNG por combinação. Evita abrir/fechar o jogo a cada tela.
@@ -40,7 +44,7 @@ using System.Collections.Generic;
 /// Apelidos: skill_detail = skill_popup, pause_tuning = tuning, wave_alert = wave_warning.
 /// Toast, aviso de wave, banner de sala limpa, flash de dano (0,5 s) e número de dano (1 s) se repetem
 /// para aparecerem em qualquer quadro da captura. event_log só aparece em build de debug.
-/// Dados fictícios: chefe com 60% de vida, causa de game over e oferta de artefato sem altar. Nada é salvo.
+/// Dados fictícios: chefe com 60% de vida, causa de game over e Loja com estoque fixo. Nada é salvo.
 /// </summary>
 public partial class UiPreview : Node
 {
@@ -83,12 +87,12 @@ public partial class UiPreview : Node
 		("compendium", "Attacks", SceneArena), ("compendium", "Enemies", SceneArena), ("compendium", "Weapons", SceneArena),
 		("character_sheet", "Attributes", SceneArena), ("character_sheet", "Blessings", SceneArena),
 		("character_sheet", "Artifacts", SceneArena), ("character_sheet", "Skills", SceneArena),
-		("artifact_offer", null, SceneArena), ("artifact_offer_4", null, SceneArena), ("blessing_offer", null, SceneArena),
+		("blessing_offer", null, SceneArena),
 		("blessing_offer_replace", null, SceneArena), ("toast", null, SceneArena), ("wave_warning", null, SceneArena),
 		("room_clear", null, SceneArena), ("boss_bar", null, SceneArena),
-		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest), ("artifact_chest", null, SceneNest),
+		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
 		("weapon_bench", null, SceneNest),
-		("altar", null, SceneChamber)
+		("altar", null, SceneChamber), ("shop", null, SceneChamber)
 	};
 
 	private List<BatchJob> _jobs;

@@ -21,7 +21,6 @@ public readonly record struct ArtifactRecord(string Id, string Name, string Slot
 public static class CharacterSheet
 {
     private const int StartingAttributeValue = 5;
-    public const int EquippedArtifactSlotCount = 3;
 
     private static readonly Dictionary<CharacterAttribute, int> Attributes = new()
     {
@@ -33,12 +32,11 @@ public static class CharacterSheet
     };
 
     private static readonly Dictionary<string, int> SkillRanks = new();
-    private static readonly List<ArtifactRecord> Artifacts = new();
-    private static readonly string[] EquippedArtifactSlots = new string[EquippedArtifactSlotCount];
 
-    public static int BloodCoins { get; private set; }
+    /// <summary>Sangue Amaldicoado: recurso permanente (salvo) gasto na arvore de habilidades do hub. As moedas da run vivem em RunState.RunBloodCoins.</summary>
+    public static int CursedBlood { get; private set; }
+
     public static IReadOnlyCollection<string> AcquiredSkills => SkillRanks.Keys;
-    public static IReadOnlyList<ArtifactRecord> FoundArtifacts => Artifacts;
 
     public static int GetAttribute(CharacterAttribute attribute)
     {
@@ -53,21 +51,21 @@ public static class CharacterSheet
         SaveGameManager.RequestAutosave();
     }
 
-    public static void AddBloodCoins(int amount)
+    public static void AddCursedBlood(int amount)
     {
-        BloodCoins = System.Math.Max(BloodCoins + amount, 0);
+        CursedBlood = System.Math.Max(CursedBlood + amount, 0);
         SaveGameManager.RequestAutosave();
     }
 
-    public static bool SpendBloodCoins(int amount)
+    public static bool SpendCursedBlood(int amount)
     {
         if (amount <= 0)
             return true;
 
-        if (BloodCoins < amount)
+        if (CursedBlood < amount)
             return false;
 
-        BloodCoins -= amount;
+        CursedBlood -= amount;
         SaveGameManager.RequestAutosave();
         return true;
     }
@@ -107,87 +105,6 @@ public static class CharacterSheet
         return SkillRanks.TryGetValue(skillId, out var rank) ? rank : 0;
     }
 
-    public static void AddArtifact(string artifactName, string effect, float amount)
-    {
-        if (string.IsNullOrWhiteSpace(artifactName))
-            return;
-
-        AddArtifact(new ArtifactRecord(artifactName, effect, amount));
-    }
-
-    public static void AddArtifact(ArtifactRecord artifact)
-    {
-        artifact = WithResolvedId(artifact);
-        if (string.IsNullOrWhiteSpace(artifact.Name) || HasArtifact(artifact.Name))
-            return;
-
-        Artifacts.Add(artifact);
-        CodexProgress.MarkDiscovered(CodexCategory.Artifact, ResolveArtifactId(artifact));
-        SaveGameManager.RequestAutosave();
-    }
-
-    public static void CommitArtifacts(IEnumerable<ArtifactRecord> artifacts)
-    {
-        foreach (var artifact in artifacts)
-            AddArtifact(artifact);
-    }
-
-    public static bool HasArtifact(string artifactName)
-    {
-        return FindArtifact(artifactName).Name == artifactName;
-    }
-
-    public static ArtifactRecord FindArtifact(string artifactName)
-    {
-        foreach (var artifact in Artifacts)
-        {
-            if (artifact.Name == artifactName)
-                return artifact;
-        }
-
-        return default;
-    }
-
-    public static string GetEquippedArtifactSlot(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= EquippedArtifactSlots.Length)
-            return "";
-
-        return EquippedArtifactSlots[slotIndex] ?? "";
-    }
-
-    public static bool EquipArtifact(int slotIndex, string artifactName)
-    {
-        if (slotIndex < 0 || slotIndex >= EquippedArtifactSlots.Length || !HasArtifact(artifactName))
-            return false;
-
-        EquippedArtifactSlots[slotIndex] = artifactName;
-        SaveGameManager.RequestAutosave();
-        return true;
-    }
-
-    public static void UnequipArtifact(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= EquippedArtifactSlots.Length)
-            return;
-
-        EquippedArtifactSlots[slotIndex] = "";
-        SaveGameManager.RequestAutosave();
-    }
-
-    public static IEnumerable<ArtifactRecord> GetEquippedArtifacts()
-    {
-        foreach (var artifactName in EquippedArtifactSlots)
-        {
-            if (string.IsNullOrWhiteSpace(artifactName))
-                continue;
-
-            var artifact = FindArtifact(artifactName);
-            if (!string.IsNullOrWhiteSpace(artifact.Name))
-                yield return artifact;
-        }
-    }
-
     public static float GetDamageMultiplier()
     {
         return 1.0f + AttributeDelta(CharacterAttribute.Strength) * 0.03f;
@@ -219,10 +136,9 @@ public static class CharacterSheet
     {
         var data = new GameSaveData
         {
-            BloodCoins = BloodCoins,
+            Version = GameSaveData.CurrentSaveVersion,
+            CursedBlood = CursedBlood,
             SkillRanks = new Dictionary<string, int>(SkillRanks),
-            Artifacts = new List<ArtifactRecord>(Artifacts),
-            EquippedArtifacts = (string[])EquippedArtifactSlots.Clone(),
             EquippedWeaponId = WeaponLoadout.EquippedWeaponId,
             Discoveries = CodexProgress.ToSaveData()
         };
@@ -233,7 +149,7 @@ public static class CharacterSheet
     public static void LoadSaveData(GameSaveData data)
     {
         ResetPermanentProgress();
-        BloodCoins = System.Math.Max(data.BloodCoins, 0);
+        CursedBlood = System.Math.Max(data.CursedBlood, 0);
         foreach (var pair in data.Attributes ?? new Dictionary<string, int>())
             if (System.Enum.TryParse<CharacterAttribute>(pair.Key, out var attribute)) Attributes[attribute] = pair.Value;
         foreach (var pair in data.SkillRanks ?? new Dictionary<string, int>())
@@ -243,11 +159,6 @@ public static class CharacterSheet
             var rank = System.Math.Clamp(pair.Value, 0, System.Math.Max(maxRank, 1));
             if (rank > 0) SkillRanks[pair.Key] = rank;
         }
-        // Registros antigos só têm o nome (SaveName): preenche o Id para a UI achar a definição sem depender do texto exibido.
-        foreach (var artifact in data.Artifacts ?? new List<ArtifactRecord>())
-            Artifacts.Add(WithResolvedId(artifact));
-        var equippedArtifacts = data.EquippedArtifacts ?? System.Array.Empty<string>();
-        for (var i = 0; i < EquippedArtifactSlots.Length && i < equippedArtifacts.Length; i++) EquippedArtifactSlots[i] = equippedArtifacts[i] ?? "";
         WeaponLoadout.Equip(data.EquippedWeaponId ?? "longsword");
         CodexProgress.LoadSaveData(data.Discoveries);
         BackfillDiscoveries();
@@ -256,8 +167,7 @@ public static class CharacterSheet
     public static void ResetPermanentProgress()
     {
         foreach (var attribute in Attributes.Keys.ToList()) Attributes[attribute] = StartingAttributeValue;
-        BloodCoins = 0; SkillRanks.Clear(); Artifacts.Clear();
-        System.Array.Fill(EquippedArtifactSlots, "");
+        CursedBlood = 0; SkillRanks.Clear();
         WeaponLoadout.Equip("longsword");
         CodexProgress.Reset();
     }
@@ -267,32 +177,7 @@ public static class CharacterSheet
     {
         foreach (var skillId in SkillRanks.Keys)
             CodexProgress.MarkSilently(CodexCategory.Skill, skillId);
-        foreach (var artifact in Artifacts)
-            CodexProgress.MarkSilently(CodexCategory.Artifact, ResolveArtifactId(artifact));
         CodexProgress.MarkSilently(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
-    }
-
-    private static ArtifactRecord WithResolvedId(ArtifactRecord artifact)
-    {
-        if (!string.IsNullOrWhiteSpace(artifact.Id) || string.IsNullOrWhiteSpace(artifact.Name))
-            return artifact;
-        var id = ResolveArtifactId(artifact);
-        return string.IsNullOrEmpty(id) ? artifact : artifact with { Id = id };
-    }
-
-    /// <summary>Id do catalogo; registros antigos (construtor por nome) tem Id vazio e sao resolvidos pelo nome.</summary>
-    private static string ResolveArtifactId(ArtifactRecord artifact)
-    {
-        if (!string.IsNullOrWhiteSpace(artifact.Id))
-            return artifact.Id;
-
-        foreach (var definition in ArtifactCatalog.All)
-        {
-            if (definition.SaveName == artifact.Name)
-                return definition.Id;
-        }
-
-        return "";
     }
 
     private static int AttributeDelta(CharacterAttribute attribute)

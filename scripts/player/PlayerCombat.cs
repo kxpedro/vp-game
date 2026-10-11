@@ -268,7 +268,8 @@ public partial class PlayerCombat : Node
 				GetTree().CallGroup("audio_manager", "PlayEffect", "special_ground");
 		}
 		else SpawnAttackSlash(attack, attackType, attackType == PlayerAttackType.Special);
-		var currencyDamage = RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * CharacterSheet.BloodCoins;
+		// Teto do Livro-Caixa: +100% de dano (economy.ledger.max_bonus).
+		var currencyDamage = Mathf.Min(RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * RunState.RunBloodCoins, CompendiumTuning.GetFloat("economy.ledger.max_bonus", 1.0f));
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
 		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus) * GameTuning.GetDamageMultiplier();
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
@@ -587,7 +588,8 @@ public partial class PlayerCombat : Node
 	public float GetCurrentBasicAttackDamage()
 	{
 		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1");
-		var currencyDamage = RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * CharacterSheet.BloodCoins;
+		// Teto do Livro-Caixa: +100% de dano (economy.ledger.max_bonus).
+		var currencyDamage = Mathf.Min(RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * RunState.RunBloodCoins, CompendiumTuning.GetFloat("economy.ledger.max_bonus", 1.0f));
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
 		var multiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier
 			* (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus)

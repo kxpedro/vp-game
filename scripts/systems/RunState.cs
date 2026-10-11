@@ -6,7 +6,11 @@ public static class RunState
     public static int CurrentRoom { get; private set; } = 1;
     public static int StoryFragmentsUnlocked { get; private set; }
     public static float DamageMultiplier { get; private set; } = 1.0f;
-    public static float MaxHealthBonus { get; private set; }
+    private static float _artifactMaxHealthBonus;
+    private static float _devilsFruitMaxHealth;
+    /// <summary>Frutas do Diabo coletadas na run (zera em StartRun/FailRun/fim da campanha).</summary>
+    public static int DevilsFruitCount { get; private set; }
+    public static float MaxHealthBonus => _artifactMaxHealthBonus + _devilsFruitMaxHealth;
     public static float MaxHealthMultiplier => 1.0f + GetEffectTotal("MaxHealth.Multiplier");
     public static float SacrificedMaxHealthMultiplier { get; private set; } = 1.0f;
     public static float SavedPlayerHealth { get; private set; } = -1.0f;
@@ -31,8 +35,25 @@ public static class RunState
     public static System.Collections.Generic.IReadOnlyList<ArtifactRecord> RunArtifacts => TemporaryArtifacts;
     public static System.Collections.Generic.IReadOnlyList<BloodBlessingRecord> RunBlessings => BloodBlessings;
 
+    /// <summary>
+    /// Moedas de Sangue da run: saldo volatil, nunca vai para o save. Zera em StartRun, FailRun e no fim da campanha;
+    /// NAO zera entre mapas (a loja da Camara fica entre mapas e gasta este saldo).
+    /// </summary>
+    public static int RunBloodCoins { get; private set; }
+
+    public static void AddRunBloodCoins(int amount) => RunBloodCoins = System.Math.Max(RunBloodCoins + amount, 0);
+
+    public static bool TrySpendRunBloodCoins(int amount)
+    {
+        if (amount <= 0) return true;
+        if (RunBloodCoins < amount) return false;
+        RunBloodCoins -= amount;
+        return true;
+    }
+
     public static void StartRun()
     {
+        RunBloodCoins = 0;
         IsRunActive = true;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
@@ -44,7 +65,9 @@ public static class RunState
         BloodBlessings.Clear();
         BlessingStacks.Clear();
         DamageMultiplier = 1.0f;
-        MaxHealthBonus = 0.0f;
+        _artifactMaxHealthBonus = 0.0f;
+        _devilsFruitMaxHealth = 0.0f;
+        DevilsFruitCount = 0;
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
@@ -52,7 +75,6 @@ public static class RunState
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
         BlessingRoomDamage = 0.0f;
-        ApplyEquippedArtifacts();
         CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
     }
 
@@ -74,18 +96,20 @@ public static class RunState
             return;
         }
 
-        CharacterSheet.CommitArtifacts(TemporaryArtifacts);
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
         IsCampaignComplete = true;
         IsRunActive = false;
+        RunBloodCoins = 0;
         _skillFatalProtectionConsumed = false;
         _skillRerollConsumedMap = -1;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
         DamageMultiplier = 1.0f;
-        MaxHealthBonus = 0.0f;
+        _artifactMaxHealthBonus = 0.0f;
+        _devilsFruitMaxHealth = 0.0f;
+        DevilsFruitCount = 0;
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
@@ -97,6 +121,7 @@ public static class RunState
 
     public static void FailRun()
     {
+        RunBloodCoins = 0;
         IsRunActive = false;
         CurrentMapIndex = 0;
         CurrentRoom = 1;
@@ -108,7 +133,9 @@ public static class RunState
         BloodBlessings.Clear();
         BlessingStacks.Clear();
         DamageMultiplier = 1.0f;
-        MaxHealthBonus = 0.0f;
+        _artifactMaxHealthBonus = 0.0f;
+        _devilsFruitMaxHealth = 0.0f;
+        DevilsFruitCount = 0;
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
@@ -130,8 +157,25 @@ public static class RunState
 
     public static void AddMaxHealthBonus(float amount)
     {
-        MaxHealthBonus += amount;
+        _artifactMaxHealthBonus += amount;
     }
+
+    /// <summary>
+    /// Fruta do Diabo: +vida maxima acumulativa, so na run. Fica fora de _artifactMaxHealthBonus porque
+    /// RecalculateArtifactBonuses (chamado ao pegar/evoluir bencao) zera aquele campo. Persiste entre salas e cenas
+    /// (RunState e estatico) e zera em StartRun, FailRun e no fim da campanha. Retorna o bonus aplicado.
+    /// O chamador deve reaplicar PlayerController.ApplyRuntimeTuning e curar o jogador.
+    /// </summary>
+    public static float AddDevilsFruit()
+    {
+        var amount = DevilsFruitMaxHealthAmount;
+        _devilsFruitMaxHealth += amount;
+        DevilsFruitCount++;
+        return amount;
+    }
+
+    public static float DevilsFruitMaxHealthAmount => CompendiumTuning.GetFloat("economy.fruit.max_health", 15.0f);
+    public static float DevilsFruitHealAmount => CompendiumTuning.GetFloat("economy.fruit.heal", 15.0f);
 
     public static void SacrificeMaxHealth(float fraction)
     {
@@ -141,10 +185,9 @@ public static class RunState
     public static void RecalculateArtifactBonuses()
     {
         DamageMultiplier = 1.0f;
-        MaxHealthBonus = 0.0f;
+        _artifactMaxHealthBonus = 0.0f; // a Fruta do Diabo fica em _devilsFruitMaxHealth e sobrevive ao recalculo
         EffectTotals.Clear();
         EffectParameters.Clear();
-        ApplyEquippedArtifacts();
 
         foreach (var artifact in TemporaryArtifacts)
         {
@@ -156,12 +199,58 @@ public static class RunState
                 ApplyBlessingEffects(definition, blessing.EffectivePowerMultiplier);
     }
 
+    /// <summary>
+    /// Adiciona um artefato a run (sem limite de quantidade). Os artefatos da run sobrevivem entre mapas e zeram em
+    /// StartRun, FailRun e no fim da campanha; nao ha colecao permanente nem slots equipados.
+    /// </summary>
     public static void AddTemporaryArtifact(ArtifactRecord artifact)
     {
         TemporaryArtifacts.Add(artifact);
         CodexProgress.MarkDiscovered(CodexCategory.Artifact, artifact.Id);
 
         ApplyArtifactEffect(artifact);
+    }
+
+    /// <summary>O jogador ja comprou/possui este artefato na run atual (por Id ou pelo SaveName legado).</summary>
+    public static bool HasRunArtifact(string artifactId)
+    {
+        if (string.IsNullOrWhiteSpace(artifactId))
+            return false;
+
+        foreach (var artifact in TemporaryArtifacts)
+            if (artifact.Id == artifactId || (string.IsNullOrWhiteSpace(artifact.Id) && artifact.Name == artifactId))
+                return true;
+        return false;
+    }
+
+    /// <summary>Ids dos artefatos da run, para ArtifactCatalog.RollShopStock.</summary>
+    public static System.Collections.Generic.HashSet<string> GetRunArtifactIds()
+    {
+        var ids = new System.Collections.Generic.HashSet<string>();
+        foreach (var artifact in TemporaryArtifacts)
+            if (!string.IsNullOrWhiteSpace(artifact.Id))
+                ids.Add(artifact.Id);
+        return ids;
+    }
+
+    /// <summary>
+    /// Compra de artefato na Loja da Camara de Hemomancia: gasta <paramref name="price"/> Moedas de Sangue da run e
+    /// adiciona o artefato a run. Sem limite de quantidade. Falha (sem gastar) se a definicao for nula, se o saldo nao
+    /// bastar ou se o artefato ja for da run e a loja estiver configurada para nao repeti-lo
+    /// (<c>economy.shop.exclude_owned</c>). O chamador deve reaplicar PlayerController.ApplyRuntimeTuning se o artefato
+    /// alterar vida maxima e atualizar o HUD.
+    /// </summary>
+    public static bool TryBuyShopArtifact(ArtifactDefinition definition, int price)
+    {
+        if (definition == null || price < 0)
+            return false;
+        if (ArtifactCatalog.ShopExcludesOwned && HasRunArtifact(definition.Id))
+            return false;
+        if (!TrySpendRunBloodCoins(price))
+            return false;
+
+        AddTemporaryArtifact(ArtifactCatalog.CreateRecord(definition));
+        return true;
     }
 
     public static int GetBlessingStack(string blessingId) => BlessingStacks.TryGetValue(blessingId, out var stack) ? stack : 0;
@@ -249,28 +338,21 @@ public static class RunState
             SetEffectParameterMaximum(effect.Type, parameter.Key, parameter.Value);
     }
 
-    private static void ApplyEquippedArtifacts()
-    {
-        foreach (var artifact in CharacterSheet.GetEquippedArtifacts())
-        {
-            ApplyArtifactEffect(artifact);
-        }
-    }
-
     private static void ApplyArtifactEffect(ArtifactRecord artifact)
     {
         if (!string.IsNullOrWhiteSpace(artifact.Id) && ArtifactCatalog.TryGet(artifact.Id, out var definition))
         {
             for (var i = 0; i < definition.Effects.Length; i++)
-                ApplyEffect(definition.Id, i, definition.Effects[i], ArtifactCatalog.BossDropPowerMultiplier);
+                ApplyEffect(definition.Id, i, definition.Effects[i], ArtifactCatalog.ShopPowerMultiplier);
 
             return;
         }
 
-        if (artifact.Effect == RoomArtifact.ArtifactEffect.Damage.ToString())
+        // Registro sem definição no catálogo (formato legado, sem Id): só Damage e MaxHealth.
+        if (artifact.Effect == "Damage")
             AddDamageMultiplier(artifact.Amount);
 
-        if (artifact.Effect == RoomArtifact.ArtifactEffect.MaxHealth.ToString())
+        if (artifact.Effect == "MaxHealth")
             AddMaxHealthBonus(artifact.Amount);
     }
 

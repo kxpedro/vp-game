@@ -5,7 +5,6 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
 [ext_resource type="Script" uid="uid://cgslhnum1ob2l" path="res://scripts/systems/ScenePortal.cs" id="4"]
 [ext_resource type="Script" uid="uid://cl0dn6digvuif" path="res://scripts/systems/BloodFountain.cs" id="5"]
-[ext_resource type="Script" uid="uid://c38fkac7sd5h0" path="res://scripts/systems/ArtifactChest.cs" id="6"]
 [ext_resource type="Script" path="res://scripts/systems/WeaponBench.cs" id="7"]
 [ext_resource type="Script" path="res://scripts/systems/CrowsNestCrypt.cs" id="8"]
 
@@ -164,27 +163,6 @@ outline_size = 8
 script = ExtResource("7")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WeaponBench/WeaponBenchArea"]
-position = Vector3(0, 0.55, 0)
-shape = SubResource("InteractionBox")
-
-[node name="ArtifactChest" type="MeshInstance3D" parent="."]
-position = Vector3(10, 0.45, 0)
-material_override = SubResource("WoodMaterial")
-mesh = SubResource("TableMesh")
-
-[node name="ArtifactChestLabel" type="Label3D" parent="ArtifactChest"]
-pixel_size = 0.0085
-position = Vector3(0, 1.05, 0)
-billboard = 1
-modulate = Color(1, 0.08, 0.04, 1)
-text = "Baú de Artefatos"
-font_size = 34
-outline_size = 8
-
-[node name="ArtifactChestArea" type="Area3D" parent="ArtifactChest"]
-script = ExtResource("6")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ArtifactChest/ArtifactChestArea"]
 position = Vector3(0, 0.55, 0)
 shape = SubResource("InteractionBox")
 

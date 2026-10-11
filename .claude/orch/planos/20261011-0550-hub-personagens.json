@@ -1,0 +1,95 @@
+{
+  "schema": "orch.plano/1",
+  "id": "20261011-0550-hub-personagens",
+  "titulo": "Hub: pontos reservados para os personagens desbloqueáveis e atributos ocultos",
+  "status": "planejado",
+  "demanda": "Pedro (2026-10-11), texto colado: fazer 4 personagens jogaveis que vao sendo liberados com o tempo, talvez possam ser inicialmente bosses que depois de derrotados sao desbloqueados para o jogador; cada personagem vai ter 4 variantes de armas, elaborar depois. Power ups por sala, ja tem isso, mas tem que mostrar pro jogador qual vai ser antes dele entrar na proxima, mostrando o icone na porta de acesso (igual hades). Novas recompensas de sala: devil's fruit (fruta do diabo), uma fruta formada por sangue, adiciona 15 pontos de vida ao total do jogador; blood coins (moeda de sangue), ja implementado, hoje serve para comprar aprimoramentos no hub, mas vamos remover isso, agora so vai funcionar para comprar upgrades dentro de uma run; cursed blood (sangue amaldicoado), novo recurso para comprar aprimoramentos no hub, adquirido principalmente ao derrotar bosses e inimigos especiais. Adendos na conversa: atributos dos personagens invisiveis ao jogador mas computados; artefatos de boss passam a ser vendidos na loja e saem da recompensa dos bosses; os outros personagens desbloqueaveis NAO serao implementados agora, apenas um placeholder no hub.",
+  "objetivo": "O hub ganha 3 pontos reservados (placeholders) para os futuros personagens desbloqueáveis; a Ficha deixa de mostrar a aba Atributos em release (os atributos seguem calculados); as decisões sobre o elenco ficam documentadas para um plano futuro. Nenhum personagem novo é implementado agora.",
+  "grupo": "20261011-0550-economia-recompensas",
+  "dependeDosPlanos": [
+    "20261011-0550-economia-recompensas"
+  ],
+  "criado": "2026-10-11T05:50:00-03:00",
+  "atualizado": "2026-10-11T05:50:00-03:00",
+  "commitInicial": "3c2e257",
+  "versaoOrch": "0.5.0",
+  "ondas": [
+    [
+      "T1",
+      "T2",
+      "T3"
+    ]
+  ],
+  "tarefas": [
+    {
+      "id": "T1",
+      "titulo": "Placeholders dos personagens no hub",
+      "executor": "designer-ux-arte",
+      "dependeDe": [],
+      "arquivos": [
+        "scripts/systems/CharacterPlaceholder.cs",
+        "scripts/systems/CrowsNestCrypt.cs",
+        "scripts/ui/HUD.cs",
+        "data/localization/*/ui.json"
+      ],
+      "prontoQuando": "Captura do hub com os 3 pontos nos 3 idiomas, sem erro; nenhuma lógica de personagem.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T2",
+      "titulo": "Ocultar a aba Atributos da Ficha",
+      "executor": "ui-hud",
+      "dependeDe": [],
+      "arquivos": [
+        "scripts/ui/HUD.CharacterSheet.cs",
+        "scripts/ui/UiPreview.cs"
+      ],
+      "prontoQuando": "Ficha sem a aba em release e com ela em debug (gate `OS.IsDebugBuild()`); cálculos intactos; build e validadores sem erro.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    },
+    {
+      "id": "T3",
+      "titulo": "Documentar o elenco futuro",
+      "executor": "game-designer",
+      "dependeDe": [],
+      "arquivos": [
+        "docs/design/personagens-futuros.md"
+      ],
+      "prontoQuando": "Documento claro e completo, sem código.",
+      "status": "pendente",
+      "inicio": null,
+      "fim": null,
+      "tentativas": 0,
+      "resultado": null,
+      "modelo": null,
+      "sessaoApp": null,
+      "pasta": null,
+      "merge": null
+    }
+  ],
+  "eventos": [
+    {
+      "quando": "2026-10-11T05:50:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-criado",
+      "texto": "Plano criado"
+    }
+  ],
+  "resultadoFinal": null
+}

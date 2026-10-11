@@ -1,6 +1,6 @@
 ---
 name: vp-create-artifact
-description: Criar, implementar, revisar ou ampliar artefatos exclusivamente passivos do Vampire's Prey. Usar ao editar data/artifacts/artifacts.json, criar efeitos passivos, conectar consumidores ao runtime, ajustar raridade, peso, textos, ícones, baú/coleção ou corrigir um artefato que aparece no jogo mas não produz efeito.
+description: Criar, implementar, revisar ou ampliar artefatos exclusivamente passivos do Vampire's Prey. Usar ao editar data/artifacts/artifacts.json, criar efeitos passivos, conectar consumidores ao runtime, ajustar raridade, peso, preço na loja, textos, ícones ou corrigir um artefato que aparece no jogo mas não produz efeito.
 ---
 
 # Criar artefato de Vampire's Prey
@@ -17,8 +17,8 @@ Entregar um artefato passivo funcional de ponta a ponta. Artefatos não possuem 
 6. Adicionar ou editar em UTF-8, com IDs únicos em `snake_case` e caminhos Godot `res://`.
 7. Confirmar aplicação em `RunState` e consumo por pelo menos um sistema real de gameplay.
 8. Para tipo de efeito novo, incluí-lo em `KnownTypes` do `ArtifactEffectRegistry` e criar `artifact.effect.<Tipo>` em `content.json` nos três idiomas.
-9. Confirmar que o Baú de Artefatos lista itens encontrados na run e descobertos permanentemente no save.
-10. Para recompensa de boss, confirmar surgimento do Altar de Artefatos, abertura somente por interação, consumo após a escolha e desbloqueio posterior do portão.
+9. Confirmar que o artefato entra no estoque da Loja da Câmara de Hemomancia (`ArtifactCatalog.RollShopStock`): raridade com preço em `economy.shop.price.*`, compra via `RunState.TryBuyShopArtifact` e presença na lista de artefatos da run (`RunState.RunArtifacts`). Artefatos valem só na run: não há coleção permanente, slots equipados, Baú nem recompensa de boss.
+10. Se o efeito depender de Moedas de Sangue, ler o saldo da run (`RunState.RunBloodCoins`), nunca o Sangue Amaldiçoado permanente, e avaliar um teto de poder (como o `DamagePerCurrencyHeld`, limitado a +100% por `economy.ledger.max_bonus`).
 11. Usar ícone existente somente quando placeholder for permitido. Para ícone novo, usar a skill de geração de imagens disponível.
 12. Executar `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` (confere também as chaves de texto nos três idiomas), `py tools/validate_localization.py` e `dotnet build VP0.1.csproj`.
 13. Informar cadastro, gatilho passivo, consumidor de runtime e testes.
@@ -38,4 +38,4 @@ Entregar um artefato passivo funcional de ponta a ponta. Artefatos não possuem 
 
 - "Crie um artefato passivo épico que explode automaticamente depois de três críticos."
 - "Implemente o efeito do Espelho do Último Convidado."
-- "Faça o baú exibir os artefatos encontrados durante a run."
+- "Faça a loja da Câmara oferecer o novo artefato Rare com o preço da raridade."
