@@ -56,6 +56,7 @@ public partial class PlayerCombat : Node
 	private Vector3 _attackDirection = Vector3.Forward;
 	private int _attackGeneration;
 	private AttackControlProfile _currentControl = AttackControlProfile.Default;
+	private Node3D _attackPreview;
 	private CanvasLayer _furyVisualLayer;
 	private ColorRect _furyVisualOverlay;
 
@@ -227,11 +228,11 @@ public partial class PlayerCombat : Node
 		ConfigureAttackArea(attack);
 		var hitDelay = GetAttackDelay(attack.HitDelay, attackType);
 		var recoveryDelay = GetAttackDelay(attack.Recovery, attackType);
-		var animationDuration = hitDelay + recoveryDelay;
 		if (attackType == PlayerAttackType.Special)
-			_animator?.PlayHeavyAttack(animationDuration);
+			_animator?.PlayHeavyAttack(hitDelay, recoveryDelay);
 		else
-			_animator?.PlayLightAttack(_lightComboIndex, animationDuration, attack.Shape);
+			_animator?.PlayLightAttack(_lightComboIndex, hitDelay, recoveryDelay, attack.Shape, _lightComboIndex == BasicCombo.Length - 1);
+		SpawnAttackPreview(attack, hitDelay, attackType == PlayerAttackType.Special || _lightComboIndex == BasicCombo.Length - 1);
 		var heavySwing = attackType == PlayerAttackType.Special
 			|| (attackType == PlayerAttackType.Basic && _lightComboIndex == BasicCombo.Length - 1);
 		var swingEffect = attackType == PlayerAttackType.Special
@@ -248,6 +249,7 @@ public partial class PlayerCombat : Node
 		await Wait(hitDelay);
 		if (!IsCurrentAttack(attackGeneration))
 			return;
+		FreeAttackPreview();
 
 		if (_currentControl.RetargetAtImpactStrength > 0.0f && attack.Shape != WeaponAttackShape.Radial)
 		{
@@ -286,7 +288,8 @@ public partial class PlayerCombat : Node
 				: _lightComboIndex == BasicCombo.Length - 1 ? "hit_pierce" : "hit_slash";
 			GetTree().CallGroup("audio_manager", "PlayEffect", hitEffect);
 		}
-		CombatFeedback.Instance?.PlayPlayerHit(hit.TargetsHit, hit.IsCritical, attackType != PlayerAttackType.Basic || _lightComboIndex == BasicCombo.Length - 1);
+		CombatFeedback.Instance?.PlayPlayerHitWeighted(hit.TargetsHit, hit.IsCritical,
+			attackType == PlayerAttackType.Special ? 1.5f : _lightComboIndex == BasicCombo.Length - 1 ? 1.0f : 0.0f);
 		if (attackType == PlayerAttackType.Special)
 			_blessings?.OnSpecialAttack(GetParent<Node3D>().GlobalPosition, attack.Range, attack.Shape);
 
@@ -340,7 +343,7 @@ public partial class PlayerCombat : Node
 		ConfigureAttackArea(attack);
 		var quickHitDelay = Mathf.Max(attack.HitDelay, 0.04f);
 		var recoveryDelay = Mathf.Max(attack.Recovery, 0.01f);
-		_animator?.PlayDashAttack(quickHitDelay + recoveryDelay);
+		_animator?.PlayDashAttack(quickHitDelay, recoveryDelay);
 		GetTree().CallGroup("audio_manager", "PlayEffect", "attack_quick");
 		SetAttackPhase(PlayerAttackPhase.Startup, quickHitDelay);
 		await Wait(quickHitDelay);
@@ -360,7 +363,7 @@ public partial class PlayerCombat : Node
 			: DealDamage(quickDamage, attack.Knockback, attack, PlayerAttackType.Quick);
 		if (dashHit.TargetsHit > 0)
 			GetTree().CallGroup("audio_manager", "PlayEffect", "hit_spin");
-		CombatFeedback.Instance?.PlayPlayerHit(dashHit.TargetsHit, dashHit.IsCritical, true);
+		CombatFeedback.Instance?.PlayPlayerHitWeighted(dashHit.TargetsHit, dashHit.IsCritical, 0.8f);
 
 		SetAttackPhase(PlayerAttackPhase.Recovery, recoveryDelay);
 		await Wait(recoveryDelay);
@@ -412,6 +415,7 @@ public partial class PlayerCombat : Node
 			return;
 
 		_attackGeneration++;
+		FreeAttackPreview();
 		_isAttacking = false;
 		IsQuickAttacking = false;
 		SetAttackPhase(PlayerAttackPhase.None, 0.0f);
@@ -652,20 +656,21 @@ public partial class PlayerCombat : Node
 	private async void SpawnAttackSlash(WeaponAttackDefinition attack, PlayerAttackType attackType, bool isHeavy)
 	{
 		var player = GetParent<Node3D>();
+		// Indicador do JOGADOR: ciano (leve) / branco-dourado (pesado). Vermelho e reservado ao perigo dos inimigos.
 		var fillMaterial = new StandardMaterial3D
 		{
-			AlbedoColor = isHeavy ? new Color(1.0f, 0.02f, 0.01f, 0.24f) : new Color(0.95f, 0.08f, 0.04f, 0.20f),
+			AlbedoColor = isHeavy ? new Color(1.0f, 0.90f, 0.60f, 0.24f) : new Color(0.45f, 0.85f, 1.0f, 0.20f),
 			EmissionEnabled = true,
-			Emission = new Color(1.0f, 0.0f, 0.0f),
-			EmissionEnergyMultiplier = isHeavy ? 1.4f : 1.0f,
+			Emission = isHeavy ? new Color(1.0f, 0.82f, 0.35f) : new Color(0.25f, 0.70f, 1.0f),
+			EmissionEnergyMultiplier = isHeavy ? 1.2f : 0.9f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
 		var edgeMaterial = new StandardMaterial3D
 		{
-			AlbedoColor = isHeavy ? new Color(1.0f, 0.05f, 0.03f, 0.88f) : new Color(1.0f, 0.16f, 0.08f, 0.74f),
+			AlbedoColor = isHeavy ? new Color(1.0f, 0.97f, 0.80f, 0.90f) : new Color(0.80f, 0.96f, 1.0f, 0.78f),
 			EmissionEnabled = true,
-			Emission = new Color(1.0f, 0.0f, 0.0f),
-			EmissionEnergyMultiplier = isHeavy ? 2.8f : 2.0f,
+			Emission = isHeavy ? new Color(1.0f, 0.85f, 0.40f) : new Color(0.40f, 0.82f, 1.0f),
+			EmissionEnergyMultiplier = isHeavy ? 2.6f : 1.9f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
 
@@ -681,8 +686,10 @@ public partial class PlayerCombat : Node
 
 		var tween = indicator.CreateTween();
 		indicator.Scale = new Vector3(0.9f, 1.0f, 0.85f);
-		tween.TweenProperty(indicator, "scale", new Vector3(1.05f, 1.0f, 1.0f), 0.08f);
-		tween.TweenProperty(indicator, "scale", new Vector3(1.12f, 1.0f, 1.06f), 0.06f);
+		tween.TweenProperty(indicator, "scale", new Vector3(1.05f, 1.0f, 1.0f), 0.09f);
+		tween.TweenProperty(indicator, "scale", new Vector3(1.12f, 1.0f, 1.06f), 0.07f);
+		tween.Parallel().TweenProperty(fillMaterial, "albedo_color:a", 0.0f, 0.07f);
+		tween.Parallel().TweenProperty(edgeMaterial, "albedo_color:a", 0.0f, 0.07f);
 		await ToSignal(tween, Tween.SignalName.Finished);
 		indicator.QueueFree();
 	}
@@ -692,18 +699,18 @@ public partial class PlayerCombat : Node
 		var player = GetParent<Node3D>();
 		var fillMaterial = new StandardMaterial3D
 		{
-			AlbedoColor = new Color(1.0f, 0.02f, 0.01f, 0.22f),
+			AlbedoColor = new Color(0.45f, 0.85f, 1.0f, 0.22f),
 			EmissionEnabled = true,
-			Emission = new Color(1.0f, 0.0f, 0.0f),
-			EmissionEnergyMultiplier = 1.8f,
+			Emission = new Color(0.25f, 0.70f, 1.0f),
+			EmissionEnergyMultiplier = 1.4f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
 		var ringMaterial = new StandardMaterial3D
 		{
-			AlbedoColor = new Color(1.0f, 0.08f, 0.04f, 0.86f),
+			AlbedoColor = new Color(0.80f, 0.96f, 1.0f, 0.86f),
 			EmissionEnabled = true,
-			Emission = new Color(1.0f, 0.0f, 0.0f),
-			EmissionEnergyMultiplier = 3.0f,
+			Emission = new Color(0.40f, 0.82f, 1.0f),
+			EmissionEnergyMultiplier = 2.4f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
 
@@ -760,8 +767,10 @@ public partial class PlayerCombat : Node
 
 		var tween = indicator.CreateTween();
 		indicator.Scale = new Vector3(0.72f, 1.0f, 0.72f);
-		tween.TweenProperty(indicator, "scale", new Vector3(1.08f, 1.0f, 1.08f), 0.08f);
-		tween.TweenProperty(indicator, "scale", new Vector3(1.16f, 1.0f, 1.16f), 0.06f);
+		tween.TweenProperty(indicator, "scale", new Vector3(1.08f, 1.0f, 1.08f), 0.09f);
+		tween.TweenProperty(indicator, "scale", new Vector3(1.16f, 1.0f, 1.16f), 0.07f);
+		tween.Parallel().TweenProperty(fillMaterial, "albedo_color:a", 0.0f, 0.07f);
+		tween.Parallel().TweenProperty(ringMaterial, "albedo_color:a", 0.0f, 0.07f);
 		await ToSignal(tween, Tween.SignalName.Finished);
 		indicator.QueueFree();
 	}
@@ -771,10 +780,10 @@ public partial class PlayerCombat : Node
 		var player = GetParent<Node3D>();
 		var material = new StandardMaterial3D
 		{
-			AlbedoColor = new Color(1.0f, 0.08f, 0.04f, 0.78f),
+			AlbedoColor = new Color(0.75f, 0.95f, 1.0f, 0.78f),
 			EmissionEnabled = true,
-			Emission = new Color(1.0f, 0.0f, 0.0f),
-			EmissionEnergyMultiplier = 2.5f,
+			Emission = new Color(0.40f, 0.82f, 1.0f),
+			EmissionEnergyMultiplier = 2.0f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
 		var indicator = new Node3D { Name = "ThrustAttackIndicator" };
@@ -784,9 +793,46 @@ public partial class PlayerCombat : Node
 		indicator.Scale = new Vector3(0.55f, 1.0f, 0.35f);
 		var tween = indicator.CreateTween();
 		tween.TweenProperty(indicator, "scale", Vector3.One, 0.08f);
-		tween.TweenInterval(0.08f);
+		tween.TweenProperty(material, "albedo_color:a", 0.0f, 0.10f);
 		await ToSignal(tween, Tween.SignalName.Finished);
 		indicator.QueueFree();
+	}
+
+	// Preview barato na fase de startup: preenchimento tenue (arco ou linha) que cresce ate o impacto.
+	private void SpawnAttackPreview(WeaponAttackDefinition attack, float hitDelay, bool isHeavy)
+	{
+		FreeAttackPreview();
+		if (attack.Shape == WeaponAttackShape.Radial)
+			return;
+
+		var player = GetParent<Node3D>();
+		var color = isHeavy ? new Color(1.0f, 0.90f, 0.60f, 0.05f) : new Color(0.45f, 0.85f, 1.0f, 0.05f);
+		var material = new StandardMaterial3D
+		{
+			AlbedoColor = color,
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+		};
+		var preview = new Node3D { Name = "AttackPreviewIndicator" };
+		player.AddChild(preview);
+		var visualRange = attack.Range + EquippedWeapon.HitboxEdgeForgiveness;
+		if (attack.Shape == WeaponAttackShape.Line)
+			AddHitboxBox(preview, "PreviewLine", new Vector3(attack.Width, 0.04f, visualRange), new Vector3(0.0f, 0.07f, -visualRange * 0.5f), material);
+		else
+			AddArcMesh(preview, "PreviewArc", visualRange, EquippedWeapon.AttackArcDegrees, material, 0.07f);
+		preview.Scale = new Vector3(0.85f, 1.0f, 0.85f);
+		var tween = preview.CreateTween();
+		tween.SetParallel(true);
+		tween.TweenProperty(preview, "scale", Vector3.One, Mathf.Max(hitDelay, 0.05f));
+		tween.TweenProperty(material, "albedo_color:a", 0.17f, Mathf.Max(hitDelay, 0.05f));
+		_attackPreview = preview;
+	}
+
+	private void FreeAttackPreview()
+	{
+		if (_attackPreview != null && IsInstanceValid(_attackPreview))
+			_attackPreview.QueueFree();
+		_attackPreview = null;
 	}
 
 	private void AddHitboxBox(Node3D parent, string name, Vector3 size, Vector3 position, Material material, Vector3? rotation = null)

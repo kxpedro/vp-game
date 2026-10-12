@@ -58,8 +58,14 @@ public partial class IsoCamera : Camera3D
         GlobalRotation = _fixedRotation;
     }
 
+    // Multiplicador global do shake (0 desliga; reducao de movimento).
+    public static float ShakeIntensity { get; set; } = 1.0f;
+
     public void Shake(float strength, float duration)
     {
+        strength *= ShakeIntensity;
+        if (strength <= 0.0f)
+            return;
         _shakeStrength = Mathf.Max(_shakeStrength, strength);
         _shakeDuration = Mathf.Max(_shakeDuration, duration);
         _shakeRemaining = Mathf.Max(_shakeRemaining, duration);

@@ -102,6 +102,8 @@ public partial class HUD
 		_isGameOver = true;
 		var source = _runtimeHealth?.LastDamageSource;
 		var finalDamage = _runtimeHealth?.LastDamageAmount ?? 0.0f;
+		if (source == AbandonRunDeathSource)
+			DialogueProgress.FlagAbandon();
 		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {source}.");
 		ShowGameOver(source, finalDamage);
 	}
@@ -205,11 +207,13 @@ public partial class HUD
 
 		BuildPauseMainPage();
 		_pauseOptionsPage = AddPausePage("PauseOptionsPage");
-		_pauseOptionsPage.AddChild(UiComponents.OptionsPanel(true));
+		var optionsPanel = UiComponents.OptionsPanel(true);
+		_pauseOptionsPage.AddChild(optionsPanel);
 		// Voltar explícito (além do rodapé), como nas opções do menu principal.
 		_pauseOptionsPage.AddChild(UiComponents.Separator());
 		var optionsBack = AddPauseMenuButton(_pauseOptionsPage, Localization.Text("hud.back"), ShowPauseMainMenu);
 		optionsBack.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+		optionsPanel.SetFooterTarget(optionsBack);
 		if (OS.IsDebugBuild())
 			BuildPauseTuningPage();
 		RefreshPauseTuningValues();
@@ -375,13 +379,23 @@ public partial class HUD
 		_pauseWindow.SetTitle(page == _pauseOptionsPage ? Localization.Text("options.title") : "Ajustes de gameplay");
 		_pauseWindow.SetStatus(null);
 		SetPauseFooter(page);
-		var focusables = ApplyPauseFocusCycle(page);
-		ControllerUiSupport.FocusInitial(focusables.Count > 0 ? focusables[0] : null, page);
+		// Opções: a vizinhança de foco é do próprio painel (abas); o ciclo plano daqui a sobrescreveria.
+		var focusables = page == _pauseOptionsPage ? new List<Control>() : ApplyPauseFocusCycle(page);
+		SetPauseWindowWide(page == _pauseOptionsPage);
+		var first = page == _pauseOptionsPage ? UiComponents.FindOptionsPanel(page)?.PreferredFocus : focusables.Count > 0 ? focusables[0] : null;
+		ControllerUiSupport.FocusInitial(first, page);
+	}
+
+	// Opções: rótulo 240 + controle 280 + valor 64 + barra de rolagem não cabem nos 640 da janela média.
+	private void SetPauseWindowWide(bool wide)
+	{
+		_pauseWindow.Panel.CustomMinimumSize = new Vector2(wide ? 704.0f : 640.0f, 0.0f);
 	}
 
 	private void ShowPauseMainMenu()
 	{
 		SetPausePageVisible(_pauseMainPage);
+		SetPauseWindowWide(false);
 		_pauseWindow.SetTitle(PauseTitle());
 		_pauseWindow.SetStatus(null);
 		SetPauseFooter(_pauseMainPage);
@@ -546,6 +560,12 @@ public partial class HUD
 
 	private void ReturnToMainMenu()
 	{
+		// Run em andamento (pausa -> menu): encerra como desistencia aqui, senao o LoadSlot do menu a conta como morte.
+		if (RunState.IsRunActive)
+		{
+			DialogueProgress.FlagAbandon();
+			RunState.FailRun();
+		}
 		// Grava já: o menu lê o slot logo em seguida (sem isso mostraria dados velhos).
 		SaveGameManager.RequestAutosave();
 		SaveGameManager.Instance?.FlushPendingSave();
@@ -617,8 +637,19 @@ public partial class HUD
 				PauseGame();
 				return true;
 			case "options":
+			case "options_video":
+			case "options_audio":
+			case "options_game":
+			case "options_confirm":
+			case "options_video_end":
 				PauseGame();
+				var optionsView = UiComponents.FindOptionsPanel(_pauseOptionsPage);
+				optionsView?.SelectTab(screen == "options_audio" ? OptionsPanelView.TabAudio : screen == "options_game" ? OptionsPanelView.TabGame : OptionsPanelView.TabVideo);
 				ShowPausePage(_pauseOptionsPage, null);
+				if (screen == "options_confirm")
+					optionsView?.PreviewKeepConfirm();
+				else if (screen == "options_video_end")
+					optionsView?.PreviewScrollToEnd();
 				return true;
 			case "tuning":
 			case "pause_tuning":

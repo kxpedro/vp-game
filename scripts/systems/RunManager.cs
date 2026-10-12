@@ -178,6 +178,8 @@ public partial class RunManager : Node3D
         {
             GetTree().CallGroup("audio_manager", "StopBossMusic");
             GetTree().CallGroup("audio_manager", "PlayEffect", "boss_defeated");
+            DialogueProgress.MarkBossDefeated(BossCatalog.Get(RunState.CurrentMapIndex).Id);
+            DialogueManager.Instance?.Notify(DialogueEvent.BossDefeated);
         }
         foreach (var projectile in GetTree().GetNodesInGroup("enemy_projectiles"))
             projectile.QueueFree();
@@ -185,6 +187,8 @@ public partial class RunManager : Node3D
         EmitSignal(SignalName.RoomCleared);
         GetTree().CallGroup("player_skills", "OnRoomCleared");
         GetTree().CallGroup("hud", "NotifyRoomCleared");
+        if (!RunState.IsBossRoom)
+            DialogueManager.Instance?.Notify(DialogueEvent.RoomCleared);
         var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
         // A recompensa desta sala (porta escolhida na sala anterior) e lida sem consumir: so sai da run ao ser pega no chao
         // (OnRoomPickupClaimed), assim uma recarga de cena nao perde a pendencia (docs/design/portas-recompensas.md, 7.4).
@@ -387,6 +391,7 @@ public partial class RunManager : Node3D
             ConfigureBossRoom();
         else
             ConfigureCommonRoom();
+        DialogueManager.Instance?.Notify(DialogueEvent.RoomEntered);
     }
 
     private void ConfigureCommonRoom()

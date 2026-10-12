@@ -1,0 +1,480 @@
+// Falas de run: barks (legenda sem pausa) e boss_pre (modal curto). Textos em data/localization/<idioma>/dialogue.json.
+// Guia de escrita e tabela completa: docs/design/dialogos.md. IDs sao persistidos no save: nunca renomear.
+{
+  "conversations": [
+    {
+      "id": "bark_room_enter_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.35,
+      "requirements": [ { "type": "in_run", "value": true } ],
+      "lines": [ { "text_key": "dlg.bark_room_enter_1.1" } ]
+    },
+    {
+      "id": "bark_room_enter_garden",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "blood_garden" } ],
+      "lines": [ { "text_key": "dlg.bark_room_enter_garden.1", "emotion": "grim" } ]
+    },
+    {
+      "id": "bark_room_enter_castle",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "upper_castle" } ],
+      "lines": [ { "text_key": "dlg.bark_room_enter_castle.1" } ]
+    },
+    {
+      "id": "bark_room_cleared_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_cleared",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.3,
+      "requirements": [ { "type": "in_run", "value": true } ],
+      "lines": [ { "text_key": "dlg.bark_room_cleared_1.1" } ]
+    },
+    {
+      "id": "bark_low_health_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "low_health",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.6,
+      "requirements": [ { "type": "in_run", "value": true } ],
+      "lines": [ { "text_key": "dlg.bark_low_health_1.1", "emotion": "grim" } ]
+    },
+    {
+      "id": "bark_low_health_2",
+      "speaker": "odalric",
+      "category": "bark",
+      "trigger": "low_health",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.5,
+      "requirements": [
+        { "type": "in_run", "value": true },
+        { "type": "seen", "id": "first_hub_arrival" }
+      ],
+      "lines": [ { "text_key": "dlg.bark_low_health_2.1", "emotion": "grim" } ]
+    },
+    {
+      "id": "boss_pre_invisible_woman",
+      "speaker": "virgil",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman.1", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_invisible_woman.2", "speaker": "odalric" }
+      ]
+    },
+    {
+      "id": "boss_pre_generic",
+      "speaker": "virgil",
+      "category": "boss_pre",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [ { "type": "boss_room", "value": true } ],
+      "lines": [ { "text_key": "dlg.boss_pre_generic.1", "emotion": "grim" } ]
+    },
+    {
+      "id": "bark_room_enter_dungeons_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "armands_dungeons" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_dungeons_1.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_dungeons_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "armands_dungeons" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_dungeons_2.1" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_garden_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "blood_garden" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_garden_2.1" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_garden_3",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "blood_garden" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_garden_3.1" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_castle_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "upper_castle" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_castle_2.1" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_castle_3",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.5,
+      "requirements": [ { "type": "map", "id": "upper_castle" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_castle_3.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "bark_room_cleared_dungeons",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_cleared",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.4,
+      "requirements": [ { "type": "map", "id": "armands_dungeons" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_cleared_dungeons.1" }
+      ]
+    },
+    {
+      "id": "bark_room_cleared_garden",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_cleared",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.4,
+      "requirements": [ { "type": "map", "id": "blood_garden" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_cleared_garden.1" }
+      ]
+    },
+    {
+      "id": "bark_room_cleared_castle",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "room_cleared",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.4,
+      "requirements": [ { "type": "map", "id": "upper_castle" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_cleared_castle.1" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_odalric_dungeons",
+      "speaker": "odalric",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.35,
+      "requirements": [ { "type": "map", "id": "armands_dungeons" }, { "type": "seen", "id": "first_hub_arrival" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_odalric_dungeons.1", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "bark_room_enter_odalric_castle",
+      "speaker": "odalric",
+      "category": "bark",
+      "trigger": "room_enter",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "chance": 0.35,
+      "requirements": [ { "type": "map", "id": "upper_castle" }, { "type": "seen", "id": "first_hub_arrival" } ],
+      "lines": [
+        { "text_key": "dlg.bark_room_enter_odalric_castle.1" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_invisible_woman_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_invisible_woman_1.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_invisible_woman_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_invisible_woman_2.1" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_labyrinth_keeper_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "labyrinth_keeper" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_labyrinth_keeper_1.1" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_labyrinth_keeper_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "labyrinth_keeper" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_labyrinth_keeper_2.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_silver_dragonkin_1",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "silver_dragonkin" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_silver_dragonkin_1.1" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_silver_dragonkin_2",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "silver_dragonkin" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_silver_dragonkin_2.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_armand_1",
+      "speaker": "armand",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "armand" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_armand_1.1", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_armand_2",
+      "speaker": "armand",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "armand" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_armand_2.1", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "bark_boss_phase_armand_3",
+      "speaker": "virgil",
+      "category": "bark",
+      "trigger": "boss_phase",
+      "priority_class": "evergreen",
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "chance": 0.85,
+      "requirements": [ { "type": "boss_in_room", "id": "armand" } ],
+      "lines": [
+        { "text_key": "dlg.bark_boss_phase_armand_3.1", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_labyrinth_keeper",
+      "speaker": "virgil",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "labyrinth_keeper" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_labyrinth_keeper.1", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_labyrinth_keeper.2", "speaker": "odalric", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_silver_dragonkin",
+      "speaker": "virgil",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "silver_dragonkin" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_silver_dragonkin.1", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_silver_dragonkin.2", "speaker": "odalric" }
+      ]
+    },
+    {
+      "id": "boss_pre_armand",
+      "speaker": "armand",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "armand" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_armand.1", "emotion": "amused" },
+        { "text_key": "dlg.boss_pre_armand.2", "speaker": "virgil", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_armand.3" },
+        { "text_key": "dlg.boss_pre_armand.4", "speaker": "virgil", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_armand.5", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "boss_post_invisible_woman",
+      "speaker": "virgil",
+      "category": "boss_post",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
+      "lines": [
+        { "text_key": "dlg.boss_post_invisible_woman.1" },
+        { "text_key": "dlg.boss_post_invisible_woman.2", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_post_labyrinth_keeper",
+      "speaker": "virgil",
+      "category": "boss_post",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "labyrinth_keeper" } ],
+      "lines": [
+        { "text_key": "dlg.boss_post_labyrinth_keeper.1" },
+        { "text_key": "dlg.boss_post_labyrinth_keeper.2", "speaker": "odalric", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_post_silver_dragonkin",
+      "speaker": "virgil",
+      "category": "boss_post",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "silver_dragonkin" } ],
+      "lines": [
+        { "text_key": "dlg.boss_post_silver_dragonkin.1" },
+        { "text_key": "dlg.boss_post_silver_dragonkin.2", "speaker": "odalric", "emotion": "sad" }
+      ]
+    },
+    {
+      "id": "boss_post_armand",
+      "speaker": "armand",
+      "category": "boss_post",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_in_room", "id": "armand" } ],
+      "lines": [
+        { "text_key": "dlg.boss_post_armand.1", "emotion": "sad" },
+        { "text_key": "dlg.boss_post_armand.2", "speaker": "virgil", "emotion": "grim" },
+        { "text_key": "dlg.boss_post_armand.3", "speaker": "virgil", "emotion": "grim" }
+      ]
+    }
+  ]
+}

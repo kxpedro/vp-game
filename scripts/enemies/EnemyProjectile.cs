@@ -9,6 +9,9 @@ public partial class EnemyProjectile : Node3D
     // Nome da fonte de dano (causa da morte). Vazio = texto generico localizado no momento do impacto.
     public string SourceName { get; set; } = "";
     public Rid OwnerRid { get; set; }
+    // Alcance maximo; o projetil some depois disso (0 = sem limite).
+    public float MaxDistance { get; set; }
+    private float _traveled;
 
     public override void _Ready()
     {
@@ -94,6 +97,12 @@ public partial class EnemyProjectile : Node3D
         }
 
         GlobalPosition = to;
+        _traveled += step.Length();
+        if (MaxDistance > 0.0f && _traveled >= MaxDistance)
+        {
+            QueueFree();
+            return;
+        }
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
         if (player != null && SegmentDistanceToPlayer(from, to, player.GlobalPosition) <= 0.82f)
         {

@@ -48,8 +48,21 @@ public partial class EnemyBasic : CharacterBody3D
     private float _patrolRetargetTimer;
     private StandardMaterial3D _baseMaterial;
     private StandardMaterial3D _hitMaterial;
-    private StandardMaterial3D _alertMaterial;
-    private StandardMaterial3D _warningMaterial;
+    // Telegraph de ataque (melee/tank/ranged): contorno fixo no tamanho final + preenchimento que cresce da base.
+    private StandardMaterial3D _telegraphFillMaterial;
+    private StandardMaterial3D _telegraphBorderMaterial;
+    private StandardMaterial3D _windupFlashMaterial;
+    private Node3D _telegraphFillPivot;
+    private Tween _telegraphTween;
+    private Tween _windupBodyTween;
+    private float _aimTrackRemaining;
+    private Vector3 _windupBodyBaseScale = Vector3.One;
+    private float _windupBodyBasePositionY;
+    private const float AimLockSeconds = 0.25f;
+    private const float WindupFlashSeconds = 0.1f;
+    private const float ProjectileRangeMultiplier = 1.5f;
+    private readonly List<(int Id, Vector3 Center, Vector3 End, float Radius, bool IsSegment)> _bossThreats = new();
+    private int _bossThreatCounter;
     private MeshInstance3D _healthBarFill;
     private MeshInstance3D _rarityIcon;
     private float _healthBarWidth = 1.55f;
@@ -62,7 +75,7 @@ public partial class EnemyBasic : CharacterBody3D
     private Label3D _bleedingStackLabel;
     private Label3D _pestilenceStackLabel;
     private Label3D _attackWarningLabel;
-    private MeshInstance3D _attackTelegraph;
+    private Node3D _attackTelegraph;
     private float _contactDamageTimer;
     private float _alternatePathTimer;
     private int _avoidanceSide = 1;
@@ -115,6 +128,7 @@ public partial class EnemyBasic : CharacterBody3D
     // Guarda o id (nao o texto) para o nome acompanhar a troca de idioma.
     private string _legendaryNameId = "";
     private float _bossActionAnimationTimer;
+    private float _attackAnimationTimer;
     public bool IsPestilent => _pestilenceStacks > 0;
     public bool IsBleeding => _bleedingStacks > 0;
     public int PestilenceStacks => _pestilenceStacks;
@@ -144,20 +158,13 @@ public partial class EnemyBasic : CharacterBody3D
             Emission = new Color(0.9f, 0.0f, 0.0f),
             EmissionEnergyMultiplier = 0.8f
         };
-        _alertMaterial = new StandardMaterial3D
+        _windupFlashMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.48f, 0.02f, 0.03f),
+            AlbedoColor = new Color(1.0f, 0.95f, 0.8f),
             EmissionEnabled = true,
-            Emission = new Color(0.7f, 0.0f, 0.0f),
-            EmissionEnergyMultiplier = 0.55f
-        };
-        _warningMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(1.0f, 0.08f, 0.015f, 0.22f),
-            EmissionEnabled = true,
-            Emission = new Color(1.0f, 0.035f, 0.0f),
-            EmissionEnergyMultiplier = 1.35f,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+            Emission = new Color(1.0f, 0.85f, 0.55f),
+            EmissionEnergyMultiplier = 2.6f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
         };
         _health.Damaged += OnDamaged;
         _health.HealthChanged += OnHealthChanged;
@@ -279,13 +286,79 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void UpdateAttackTelegraphGeometry()
     {
-        if (_attackTelegraph?.Mesh is not BoxMesh box) return;
-        var attackDepth = AttackRange + AttackDepthBonus;
-        box.Size = new Vector3(AttackWidth, 0.035f, attackDepth);
-        _attackTelegraph.Position = new Vector3(0.0f, 0.035f, -0.35f - attackDepth * 0.5f);
         if (_attackWarningLabel != null)
             _attackWarningLabel.Text = Archetype == EnemyArchetype.Tank ? "!!" : "!";
+        if (_attackTelegraph == null) return;
+        foreach (var child in _attackTelegraph.GetChildren())
+            child.QueueFree();
+
+        var ranged = Archetype == EnemyArchetype.Ranged;
+        var tank = Archetype == EnemyArchetype.Tank;
+        // Alinhado ao teste de acerto (IsPlayerInsideLockedAttack): da origem do inimigo ate AttackRange + AttackDepthBonus.
+        var depth = ranged ? AttackRange * ProjectileRangeMultiplier : AttackRange + AttackDepthBonus;
+        var width = ranged ? 0.38f : AttackWidth;
+        var fillColor = ranged ? new Color(0.62f, 0.12f, 1.0f) : tank ? new Color(1.0f, 0.22f, 0.02f) : new Color(1.0f, 0.18f, 0.02f);
+        var borderColor = ranged ? new Color(0.82f, 0.62f, 1.0f) : tank ? new Color(1.0f, 0.84f, 0.12f) : new Color(1.0f, 0.55f, 0.12f);
+        _telegraphFillMaterial = CreateTelegraphMaterial(fillColor, 0.55f, 2.4f, 6);
+        _telegraphBorderMaterial = CreateTelegraphMaterial(borderColor, 0.95f, 3.4f, 7);
+        var frameMaterial = CreateTelegraphMaterial(fillColor, 0.17f, 1.2f, 5);
+
+        _attackTelegraph.AddChild(new MeshInstance3D
+        {
+            Name = "TelegraphFrame",
+            Mesh = new BoxMesh { Size = new Vector3(width, 0.02f, depth) },
+            MaterialOverride = frameMaterial,
+            Position = new Vector3(0.0f, 0.04f, -depth * 0.5f)
+        });
+
+        _telegraphFillPivot = new Node3D { Name = "TelegraphFillPivot", Scale = new Vector3(1.0f, 1.0f, 0.001f) };
+        _attackTelegraph.AddChild(_telegraphFillPivot);
+        _telegraphFillPivot.AddChild(new MeshInstance3D
+        {
+            Name = "TelegraphFill",
+            Mesh = new BoxMesh { Size = new Vector3(width, 0.04f, 1.0f) },
+            MaterialOverride = _telegraphFillMaterial,
+            Position = new Vector3(0.0f, 0.06f, -0.5f)
+        });
+
+        if (ranged)
+        {
+            // Marcador de fim da linha de tiro.
+            _attackTelegraph.AddChild(new MeshInstance3D
+            {
+                Name = "TelegraphEndMarker",
+                Mesh = new TorusMesh { InnerRadius = 0.3f, OuterRadius = 0.44f, Rings = 24, RingSegments = 8 },
+                MaterialOverride = _telegraphBorderMaterial,
+                Position = new Vector3(0.0f, 0.07f, -depth)
+            });
+            return;
+        }
+
+        var border = tank ? 0.12f : 0.07f;
+        void AddStrip(string stripName, Vector3 size, Vector3 position) => _attackTelegraph.AddChild(new MeshInstance3D
+        {
+            Name = stripName,
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = _telegraphBorderMaterial,
+            Position = position
+        });
+        AddStrip("BorderLeft", new Vector3(border, 0.05f, depth), new Vector3(-width * 0.5f + border * 0.5f, 0.08f, -depth * 0.5f));
+        AddStrip("BorderRight", new Vector3(border, 0.05f, depth), new Vector3(width * 0.5f - border * 0.5f, 0.08f, -depth * 0.5f));
+        AddStrip("BorderFar", new Vector3(width, 0.05f, border), new Vector3(0.0f, 0.08f, -depth + border * 0.5f));
+        AddStrip("BorderNear", new Vector3(width, 0.05f, border), new Vector3(0.0f, 0.08f, -border * 0.5f));
     }
+
+    private static StandardMaterial3D CreateTelegraphMaterial(Color color, float alpha, float energy, int renderPriority) => new()
+    {
+        AlbedoColor = new Color(color.R, color.G, color.B, alpha),
+        EmissionEnabled = true,
+        Emission = color,
+        EmissionEnergyMultiplier = energy,
+        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        RenderPriority = renderPriority
+    };
 
     public void ApplyPlaceholderVisual(EnemyVisualDefinition definition)
     {
@@ -472,6 +545,7 @@ public partial class EnemyBasic : CharacterBody3D
         TickBlessingStatuses((float)delta);
         UpdateCharmLinkVisual();
         _bossActionAnimationTimer = Mathf.Max(_bossActionAnimationTimer - (float)delta, 0.0f);
+        _attackAnimationTimer = Mathf.Max(_attackAnimationTimer - (float)delta, 0.0f);
         if (_knockbackVelocity.LengthSquared() > 0.01f)
         {
             Velocity = _knockbackVelocity;
@@ -504,6 +578,11 @@ public partial class EnemyBasic : CharacterBody3D
 
         if (_isAttacking)
         {
+            if (_aimTrackRemaining > 0.0f)
+            {
+                _aimTrackRemaining -= (float)delta;
+                LockAttackDirection();
+            }
             Velocity = Vector3.Zero;
             MoveAndSlide();
             return;
@@ -946,6 +1025,7 @@ public partial class EnemyBasic : CharacterBody3D
 
         _attackSequenceVersion++;
         _isAttacking = false;
+        _attackAnimationTimer = 0.0f;
         HideAttackTelegraph();
     }
 
@@ -953,7 +1033,93 @@ public partial class EnemyBasic : CharacterBody3D
     {
         var delta = position - GlobalPosition;
         delta.Y = 0.0f;
+        if (_bossThreats.Count > 0)
+        {
+            // Boss em golpe: ameaca = qualquer area de dano ativa (circulo/linha) perto do jogador.
+            foreach (var threat in _bossThreats)
+            {
+                var offset = position - threat.Center;
+                offset.Y = 0.0f;
+                if (threat.IsSegment)
+                {
+                    // Linha (carga): distancia ponto-segmento, margem de 0,5 u.
+                    var segment = threat.End - threat.Center;
+                    segment.Y = 0.0f;
+                    var lengthSquared = segment.LengthSquared();
+                    var progress = lengthSquared > 0.0001f ? Mathf.Clamp(offset.Dot(segment) / lengthSquared, 0.0f, 1.0f) : 0.0f;
+                    if ((offset - segment * progress).Length() <= threat.Radius + 0.5f) return true;
+                }
+                else if (offset.Length() <= threat.Radius + 1.0f) return true;
+            }
+        }
         return (_isAttacking || _attackWarningLabel?.Visible == true) && delta.Length() <= AttackRange + AttackDepthBonus + 1.0f;
+    }
+
+    // Registro de areas de dano do boss (usado por IsThreateningDodge para a esquiva perfeita).
+    public int AddBossThreat(Vector3 center, float radius)
+    {
+        var id = ++_bossThreatCounter;
+        _bossThreats.Add((id, center, center, radius, false));
+        return id;
+    }
+
+    // Ameaca em linha (carga): segmento inicio-fim com meia-largura.
+    public int AddBossLineThreat(Vector3 start, Vector3 end, float halfWidth)
+    {
+        var id = ++_bossThreatCounter;
+        _bossThreats.Add((id, start, end, halfWidth, true));
+        return id;
+    }
+
+    public void ClearBossThreats() => _bossThreats.Clear();
+
+    public void RemoveBossThreat(int id) => _bossThreats.RemoveAll(threat => threat.Id == id);
+
+    // Flash curto (~0,1 s) no corpo: marca o inicio do wind-up. Usa material proprio e nao
+    // concorre com o flash de dano (FlashImportedVisual / _hitMaterial).
+    public async void FlashWindup()
+    {
+        if (_health == null || _health.IsDead) return;
+        if (_importedVisual != null)
+        {
+            foreach (var pair in _importedBaseMaterials)
+                if (IsInstanceValid(pair.Key) && pair.Key.MaterialOverride != _hitMaterial)
+                    pair.Key.MaterialOverride = _windupFlashMaterial;
+        }
+        else if (_visual != null && _visual.MaterialOverride != _hitMaterial)
+        {
+            _visual.MaterialOverride = _windupFlashMaterial;
+        }
+
+        await Wait(WindupFlashSeconds);
+        if (!IsInstanceValid(this) || _health.IsDead) return;
+        foreach (var pair in _importedBaseMaterials)
+            if (IsInstanceValid(pair.Key) && pair.Key.MaterialOverride == _windupFlashMaterial)
+                pair.Key.MaterialOverride = pair.Value;
+        if (_visual != null && _visual.MaterialOverride == _windupFlashMaterial)
+            _visual.MaterialOverride = _baseMaterial;
+    }
+
+    private async void PlayAnticipatedAttackAnimation(int attackSequence)
+    {
+        if (_importedAnimationPlayer == null || string.IsNullOrWhiteSpace(_importedAttackAnimation)
+            || !_importedAnimationPlayer.HasAnimation(_importedAttackAnimation))
+            return;
+        const float speed = 1.16f;
+        var duration = (float)_importedAnimationPlayer.GetAnimation(_importedAttackAnimation).Length / speed;
+        // O golpe fica por volta da metade da animacao: comeca para que ele caia no fim do wind-up.
+        var delay = Mathf.Max(AttackWindup - duration * 0.5f, 0.0f);
+        if (delay > 0.02f)
+        {
+            // Durante o atraso fica em idle (nao em walk parado).
+            if (!string.IsNullOrWhiteSpace(_importedIdleAnimation) && _importedAnimationPlayer.HasAnimation(_importedIdleAnimation))
+                _importedAnimationPlayer.Play(_importedIdleAnimation, 0.12, 1.0f);
+            await Wait(delay);
+        }
+        if (!IsInstanceValid(this) || attackSequence != _attackSequenceVersion || _health.IsDead) return;
+        PlayImportedActionAnimation(_importedAttackAnimation, speed);
+        // Trava a locomocao ate a animacao de ataque terminar.
+        _attackAnimationTimer = duration;
     }
 
     private void ApplyPendingWallImpact()
@@ -984,8 +1150,17 @@ public partial class EnemyBasic : CharacterBody3D
         _isAttacking = true;
         var attackSequence = ++_attackSequenceVersion;
         LockAttackDirection();
+        // Ranged acompanha o alvo e trava a mira nos ultimos AimLockSeconds do wind-up.
+        _aimTrackRemaining = Archetype == EnemyArchetype.Ranged ? Mathf.Max(AttackWindup - AimLockSeconds, 0.0f) : 0.0f;
         ShowAttackTelegraph();
-        PlayImportedActionAnimation(_importedAttackAnimation, 1.16f);
+        FlashWindup();
+        GetTree().CallGroup("audio_manager", "PlayEffect", Archetype switch
+        {
+            EnemyArchetype.Ranged => "enemy_ranged_charge",
+            EnemyArchetype.Tank => "enemy_windup_heavy",
+            _ => "enemy_windup"
+        });
+        PlayAnticipatedAttackAnimation(attackSequence);
         await Wait(AttackWindup);
         if (attackSequence != _attackSequenceVersion) return;
         HideAttackTelegraph();
@@ -1080,12 +1255,17 @@ public partial class EnemyBasic : CharacterBody3D
     {
         if (_player == null || !CanSeePlayer()) return;
         var origin = GlobalPosition + Vector3.Up * 1.1f;
-        var direction = (_player.GlobalPosition + Vector3.Up * 0.8f - origin).Normalized();
+        // Sai pela direcao travada no telegraph (nao recalcula para a posicao atual do jogador).
+        var direction = _lockedAttackDirection.LengthSquared() > 0.001f
+            ? _lockedAttackDirection.Normalized()
+            : (_player.GlobalPosition + Vector3.Up * 0.8f - origin).Normalized();
+        GetTree().CallGroup("audio_manager", "PlayEffect", "enemy_ranged_fire");
         var projectile = new EnemyProjectile
         {
             Name = "EnemyProjectile",
             SpawnPosition = origin,
             Direction = direction,
+            MaxDistance = AttackRange * ProjectileRangeMultiplier,
             Speed = 5.2f,
             Damage = AttackDamage,
             SourceName = GetDisplayName(),
@@ -1452,16 +1632,10 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void CreateAttackTelegraph()
     {
-        var attackDepth = AttackRange + AttackDepthBonus;
-        _attackTelegraph = new MeshInstance3D
+        _attackTelegraph = new Node3D
         {
             Name = "AttackTelegraph",
-            Mesh = new BoxMesh
-            {
-                Size = new Vector3(AttackWidth, 0.035f, attackDepth)
-            },
-            MaterialOverride = _warningMaterial,
-            Position = new Vector3(0.0f, 0.035f, -0.35f - attackDepth * 0.5f),
+            Position = new Vector3(0.0f, 0.03f, 0.0f),
             Visible = false
         };
         AddChild(_attackTelegraph);
@@ -1479,6 +1653,7 @@ public partial class EnemyBasic : CharacterBody3D
             Visible = false
         };
         AddChild(_attackWarningLabel);
+        UpdateAttackTelegraphGeometry();
     }
 
     private void UpdateRarityVisual(EnemyRarityDefinition tuning)
@@ -1536,7 +1711,7 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void PlayImportedLocomotionAnimation(bool moving)
     {
-        if (_importedAnimationPlayer == null || _isAttacking || _bossActionAnimationTimer > 0.0f) return;
+        if (_importedAnimationPlayer == null || _isAttacking || _bossActionAnimationTimer > 0.0f || _attackAnimationTimer > 0.0f) return;
         var animation = moving && !string.IsNullOrWhiteSpace(_importedWalkAnimation)
             ? _importedWalkAnimation
             : _importedIdleAnimation;
@@ -1625,30 +1800,77 @@ public partial class EnemyBasic : CharacterBody3D
         if (_attackWarningLabel == null)
             return;
 
-        _attackWarningLabel.Visible = true;
-        var tween = CreateTween();
+        var ranged = Archetype == EnemyArchetype.Ranged;
+        var windup = Mathf.Max(AttackWindup, 0.25f);
+        var depth = ranged ? AttackRange * ProjectileRangeMultiplier : AttackRange + AttackDepthBonus;
+        _telegraphTween?.Kill();
+        _windupBodyTween?.Kill();
 
-        if (Archetype == EnemyArchetype.Ranged)
+        _attackWarningLabel.Visible = true;
+        _attackWarningLabel.Modulate = ranged ? new Color(0.72f, 0.38f, 1.0f)
+            : Archetype == EnemyArchetype.Tank ? new Color(1.0f, 0.8f, 0.1f) : new Color(1.0f, 0.12f, 0.0f);
+        _attackWarningLabel.Scale = Vector3.One * 0.5f;
+
+        var tween = CreateTween();
+        _telegraphTween = tween;
+        // Ping do "!": estoura no inicio e assenta.
+        tween.TweenProperty(_attackWarningLabel, "scale", Vector3.One * 1.7f, 0.1f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tween.Parallel().TweenProperty(_attackWarningLabel, "scale", Vector3.One * 1.15f, 0.18f).SetDelay(0.1f);
+
+        if (_attackTelegraph != null && _telegraphFillPivot != null && _telegraphFillMaterial != null)
         {
-            if (_attackTelegraph != null) _attackTelegraph.Visible = false;
-            _attackWarningLabel.Scale = Vector3.One * 0.82f;
-            tween.TweenProperty(_attackWarningLabel, "scale", Vector3.One * 1.25f, AttackWindup * 0.5f);
-            tween.TweenProperty(_attackWarningLabel, "scale", Vector3.One, AttackWindup * 0.5f);
-            return;
+            _attackTelegraph.Visible = true;
+            _telegraphFillPivot.Scale = new Vector3(1.0f, 1.0f, 0.001f);
+            var fillColor = _telegraphFillMaterial.Emission;
+            _telegraphFillMaterial.AlbedoColor = new Color(fillColor.R, fillColor.G, fillColor.B, 0.55f);
+            _telegraphFillMaterial.EmissionEnergyMultiplier = 2.4f;
+            _telegraphBorderMaterial.EmissionEnergyMultiplier = 3.4f;
+            // Preenchimento cresce da base (origem do inimigo) para a ponta; o contorno ja esta no tamanho final.
+            tween.Parallel().TweenProperty(_telegraphFillPivot, "scale", new Vector3(1.0f, 1.0f, depth), windup);
+            // Pulso de brilho nos ultimos ~0,1 s.
+            var pulseDelay = Mathf.Max(windup - WindupFlashSeconds, 0.0f);
+            tween.Parallel().TweenProperty(_telegraphFillMaterial, "albedo_color:a", 0.95f, WindupFlashSeconds).SetDelay(pulseDelay);
+            tween.Parallel().TweenProperty(_telegraphFillMaterial, "emission_energy_multiplier", 6.0f, WindupFlashSeconds).SetDelay(pulseDelay);
+            tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 8.0f, WindupFlashSeconds).SetDelay(pulseDelay);
+            if (ranged)
+            {
+                // Aviso de travamento da mira.
+                var lockDelay = Mathf.Max(windup - AimLockSeconds, 0.0f);
+                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 9.0f, 0.06f).SetDelay(lockDelay);
+                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 3.4f, 0.09f).SetDelay(lockDelay + 0.06f);
+            }
         }
 
-        if (_attackTelegraph == null)
-            return;
-
-        _attackTelegraph.Visible = true;
-        _attackTelegraph.Scale = new Vector3(0.45f, 1.0f, 0.35f);
-        tween.TweenProperty(_attackTelegraph, "scale", Vector3.One, AttackWindup);
-        tween.Parallel().TweenProperty(_attackWarningLabel, "scale", Vector3.One * 1.25f, AttackWindup * 0.5f);
-        tween.TweenProperty(_attackWarningLabel, "scale", Vector3.One, AttackWindup * 0.5f);
+        // Anticipation do corpo geometrico: agacha/comprime ate o golpe.
+        if (_visual != null && _importedVisual == null)
+        {
+            _windupBodyBaseScale = _visual.Scale;
+            _windupBodyBasePositionY = _visual.Position.Y;
+            _windupBodyTween = CreateTween();
+            _windupBodyTween.TweenProperty(_visual, "scale", _windupBodyBaseScale * new Vector3(1.14f, 0.82f, 1.14f), windup * 0.9f)
+                .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            // Mantem a base no piso enquanto comprime (centro do mesh desce junto com a altura).
+            _windupBodyTween.Parallel().TweenProperty(_visual, "position:y", _windupBodyBasePositionY * 0.82f, windup * 0.9f)
+                .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        }
     }
 
     private void HideAttackTelegraph()
     {
+        _telegraphTween?.Kill();
+        _telegraphTween = null;
+        _aimTrackRemaining = 0.0f;
+        if (_windupBodyTween != null)
+        {
+            _windupBodyTween.Kill();
+            _windupBodyTween = null;
+            if (_visual != null)
+            {
+                _visual.Scale = _windupBodyBaseScale;
+                _visual.Position = new Vector3(_visual.Position.X, _windupBodyBasePositionY, _visual.Position.Z);
+            }
+        }
+
         if (_attackTelegraph != null)
             _attackTelegraph.Visible = false;
 

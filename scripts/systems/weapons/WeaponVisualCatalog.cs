@@ -7,7 +7,8 @@ public sealed record WeaponVisualDefinition(
     Vector3 RightRotationDegrees,
     bool UsesLeftHand = false,
     Vector3 LeftPosition = default,
-    Vector3 LeftRotationDegrees = default);
+    Vector3 LeftRotationDegrees = default,
+    Color TrailColor = default);
 
 public static class WeaponVisualCatalog
 {
@@ -25,11 +26,13 @@ public static class WeaponVisualCatalog
             "res://assets/weapons/google_poly_whip/Whip.glb",
             1.65f,
             new Vector3(0.02f, 0.0f, 0.0f),
-            new Vector3(0.0f, 90.0f, -90.0f)),
+            new Vector3(0.0f, 90.0f, -90.0f),
+            TrailColor: new Color(0.95f, 0.88f, 0.65f, 0.6f)),
         _ => new(
             "res://assets/weapons/quaternius_modular_weapons/Sword_Big.fbx",
             1.85f,
             new Vector3(0.0f, 0.0f, 0.0f),
-            new Vector3(0.0f, 0.0f, -90.0f))
+            new Vector3(0.0f, 0.0f, -90.0f),
+            TrailColor: new Color(0.70f, 0.92f, 1.0f, 0.6f))
     };
 }

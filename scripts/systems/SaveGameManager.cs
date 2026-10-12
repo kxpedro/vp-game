@@ -18,6 +18,23 @@ public sealed class GameSaveData
     public string EquippedWeaponId { get; set; } = "longsword";
     /// <summary>Diario de descobertas: categoria (CodexCategory) -> ids. Ausente em saves antigos (carrega vazio).</summary>
     public Dictionary<string, List<string>> Discoveries { get; set; } = new();
+    /// <summary>Progresso do dialogo. Ausente em saves anteriores (carrega com os valores padrao).</summary>
+    public DialogueSaveData Dialogue { get; set; } = new();
+}
+
+public sealed class DialogueSaveData
+{
+    public int RunsStarted { get; set; }
+    public int RunsCompleted { get; set; }
+    public int Deaths { get; set; }
+    /// <summary>Ids de boss derrotados (BossCatalog).</summary>
+    public List<string> BossesDefeated { get; set; } = new();
+    /// <summary>Conversa -> valor de Plays[pool] na ultima vez em que foi vista. Presenca = ja vista.</summary>
+    public Dictionary<string, int> Seen { get; set; } = new();
+    /// <summary>Pool ("npc", "bark") -> execucoes ate agora.</summary>
+    public Dictionary<string, int> Plays { get; set; } = new();
+    /// <summary>Flags gravadas por sets_flags.</summary>
+    public List<string> Flags { get; set; } = new();
 }
 
 /// <summary>Exists = save lido; Corrupted = arquivo existe mas nao pode ser lido (o menu pede confirmacao antes de sobrescrever).</summary>
@@ -188,7 +205,7 @@ public partial class SaveGameManager : Node
 
     private static void ArchiveLegacySlot(int slot, string path, int version)
     {
-        var archive = ProjectSettings.GlobalizePath($"user://save_slot_{Math.Clamp(slot, 1, 3)}.v1.json");
+        var archive = ProjectSettings.GlobalizePath(SlotBase(slot) + ".v1.json");
         var error = DirAccess.RenameAbsolute(ProjectSettings.GlobalizePath(path), archive);
         if (error == Error.Ok)
             GD.PushWarning($"Save do slot {slot} (versao {version}) e anterior a {GameSaveData.CurrentSaveVersion}: preservado como save_slot_{Math.Clamp(slot, 1, 3)}.v1.json e o slot comeca vazio.");
@@ -204,10 +221,31 @@ public partial class SaveGameManager : Node
     private static void BackupUnreadableSlot(int slot)
     {
         var path = ProjectSettings.GlobalizePath(GetSlotPath(slot));
-        var backup = ProjectSettings.GlobalizePath($"user://save_slot_{Math.Clamp(slot, 1, 3)}.unreadable.json");
+        var backup = ProjectSettings.GlobalizePath(SlotBase(slot) + ".unreadable.json");
         var error = DirAccess.CopyAbsolute(path, backup);
         if (error != Error.Ok) GD.PushWarning($"Nao foi possivel copiar o save ilegivel do slot {slot}: {error}");
     }
 
-    private static string GetSlotPath(int slot) => $"user://save_slot_{Math.Clamp(slot, 1, 3)}.json";
+    private static string GetSlotPath(int slot) => SlotBase(slot) + ".json";
+
+    // Prefixo de teste (so debug, autoteste): isola os arquivos dos saves reais. null = comportamento normal.
+    private static string _testSlotPrefix;
+
+    private static string SlotBase(int slot) => $"{_testSlotPrefix ?? "user://save_slot_"}{Math.Clamp(slot, 1, 3)}";
+
+    /// <summary>So autoteste (debug): redireciona os slots para user://{prefix}N.*. Nao toca nos saves reais.</summary>
+    public void BeginTestSlots(string prefix)
+    {
+        if (!OS.IsDebugBuild() || string.IsNullOrWhiteSpace(prefix) || prefix == "save_slot_") return;
+        _autosavePending = false;
+        CurrentSlot = 0;
+        _testSlotPrefix = "user://" + prefix;
+    }
+
+    public void EndTestSlots()
+    {
+        _autosavePending = false;
+        CurrentSlot = 0;
+        _testSlotPrefix = null;
+    }
 }

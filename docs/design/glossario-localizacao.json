@@ -1,7 +1,7 @@
 {
   "glossary": {
     "description": "Termos-chave de localização para Vampire's Prey (pt-BR, en, es)",
-    "last_updated": "2026-10-06",
+    "last_updated": "2026-10-12",
     "terms": [
       {
         "id": "blessing",
@@ -198,6 +198,90 @@
         "en": "Artifact Chest",
         "es": "Cofre de Artefactos",
         "context": "Equipment management hub"
+      },
+      {
+        "id": "options_video",
+        "pt-BR": "Vídeo",
+        "en": "Video",
+        "es": "Vídeo",
+        "context": "Aba de opções gráficas (options.tab.video)"
+      },
+      {
+        "id": "vsync",
+        "pt-BR": "VSync",
+        "en": "VSync",
+        "es": "VSync",
+        "context": "Sincronia vertical; manter a sigla nos três idiomas"
+      },
+      {
+        "id": "borderless",
+        "pt-BR": "Sem bordas",
+        "en": "Borderless",
+        "es": "Sin bordes",
+        "context": "Modo de janela sem moldura do tamanho do monitor"
+      },
+      {
+        "id": "exclusive_fullscreen",
+        "pt-BR": "Tela cheia exclusiva",
+        "en": "Exclusive fullscreen",
+        "es": "Pantalla completa exclusiva",
+        "context": "Modo de janela em tela cheia exclusiva"
+      },
+      {
+        "id": "shadows",
+        "pt-BR": "Sombras",
+        "en": "Shadows",
+        "es": "Sombras",
+        "context": "Qualidade das sombras direcionais"
+      },
+      {
+        "id": "anti_aliasing",
+        "pt-BR": "Antisserrilhado",
+        "en": "Anti-aliasing",
+        "es": "Antialiasing",
+        "context": "FXAA / MSAA; siglas mantidas"
+      },
+      {
+        "id": "render_scale",
+        "pt-BR": "Escala de renderização",
+        "en": "Render scale",
+        "es": "Escala de renderizado",
+        "context": "Resolução interna do 3D (50-100%)"
+      },
+      {
+        "id": "upscaling",
+        "pt-BR": "Reescalonamento",
+        "en": "Upscaling",
+        "es": "Reescalado",
+        "context": "Bilinear / FSR 1.0"
+      },
+      {
+        "id": "brightness",
+        "pt-BR": "Brilho",
+        "en": "Brightness",
+        "es": "Brillo",
+        "context": "Ajuste de brilho da imagem (não confundir com glow)"
+      },
+      {
+        "id": "glow",
+        "pt-BR": "Brilho difuso (glow)",
+        "en": "Glow",
+        "es": "Resplandor (glow)",
+        "context": "Efeito de bloom da cena"
+      },
+      {
+        "id": "camera_shake",
+        "pt-BR": "Tremor da câmera",
+        "en": "Camera shake",
+        "es": "Temblor de cámara",
+        "context": "Movimento de câmera em impactos (opção de redução)"
+      },
+      {
+        "id": "damage_flash",
+        "pt-BR": "Flash de dano",
+        "en": "Damage flash",
+        "es": "Destello de daño",
+        "context": "Clarão vermelho da tela ao ser atingido"
       }
     ]
   },

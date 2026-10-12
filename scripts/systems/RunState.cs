@@ -98,6 +98,7 @@ public static class RunState
         ResetRoomRewards();
         SetRunSeed(((ulong)Godot.GD.Randi() << 32) | Godot.GD.Randi());
         CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
+        DialogueProgress.OnRunStarted();
     }
 
     public static void AdvanceRoom()
@@ -118,6 +119,7 @@ public static class RunState
             return;
         }
 
+        DialogueProgress.OnRunCompleted();
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
@@ -144,6 +146,7 @@ public static class RunState
 
     public static void FailRun()
     {
+        DialogueProgress.OnRunEnded(IsRunActive, CurrentMapIndex, CurrentRoom, IsBossRoom);
         RunBloodCoins = 0;
         IsRunActive = false;
         CurrentMapIndex = 0;

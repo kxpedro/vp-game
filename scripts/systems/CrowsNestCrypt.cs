@@ -51,6 +51,7 @@ public partial class CrowsNestCrypt : Node3D
         CreateTrainingHall();
         CreateImportedDecorations();
         CreateCharacterPlaceholders();
+        CreateDialogueNpc();
 
         // Rótulo do caixão no padrão dos títulos 3D (§8.8): acima da cabeça do jogador no spawn.
         var coffinLabel = GetNodeOrNull<Label3D>("../VirgilCoffin/CoffinLabel");
@@ -70,6 +71,12 @@ public partial class CrowsNestCrypt : Node3D
             // Sarcófago com a cabeceira ao longo de Z; a frente fica voltada ao centro do hub (-X).
             AddChild(new CharacterPlaceholder { Name = $"CharacterPlaceholder{i + 1}", Position = spots[i] });
         }
+    }
+
+    // Odalric, o Cronista: sala oeste, junto da Bancada de Armas, fora das areas de interacao vizinhas.
+    private void CreateDialogueNpc()
+    {
+        AddChild(new DialogueNpc { Name = "NpcOdalric", SpeakerId = "odalric", Position = new Vector3(-12.6f, 0.0f, 3.2f), RotationDegrees = new Vector3(0.0f, -60.0f, 0.0f) });
     }
 
     private const string StoneMaterialPath = "res://assets/materials/dungeon_stone.tres";

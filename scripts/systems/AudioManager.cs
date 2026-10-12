@@ -89,10 +89,34 @@ public partial class AudioManager : Node
                 "res://audio/effects/combat/flesh/Armor Impact 2.wav"
             },
             "dodge" => new[] { "res://audio/effects/combat/Dodge Air.wav" },
+            // Avisos de ataque inimigo: reaproveitam efeitos existentes variando pitch/volume (ver PlayOneShot).
+            "enemy_windup" => new[] { "res://audio/effects/combat/Greatsword Sweep 2.wav" },
+            "enemy_windup_heavy" => new[] { "res://audio/effects/combat/Sword Swing Heavy 1.wav" },
+            "enemy_ranged_charge" => new[] { "res://audio/effects/combat/Greatsword Spin.wav" },
+            "enemy_ranged_fire" => new[] { "res://audio/effects/combat/Sword Swing Light 1.wav" },
+            "boss_windup" => new[] { "res://audio/effects/combat/Sword Swing Heavy 2.wav" },
+            "boss_tick" => new[] { "res://audio/effects/combat/Sword Swing Light 3.wav" },
+            "boss_teleport" => new[] { "res://audio/effects/combat/Dodge Swish.wav" },
+            "boss_impact" => new[] { "res://audio/effects/combat/flesh/Armor Impact 1.wav" },
+            "boss_phase" => new[] { "res://audio/effects/combat/Sword Hit Heavy.ogg" },
             _ => System.Array.Empty<string>()
         };
         if (paths.Length == 0) return;
-        PlayOneShot(paths[(int)GD.RandRange(0, paths.Length - 1)], effectName);
+        // (pitch base, volume extra em dB); 1/0 = sem alteracao.
+        var (pitch, volume) = effectName switch
+        {
+            "enemy_windup" => (1.15f, -4.0f),
+            "enemy_windup_heavy" => (0.7f, 0.0f),
+            "enemy_ranged_charge" => (1.45f, -3.0f),
+            "enemy_ranged_fire" => (1.6f, -4.0f),
+            "boss_windup" => (0.55f, 1.5f),
+            "boss_tick" => (1.8f, -4.0f),
+            "boss_teleport" => (0.5f, 0.0f),
+            "boss_impact" => (0.7f, 0.0f),
+            "boss_phase" => (0.6f, 2.0f),
+            _ => (1.0f, 0.0f)
+        };
+        PlayOneShot(paths[(int)GD.RandRange(0, paths.Length - 1)], effectName, pitch, volume);
     }
 
     public void SetMusicVolume(float percent) => _music.VolumeDb = PercentToDb(percent);
@@ -119,7 +143,7 @@ public partial class AudioManager : Node
         return Mathf.LinearToDb(Mathf.Clamp(percent / 100.0f, 0.001f, 1.0f));
     }
 
-    private void PlayOneShot(string path, string effectName)
+    private void PlayOneShot(string path, string effectName, float pitch = 1.0f, float volumeOffsetDb = 0.0f)
     {
         var stream = ResourceLoader.Load<AudioStream>(path);
         if (stream == null) return;
@@ -127,8 +151,8 @@ public partial class AudioManager : Node
         {
             Name = $"Sfx_{effectName}",
             Stream = stream,
-            VolumeDb = _effectsVolumeDb,
-            PitchScale = (float)GD.RandRange(0.96, 1.04),
+            VolumeDb = Mathf.Min(_effectsVolumeDb + volumeOffsetDb, 6.0f),
+            PitchScale = pitch * (float)GD.RandRange(0.96, 1.04),
             ProcessMode = ProcessModeEnum.Always
         };
         AddChild(player);
