@@ -586,6 +586,7 @@ public partial class BossController : Node
         // Log de debug (literal).
         GetTree().CallGroup("hud", "AppendGameLog", $"{Definition.DisplayName} entrou na fase {phase}!");
         if (_health.IsDead) return;
+        DialogueManager.Instance?.Notify(DialogueEvent.BossPhaseChanged, phase);
         CancelCurrentMove();
         PhaseTransitionCue();
     }

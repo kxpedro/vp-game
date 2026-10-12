@@ -173,6 +173,7 @@ public partial class HUD : CanvasLayer
 	public override void _Process(double delta)
 	{
 		UpdateCriticalHealthIndicator((float)delta);
+		UpdateDialogue((float)delta);
 		// Zoom/pan da Fonte de Sangue por controle e teclado (mouse fica no GuiInput da própria tela).
 		ProcessBloodFountainInput((float)delta);
 		if (_roomFrame != null && _roomLabel != null)
@@ -298,6 +299,7 @@ public partial class HUD : CanvasLayer
 			RebuildOverlay(_weaponBenchOverlay, () => BuildWeaponBenchOverlay(_hudRoot), () => _weaponBenchOverlay);
 		if (_shopOverlay != null && !IsVisible(_shopOverlay))
 			RebuildOverlay(_shopOverlay, () => BuildShopOverlay(_hudRoot), () => _shopOverlay);
+		RefreshDialogueLanguage();
 	}
 
 	// Remove a camada antiga (sai da árvore já: listeners de TreeExiting rodam antes do novo Build) e põe a nova no mesmo índice.
@@ -395,6 +397,27 @@ public partial class HUD : CanvasLayer
 			case "shop":
 				// Estoque e saldo fictícios: comprar só simula (nada no RunState nem no save).
 				OpenShopPreview();
+				return true;
+			case "dialogue":
+				OpenDialoguePreview(false);
+				return true;
+			case "dialogue_choice":
+				OpenDialoguePreview(true);
+				return true;
+			case "dialogue_bark":
+				PreviewDialogueBark();
+				return true;
+			case "dialogue_long":
+				OpenDialogueStressPreview(false);
+				return true;
+			case "dialogue_choice_long":
+				OpenDialogueStressPreview(true);
+				return true;
+			case "dialogue_bark_long":
+				PreviewDialogueBarkStress();
+				return true;
+			case "hub_npc":
+				PreviewHubNpc();
 				return true;
 			case "compendium":
 				_selectedCompendiumTab = ResolvePreviewCompendiumTab(tab);

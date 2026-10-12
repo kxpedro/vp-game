@@ -1,0 +1,291 @@
+// Conversas do Odalric, o Cronista (NPC do hub). Textos em data/localization/<idioma>/dialogue.json.
+// Guia de escrita e tabela completa: docs/design/dialogos.md. IDs sao persistidos no save: nunca renomear.
+{
+  "conversations": [
+    // ---- Essencial: primeira vez no hub ----
+    {
+      "id": "first_hub_arrival",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "essential",
+      "priority": 90,
+      "repeatable": false,
+      "auto_start": true,
+      "requirements": [],
+      "sets_flags": ["met_odalric"],
+      "lines": [
+        { "text_key": "dlg.first_hub_arrival.1", "emotion": "amused" },
+        { "text_key": "dlg.first_hub_arrival.2", "speaker": "virgil", "emotion": "grim" },
+        { "text_key": "dlg.first_hub_arrival.3" },
+        { "text_key": "dlg.first_hub_arrival.4", "emotion": "amused" }
+      ],
+      "choices": [
+        { "id": "who", "text_key": "dlg.choice.first_hub_arrival.1", "sets_flags": ["asked_odalric_name"], "next": "who_reply" },
+        { "id": "curt", "text_key": "dlg.choice.first_hub_arrival.2", "sets_flags": ["was_curt_with_odalric"], "next": "curt_reply" }
+      ],
+      "branches": {
+        "who_reply": { "lines": [ { "text_key": "dlg.first_hub_arrival.who_reply.1" }, { "text_key": "dlg.first_hub_arrival.who_reply.2", "emotion": "grim" } ] },
+        "curt_reply": { "lines": [ { "text_key": "dlg.first_hub_arrival.curt_reply.1", "emotion": "amused" } ] }
+      }
+    },
+
+    // ---- Evergreen (funcionam em qualquer ordem, depois da apresentacao) ----
+    {
+      "id": "odalric_lineages_a",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "requirements": [ { "type": "seen", "id": "first_hub_arrival" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_lineages_a.1" },
+        { "text_key": "dlg.odalric_lineages_a.2" },
+        { "text_key": "dlg.odalric_lineages_a.3", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_lineages_b",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "requirements": [ { "type": "seen", "id": "first_hub_arrival" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_lineages_b.1" },
+        { "text_key": "dlg.odalric_lineages_b.2" },
+        { "text_key": "dlg.odalric_lineages_b.3", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "odalric_armand_rumor",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "requirements": [ { "type": "seen", "id": "first_hub_arrival" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_armand_rumor.1" },
+        { "text_key": "dlg.odalric_armand_rumor.2", "emotion": "grim" },
+        { "text_key": "dlg.odalric_armand_rumor.3" }
+      ]
+    },
+    {
+      "id": "odalric_bench_book",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 4,
+      "requirements": [ { "type": "weapon", "id": "longsword" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_bench_book.1" },
+        { "text_key": "dlg.odalric_bench_book.2", "emotion": "amused" }
+      ]
+    },
+
+    // ---- Especificas ----
+    {
+      "id": "odalric_after_first_boss",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 60,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_defeated", "id": "invisible_woman" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_after_first_boss.1", "emotion": "grim" },
+        { "text_key": "dlg.odalric_after_first_boss.2" },
+        { "text_key": "dlg.odalric_after_first_boss.3", "emotion": "sad" }
+      ]
+    },
+    {
+      "id": "odalric_many_runs",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 20,
+      "repeatable": false,
+      "requirements": [ { "type": "runs_started", "min": 10 } ],
+      "lines": [
+        { "text_key": "dlg.odalric_many_runs.1", "emotion": "amused" },
+        { "text_key": "dlg.odalric_many_runs.2" }
+      ]
+    },
+    {
+      "id": "odalric_first_death",
+      "speaker": "odalric",
+      "category": "death",
+      "priority_class": "specific",
+      "priority": 50,
+      "repeatable": false,
+      "requirements": [
+        { "type": "deaths", "min": 1, "max": 1 },
+        { "type": "last_run_outcome", "value": "died" }
+      ],
+      "lines": [
+        { "text_key": "dlg.odalric_first_death.1", "emotion": "grim" },
+        { "text_key": "dlg.odalric_first_death.2", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_death_by_boss1",
+      "speaker": "odalric",
+      "category": "death",
+      "priority_class": "specific",
+      "priority": 70,
+      "repeatable": false,
+      "requirements": [
+        { "type": "last_run_outcome", "value": "died" },
+        { "type": "died_at_boss", "id": "invisible_woman" }
+      ],
+      "lines": [
+        { "text_key": "dlg.odalric_death_by_boss1.1", "emotion": "grim" },
+        { "text_key": "dlg.odalric_death_by_boss1.2" }
+      ]
+    },
+    {
+      "id": "odalric_many_deaths",
+      "speaker": "odalric",
+      "category": "death",
+      "priority_class": "specific",
+      "priority": 30,
+      "repeatable": false,
+      "requirements": [
+        { "type": "deaths", "min": 5 },
+        { "type": "last_run_outcome", "value": "died" }
+      ],
+      "lines": [
+        { "text_key": "dlg.odalric_many_deaths.1", "emotion": "amused" },
+        { "text_key": "dlg.odalric_many_deaths.2" }
+      ]
+    },
+    {
+      "id": "odalric_death_again",
+      "speaker": "odalric",
+      "category": "death",
+      "priority_class": "evergreen",
+      "priority": 0,
+      "repeatable": true,
+      "cooldown_visits": 3,
+      "requirements": [ { "type": "last_run_outcome", "value": "died" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_death_again.1" },
+        { "text_key": "dlg.odalric_death_again.2", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_return_victory",
+      "speaker": "odalric",
+      "category": "return",
+      "priority_class": "specific",
+      "priority": 40,
+      "repeatable": false,
+      "requirements": [ { "type": "last_run_outcome", "value": "victory" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_return_victory.1", "emotion": "awe" },
+        { "text_key": "dlg.odalric_return_victory.2", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_return_abandoned",
+      "speaker": "odalric",
+      "category": "return",
+      "priority_class": "specific",
+      "priority": 10,
+      "repeatable": false,
+      "requirements": [ { "type": "last_run_outcome", "value": "abandoned" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_return_abandoned.1", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_after_second_boss",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 62,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_defeated", "id": "labyrinth_keeper" }, { "type": "seen", "id": "odalric_after_first_boss" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_after_second_boss.1", "emotion": "grim" },
+        { "text_key": "dlg.odalric_after_second_boss.2" },
+        { "text_key": "dlg.odalric_after_second_boss.3", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_after_third_boss",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 64,
+      "repeatable": false,
+      "requirements": [ { "type": "boss_defeated", "id": "silver_dragonkin" }, { "type": "seen", "id": "odalric_after_second_boss" } ],
+      "lines": [
+        { "text_key": "dlg.odalric_after_third_boss.1", "emotion": "amused" },
+        { "text_key": "dlg.odalric_after_third_boss.2", "emotion": "grim" },
+        { "text_key": "dlg.odalric_after_third_boss.3", "emotion": "sad" }
+      ]
+    },
+    {
+      "id": "odalric_death_by_armand",
+      "speaker": "odalric",
+      "category": "death",
+      "priority_class": "specific",
+      "priority": 70,
+      "repeatable": false,
+      "requirements": [ { "type": "last_run_outcome", "value": "died" }, { "type": "died_at_boss", "id": "armand" }, { "type": "deaths", "min": 3 } ],
+      "lines": [
+        { "text_key": "dlg.odalric_death_by_armand.1", "emotion": "grim" },
+        { "text_key": "dlg.odalric_death_by_armand.2" }
+      ]
+    },
+    {
+      "id": "odalric_name_close",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 15,
+      "repeatable": false,
+      "requirements": [ { "type": "flag", "id": "asked_odalric_name" }, { "type": "runs_started", "min": 3 } ],
+      "lines": [
+        { "text_key": "dlg.odalric_name_close.1", "emotion": "sad" },
+        { "text_key": "dlg.odalric_name_close.2" },
+        { "text_key": "dlg.odalric_name_close.3", "emotion": "amused" }
+      ]
+    },
+    {
+      "id": "odalric_name_curt",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 15,
+      "repeatable": false,
+      "requirements": [ { "type": "flag", "id": "was_curt_with_odalric" }, { "type": "runs_started", "min": 3 } ],
+      "lines": [
+        { "text_key": "dlg.odalric_name_curt.1", "emotion": "amused" },
+        { "text_key": "dlg.odalric_name_curt.2" }
+      ]
+    },
+    {
+      "id": "odalric_after_victory",
+      "speaker": "odalric",
+      "category": "hub",
+      "priority_class": "specific",
+      "priority": 35,
+      "repeatable": false,
+      "requirements": [ { "type": "seen", "id": "odalric_return_victory" }, { "type": "runs_completed", "min": 1 } ],
+      "lines": [
+        { "text_key": "dlg.odalric_after_victory.1", "emotion": "sad" },
+        { "text_key": "dlg.odalric_after_victory.2" },
+        { "text_key": "dlg.odalric_after_victory.3", "emotion": "amused" }
+      ]
+    }
+  ]
+}

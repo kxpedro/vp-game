@@ -2,7 +2,7 @@
   "schema": "orch.plano/1",
   "id": "20261011-0815-sistema-dialogo",
   "titulo": "Mecânica de diálogo no estilo Hades",
-  "status": "planejado",
+  "status": "concluido",
   "demanda": "Pedro (2026-10-11), texto colado: (1) analisar videos, imagens da gameplay do Hades e Sworn como referencia; verificar se o jogo e parecido mecanicamente, identificar e destacar as principais diferencas e se e possivel implementar; analisar toda e qualquer mecanica. (2) melhorar visualmente as animacoes de ataque do jogador e dos inimigos, deixar mais obvio quando um inimigo for atacar, usando Hades e Sworn como referencia. (3) desenvolver mecanica de dialogo, usando Hades como referencia. (4) focar um pouco nas configuracoes graficas do jogo, dar uma revisada.",
   "objetivo": "Sistema de diálogo reutilizável: conversas com NPC no hub e falas curtas na run, caixa com retrato, nome e texto progressivo, escolhas opcionais, condições (primeira vez, boss derrotado, número da run), falas já vistas persistidas no save, tudo localizado nos 3 idiomas e jogável por teclado e controle. Entrega com 1 NPC de exemplo.",
   "grupo": "20261011-0815-referencia-hades-sworn",
@@ -10,7 +10,7 @@
     "20261011-0815-referencia-hades-sworn"
   ],
   "criado": "2026-10-11T08:15:00-03:00",
-  "atualizado": "2026-10-11T08:15:00-03:00",
+  "atualizado": "2026-10-11T01:20:00-03:00",
   "commitInicial": "bd370e4",
   "versaoOrch": "0.5.0",
   "ondas": [
@@ -39,11 +39,11 @@
       "dependeDe": [],
       "arquivos": [],
       "prontoQuando": "Resumo com fontes: tipos de conversa, prioridade e condições, caixa de diálogo, voz, interrupções.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T11:00:00-03:00",
+      "fim": "2026-10-11T11:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Diálogo do Hades: conversas filtradas por requisitos (falas vistas, runs, bosses) e escolhidas por prioridade em 3 classes (essencial, específica, evergreen); uma conversa por NPC por visita; persistência por IDs de falas vistas. Layout da caixa, Priority/Cooldown e presentes não verificados. Escopo mínimo sugerido: 1 NPC no hub, ~30-60 falas, barks curtas, sem voz.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -52,17 +52,19 @@
     {
       "id": "T2",
       "titulo": "Projetar arquitetura, formato de dados e fluxo",
-      "executor": "orch:planejador",
+      "executor": "game-designer",
       "dependeDe": [
         "T1"
       ],
-      "arquivos": [],
+      "arquivos": [
+        "docs/design/dialogos-arquitetura.md"
+      ],
       "prontoQuando": "Spec com classes, JSON de exemplo, condições suportadas, integração com RunState/SaveGameManager/ScenePortal/input e plano de verificação.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T11:10:00-03:00",
+      "fim": "2026-10-11T23:05:00-03:00",
+      "tentativas": 1,
+      "resultado": "Spec em docs/design/dialogos-arquitetura.md (834 linhas): NPC Odalric (Cronista) no hub, 23 tipos de condição, seleção por classe/prioridade/não vista, campo opcional GameSaveData.Dialogue sem bump de versão, autoload DialogueManager, HUD.Dialogue.cs com OpenDialogue/ShowDialogueBark, dialogue.json nos 3 idiomas, divisão T3/T4/T5.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -82,11 +84,11 @@
         "scripts/systems/CharacterSheet.cs"
       ],
       "prontoQuando": "Carrega o JSON com try/catch e PushError; avalia condições; API para abrir conversa; falas vistas gravadas no save; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `.cs.uid` dos arquivos novos.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T23:05:00-03:00",
+      "fim": "2026-10-11T23:40:00-03:00",
+      "tentativas": 1,
+      "resultado": "Núcleo do diálogo pronto sem HUD: catálogo JSONC, 23 condições, seletor, playback, DialogueProgress no save (campo opcional, sem bump), autoload DialogueManager, NPC Odalric no hub, ganchos em RunState/RunManager/BossController, validate_dialogue.py e --dlg-selftest (11 passos PASS). Build 0/0, smoke CrowsNest/TestArena e 4 validadores sem erro. Não testado: NPC no jogo e gravação real em disco.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -106,11 +108,11 @@
         "data/localization/*/ui.json"
       ],
       "prontoQuando": "Overlay com texto progressivo, avançar/pular, escolhas com foco por controle, pausa o jogo, reage a `LanguageChanged`; tela no `--ui-batch` nos 3 idiomas; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `py tools/validate_localization.py` sem erro.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T23:40:00-03:00",
+      "fim": "2026-10-11T00:30:00-03:00",
+      "tentativas": 1,
+      "resultado": "UI do diálogo: HUD.Dialogue.cs com OpenDialogue/ShowDialogueBark/HideDialogueBark, caixa modal com retrato placeholder, texto progressivo, escolhas com foco por controle, bark não modal, FlagAbandon, 4 previews nos 3 idiomas, 9 chaves ui.dialogue.*. Build 0/0, validadores sem erro, capturas legíveis. Não testado: conversa real e controle físico.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -129,11 +131,11 @@
         "docs/design/dialogos.md"
       ],
       "prontoQuando": "Falas em pt-BR, en e es no tom dark fantasy e coerentes com a lore (Virgil, Armand, linhagens); paridade de chaves nos 3 idiomas; guia de escrita.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T23:40:00-03:00",
+      "fim": "2026-10-11T00:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Conteúdo escrito: 21 conversas (13 do Odalric: essencial, 4 evergreen, específicas e de morte/retorno; 8 de run: barks e boss_pre), 48 chaves nos 3 idiomas, guia docs/design/dialogos.md. validate_dialogue 0/0; validate_localization 0 erros e 9 avisos de chaves ui.dialogue.* que a T4 ainda vai referenciar.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -149,11 +151,11 @@
       ],
       "arquivos": [],
       "prontoQuando": "Sem achados altos; diálogo não trava jogo nem input ao fechar; saves antigos carregam.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T00:30:00-03:00",
+      "fim": "2026-10-11T01:20:00-03:00",
+      "tentativas": 1,
+      "resultado": "Revisão achou 1 alto (barks emudecem após ~6 exibições, gravado no save) e 2 médios (morte falsa ao voltar ao menu; avanço duplo com botão A); todos corrigidos mais B1-B9. Build 0/0; autoteste 12 passos PASS; smoke CrowsNest/TestArena sem erro; validadores sem erro e sem aviso.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -166,7 +168,97 @@
       "tarefa": null,
       "tipo": "plano-criado",
       "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T11:00:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Plano em-execucao"
+    },
+    {
+      "quando": "2026-10-11T11:00:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T11:10:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "Diálogo do Hades: conversas filtradas por requisitos (falas vistas, runs, bosses) e escolhidas por prioridade em 3 classes (essencial, específica, evergreen); uma conversa por NPC por visita; persistência por IDs de falas vistas. Layout da caixa, Priority/Cooldown e presentes não verificados. Escopo mínimo sugerido: 1 NPC no hub, ~30-60 falas, barks curtas, sem voz."
+    },
+    {
+      "quando": "2026-10-11T11:10:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T11:10:00-03:00",
+      "tarefa": "T2",
+      "tipo": "replanejado",
+      "texto": "T2 passa de orch:planejador (somente leitura) para game-designer, que grava a spec em docs/design/dialogos-arquitetura.md para as tarefas seguintes lerem."
+    },
+    {
+      "quando": "2026-10-11T23:05:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "Spec em docs/design/dialogos-arquitetura.md (834 linhas): NPC Odalric (Cronista) no hub, 23 tipos de condição, seleção por classe/prioridade/não vista, campo opcional GameSaveData.Dialogue sem bump de versão, autoload DialogueManager, HUD.Dialogue.cs com OpenDialogue/ShowDialogueBark, dialogue.json nos 3 idiomas, divisão T3/T4/T5."
+    },
+    {
+      "quando": "2026-10-11T23:05:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T23:40:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "Núcleo do diálogo pronto sem HUD: catálogo JSONC, 23 condições, seletor, playback, DialogueProgress no save (campo opcional, sem bump), autoload DialogueManager, NPC Odalric no hub, ganchos em RunState/RunManager/BossController, validate_dialogue.py e --dlg-selftest (11 passos PASS). Build 0/0, smoke CrowsNest/TestArena e 4 validadores sem erro. Não testado: NPC no jogo e gravação real em disco."
+    },
+    {
+      "quando": "2026-10-11T23:40:00-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T23:40:00-03:00",
+      "tarefa": "T5",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T00:10:00-03:00",
+      "tarefa": "T5",
+      "tipo": "tarefa-concluida",
+      "texto": "Conteúdo escrito: 21 conversas (13 do Odalric: essencial, 4 evergreen, específicas e de morte/retorno; 8 de run: barks e boss_pre), 48 chaves nos 3 idiomas, guia docs/design/dialogos.md. validate_dialogue 0/0; validate_localization 0 erros e 9 avisos de chaves ui.dialogue.* que a T4 ainda vai referenciar."
+    },
+    {
+      "quando": "2026-10-11T00:30:00-03:00",
+      "tarefa": "T4",
+      "tipo": "tarefa-concluida",
+      "texto": "UI do diálogo: HUD.Dialogue.cs com OpenDialogue/ShowDialogueBark/HideDialogueBark, caixa modal com retrato placeholder, texto progressivo, escolhas com foco por controle, bark não modal, FlagAbandon, 4 previews nos 3 idiomas, 9 chaves ui.dialogue.*. Build 0/0, validadores sem erro, capturas legíveis. Não testado: conversa real e controle físico."
+    },
+    {
+      "quando": "2026-10-11T00:30:00-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T01:20:00-03:00",
+      "tarefa": "T6",
+      "tipo": "tarefa-concluida",
+      "texto": "Revisão achou 1 alto (barks emudecem após ~6 exibições, gravado no save) e 2 médios (morte falsa ao voltar ao menu; avanço duplo com botão A); todos corrigidos mais B1-B9. Build 0/0; autoteste 12 passos PASS; smoke CrowsNest/TestArena sem erro; validadores sem erro e sem aviso."
+    },
+    {
+      "quando": "2026-10-11T01:20:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Sistema de diálogo entregue: núcleo (catálogo JSONC, 23 condições, seleção por classe/prioridade, persistência opcional no save sem bump), NPC Odalric no hub, UI modal com retrato placeholder e falas curtas não modais, 21 conversas nos 3 idiomas e guia dos dialogos. Nada testado jogando: conversa real, controle físico, textos longos en/es e gravação no save. Pendências: conteúdo é só um arco inicial."
     }
   ],
-  "resultadoFinal": null
+  "resultadoFinal": "Sistema de diálogo entregue: núcleo (catálogo JSONC, 23 condições, seleção por classe/prioridade, persistência opcional no save sem bump), NPC Odalric no hub, UI modal com retrato placeholder e falas curtas não modais, 21 conversas nos 3 idiomas e guia dos dialogos. Nada testado jogando: conversa real, controle físico, textos longos en/es e gravação no save. Pendências: conteúdo é só um arco inicial."
 }

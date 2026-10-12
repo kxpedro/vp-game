@@ -81,6 +81,7 @@ public partial class HUD
 		// Contrato hud-ingame T1/T2: log (debug), toasts, alerta de wave e banner de sala limpa (HUD.Notifications.cs).
 		// Acima dos painéis do HUD e abaixo dos overlays modais.
 		BuildNotificationsLayout(root);
+		BuildDialogueBark(root);
 
 		BuildPauseOverlay(root);
 		BuildGameOverOverlay(root);
@@ -90,6 +91,7 @@ public partial class HUD
 		BuildWeaponBenchOverlay(root);
 		BuildCompendiumOverlay(root);
 		BuildShopOverlay(root);
+		BuildDialogueOverlay(root);
 		// Indicador do HUD: Moedas de Sangue da RUN (RunState.RunBloodCoins) na run; Sangue Amaldiçoado permanente no hub.
 		RefreshResourceIndicator();
 	}

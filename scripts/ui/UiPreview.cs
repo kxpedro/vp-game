@@ -21,14 +21,19 @@ using System.Collections.Generic;
 ///   --ui-codex-locked[=sample]  Dicionário na visão de release (entradas bloqueadas); "=sample" finge algumas descobertas
 ///
 /// Telas (cena sugerida):
-///   MainMenu:   menu_main, menu_slots, menu_confirm_delete, menu_options, menu_credits
+///   MainMenu:   menu_main, menu_slots, menu_confirm_delete, menu_options (aba Vídeo), menu_options_audio, menu_options_game, menu_credits
 ///   TestArena:  hud_combat, critical_health, damage_flash, damage_number, blessing_bar, event_log,
 ///               character_sheet, blessing_offer, blessing_offer_replace,
-///               pause, options, tuning, pause_confirm_abandon, pause_confirm_menu,
-///               compendium, game_over, room_clear, toast, wave_warning, boss_bar
+///               pause, options (= options_video), options_audio, options_game, options_video_end (Vídeo rolado até o fim), options_confirm ("Manter estas configurações?", só a janela),
+///               tuning, pause_confirm_abandon, pause_confirm_menu,
+///               compendium, game_over, room_clear, toast, wave_warning, boss_bar,
+///               dialogue_bark (legenda de Virgil, repetida a cada 3 s)
 ///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
 ///   CrowsNest:  blood_fountain, skill_popup, weapon_bench, hub, hub_cast (enquadra os 3 sarcófagos de personagens)
 ///               (a Fonte mostra o saldo de Sangue Amaldiçoado; compras e cheat só simulam)
+///   CrowsNest:  dialogue (conversa de 3 linhas de Odalric, texto revelado), dialogue_choice (quadro de escolha com 2 opções),
+///               dialogue_long / dialogue_choice_long / dialogue_bark_long (estresse: textos sintéticos de 180/90 caracteres, opções de 120/100),
+///               hub_npc (só o cenário, com o jogador diante de Odalric). Conversa em memória; nada é marcado como visto.
 ///   IntermissionChamber: altar (host = a própria Câmara), reward_doors (jogador diante das portas de recompensa; host = HUD)
 ///   IntermissionChamber: shop (Loja de Artefatos; host = HUD. Estoque de 4 artefatos fictícios em raridades variadas:
 ///               Incomum já comprado, Raro ao alcance, Épico e Lendário caros demais, saldo fictício de 1000 Moedas.
@@ -79,9 +84,11 @@ public partial class UiPreview : Node
 	private static readonly (string Screen, string Tab, string Scene)[] BatchScreens =
 	{
 		("menu_main", null, SceneMenu), ("menu_slots", null, SceneMenu), ("menu_confirm_delete", null, SceneMenu),
-		("menu_options", null, SceneMenu), ("menu_credits", null, SceneMenu),
+		("menu_options", null, SceneMenu), ("menu_options_audio", null, SceneMenu), ("menu_options_game", null, SceneMenu),
+		("menu_credits", null, SceneMenu),
 		("hud_combat", null, SceneArena), ("blessing_bar", null, SceneArena), ("pause", null, SceneArena),
-		("options", null, SceneArena), ("tuning", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
+		("options", null, SceneArena), ("options_audio", null, SceneArena), ("options_game", null, SceneArena),
+		("options_confirm", null, SceneArena), ("options_video_end", null, SceneArena), ("tuning", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
 		("pause_confirm_menu", null, SceneArena), ("game_over", null, SceneArena),
 		("compendium", "Artifacts", SceneArena), ("compendium", "Blessings", SceneArena), ("compendium", "Skills", SceneArena),
 		("compendium", "Attacks", SceneArena), ("compendium", "Enemies", SceneArena), ("compendium", "Weapons", SceneArena),
@@ -92,6 +99,9 @@ public partial class UiPreview : Node
 		("room_clear", null, SceneArena), ("boss_bar", null, SceneArena),
 		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
 		("weapon_bench", null, SceneNest), ("hub", null, SceneNest), ("hub_cast", null, SceneNest),
+		("dialogue", null, SceneNest), ("dialogue_choice", null, SceneNest), ("hub_npc", null, SceneNest),
+		("dialogue_bark", null, SceneArena),
+		("dialogue_long", null, SceneNest), ("dialogue_choice_long", null, SceneNest), ("dialogue_bark_long", null, SceneArena),
 		("altar", null, SceneChamber), ("shop", null, SceneChamber), ("reward_doors", null, SceneChamber)
 	};
 
@@ -277,6 +287,7 @@ public partial class UiPreview : Node
 			"room_clear" => 2.2f,
 			"damage_flash" => 0.5f,
 			"damage_number" => 1.0f,
+			"dialogue_bark" or "dialogue_bark_long" => 3.0f,
 			_ => 0.0f
 		};
 		_repeatTimer = _repeatInterval;
@@ -344,6 +355,8 @@ public partial class UiPreview : Node
 		"skill_detail" => "skill_popup",
 		"pause_tuning" => "tuning",
 		"wave_alert" => "wave_warning",
+		"options_video" => "options",
+		"menu_options_video" => "menu_options",
 		_ => screen
 	};
 

@@ -1,0 +1,37 @@
+// Falantes do sistema de dialogo. Retrato sem textura = placeholder (inicial + cores).
+{
+  "speakers": [
+    {
+      "id": "odalric",
+      "name_key": "dlg.speaker.odalric.name",
+      "kind": "npc",
+      "name_color": "#D9B25A",
+      "portraits": {
+        "default": { "texture": "", "initial": "O", "color": "#4A3B5C", "accent": "#D9B25A" },
+        "amused": { "accent": "#C9A24A" },
+        "grim": { "color": "#2E2438", "accent": "#8A2B2B" },
+        "sad": { "accent": "#7C8AA6" }
+      }
+    },
+    {
+      "id": "armand",
+      "name_key": "dlg.speaker.armand.name",
+      "kind": "npc",
+      "name_color": "#9B1C24",
+      "portraits": {
+        "default": { "texture": "", "initial": "A", "color": "#2A0E14", "accent": "#9B1C24" },
+        "amused": { "accent": "#C23A3A" },
+        "sad": { "accent": "#6E6A7C" }
+      }
+    },
+    {
+      "id": "virgil",
+      "name_key": "dlg.speaker.virgil.name",
+      "kind": "player",
+      "portraits": {
+        "default": { "texture": "", "initial": "V", "color": "#3A1F24", "accent": "#B03030" },
+        "grim": { "accent": "#7A1F1F" }
+      }
+    }
+  ]
+}

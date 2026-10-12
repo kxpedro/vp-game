@@ -23,6 +23,7 @@ AudioManager="*res://scripts/systems/AudioManager.cs"
 SaveGameManager="*res://scripts/systems/SaveGameManager.cs"
 CombatFeedback="*res://scripts/systems/CombatFeedback.cs"
 GameCursor="*res://scripts/ui/GameCursor.cs"
+DialogueManager="*res://scripts/systems/dialogue/DialogueManager.cs"
 
 [display]
 

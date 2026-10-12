@@ -140,7 +140,8 @@ public static class CharacterSheet
             CursedBlood = CursedBlood,
             SkillRanks = new Dictionary<string, int>(SkillRanks),
             EquippedWeaponId = WeaponLoadout.EquippedWeaponId,
-            Discoveries = CodexProgress.ToSaveData()
+            Discoveries = CodexProgress.ToSaveData(),
+            Dialogue = DialogueProgress.ToSaveData()
         };
         foreach (var pair in Attributes) data.Attributes[pair.Key.ToString()] = pair.Value;
         return data;
@@ -161,6 +162,7 @@ public static class CharacterSheet
         }
         WeaponLoadout.Equip(data.EquippedWeaponId ?? "longsword");
         CodexProgress.LoadSaveData(data.Discoveries);
+        DialogueProgress.LoadSaveData(data.Dialogue);
         BackfillDiscoveries();
     }
 
@@ -170,6 +172,7 @@ public static class CharacterSheet
         CursedBlood = 0; SkillRanks.Clear();
         WeaponLoadout.Equip("longsword");
         CodexProgress.Reset();
+        DialogueProgress.Reset();
     }
 
     /// <summary>Saves anteriores ao diario: marca como descoberto o que o jogador ja possui (sem autosave/evento).</summary>
