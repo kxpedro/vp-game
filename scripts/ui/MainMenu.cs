@@ -30,6 +30,7 @@ public partial class MainMenu : Control
 	private VBoxContainer _main;
 	private VBoxContainer _slots;
 	private VBoxContainer _options;
+	private OptionsPanelView _optionsPanel;
 	private VBoxContainer _credits;
 	private Control _currentPage;
 
@@ -206,7 +207,7 @@ public partial class MainMenu : Control
 	{
 		_main = CreatePage(MainColumnWidth);
 		_playButton = AddPageButton(_main, Localization.Text("menu.play"), () => ShowPage(_slots, PreferredSlotFocus()), ButtonVariant.Primary);
-		_optionsButton = AddPageButton(_main, Localization.Text("menu.options"), () => ShowPage(_options));
+		_optionsButton = AddPageButton(_main, Localization.Text("menu.options"), () => ShowPage(_options, _optionsPanel?.PreferredFocus));
 		_creditsButton = AddPageButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits, _creditsScroll));
 		_main.AddChild(UiComponents.Separator());
 		AddPageButton(_main, Localization.Text("menu.quit"), () => GetTree().Quit());
@@ -413,9 +414,11 @@ public partial class MainMenu : Control
 	{
 		_options = CreatePage(WideColumnWidth);
 		AddPageHeader(_options, Localization.Text("options.title"));
-		// Mesmo painel da pausa (UiComponents.OptionsPanel): rótulo 240 · controle · valor 64.
-		_options.AddChild(UiComponents.OptionsPanel(true));
-		AddBackButton(_options);
+		// Mesmo painel da pausa (UiComponents.OptionsPanel): abas Vídeo/Áudio/Jogo; rótulo 240 · controle · valor 64.
+		_optionsPanel = UiComponents.OptionsPanel(true);
+		_optionsPanel.SetScrollMinHeight(340);
+		_options.AddChild(_optionsPanel);
+		_optionsPanel.SetFooterTarget(AddBackButton(_options));
 	}
 
 	// ---------- Créditos ----------
@@ -535,12 +538,14 @@ public partial class MainMenu : Control
 		{
 			"menu_main" => _main,
 			"menu_slots" => _slots,
-			"menu_options" => _options,
+			"menu_options" or "menu_options_audio" or "menu_options_game" => _options,
 			"menu_credits" => _credits,
 			_ => null
 		};
 		if (target == null) return false;
-		ShowPage(target, target == _main ? _playButton : target == _slots ? PreferredSlotFocus() : target == _credits ? _creditsScroll : null);
+		if (target == _options)
+			UiComponents.FindOptionsPanel(_options)?.SelectTab(page == "menu_options_audio" ? OptionsPanelView.TabAudio : page == "menu_options_game" ? OptionsPanelView.TabGame : OptionsPanelView.TabVideo);
+		ShowPage(target, target == _main ? _playButton : target == _slots ? PreferredSlotFocus() : target == _credits ? _creditsScroll : _optionsPanel?.PreferredFocus);
 		return true;
 	}
 
@@ -602,7 +607,7 @@ public partial class MainMenu : Control
 		BuildInterface();
 		switch (page)
 		{
-			case "options": ShowPage(_options); break; // foco no idioma (primeiro controle)
+			case "options": ShowPage(_options, _optionsPanel?.PreferredFocus); break;
 			case "slots": ShowPage(_slots, PreferredSlotFocus()); break;
 			case "credits": ShowPage(_credits, _creditsScroll); break;
 			default: ShowPage(_main, _playButton); break;

@@ -1775,37 +1775,16 @@ public static class UiComponents
         return row;
     }
 
-    // Opções compartilhadas pelo menu e pela pausa: idioma (opcional), resolução, tela cheia, música, efeitos.
-    public static VBoxContainer OptionsPanel(bool showLanguage)
+    // Opções compartilhadas pelo menu e pela pausa, em abas Vídeo / Áudio / Jogo (ver OptionsPanelView.cs).
+    // O idioma fica na aba Jogo (só com showLanguage). Depois de adicionar o botão "Voltar", chame view.SetFooterTarget(botão).
+    public static OptionsPanelView OptionsPanel(bool showLanguage)
     {
-        var panel = new VBoxContainer { Name = "OptionsPanel", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        panel.AddThemeConstantOverride("separation", UiMetrics.S1);
-        var settings = GlobalSettings.Instance?.Data;
-        if (showLanguage)
-        {
-            var language = Localization.Instance?.CurrentLanguage ?? settings?.Language ?? "pt-BR";
-            panel.AddChild(OptionRow(
-                Localization.Text("options.language"),
-                new[] { Localization.Text("options.language.pt_br"), Localization.Text("options.language.en"), Localization.Text("options.language.es") },
-                language == "en" ? 1 : language == "es" ? 2 : 0,
-                index => GlobalSettings.Instance?.SetLanguage(index == 1 ? "en" : index == 2 ? "es" : "pt-BR")).Root);
-        }
-        UiOptionRow fullscreen = null;
-        panel.AddChild(OptionRow(
-            Localization.Text("options.resolution"),
-            new[] { "1280 x 720", "1600 x 900", "1920 x 1080" },
-            settings?.ResolutionIndex ?? 1,
-            index =>
-            {
-                GlobalSettings.Instance?.SetResolution(index);
-                SetToggleRow(fullscreen, false); // SetResolution sai da tela cheia
-            }).Root);
-        fullscreen = ToggleRow(Localization.Text("options.fullscreen"), settings?.Fullscreen ?? false, enabled => GlobalSettings.Instance?.SetFullscreen(enabled));
-        panel.AddChild(fullscreen.Root);
-        panel.AddChild(LabeledSlider(Localization.Text("options.volume_music"), 0, 100, settings?.MusicVolume ?? 70, v => GlobalSettings.Instance?.SetMusicVolume((float)v)).Root);
-        panel.AddChild(LabeledSlider(Localization.Text("options.volume_effects"), 0, 100, settings?.EffectsVolume ?? 85, v => GlobalSettings.Instance?.SetEffectsVolume((float)v)).Root);
-        return panel;
+        var view = new OptionsPanelView();
+        view.Build(showLanguage);
+        return view;
     }
+
+    public static OptionsPanelView FindOptionsPanel(Node scope) => scope?.FindChild("OptionsPanel", true, false) as OptionsPanelView;
 
     // ---------- Ícones e selos (§3.13) ----------
 

@@ -2,7 +2,7 @@
   "schema": "orch.plano/1",
   "id": "20261011-0815-revisao-graficos",
   "titulo": "Revisão das configurações gráficas",
-  "status": "planejado",
+  "status": "concluido",
   "demanda": "Pedro (2026-10-11), texto colado: (1) analisar videos, imagens da gameplay do Hades e Sworn como referencia; verificar se o jogo e parecido mecanicamente, identificar e destacar as principais diferencas e se e possivel implementar; analisar toda e qualquer mecanica. (2) melhorar visualmente as animacoes de ataque do jogador e dos inimigos, deixar mais obvio quando um inimigo for atacar, usando Hades e Sworn como referencia. (3) desenvolver mecanica de dialogo, usando Hades como referencia. (4) focar um pouco nas configuracoes graficas do jogo, dar uma revisada.",
   "objetivo": "Menu de opções gráficas completo, aplicado em tempo real e persistido: modo de janela, resolução, VSync, limite de FPS, escala de renderização, qualidade de sombras/MSAA/efeitos e brilho, com presets e padrões sensatos, nos 3 idiomas.",
   "grupo": "20261011-0815-referencia-hades-sworn",
@@ -10,7 +10,7 @@
     "20261011-0815-sistema-dialogo"
   ],
   "criado": "2026-10-11T08:15:00-03:00",
-  "atualizado": "2026-10-11T08:15:00-03:00",
+  "atualizado": "2026-10-11T04:10:00-03:00",
   "commitInicial": "bd370e4",
   "versaoOrch": "0.5.0",
   "ondas": [
@@ -32,11 +32,11 @@
       "dependeDe": [],
       "arquivos": [],
       "prontoQuando": "Relatório: o que existe, o que é aplicado de fato, o que está solto; gargalos prováveis (sombras, glow, SSAO, MSAA) e lista recomendada de opções com padrões por perfil.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T02:10:00-03:00",
+      "fim": "2026-10-11T02:35:00-03:00",
+      "tentativas": 1,
+      "resultado": "Auditoria: só existem idioma, 3 resoluções fixas, tela cheia e volumes; nenhum MSAA/vsync/FPS/escala/qualidade definido; glow, SSAO, fog e sombra sempre ligados por cena; ShakeIntensity e FlashIntensity sem UI; centralização errada em multi-monitor e flash de janela no boot; presets e métodos Godot propostos; nomes exatos de API do 4.7 a validar no compilador.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -57,11 +57,11 @@
         "project.godot"
       ],
       "prontoQuando": "Opções aplicam em tempo real e persistem; foco por controle; presets baixo/médio/alto; `dotnet build VP0.1.sln` com 0 erros/0 avisos; `py tools/validate_localization.py` sem erro; captura da tela de opções nos 3 idiomas.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T02:35:00-03:00",
+      "fim": "2026-10-11T03:20:00-03:00",
+      "tentativas": 1,
+      "resultado": "Opções gráficas completas: modo de janela, resolução gerada pelo monitor, monitor, VSync, FPS, escala 3D com Bilinear/FSR1, FXAA/MSAA, sombras, SSAO, glow, brilho, presets, tremor/flash; aplicador GraphicsSettings por cena sem editar .tscn; painel em 3 abas com L1/R1; confirmação com reversão em 10 s; 36 chaves nos 3 idiomas; migração do arquivo antigo e gravação atômica com debounce. Build 0/0, validador e smoke ok; nada testado com janela/FSR/controle reais.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -76,11 +76,11 @@
       ],
       "arquivos": [],
       "prontoQuando": "Sem achados altos; arquivo de opções antigo carrega com os padrões.",
-      "status": "pendente",
-      "inicio": null,
-      "fim": null,
-      "tentativas": 0,
-      "resultado": null,
+      "status": "concluida",
+      "inicio": "2026-10-11T03:20:00-03:00",
+      "fim": "2026-10-11T04:10:00-03:00",
+      "tentativas": 1,
+      "resultado": "Revisão sem achados altos; corrigidos M1 (modo não confirmado gravado), M2 (Reverter e monitor), M3 (VSync reaplicado), e baixos B4-B9 e B11. Build 0/0, validadores, smoke e autoteste ok, arquivo real do usuário intacto.",
       "modelo": null,
       "sessaoApp": null,
       "pasta": null,
@@ -93,7 +93,55 @@
       "tarefa": null,
       "tipo": "plano-criado",
       "texto": "Plano criado"
+    },
+    {
+      "quando": "2026-10-11T02:10:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-iniciado",
+      "texto": "Plano em-execucao"
+    },
+    {
+      "quando": "2026-10-11T02:10:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T02:35:00-03:00",
+      "tarefa": "T1",
+      "tipo": "tarefa-concluida",
+      "texto": "Auditoria: só existem idioma, 3 resoluções fixas, tela cheia e volumes; nenhum MSAA/vsync/FPS/escala/qualidade definido; glow, SSAO, fog e sombra sempre ligados por cena; ShakeIntensity e FlashIntensity sem UI; centralização errada em multi-monitor e flash de janela no boot; presets e métodos Godot propostos; nomes exatos de API do 4.7 a validar no compilador."
+    },
+    {
+      "quando": "2026-10-11T02:35:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T03:20:00-03:00",
+      "tarefa": "T2",
+      "tipo": "tarefa-concluida",
+      "texto": "Opções gráficas completas: modo de janela, resolução gerada pelo monitor, monitor, VSync, FPS, escala 3D com Bilinear/FSR1, FXAA/MSAA, sombras, SSAO, glow, brilho, presets, tremor/flash; aplicador GraphicsSettings por cena sem editar .tscn; painel em 3 abas com L1/R1; confirmação com reversão em 10 s; 36 chaves nos 3 idiomas; migração do arquivo antigo e gravação atômica com debounce. Build 0/0, validador e smoke ok; nada testado com janela/FSR/controle reais."
+    },
+    {
+      "quando": "2026-10-11T03:20:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-iniciada",
+      "texto": "em-andamento"
+    },
+    {
+      "quando": "2026-10-11T04:10:00-03:00",
+      "tarefa": "T3",
+      "tipo": "tarefa-concluida",
+      "texto": "Revisão sem achados altos; corrigidos M1 (modo não confirmado gravado), M2 (Reverter e monitor), M3 (VSync reaplicado), e baixos B4-B9 e B11. Build 0/0, validadores, smoke e autoteste ok, arquivo real do usuário intacto."
+    },
+    {
+      "quando": "2026-10-11T04:10:00-03:00",
+      "tarefa": null,
+      "tipo": "plano-encerrado",
+      "texto": "Opções gráficas entregues: modo de janela, resolução, monitor, VSync, FPS, escala 3D Bilinear/FSR1, FXAA/MSAA, sombras, SSAO, glow, brilho, presets, tremor/flash, painel em 3 abas com controle, confirmação com reversão em 10 s, 36 chaves nos 3 idiomas. Não testado jogando: janela/exclusivo no d3d12, FSR, VSync adaptativo, multi-monitor, controle, reversão M1/M2."
     }
   ],
-  "resultadoFinal": null
+  "resultadoFinal": "Opções gráficas entregues: modo de janela, resolução, monitor, VSync, FPS, escala 3D Bilinear/FSR1, FXAA/MSAA, sombras, SSAO, glow, brilho, presets, tremor/flash, painel em 3 abas com controle, confirmação com reversão em 10 s, 36 chaves nos 3 idiomas. Não testado jogando: janela/exclusivo no d3d12, FSR, VSync adaptativo, multi-monitor, controle, reversão M1/M2."
 }
