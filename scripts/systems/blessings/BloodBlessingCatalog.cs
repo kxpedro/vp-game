@@ -232,7 +232,7 @@ public static class BloodBlessingCatalog
                 !effect.Type.StartsWith("QuickAttack", StringComparison.OrdinalIgnoreCase) &&
                 !effect.Type.StartsWith("SpecialAttack", StringComparison.OrdinalIgnoreCase))
                 continue;
-            multiplier = DirectAttackBlessingWeightMultiplier;
+            multiplier = CompendiumTuning.GetFloat("blessing.selection.direct_attack_weight", DirectAttackBlessingWeightMultiplier);
             break;
         }
         return Mathf.Max(definition.Weight, 0) * multiplier;
@@ -240,15 +240,16 @@ public static class BloodBlessingCatalog
 
     private static string SelectFamily(RandomNumberGenerator rng, List<string> families)
     {
+        var stirpsWeight = CompendiumTuning.GetFloat("blessing.selection.stirps_weight", StirpsFamilySelectionWeight);
         var totalWeight = 0.0f;
         foreach (var family in families)
-            totalWeight += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? StirpsFamilySelectionWeight : 1.0f;
+            totalWeight += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? stirpsWeight : 1.0f;
 
         var roll = rng.RandfRange(0.0f, Mathf.Max(totalWeight, 0.01f));
         var cursor = 0.0f;
         foreach (var family in families)
         {
-            cursor += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? StirpsFamilySelectionWeight : 1.0f;
+            cursor += family.Equals("Stirps", StringComparison.OrdinalIgnoreCase) ? stirpsWeight : 1.0f;
             if (roll <= cursor)
                 return family;
         }

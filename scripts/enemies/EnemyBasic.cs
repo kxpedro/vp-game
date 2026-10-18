@@ -58,9 +58,11 @@ public partial class EnemyBasic : CharacterBody3D
     private float _aimTrackRemaining;
     private Vector3 _windupBodyBaseScale = Vector3.One;
     private float _windupBodyBasePositionY;
-    private const float AimLockSeconds = 0.25f;
+    private static float AimLockSeconds => CompendiumTuning.GetFloat("enemy.ranged.aim_lock_seconds", 0.25f);
     private const float WindupFlashSeconds = 0.1f;
-    private const float ProjectileRangeMultiplier = 1.5f;
+    private static float ProjectileRangeMultiplier => CompendiumTuning.GetFloat("enemy.projectile.range_multiplier", 1.5f);
+    // Atalho para leituras do painel de dev (CompendiumTuning); sem override devolve o padrao.
+    private static float G(string key, float defaultValue) => CompendiumTuning.GetFloat(key, defaultValue);
     private readonly List<(int Id, Vector3 Center, Vector3 End, float Radius, bool IsSegment)> _bossThreats = new();
     private int _bossThreatCounter;
     private MeshInstance3D _healthBarFill;
@@ -143,8 +145,34 @@ public partial class EnemyBasic : CharacterBody3D
         || (Rarity is EnemyRarity.Rare or EnemyRarity.Legendary && Archetype == EnemyArchetype.Tank);
     public bool CanAttackAfterSpawn => _spawnAttackDelayRemaining <= 0.0f;
 
+    // Valores base por instancia (enemy.base.*): aplicados uma vez no _Ready; sem override mantem o valor atual (cena/Export).
+    private void ApplyBaseDevTuning()
+    {
+        DetectionRange = G("enemy.base.detection_range", DetectionRange);
+        PatrolSpeed = G("enemy.base.patrol_speed", PatrolSpeed);
+        PatrolRadius = G("enemy.base.patrol_radius", PatrolRadius);
+        AttackRange = G("enemy.base.attack_range", AttackRange);
+        AttackWindup = G("enemy.base.attack_windup", AttackWindup);
+        AttackCooldown = G("enemy.base.attack_cooldown", AttackCooldown);
+        SpawnAttackDelay = G("enemy.base.spawn_attack_delay", SpawnAttackDelay);
+        RangedPreferredDistance = G("enemy.base.ranged_preferred_distance", RangedPreferredDistance);
+        RangedRetreatDistance = G("enemy.base.ranged_retreat_distance", RangedRetreatDistance);
+        TacticalMoveSpeedMultiplier = G("enemy.base.tactical_speed_multiplier", TacticalMoveSpeedMultiplier);
+        AttackWidth = G("enemy.base.attack_width", AttackWidth);
+        AttackDepthBonus = G("enemy.base.attack_depth_bonus", AttackDepthBonus);
+        ContactDamage = G("enemy.base.contact_damage", ContactDamage);
+        ContactDamageRange = G("enemy.base.contact_range", ContactDamageRange);
+        ContactDamageCooldown = G("enemy.base.contact_cooldown", ContactDamageCooldown);
+        KnockbackResistance = G("enemy.base.knockback_resistance", KnockbackResistance);
+        MaxPestilenceStacks = CompendiumTuning.GetInt("enemy.base.max_pestilence_stacks", MaxPestilenceStacks);
+        DamageTakenPerStatusStack = G("enemy.base.damage_per_status_stack", DamageTakenPerStatusStack);
+    }
+
     public override void _Ready()
     {
+        // O TrainingDummy zera estes campos antes de chamar base._Ready: nao sobrescrever.
+        if (this is not TrainingDummy)
+            ApplyBaseDevTuning();
         AddToGroup("enemies");
         _spawnPosition = GlobalPosition;
         _spawnAttackDelayRemaining = SpawnAttackDelay;
@@ -194,19 +222,19 @@ public partial class EnemyBasic : CharacterBody3D
 
         if (archetype == EnemyArchetype.Ranged)
         {
-            AttackRange = 11.0f; AttackDamage *= 0.8f; MoveSpeed *= 0.9f;
+            AttackRange = G("enemy.ranged.attack_range", 11.0f); AttackDamage *= G("enemy.ranged.damage_multiplier", 0.8f); MoveSpeed *= G("enemy.ranged.speed_multiplier", 0.9f);
         }
         else if (archetype == EnemyArchetype.Tank)
         {
-            _health?.SetMaxHealth(_health.MaxHealth * 1.8f, true);
-            MoveSpeed *= 0.62f;
-            AttackDamage *= 1.52f;
-            AttackWindup *= 1.65f;
-            AttackRange *= 1.18f;
-            AttackWidth *= 1.65f;
-            AttackDepthBonus += 0.85f;
-            AttackCooldown *= 1.18f;
-            KnockbackResistance *= 0.3f;
+            _health?.SetMaxHealth(_health.MaxHealth * G("enemy.tank.health_multiplier", 1.8f), true);
+            MoveSpeed *= G("enemy.tank.speed_multiplier", 0.62f);
+            AttackDamage *= G("enemy.tank.damage_multiplier", 1.52f);
+            AttackWindup *= G("enemy.tank.windup_multiplier", 1.65f);
+            AttackRange *= G("enemy.tank.range_multiplier", 1.18f);
+            AttackWidth *= G("enemy.tank.width_multiplier", 1.65f);
+            AttackDepthBonus += G("enemy.tank.depth_bonus_add", 0.85f);
+            AttackCooldown *= G("enemy.tank.cooldown_multiplier", 1.18f);
+            KnockbackResistance *= G("enemy.tank.knockback_multiplier", 0.3f);
         }
 
         ConfigureGeometricVisual(archetype);
@@ -280,7 +308,7 @@ public partial class EnemyBasic : CharacterBody3D
             EnemyArchetype.Tank => new BoxMesh { Size = new Vector3(1.15f, 1.45f, 1.15f) },
             _ => new CylinderMesh { TopRadius = 0.42f, BottomRadius = 0.42f, Height = 1.35f, RadialSegments = 24 }
         };
-        HitTargetRadius = archetype == EnemyArchetype.Tank ? 0.68f : 0.48f;
+        HitTargetRadius = archetype == EnemyArchetype.Tank ? G("enemy.tank.hit_radius", 0.68f) : archetype == EnemyArchetype.Ranged ? G("enemy.ranged.hit_radius", 0.48f) : G("enemy.melee.hit_radius", 0.48f);
         if (GetNodeOrNull<Node3D>("Eye") is { } eye) eye.Visible = false;
     }
 
@@ -549,7 +577,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (_knockbackVelocity.LengthSquared() > 0.01f)
         {
             Velocity = _knockbackVelocity;
-            _knockbackVelocity = _knockbackVelocity.MoveToward(Vector3.Zero, 18.0f * (float)delta);
+            _knockbackVelocity = _knockbackVelocity.MoveToward(Vector3.Zero, G("enemy.knockback_decay", 18.0f) * (float)delta);
             MoveAndSlide();
             ApplyPendingWallImpact();
             return;
@@ -601,7 +629,7 @@ public partial class EnemyBasic : CharacterBody3D
 
         LookAt(GlobalPosition + toPlayer.Normalized(), Vector3.Up);
 
-        var insideTacticalRange = distance <= AttackRange + (Archetype == EnemyArchetype.Ranged ? 2.0f : 0.9f);
+        var insideTacticalRange = distance <= AttackRange + (Archetype == EnemyArchetype.Ranged ? G("enemy.ranged.tactical_range_pad", 2.0f) : G("enemy.melee.tactical_range_pad", 0.9f));
         if ((_tacticalMoveTimer > 0.0f || _attackCooldownRemaining > 0.0f || _rangedFleeTimer > 0.0f) && insideTacticalRange)
         {
             MoveTactically(toPlayer, distance, (float)delta);
@@ -656,8 +684,8 @@ public partial class EnemyBasic : CharacterBody3D
     {
         _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer, (float)GD.RandRange(minimumSeconds, maximumSeconds));
         if (GD.Randf() < 0.45f) _tacticalSide *= -1;
-        if (Archetype == EnemyArchetype.Ranged && GD.Randf() < 0.34f)
-            _rangedFleeTimer = Mathf.Max(_rangedFleeTimer, (float)GD.RandRange(1.15f, 2.25f));
+        if (Archetype == EnemyArchetype.Ranged && GD.Randf() < G("enemy.ranged.flee_chance", 0.34f))
+            _rangedFleeTimer = Mathf.Max(_rangedFleeTimer, (float)GD.RandRange(G("enemy.ranged.flee_min_seconds", 1.15f), G("enemy.ranged.flee_max_seconds", 2.25f)));
     }
 
     private void MoveTactically(Vector3 toPlayer, float distance, float delta)
@@ -680,7 +708,7 @@ public partial class EnemyBasic : CharacterBody3D
         }
         else
         {
-            var retreatWeight = Archetype == EnemyArchetype.Tank ? 0.16f : 0.32f;
+            var retreatWeight = Archetype == EnemyArchetype.Tank ? G("enemy.tank.retreat_weight", 0.16f) : G("enemy.melee.retreat_weight", 0.32f);
             direction = (tangent - radial * retreatWeight).Normalized();
         }
 
@@ -696,8 +724,8 @@ public partial class EnemyBasic : CharacterBody3D
 
     public void RefreshPlayerHitStatuses()
     {
-        if (IsPestilent) _pestilenceTimer = Mathf.Max(_pestilenceTimer, 3.0f);
-        if (IsBleeding) _bleedingTimer = Mathf.Max(_bleedingTimer, 2.0f);
+        if (IsPestilent) _pestilenceTimer = Mathf.Max(_pestilenceTimer, G("enemy.status.pestilence_refresh_seconds", 3.0f));
+        if (IsBleeding) _bleedingTimer = Mathf.Max(_bleedingTimer, G("enemy.status.bleeding_refresh_seconds", 2.0f));
     }
     public void ApplyPestilence(float seconds, int maxStacks = -1)
     {
@@ -762,10 +790,10 @@ public partial class EnemyBasic : CharacterBody3D
             _pestilenceTickTimer -= delta;
             if (_pestilenceTickTimer <= 0)
             {
-                _pestilenceTickTimer = 1.0f;
+                _pestilenceTickTimer = G("enemy.status.pestilence_tick_seconds", 1.0f);
                 if (RunState.GetEffectTotal("InfinitePestilenceSpread.Flat") > 0)
                     foreach (var node in GetTree().GetNodesInGroup("enemies"))
-                        if (node is EnemyBasic enemy && enemy != this && !enemy.IsPestilent && enemy.GlobalPosition.DistanceTo(GlobalPosition) <= 6) { enemy.ApplyPestilence(Mathf.Max(_pestilenceTimer, 3)); break; }
+                        if (node is EnemyBasic enemy && enemy != this && !enemy.IsPestilent && enemy.GlobalPosition.DistanceTo(GlobalPosition) <= G("enemy.status.pestilence_spread_radius", 6.0f)) { enemy.ApplyPestilence(Mathf.Max(_pestilenceTimer, G("enemy.status.pestilence_refresh_seconds", 3.0f))); break; }
             }
             if (_pestilenceTimer <= 0) _pestilenceStacks = 0;
         }
@@ -776,7 +804,7 @@ public partial class EnemyBasic : CharacterBody3D
             _bleedingTickTimer -= delta;
             if (_bleedingTickTimer <= 0)
             {
-                _bleedingTickTimer = 1.0f;
+                _bleedingTickTimer = G("enemy.status.bleeding_tick_seconds", 1.0f);
                 _health.ApplyDamage(_bleedingDamagePerSecond * _bleedingStacks);
             }
             if (_bleedingTimer <= 0)
@@ -998,7 +1026,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (toAttacker.LengthSquared() <= 0.001f) return false;
         var forward = -GlobalTransform.Basis.Z;
         forward.Y = 0.0f;
-        return forward.LengthSquared() > 0.001f && forward.Normalized().Dot(toAttacker.Normalized()) < -0.45f;
+        return forward.LengthSquared() > 0.001f && forward.Normalized().Dot(toAttacker.Normalized()) < G("enemy.backstab_dot", -0.45f);
     }
 
     public void ApplyKnockback(Vector3 direction, float force, float wallImpactDamage = 0.0f)
@@ -1008,7 +1036,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (direction.LengthSquared() <= 0.001f)
             return;
 
-        var bossResistance = Name.ToString().Contains("Boss") ? 0.05f : 1.0f;
+        var bossResistance = Name.ToString().Contains("Boss") ? G("enemy.boss.knockback_factor", 0.05f) : 1.0f;
         _knockbackVelocity = direction.Normalized() * force * KnockbackResistance * bossResistance;
         _pendingWallImpactDamage = Mathf.Max(wallImpactDamage * bossResistance, 0.0f);
     }
@@ -1018,7 +1046,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (duration <= 0.0f || HasStaggerArmor)
             return;
 
-        var rarityMultiplier = Rarity == EnemyRarity.Normal ? 1.0f : 0.72f;
+        var rarityMultiplier = Rarity == EnemyRarity.Normal ? 1.0f : G("enemy.stagger.rarity_multiplier", 0.72f);
         _hitStunTimer = Mathf.Max(_hitStunTimer, duration * rarityMultiplier);
         if (!_isAttacking)
             return;
@@ -1181,17 +1209,17 @@ public partial class EnemyBasic : CharacterBody3D
             _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage * normalPenalty * Mathf.Max(infectedPenalty, 0.1f), false, GetDisplayName());
             if (Rarity == EnemyRarity.Legendary)
             {
-                await Wait(0.16f);
+                await Wait(G("enemy.legendary.double_hit_delay", 0.16f));
                 if (attackSequence != _attackSequenceVersion) return;
                 if (!_health.IsDead && IsPlayerInsideLockedAttack())
-                    _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage * 0.55f, false, GetDisplayName());
+                    _player.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage * G("enemy.legendary.double_hit_damage", 0.55f), false, GetDisplayName());
             }
         }
 
         _attackCooldownRemaining = Mathf.Max(AttackCooldown, 0.25f);
         BeginTacticalMovement(
-            Archetype == EnemyArchetype.Ranged ? 0.9f : Archetype == EnemyArchetype.Tank ? 0.45f : 0.28f,
-            Archetype == EnemyArchetype.Ranged ? 1.35f : Archetype == EnemyArchetype.Tank ? 0.8f : 0.58f);
+            Archetype == EnemyArchetype.Ranged ? G("enemy.ranged.post_attack_move_min", 0.9f) : Archetype == EnemyArchetype.Tank ? G("enemy.tank.post_attack_move_min", 0.45f) : G("enemy.melee.post_attack_move_min", 0.28f),
+            Archetype == EnemyArchetype.Ranged ? G("enemy.ranged.post_attack_move_max", 1.35f) : Archetype == EnemyArchetype.Tank ? G("enemy.tank.post_attack_move_max", 0.8f) : G("enemy.melee.post_attack_move_max", 0.58f));
         _isAttacking = false;
     }
 
@@ -1206,11 +1234,12 @@ public partial class EnemyBasic : CharacterBody3D
 
     public void ApplyBossMoveTuning(BossMoveDefinition move, int phase)
     {
-        AttackCooldown = Mathf.Max(move.Cooldown / (1.0f + (phase - 1) * 0.12f), 0.35f);
-        var bossBaseDamage = 30.0f * (1.0f + RunState.CurrentMapIndex * 0.22f);
-        AttackDamage = Mathf.Max(bossBaseDamage * move.DamageMultiplier * (1.0f + (phase - 1) * 0.18f) * 0.9f, 1.0f);
-        AttackRange = Mathf.Max(2.25f * move.RangeMultiplier, 1.0f);
-        AttackWidth = Mathf.Max(1.5f * move.RangeMultiplier, 1.0f);
+        AttackCooldown = Mathf.Max(move.TunedCooldown / (1.0f + (phase - 1) * G("boss.cooldown_phase_reduction", 0.12f)), G("boss.attack_cooldown_min", 0.35f));
+        // Base 30 / 2.25 vem de enemy.blood_mage.damage / .attack_range (nome legado): o valor tunado passa a valer a cada golpe.
+        var bossBaseDamage = G("enemy.blood_mage.damage", 30.0f) * (1.0f + RunState.CurrentMapIndex * G("boss.damage_map_scale", 0.22f));
+        AttackDamage = Mathf.Max(bossBaseDamage * move.TunedDamageMultiplier * (1.0f + (phase - 1) * G("boss.damage_phase_scale", 0.18f)) * G("boss.damage_final_multiplier", 0.9f), 1.0f);
+        AttackRange = Mathf.Max(G("enemy.blood_mage.attack_range", 2.25f) * move.TunedRangeMultiplier, 1.0f);
+        AttackWidth = Mathf.Max(G("boss.attack_width_base", 1.5f) * move.TunedRangeMultiplier, 1.0f);
     }
 
     public void EnableBossMoves()
@@ -1266,7 +1295,7 @@ public partial class EnemyBasic : CharacterBody3D
             SpawnPosition = origin,
             Direction = direction,
             MaxDistance = AttackRange * ProjectileRangeMultiplier,
-            Speed = 5.2f,
+            Speed = G("enemy.projectile.speed", 5.2f),
             Damage = AttackDamage,
             SourceName = GetDisplayName(),
             OwnerRid = GetRid()
@@ -1352,8 +1381,8 @@ public partial class EnemyBasic : CharacterBody3D
         var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
         if (GetNodeOrNull<BossController>("BossController") != null)
         {
-            bloodCoins = CompendiumTuning.GetInt($"economy.coins.boss.{mapIndex}", new[] { 100, 130, 160, 0 }[mapIndex]);
-            cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.boss.{mapIndex}", new[] { 40, 60, 80, 120 }[mapIndex]);
+            bloodCoins = CompendiumTuning.GetInt($"economy.coins.boss.{mapIndex}", EconomyDefaults.BossCoins[mapIndex]);
+            cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.boss.{mapIndex}", EconomyDefaults.BossCursedBlood[mapIndex]);
             return;
         }
 
@@ -1363,14 +1392,14 @@ public partial class EnemyBasic : CharacterBody3D
         {
             var chance = CompendiumTuning.GetFloat("economy.cursed_blood.legendary_drop_chance", 1.0f);
             if (chance >= 1.0f || GD.Randf() < chance)
-                cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.legendary.{mapIndex}", new[] { 0, 6, 8, 8 }[mapIndex]);
+                cursedBlood = CompendiumTuning.GetInt($"economy.cursed_blood.legendary.{mapIndex}", EconomyDefaults.LegendaryCursedBlood[mapIndex]);
         }
     }
 
     private int RollBloodCoinsReward(int mapIndex)
     {
-        var minReward = CompendiumTuning.GetInt("economy.coins.enemy.base_min", 3);
-        var maxReward = Mathf.Max(CompendiumTuning.GetInt("economy.coins.enemy.base_max", 7), minReward);
+        var minReward = CompendiumTuning.GetInt("economy.coins.enemy.base_min", EconomyDefaults.EnemyCoinsMin);
+        var maxReward = Mathf.Max(CompendiumTuning.GetInt("economy.coins.enemy.base_max", EconomyDefaults.EnemyCoinsMax), minReward);
         // GD.RandRange(int, int) e inclusivo nos dois lados: sorteia exatamente [min, max].
         var roll = GD.RandRange(minReward, maxReward);
 
@@ -1387,7 +1416,7 @@ public partial class EnemyBasic : CharacterBody3D
             EnemyRarity.Legendary => CompendiumTuning.GetFloat("economy.coins.rarity.legendary", 8.0f),
             _ => CompendiumTuning.GetFloat("economy.coins.rarity.normal", 1.0f)
         };
-        var mapFactor = CompendiumTuning.GetFloat($"economy.coins.map_factor.{mapIndex}", new[] { 1.0f, 0.6f, 0.5f, 0.5f }[mapIndex]);
+        var mapFactor = CompendiumTuning.GetFloat($"economy.coins.map_factor.{mapIndex}", EconomyDefaults.CoinMapFactor[mapIndex]);
         var skillController = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
         var skillMultiplier = skillController?.BloodCoinMultiplier() ?? 1.0f;
 

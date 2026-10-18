@@ -197,7 +197,11 @@ public static class RunState
         if (existing != null)
             return existing;
 
-        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom());
+        // DEBUG: override do painel de dev ("Forcar portas"). Nao mexe no pity; o sorteio normal abaixo fica intacto.
+        if (Godot.OS.IsDebugBuild() && DevForceDoors)
+            return DevRollForcedSet(mapIndex, originRoom);
+
+        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom(), CanOfferAnvilDoor());
         if (set == null)
             return null;
 
@@ -220,8 +224,20 @@ public static class RunState
             return false;
 
         _pendingRoomReward = door;
+        // Porta de conjunto forcado (dev): Fruta e Bigorna nao contam nos tetos do sorteio normal; a Bigorna so reserva a modificacao.
+        var forced = Godot.OS.IsDebugBuild() && DevForcedDoors.Contains(door);
         if (door.Type == RoomRewardType.DevilsFruit)
-            _fruitDoorsChosen++;
+        {
+            if (!forced)
+                _fruitDoorsChosen++;
+        }
+        else if (door.Type == RoomRewardType.Anvil)
+        {
+            if (forced)
+                _anvilUnresolved++;
+            else
+                RegisterAnvilDoorChosen();
+        }
         return true;
     }
 
@@ -265,8 +281,261 @@ public static class RunState
         return plan;
     }
 
+    /// <summary>DEBUG (painel de dev): posiciona a run em (mapa, sala) sem passar pelas salas. Inicia a run se preciso e
+    /// descarta a recompensa pendente. O chamador troca/recarrega a cena. No-op fora de debug.</summary>
+    public static void DevJumpTo(int mapIndex, int room)
+    {
+        if (!Godot.OS.IsDebugBuild())
+            return;
+        if (!IsRunActive)
+            StartRun();
+        CurrentMapIndex = System.Math.Clamp(mapIndex, 0, CampaignCatalog.Count - 1);
+        CurrentRoom = System.Math.Clamp(room, 1, CurrentMap.CommonRoomCount + 1);
+        BlessingRoomDamage = 0.0f;
+        _pendingRoomReward = null;
+        _deliveredBlessingPlan = null;
+        WeaponModOffer.Clear();
+        _anvilUnresolved = 0;
+        IsCampaignComplete = false;
+    }
+
+
+    // ===== Bigorna: modificacoes de arma da run (docs/design/bigorna.md) =====
+    // Zeram em StartRun, FailRun e no fim da campanha (ResetRoomRewards); NAO zeram entre mapas nem em recarga de
+    // cena; nada vai ao save. Cada modificacao e unica por run. Os efeitos valem so para a arma equipada no instante.
+    private static readonly System.Collections.Generic.List<string> WeaponMods = new();
+    private static readonly System.Collections.Generic.List<string> WeaponModOffer = new();
+    private static int _anvilDoorsChosen;
+    private static int _anvilUnresolved;
+
+    /// <summary>Ids das modificacoes de arma forjadas na run, na ordem em que foram pegas (de qualquer arma).</summary>
+    public static System.Collections.Generic.IReadOnlyList<string> RunWeaponMods => WeaponMods;
+    /// <summary>Bigornas de porta escolhidas na run (teto economy.anvil.run_cap).</summary>
+    public static int AnvilDoorsChosen => _anvilDoorsChosen;
+    /// <summary>Teto de Bigornas escolhidas por run (economy.anvil.run_cap, padrao 3).</summary>
+    public static int AnvilRunCap => System.Math.Max(CompendiumTuning.GetInt("economy.anvil.run_cap", 3), 0);
+    /// <summary>Bigorna pendente: escolhida na porta (ou item no chao) e ainda nao resolvida por TryApplyWeaponMod/ResolveAnvilWithoutOffer.</summary>
+    public static bool HasPendingAnvil => _anvilUnresolved > 0;
+    /// <summary>Ha uma oferta de modificacoes sorteada e ainda nao escolhida (sobrevive a recarga de cena).</summary>
+    public static bool HasWeaponModOffer => WeaponModOffer.Count > 0;
+
+    public static bool HasWeaponMod(string modId) => WeaponMods.Contains(modId);
+
+    /// <summary>Modificacoes ativas agora: as pegas cujo weaponId e o da arma equipada.</summary>
+    public static System.Collections.Generic.List<WeaponModDefinition> GetActiveWeaponMods()
+    {
+        var result = new System.Collections.Generic.List<WeaponModDefinition>();
+        if (WeaponMods.Count == 0)
+            return result;
+        var weaponId = WeaponLoadout.EquippedWeaponId;
+        foreach (var id in WeaponMods)
+        {
+            var mod = WeaponModCatalog.Get(id);
+            if (mod != null && mod.WeaponId == weaponId)
+                result.Add(mod);
+        }
+        return result;
+    }
+
+    /// <summary>Soma do efeito (ex.: "AttackRange.Multiplier") entre as modificacoes ativas da arma equipada; 0 sem modificacoes.</summary>
+    public static float GetWeaponModTotal(string effectType)
+    {
+        if (WeaponMods.Count == 0)
+            return 0.0f;
+        var total = 0.0f;
+        foreach (var mod in GetActiveWeaponMods())
+            total += mod.GetTotal(effectType);
+        return total;
+    }
+
+    /// <summary>1 + GetWeaponModTotal(effectType): fator multiplicativo (exatamente 1 sem modificacoes).</summary>
+    public static float GetWeaponModMultiplier(string effectType) => 1.0f + GetWeaponModTotal(effectType);
+
+    /// <summary>Modificacoes da arma equipada ainda nao pegas, descontando as Bigornas pendentes (reservadas).</summary>
+    public static int AvailableWeaponModCount()
+    {
+        var count = 0;
+        foreach (var mod in WeaponModCatalog.ForWeapon(WeaponLoadout.EquippedWeaponId))
+            if (!WeaponMods.Contains(mod.Id))
+                count++;
+        return System.Math.Max(count - _anvilUnresolved, 0);
+    }
+
+    /// <summary>Elegibilidade da Bigorna no sorteio da porta (peso 0 quando false): arma implementada, ha modificacao livre e o teto nao foi atingido.</summary>
+    public static bool CanOfferAnvilDoor()
+        => WeaponLoadout.EquippedWeapon.IsImplemented && _anvilDoorsChosen < AnvilRunCap && AvailableWeaponModCount() > 0;
+
+    /// <summary>Chamar ao escolher uma porta de Bigorna (RunState.ChooseRoomRewardDoor): conta no teto e reserva uma modificacao.</summary>
+    public static void RegisterAnvilDoorChosen()
+    {
+        _anvilDoorsChosen++;
+        _anvilUnresolved++;
+    }
+
+    /// <summary>
+    /// Oferta da Bigorna: ate weapon.mod.offer_choices (padrao 3) modificacoes da arma equipada ainda nao pegas, sem repeticao,
+    /// sorteadas com o RNG da run. A lista fica guardada ate a escolha: chamadas seguintes (recarga de cena) devolvem as mesmas
+    /// cartas. Lista vazia = sem modificacao disponivel (o chamador paga Moedas de fallback e chama ResolveAnvilWithoutOffer).
+    /// </summary>
+    public static System.Collections.Generic.List<WeaponModDefinition> RollWeaponModOffers()
+    {
+        var offer = new System.Collections.Generic.List<WeaponModDefinition>();
+        if (WeaponModOffer.Count > 0)
+        {
+            foreach (var id in WeaponModOffer)
+            {
+                var kept = WeaponModCatalog.Get(id);
+                if (kept != null)
+                    offer.Add(kept);
+            }
+            if (offer.Count > 0)
+                return offer;
+            WeaponModOffer.Clear();
+        }
+
+        var pool = new System.Collections.Generic.List<WeaponModDefinition>();
+        foreach (var mod in WeaponModCatalog.ForWeapon(WeaponLoadout.EquippedWeaponId))
+            if (!WeaponMods.Contains(mod.Id))
+                pool.Add(mod);
+
+        var count = System.Math.Min(System.Math.Clamp(CompendiumTuning.GetInt("weapon.mod.offer_choices", 3), 1, 5), pool.Count);
+        var rng = RewardRandom();
+        for (var i = 0; i < count; i++)
+        {
+            var index = rng.RandiRange(0, pool.Count - 1);
+            offer.Add(pool[index]);
+            WeaponModOffer.Add(pool[index].Id);
+            pool.RemoveAt(index);
+        }
+        return offer;
+    }
+
+    /// <summary>Forja a modificacao (unica por run): grava, limpa a oferta e libera a reserva da Bigorna. False se id invalido ou ja pega.</summary>
+    public static bool TryApplyWeaponMod(string modId)
+    {
+        if (WeaponModCatalog.Get(modId) == null || WeaponMods.Contains(modId))
+            return false;
+        WeaponMods.Add(modId);
+        WeaponModOffer.Clear();
+        if (_anvilUnresolved > 0)
+            _anvilUnresolved--;
+        return true;
+    }
+
+    /// <summary>Bigorna paga sem modificacao disponivel (fallback em Moedas): limpa a oferta e libera a reserva.</summary>
+    public static void ResolveAnvilWithoutOffer()
+    {
+        WeaponModOffer.Clear();
+        if (_anvilUnresolved > 0)
+            _anvilUnresolved--;
+    }
+
+    private static void ResetWeaponMods()
+    {
+        WeaponMods.Clear();
+        WeaponModOffer.Clear();
+        _anvilDoorsChosen = 0;
+        _anvilUnresolved = 0;
+    }
+
+    // ===== DEBUG: forcar portas (painel de dev, aba Acoes). Nada disso vai ao save; zera em ResetRoomRewards. =====
+    private static readonly RoomRewardType?[] _devForcedTypes = new RoomRewardType?[2];
+    // Portas criadas pelo override (comparacao por referencia: o record compararia por valor).
+    private static readonly System.Collections.Generic.HashSet<RoomRewardDoor> DevForcedDoors =
+        new(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+
+    /// <summary>Override ligado: toda saida com conjunto de portas (ainda nao sorteada) usa DevForcedDoorCount/DevForcedType. Sempre false em release.</summary>
+    public static bool DevForceDoors { get; private set; }
+    /// <summary>0 = Auto, 1 ou 2 portas.</summary>
+    public static int DevForcedDoorCount { get; private set; }
+    /// <summary>Tipo forcado da porta (0 = esquerda/porta 1, 1 = direita/porta 2); null = Auto.</summary>
+    public static RoomRewardType? DevForcedType(int slot) => slot is 0 or 1 ? _devForcedTypes[slot] : null;
+
+    public static void DevSetForceDoors(bool on)
+    {
+        if (Godot.OS.IsDebugBuild())
+            DevForceDoors = on;
+    }
+
+    public static void DevSetForcedDoorCount(int count)
+    {
+        if (Godot.OS.IsDebugBuild())
+            DevForcedDoorCount = System.Math.Clamp(count, 0, 2);
+    }
+
+    public static void DevSetForcedType(int slot, RoomRewardType? type)
+    {
+        if (Godot.OS.IsDebugBuild() && slot is 0 or 1)
+            _devForcedTypes[slot] = type;
+    }
+
+    /// <summary>True se o conjunto foi montado pelo override (e nao pelo sorteio normal).</summary>
+    public static bool DevIsForcedSet(RoomRewardSet set)
+        => Godot.OS.IsDebugBuild() && set != null && set.Doors.Count > 0 && DevForcedDoors.Contains(set.Doors[0]);
+
+    /// <summary>Ha modificacao de arma livre para a Bigorna, ignorando o teto de Bigornas e as reservas (usado para avisar no painel).</summary>
+    public static bool DevAnvilPoolAvailable()
+    {
+        if (!WeaponLoadout.EquippedWeapon.IsImplemented)
+            return false;
+        foreach (var mod in WeaponModCatalog.ForWeapon(WeaponLoadout.EquippedWeaponId))
+            if (!WeaponMods.Contains(mod.Id))
+                return true;
+        return false;
+    }
+
+    /// <summary>Plano de bencaos como o de uma porta de Bencao (RNG da run, garantia de ataque basico sem bencao).</summary>
+    public static RoomBlessingPlan DevRollBlessingPlan()
+        => Godot.OS.IsDebugBuild() ? RoomRewardCatalog.PlanBlessings(RewardRandom(), BloodBlessings.Count == 0) : null;
+
+    /// <summary>Entrega o plano como se viesse da porta: a proxima abertura da oferta de Bencao o usa (TakeDeliveredBlessingPlan).</summary>
+    public static void DevSetDeliveredBlessingPlan(RoomBlessingPlan plan)
+    {
+        if (Godot.OS.IsDebugBuild())
+            _deliveredBlessingPlan = plan;
+    }
+
+    private static RoomRewardSet DevRollForcedSet(int mapIndex, int originRoom)
+    {
+        var set = RoomRewardCatalog.DevRollForced(mapIndex, originRoom, DevForcedDoorCount, _devForcedTypes, _fruitDoorsChosen, CanOfferAnvilDoor(), RewardRandom());
+        if (set == null)
+            return null;
+        if (set.HasBlessing)
+            set = RoomRewardCatalog.WithBlessingPlan(set, RoomRewardCatalog.PlanBlessings(RewardRandom(), BloodBlessings.Count == 0));
+        foreach (var door in set.Doors)
+            DevForcedDoors.Add(door);
+        RoomRewardSets[(mapIndex, originRoom)] = set;
+        // Pity (_setsWithoutBlessing) e tetos nao sao tocados: o sorteio normal segue como se o override nao existisse.
+        return set;
+    }
+
+    /// <summary>
+    /// DEBUG: descarta o conjunto guardado da saida e sorteia de novo (pelo override, se ligado; senao normal).
+    /// Devolve o novo conjunto, ou null (sem CP ou fora de debug). Reverte o pity de um conjunto normal sem Bencao descartado;
+    /// o RNG da run avanca (a sequencia seguinte muda). Nao mexe na recompensa pendente.
+    /// </summary>
+    public static RoomRewardSet DevRerollRoomRewardSet(int mapIndex, int originRoom)
+    {
+        if (!Godot.OS.IsDebugBuild())
+            return null;
+        var old = GetRoomRewardSet(mapIndex, originRoom);
+        if (old != null)
+        {
+            RoomRewardSets.Remove((mapIndex, originRoom));
+            if (!DevIsForcedSet(old) && !old.HasBlessing)
+                _setsWithoutBlessing = System.Math.Max(_setsWithoutBlessing - 1, 0);
+        }
+        return GetOrRollRoomRewardSet(mapIndex, originRoom);
+    }
+
     private static void ResetRoomRewards()
     {
+        DevForceDoors = false;
+        DevForcedDoorCount = 0;
+        _devForcedTypes[0] = null;
+        _devForcedTypes[1] = null;
+        DevForcedDoors.Clear();
+        ResetWeaponMods();
         RoomRewardSets.Clear();
         _setsWithoutBlessing = 0;
         _fruitDoorsChosen = 0;

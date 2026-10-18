@@ -328,11 +328,11 @@ public partial class HUD
 				GD.Print($"Porta de Bênção: {replacedCount} de {planned.Offers.Count} opções reamostradas (linhagem {family}).");
 		}
 		else
-			choices = BloodBlessingCatalog.RollOffers(rng, 3, out family, guaranteeBasicAttack);
+			choices = BloodBlessingCatalog.RollOffers(rng, CompendiumTuning.GetInt("reward.blessing.choices", 3), out family, guaranteeBasicAttack);
 		if (choices.Count == 0)
 		{
 			// Sem bênção nova para oferecer: o sangue vira Moedas no SALDO DA RUN (economy.coins.blessing_fallback, padrão 75).
-			var fallbackCoins = CompendiumTuning.GetInt("economy.coins.blessing_fallback", 75);
+			var fallbackCoins = CompendiumTuning.GetInt("economy.coins.blessing_fallback", EconomyDefaults.BlessingFallbackCoins);
 			if (GetTree().GetFirstNodeInGroup("run_manager") is RunManager runManager)
 				runManager.AddBloodCoins(fallbackCoins);
 			else

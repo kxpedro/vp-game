@@ -25,9 +25,12 @@ Roguelite de ação 3D isométrico, dark fantasy, de autoria solo (Pedro Sarment
 | Smoke headless | `F:/GODOT/App/Godot.exe --headless --path . --quit-after 180 res://scenes/game/TestArena.tscn` (também `CrowsNest` e `IntermissionChamber` com 120) | `TestArena` e `RunStartBlessingRoom` verificados em headless; `CrowsNest`, `IntermissionChamber` e `MainMenu` verificados pelo `--ui-batch` (janela) |
 | Validar bênçãos | `py .codex/skills/vp-create-blood-blessing/scripts/validate_blessings.py` (inclui as chaves de `content.json`) | verificado (63, 0 erros, 0 avisos) |
 | Validar artefatos | `py .codex/skills/vp-create-artifact/scripts/validate_artifacts.py` (inclui as chaves de `content.json`) | verificado (20, 0 erros, 0 avisos) |
-| Validar localização | `py tools/validate_localization.py` (`-v` lista chaves `TextOr` pendentes) | verificado (905 chaves por idioma, 0 erros, 0 avisos) |
+| Validar localização | `py tools/validate_localization.py` (`-v` lista chaves `TextOr` pendentes) | verificado (1081 chaves por idioma, 0 erros, 0 avisos) |
 | Pré-visualizar telas (só debug) | `F:/GODOT/App/Godot.exe --path . res://scenes/game/<Cena>.tscn -- --ui-preview=<tela> [--ui-lang=] [--ui-device=] [--ui-tab=] [--ui-codex-locked]` | verificado em headless (`pause`, `en` e `es`) |
-| Pré-visualizar em lote (só debug) | `F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=<pasta> [--ui-langs=pt-BR,en,es] [--ui-screens=a,b]` | 37 telas × 3 idiomas = 111 capturas (`UiPreview.BatchScreens`, inclui `reward_doors` e `hub_cast`) em 1 processo; contagem conferida no código; não há preview dos itens no chão |
+| Pré-visualizar em lote (só debug) | `F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=<pasta> [--ui-langs=pt-BR,en,es] [--ui-screens=a,b]` | 54 telas × 3 idiomas = 162 capturas (`UiPreview.BatchScreens`, inclui `anvil_offer`, `anvil_offer_single`, `reward_doors`, `hub_cast`, `dialogue*`, `dev_panel`, `dev_panel_actions`) em 1 processo; contagem conferida no código e com o lote real de `pt-BR` (52 capturas, sem SCRIPT ERROR); não há preview dos itens no chão |
+| Validar bigorna | `py tools/validate_weapon_mods.py` (`data/weapons/weapon_mods.json`: ids únicos snake_case, `weaponId` em `WeaponCatalog.cs`, tipos/campos/valores dos efeitos, `weaponmod.<id>.name/.desc/.flavor` nos 3 idiomas com placeholders iguais, chaves `weapon.mod.<id>.<campo>` registradas em `DevParameters.*.cs` com Default igual ao JSON) | verificado (5 mods, 0 erros, 0 avisos) |
+| Validar tuning de dev | `py tools/validate_dev_tuning.py` (chaves lidas por `CompendiumTuning.Get*`/`G()` x chaves registradas em `DevParameters.*.cs`, duplicatas, Min <= Default <= Max, chaves sem leitura = aviso) | verificado (0 erros, 0 avisos) |
+| Autoteste do registro (só debug) | `F:/GODOT/App/Godot.exe --headless --path . --quit-after 60 res://scenes/game/TestArena.tscn -- --dev-tuning-selftest` (imprime `DEV-TUNING-SELFTEST: OK` e o total de chaves; cuidado: apaga `user://dev_tuning.json`) | verificado (OK, 658 chaves) |
 | Testes unitários | não encontrado (não há framework) | — |
 | Lint / format | não encontrado (`.editorconfig` só define utf-8) | — |
 | Export Windows | `exportar_windows.bat` (restore win-x64, build Release, `--export-release "Windows Desktop"`, saída em `builds/`) | não verificado |
@@ -46,7 +49,7 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
 | `scripts/systems/` (~2,3k + catálogos) | Run e salas (`RunState`, `RunManager`, `RoomGenerator`, `CampaignCatalog`, `ScenePortal`), hub e salas especiais, autoloads, `CharacterSheet` |
 | `scripts/systems/{blessings,skills,artifacts,weapons}/` | catálogos estáticos de conteúdo |
 | `scripts/systems/rewards/`, `scripts/systems/{DoorRewardIcon,RewardPickup,CharacterPlaceholder}.cs`, `scripts/items/DevilsFruit.cs` | portas com recompensa (`RoomRewardCatalog`: modelo e sorteio puros; `DoorRewardIcon`: medalhão provisório), itens no chão (`RewardPickup` = Bênção/Moedas; `DevilsFruit` = Fruta), placeholders dos personagens futuros no hub (só marcador visual) |
-| `data/` | `blessings/blood_blessings.json` (JSONC), `skills/skills.json`, `artifacts/artifacts.json` (só IDs e números, sem texto), `localization/<pt-BR,en,es>/{ui,content,world}.json` (textos; 905 chaves por idioma) |
+| `data/` | `blessings/blood_blessings.json` (JSONC), `skills/skills.json`, `artifacts/artifacts.json` (só IDs e números, sem texto), `localization/<pt-BR,en,es>/{ui,content,world}.json` (textos; 1081 chaves por idioma) |
 | `tools/` | `validate_localization.py` (paridade de chaves entre idiomas, placeholders, JSON válido, chaves literais do C#) |
 | `docs/design/` | `ui-guia.md` (guia de UI e especificação das telas; Anexo A = previews, Anexo D = localização), `glossario-localizacao.json` (termos pt-BR/en/es) |
 | `scenes/` | `ui/MainMenu`, `ui/HUD` (só um CanvasLayer), `game/{CrowsNest,RunStartBlessingRoom,TestArena,IntermissionChamber}`, `player/Player`, `enemies/EnemyBasic` |
@@ -76,6 +79,7 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
   - Inimigo: `EnemyBasic.ConfigureVariant` + `EnemyTuningCatalog` + `RoomGenerator.RollEnemyArchetype`.
   - Boss: `BossCatalog.cs` + case em `BossController.ExecuteMove` (linha 80).
   - Arma: `weapons/WeaponCatalog.cs` (array C#, sem JSON) + `WeaponVisualCatalog.cs`.
+  - Power-up de arma (Bigorna): `data/weapons/weapon_mods.json` + `WeaponModCatalog` + `RunState` + `PlayerCombat.GetTunedAttack`; textos `weaponmod.<id>.*` em `content.json` (design em `docs/design/bigorna.md`; validar com `py tools/validate_weapon_mods.py`).
   - Catálogo JSON: `ArtifactCatalog.cs` (`EnsureLoaded`, try/catch, `PushError`).
   - Interativo: `BloodFountain.cs` / `WeaponBench.cs` (Area3D + `interact`).
   - Overlay de UI: métodos `Build*`/`Open*` no arquivo `HUD.<Area>.cs` correspondente (ou um novo `partial`), usando `UIThemeFactory`.
@@ -105,7 +109,7 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
 ## Testes
 
 - **Framework:** não encontrado. `scripts/tests/` só tem o `CodexBossTelegraphSmoke.cs.uid` órfão, e `scenes/tests/` está vazia.
-- **Validação usada:** `dotnet build` + os 3 validadores Python (bênçãos, artefatos, `tools/validate_localization.py`) + smoke headless da `TestArena`. Para validador novo, imite `validate_artifacts.py` (stdlib, raiz em `parents[4]`, sai com 1 se houver erro) ou `tools/validate_localization.py` (raiz em `parents[1]`).
+- **Validação usada:** `dotnet build` + os 5 validadores Python (bênçãos, artefatos, `tools/validate_localization.py`, `tools/validate_dev_tuning.py`, `tools/validate_weapon_mods.py`) + smoke headless da `TestArena`. Para validador novo, imite `validate_artifacts.py` (stdlib, raiz em `parents[4]`, sai com 1 se houver erro) ou `tools/validate_localization.py` (raiz em `parents[1]`).
 - **Sem validador:** `skills.json`, inimigos e bosses. Para eles só vale a paridade de chaves de `validate_localization.py`; o conteúdo em si não é checado.
 - **Conferência visual:** `--ui-preview`/`--ui-batch` (só debug, ver Comandos) geram capturas das telas por idioma; não são testes automáticos.
 
@@ -124,9 +128,12 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
 - **HUD:** dividido em `partial class` por área. Renomear métodos chamados via `CallGroup` quebra em runtime, sem erro de compilação.
 - **Material arquivado:** `3d/` e `references/` foram movidos para `../vp-0.1-arquivo/` e ignorados no git (incluíam modelos de jogos comerciais). Não os traga de volta para o projeto.
 - **Ferramentas de debug:** botão de cheat de moedas, "Reiniciar teste" e contador de FPS só aparecem com `OS.IsDebugBuild()`.
+- **Painel F1 e tuning de dev (só debug):** `DevParameterRegistry` (`scripts/systems/DevParameterRegistry.cs` + `DevParameters.{Legacy,Player,Enemies,Economy}.cs`, ~658 chaves) é o registro central de parâmetros de gameplay (padrão, faixa, passo, modo de aplicação); o painel F1 (`scripts/ui/HUD.DevPanel.cs`) os edita. Os valores alterados vão para `CompendiumTuning` e persistem em `user://dev_tuning.json` (em release nada é lido nem gravado); os 11 ajustes rápidos `game.*` ficam no `GameTuning` (`user://game_tuning.cfg`). Chave nova lida por `CompendiumTuning.Get*`/`G()` precisa de `P(...)` em `DevParameters.*.cs`: rode `py tools/validate_dev_tuning.py`. Inventário: `docs/design/dev-tools-inventario.md`.
+- **Forçar portas (só debug):** aba Ações do F1 > "Portas de recompensa" (`HUD.DevPanel.cs`) liga um override em `RunState` (`DevForceDoors`, `DevForcedDoorCount`, `DevForcedType`; `RoomRewardCatalog.DevRollForced`) que monta o conjunto de toda saída ainda não sorteada com os tipos escolhidos, ignorando pesos, pity e tetos (Fruta/Bigorna forçadas não contam nos tetos); zera em `StartRun`/`FailRun`/fim da campanha, não vai ao save. "Rerrolar portas desta sala" = `RunManager.DevRerollRewardDoors`; "Bênção agora"/"Bigorna agora" abrem as ofertas sem porta. Com o override desligado o sorteio e a sequência de RNG são os normais.
 - **Hub e ficha:** os 3 `CharacterPlaceholder` (criados em `CrowsNestCrypt.CreateCharacterPlaceholders`) são só marcador "Em breve", sem interação; os personagens futuros não existem. A aba Atributos da ficha só aparece em debug (`CharacterSheetTabOffset`); em release os atributos continuam computados, só ocultos.
 - **Bosses:** a ordem da campanha é `invisible_woman`, `labyrinth_keeper`, `silver_dragonkin`, `armand` (modelos: Ghost Skull, Orc Skull, Dragon Evolved, Blue Demon). `CampaignCatalog.BossId` coincide com o `Id` do `BossCatalog` no mesmo índice e `EnemyVisualCatalog.GetBoss` também indexa por mapa. As chaves de tuning `enemy.blood_mage.*` (dano, velocidade, alcance base de chefes) continuam com esse nome por compatibilidade com valores salvos no compêndio.
 - **Docs desatualizadas:** o adendo do `GDD.txt` diz 3 waves e jogador "cilindro azul"; o código e o README valem.
+- **Golpes e `Control`:** `PlayerCombat.GetTunedAttack` recria o `WeaponAttackDefinition` sem repassar o `Control` (perfis de buffer/aim assist do `WeaponCatalog`): na prática esses perfis não têm efeito hoje. Ao mexer no método, repasse `attack.Control` e revise o comportamento resultante.
 
 ## Especialistas do projeto
 

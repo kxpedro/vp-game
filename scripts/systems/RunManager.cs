@@ -44,14 +44,10 @@ public partial class RunManager : Node3D
     // Itens do chão da sala ainda não pegos (bônus de sala limpa + recompensa da porta). Portas e saída só abrem em zero.
     private int _roomPickupsLeft;
     private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
-    // Rotulos 3D com texto de world.json; reescritos quando o idioma muda.
-    private readonly List<(Label3D Label, Func<string> Text)> _localizedLabels = new();
 
     public override void _Ready()
     {
         AddToGroup("run_manager");
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged += OnLanguageChanged;
         _rng.Randomize();
         _exitPortal = GetNodeOrNull<Node3D>(ExitPortalPath);
         _scenePortal = _exitPortal?.GetNodeOrNull<ScenePortal>("PortalArea");
@@ -72,21 +68,6 @@ public partial class RunManager : Node3D
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
         GetTree().CallGroup("hud", "SyncBloodCoins", BloodCoins);
         GetTree().CallGroup("hud", "SyncEnemyProgress", DefeatedEnemies, TotalEnemies);
-    }
-
-    public override void _ExitTree()
-    {
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged -= OnLanguageChanged;
-    }
-
-    private void OnLanguageChanged(string language)
-    {
-        foreach (var (label, text) in _localizedLabels)
-        {
-            if (IsInstanceValid(label))
-                label.Text = text();
-        }
     }
 
     public override void _Process(double delta)
@@ -205,7 +186,7 @@ public partial class RunManager : Node3D
         {
             // As portas nascem travadas: abrem quando o chao da sala estiver limpo (SpawnRoomPickups / UnlockExitAfterReward).
             BuildRewardDoors(mapIndex);
-            var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", new[] { 12, 14, 16, 0 }[mapIndex]);
+            var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", EconomyDefaults.RoomClearBonus[mapIndex]);
             SpawnRoomPickups(pending, clearBonus, mapIndex);
         }
     }
@@ -282,11 +263,32 @@ public partial class RunManager : Node3D
                 AddBloodCoins(door.CoinAmount);
                 UnlockExitAfterRewardDeferred();
                 break;
+            case RoomRewardType.Anvil:
+                PayAnvilReward();
+                break;
             default:
                 // Fruta: libera as portas quando o item for pego.
                 UnlockExitAfterRewardDeferred();
                 break;
         }
+    }
+
+    // Bigorna: com modificacao livre, abre a oferta (obrigatoria; o HUD chama UnlockExitAfterReward ao fechar, como a Bencao).
+    // Sem nenhuma (pool vazio ao pagar): vira Moedas de fallback + mensagem anvil.offer.none e as portas abrem sem oferta.
+    // RollWeaponModOffers guarda as cartas no RunState, entao a oferta do HUD recebe as mesmas.
+    private void PayAnvilReward()
+    {
+        if (RunState.RollWeaponModOffers().Count > 0)
+        {
+            GetTree().CallGroup("hud", "OpenAnvilOffer");
+            return;
+        }
+
+        RunState.ResolveAnvilWithoutOffer();
+        var fallbackCoins = CompendiumTuning.GetInt("economy.coins.blessing_fallback", EconomyDefaults.BlessingFallbackCoins);
+        AddBloodCoins(fallbackCoins);
+        GetTree().CallGroup("hud", "NotifySkillMessage", Localization.TextFormat("anvil.offer.none", fallbackCoins));
+        UnlockExitAfterRewardDeferred();
     }
 
     // Adia um frame a liberacao: o aperto de "interact" que pegou o item nao pode disparar a porta no mesmo frame.
@@ -401,11 +403,13 @@ public partial class RunManager : Node3D
         DefeatedEnemies = 0;
 
         ApplyCommonEnemyTuning(enemies);
-
-        CreateRoomLabel(() => Localization.TextFormat("room.label.common", RunState.CurrentMap.Name, RunState.CurrentRoom, RunState.CurrentMap.CommonRoomCount));
     }
 
     private static readonly StringName CommonTuningAppliedMeta = "common_tuning_applied";
+
+    private static float SafeRatio(float value, float defaultValue) => defaultValue > 0.0001f ? value / defaultValue : 1.0f;
+
+    private static float Ratio(string key, float defaultValue) => SafeRatio(CompendiumTuning.GetFloat(key, defaultValue), defaultValue);
 
     private void ApplyCommonEnemyTuning(Godot.Collections.Array<Node> enemies)
     {
@@ -420,15 +424,36 @@ public partial class RunManager : Node3D
                 continue;
             enemy.SetMeta(CommonTuningAppliedMeta, true);
 
-            enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * 0.2f;
-            var archetypeDamage = enemy.Archetype == EnemyArchetype.Tank ? 1.52f : enemy.Archetype == EnemyArchetype.Ranged ? 0.8f : 1.0f;
-            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", 22.0f) + difficultyBonus * 2.0f) * mapDifficulty * 0.81f * archetypeDamage;
+            // Ordem de aplicacao do valor final de um inimigo comum:
+            //   base (enemy.basic.*) -> escala por sala (enemy.scale.*_per_room) -> dificuldade do mapa -> arquetipo (enemy.tank.*/enemy.ranged.*) -> raridade (enemy.rarity.*).
+            // EnemyBasic.ConfigureVariant ja aplicou raridade/arquetipo sobre o valor da cena; aqui o valor e REESCRITO a partir da base,
+            // entao raridade e arquetipo sao reaplicados UMA vez (nunca somados ao de ConfigureVariant). Vida usa o multiplicador completo.
+            // Velocidade e dano de raridade/arquetipo entram so como razao (valor editado / padrao): com os padroes a razao e 1, preservando
+            // o balanceamento atual (enemy.basic.* ja embute esses fatores); editar a chave altera o valor final proporcionalmente.
+            var rarity = EnemyTuningCatalog.Get(enemy.Rarity);
+            var rarityDefaults = EnemyTuningCatalog.DefaultMultipliers(enemy.Rarity);
+            var archetypeSpeed = enemy.Archetype == EnemyArchetype.Tank
+                ? Ratio("enemy.tank.speed_multiplier", 0.62f)
+                : enemy.Archetype == EnemyArchetype.Ranged ? Ratio("enemy.ranged.speed_multiplier", 0.9f) : 1.0f;
+            // Sem override de enemy.basic.move_speed, o fallback e enemy.MoveSpeed, que ja traz raridade/arquetipo de ConfigureVariant:
+            // aplicar a razao de novo contaria o fator em dobro. So com a base editada (que "embute" esses fatores) a razao entra.
+            var speedFactors = CompendiumTuning.HasOverride("enemy.basic.move_speed")
+                ? archetypeSpeed * SafeRatio(rarity.Speed, rarityDefaults.Speed)
+                : 1.0f;
+            enemy.MoveSpeed = (CompendiumTuning.GetFloat("enemy.basic.move_speed", enemy.MoveSpeed) + difficultyBonus * CompendiumTuning.GetFloat("enemy.scale.speed_per_room", 0.2f))
+                * speedFactors;
+            var archetypeDamage = enemy.Archetype == EnemyArchetype.Tank
+                ? CompendiumTuning.GetFloat("enemy.tank.damage_multiplier", 1.52f)
+                : enemy.Archetype == EnemyArchetype.Ranged ? CompendiumTuning.GetFloat("enemy.ranged.damage_multiplier", 0.8f) : 1.0f;
+            enemy.AttackDamage = (CompendiumTuning.GetFloat("enemy.basic.damage", 22.0f) + difficultyBonus * CompendiumTuning.GetFloat("enemy.scale.damage_per_room", 2.0f))
+                * mapDifficulty * CompendiumTuning.GetFloat("enemy.scale.common_damage_mult", 0.81f) * archetypeDamage
+                * SafeRatio(rarity.Damage, rarityDefaults.Damage);
             enemy.FuryOnDeath = CompendiumTuning.GetFloat("enemy.basic.fury_on_death", enemy.FuryOnDeath);
 
             var health = enemy.GetNodeOrNull<Health>("Health");
-            var rarityHealth = EnemyTuningCatalog.Get(enemy.Rarity).Health;
-            var archetypeHealth = enemy.Archetype == EnemyArchetype.Tank ? 1.8f : 1.0f;
-            health?.SetMaxHealth((CompendiumTuning.GetFloat("enemy.basic.health", 110.0f) + difficultyBonus * 18.0f) * mapDifficulty * rarityHealth * archetypeHealth, true);
+            var rarityHealth = rarity.Health;
+            var archetypeHealth = enemy.Archetype == EnemyArchetype.Tank ? CompendiumTuning.GetFloat("enemy.tank.health_multiplier", 1.8f) : 1.0f;
+            health?.SetMaxHealth((CompendiumTuning.GetFloat("enemy.basic.health", 110.0f) + difficultyBonus * CompendiumTuning.GetFloat("enemy.scale.health_per_room", 18.0f)) * mapDifficulty * rarityHealth * archetypeHealth, true);
         }
 
     }
@@ -451,12 +476,21 @@ public partial class RunManager : Node3D
                 enemy.SetOverheadHealthVisible(false);
                 if (enemy.GetNodeOrNull<Node3D>("Visual") is { } bossVisual)
                     bossVisual.Scale = Vector3.One * 1.55f;
+                // Boss: ConfigureVariant (raridade Lendaria) e descartado aqui. Ordem: enemy.blood_mage.* (base) -> boss.speed_mult/damage_mult/windup
+                // (este metodo) -> por golpe/fase em EnemyBasic.ApplyBossMoveTuning (dano e alcance). Vida: BossController (boss.hp.min / duracao-alvo).
+                // Nao ha escala por sala nem multiplicador de raridade no boss.
                 enemy.MoveSpeed = CompendiumTuning.GetFloat("enemy.blood_mage.move_speed", 2.7f);
-                enemy.MoveSpeed *= bossDefinition.Id == "silver_dragonkin" ? 1.4f : 1.85f;
+                var isDragonkin = bossDefinition.Id == "silver_dragonkin";
+                enemy.MoveSpeed *= isDragonkin
+                    ? CompendiumTuning.GetFloat("boss.speed_mult.silver_dragonkin", 1.4f)
+                    : CompendiumTuning.GetFloat("boss.speed_mult.default", 1.85f);
                 // 1.35f e dificuldade do mapa (indice de mapa == 1), nao do boss especifico.
-                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f) * (RunState.CurrentMapIndex == 1 ? 1.35f : 1.0f) * 0.9f;
-                if (bossDefinition.Id == "silver_dragonkin") enemy.AttackWindup = 0.75f;
-                else enemy.AttackWindup = 0.38f;
+                enemy.AttackDamage = CompendiumTuning.GetFloat("enemy.blood_mage.damage", 30.0f)
+                    * (RunState.CurrentMapIndex == 1 ? CompendiumTuning.GetFloat("boss.damage_mult.map_1", 1.35f) : 1.0f)
+                    * CompendiumTuning.GetFloat("boss.damage_mult.base", 0.9f);
+                enemy.AttackWindup = isDragonkin
+                    ? CompendiumTuning.GetFloat("boss.windup.silver_dragonkin", 0.75f)
+                    : CompendiumTuning.GetFloat("boss.windup.default", 0.38f);
                 enemy.AttackRange = CompendiumTuning.GetFloat("enemy.blood_mage.attack_range", 2.25f);
                 // Moedas e Sangue Amaldicoado do boss: valores fixos por mapa (economy.coins.boss.*, economy.cursed_blood.boss.*),
                 // pagos por EnemyBasic.RollDefeatRewards. As chaves legadas enemy.blood_mage.*_blood_coins ficam sem efeito.
@@ -472,8 +506,6 @@ public partial class RunManager : Node3D
                 enemy.QueueFree();
             }
         }
-
-        CreateRoomLabel(() => Localization.TextFormat("room.label.boss", RunState.CurrentMap.Name, BossCatalog.Get(RunState.CurrentMapIndex).DisplayName));
     }
 
     private void ConfigureExitPortal()
@@ -511,20 +543,6 @@ public partial class RunManager : Node3D
         return total;
     }
 
-    private void CreateRoomLabel(Func<string> text)
-    {
-        // Título de lugar em Gold, não vermelho (guia §2.2: vermelho vivo só para perigo).
-        var label = new Label3D
-        {
-            Name = "RoomTitle",
-            Text = text(),
-            Position = new Vector3(0.0f, 2.2f, -7.7f)
-        };
-        _localizedLabels.Add((label, text));
-        InteractPrompt.StyleTitle(label);
-        AddChild(label);
-    }
-
     private void BuildPortalMaterials()
     {
         _lockedPortalMaterial = new StandardMaterial3D
@@ -560,5 +578,75 @@ public partial class RunManager : Node3D
             if (child is MeshInstance3D mesh && mesh.Name.ToString().StartsWith("Bar"))
                 mesh.MaterialOverride = material;
         }
+    }
+
+    // ---------- DEBUG (painel de dev, aba Ações). No-op fora de debug. ----------
+
+    /// <summary>DEBUG: mata (ForceDeath) todos os inimigos vivos agora. Waves futuras continuam. Devolve quantos matou.</summary>
+    public int DevKillAllEnemies()
+    {
+        if (!OS.IsDebugBuild())
+            return 0;
+        var killed = 0;
+        foreach (var node in GetTree().GetNodesInGroup("enemies"))
+        {
+            var health = node.GetNodeOrNull<Health>("Health");
+            if (health == null || health.IsDead)
+                continue;
+            health.ForceDeath("dev");
+            killed++;
+        }
+        return killed;
+    }
+
+    /// <summary>DEBUG: encerra a sala como se estivesse limpa (mata os inimigos, cancela as waves restantes e paga a sala:
+    /// itens no chão e portas). Falso se uma wave está surgindo (aguarde) ou fora de debug.</summary>
+    public bool DevCompleteRoom()
+    {
+        if (!OS.IsDebugBuild() || GetTree().GetNodeCountInGroup("enemy_spawn_pending") > 0)
+            return false;
+        if (_roomGenerator != null)
+        {
+            _roomGenerator.SetProcess(false);
+            _roomGenerator.RemoveFromGroup("enemy_waves_remaining");
+        }
+        DevKillAllEnemies();
+        DefeatedEnemies = TotalEnemies;
+        EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
+        GetTree().CallGroup("hud", "SyncEnemyProgress", DefeatedEnemies, TotalEnemies);
+        CompleteRoom();
+        return true;
+    }
+
+    /// <summary>
+    /// DEBUG: descarta o conjunto de portas desta sala e sorteia de novo (override do painel, ou normal). Se as portas ja
+    /// existem no mundo (sala limpa), recria-as e mantem o estado trancado/aberto conforme os itens do chao. Sem portas no mundo
+    /// (sala em combate), so troca o conjunto: as portas nascem ao limpar a sala. Devolve o novo conjunto (null = nada a fazer).
+    /// </summary>
+    public RoomRewardSet DevRerollRewardDoors()
+    {
+        if (!OS.IsDebugBuild() || RunState.IsBossRoom)
+            return null;
+
+        var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        var set = RunState.DevRerollRoomRewardSet(mapIndex, RunState.CurrentRoom);
+        if (set == null || _rewardDoors.Count == 0)
+            return set;
+
+        foreach (var door in _rewardDoors)
+        {
+            if (!IsInstanceValid(door))
+                continue;
+            var root = door.GetParent();
+            root?.GetParent()?.RemoveChild(root);
+            root?.QueueFree();
+        }
+        _rewardDoors.Clear();
+        BuildRewardDoors(mapIndex);
+        if (_roomPickupsLeft > 0)
+            ShowRewardDoorsLockHint();
+        else
+            OpenRewardDoors();
+        return set;
     }
 }

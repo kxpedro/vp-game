@@ -1,0 +1,42 @@
+{
+  "_comment": "Modificacoes de arma da Bigorna (docs/design/bigorna.md). So IDs e numeros; textos em content.json (weaponmod.<id>.name/.desc/.flavor). Cada efeito le a chave de tuning weapon.mod.<id>.<field>, com 'value' deste arquivo como padrao.",
+  "mods": [
+    {
+      "id": "longsword_reach",
+      "weaponId": "longsword",
+      "effects": [
+        { "type": "AttackRange.Multiplier", "field": "value", "value": 0.15 }
+      ]
+    },
+    {
+      "id": "longsword_edge",
+      "weaponId": "longsword",
+      "effects": [
+        { "type": "BasicQuickDamage.Multiplier", "field": "value", "value": 0.15 }
+      ]
+    },
+    {
+      "id": "longsword_tempo",
+      "weaponId": "longsword",
+      "effects": [
+        { "type": "AttackTiming.Reduction", "field": "value", "value": 0.12 }
+      ]
+    },
+    {
+      "id": "longsword_weight",
+      "weaponId": "longsword",
+      "effects": [
+        { "type": "Knockback.Multiplier", "field": "value", "value": 0.30 },
+        { "type": "Stagger.Multiplier", "field": "value2", "value": 0.40 }
+      ]
+    },
+    {
+      "id": "longsword_whirl",
+      "weaponId": "longsword",
+      "effects": [
+        { "type": "SpecialRadius.Multiplier", "field": "value", "value": 0.20 },
+        { "type": "SpecialCooldown.Reduction", "field": "value2", "value": 0.20 }
+      ]
+    }
+  ]
+}

@@ -196,7 +196,7 @@ public partial class BloodBlessingRuntime : Node
         await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
         if (version != _recoverableDamageVersion || _health.IsDead) return;
         var duration = Mathf.Max(RunState.GetEffectParameter("DamageToRecoverableHealth", "duration", 5), 0.1f);
-        const float recoveryStep = 0.25f;
+        var recoveryStep = Mathf.Max(CompendiumTuning.GetFloat("blessing.recoverable.step", 0.25f), 0.02f);
         var steps = Mathf.Max(Mathf.CeilToInt(duration / recoveryStep), 1);
         var healingPerStep = recoverable / steps;
         for (var step = 0; step < steps; step++)
@@ -318,17 +318,19 @@ public partial class BloodBlessingRuntime : Node
             var spreadRadius = RunState.GetEffectParameter("BasicAttackPestilence", "deathRadius", 5.0f)
                 + RunState.GetEffectTotal("PestilenceDeathSpreadRadius.Flat");
             SpawnPestilenceDeathBurst(enemy.GlobalPosition, spreadRadius);
-            var spreadTargets = 3 + Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadTargets.Flat"));
-            SpreadPestilence(enemy, Mathf.Max(spreadTargets, 3), spreadRadius);
+            var baseSpreadTargets = CompendiumTuning.GetInt("blessing.pestilence.base_spread_targets", 3);
+            var spreadTargets = baseSpreadTargets + Mathf.RoundToInt(RunState.GetEffectTotal("PestilenceSpreadTargets.Flat"));
+            SpreadPestilence(enemy, Mathf.Max(spreadTargets, baseSpreadTargets), spreadRadius);
             if (RunState.GetEffectTotal("PestilenceExplosionBloodPool.Flat") > 0)
                 SpawnBloodPool(enemy.GlobalPosition, spreadRadius,
                     RunState.GetEffectParameter("PestilenceExplosionBloodPool", "duration", 5.0f), true);
-            if (RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier") > 0) DamageEnemiesNear(enemy.GlobalPosition, 2.5f, 32 * RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier"), enemy);
+            if (RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier") > 0) DamageEnemiesNear(enemy.GlobalPosition, CompendiumTuning.GetFloat("blessing.corpse_explosion.radius", 2.5f), CompendiumTuning.GetFloat("blessing.corpse_explosion.base_damage", 32.0f) * RunState.GetEffectTotal("InfectedCorpseExplosion.Multiplier"), enemy);
         }
         if (enemy.IsCharmed && RunState.GetEffectTotal("CharmedDeathExplosion.Multiplier") > 0)
         {
-            DamageEnemiesNear(enemy.GlobalPosition, 2.8f, 32 * RunState.GetEffectTotal("CharmedDeathExplosion.Multiplier"), enemy);
-            SpawnCharmedDeathExplosion(enemy.GlobalPosition, 2.8f);
+            var explosionRadius = CompendiumTuning.GetFloat("blessing.charmed_explosion.radius", 2.8f);
+            DamageEnemiesNear(enemy.GlobalPosition, explosionRadius, CompendiumTuning.GetFloat("blessing.charmed_explosion.base_damage", 32.0f) * RunState.GetEffectTotal("CharmedDeathExplosion.Multiplier"), enemy);
+            SpawnCharmedDeathExplosion(enemy.GlobalPosition, explosionRadius);
         }
     }
 
@@ -355,7 +357,7 @@ public partial class BloodBlessingRuntime : Node
         var lifetime = RunState.GetEffectParameter("RatSummonOnPestilentKill", "duration", 8.0f);
         var movementSpeed = player.SprintSpeed;
         var attackInterval = combat.GetCurrentBasicAttackInterval();
-        var attackDamage = combat.GetCurrentBasicAttackDamage() * 0.5f;
+        var attackDamage = combat.GetCurrentBasicAttackDamage() * CompendiumTuning.GetFloat("blessing.rat.damage_ratio", 0.5f);
         for (var slot = activeRats; slot < capacity; slot++)
         {
             var angle = Mathf.Tau * slot / Mathf.Max(capacity, 1);
@@ -381,14 +383,19 @@ public partial class BloodBlessingRuntime : Node
             if (node is Node3D pool && pool.GlobalPosition.DistanceTo(player.GlobalPosition) <= (float)pool.GetMeta("radius", 1.8f)) { IsOnBlood = true; break; }
         if (!IsOnBlood || _health == null) return;
         _poolHealTimer -= delta;
-        if (_poolHealTimer <= 0) { _poolHealTimer = 0.25f; _health.Heal(_health.MaxHealth * RunState.GetEffectTotal("BloodPoolHealPerSecond.Flat") * 0.25f); }
+        if (_poolHealTimer <= 0)
+        {
+            var tick = Mathf.Max(CompendiumTuning.GetFloat("blessing.pool.heal_tick", 0.25f), 0.02f);
+            _poolHealTimer = tick;
+            _health.Heal(_health.MaxHealth * RunState.GetEffectTotal("BloodPoolHealPerSecond.Flat") * tick);
+        }
     }
 
     private void UpdateBloodPoolBleeding(float delta)
     {
         _bloodPoolBleedTimer -= delta;
         if (_bloodPoolBleedTimer > 0.0f) return;
-        _bloodPoolBleedTimer = 1.0f;
+        _bloodPoolBleedTimer = Mathf.Max(CompendiumTuning.GetFloat("blessing.pool.bleed_tick", 1.0f), 0.05f);
         foreach (var poolNode in GetTree().GetNodesInGroup("blood_pools"))
         {
             if (poolNode is not Node3D pool || !(bool)pool.GetMeta("causes_bleeding", false)) continue;
@@ -406,7 +413,7 @@ public partial class BloodBlessingRuntime : Node
 
     private async void SpawnBloodPool(Vector3 position, float radiusOverride = 0.0f, float durationOverride = 0.0f, bool causesBleeding = false)
     {
-        var baseRadius = radiusOverride > 0.0f ? radiusOverride : 1.8f;
+        var baseRadius = radiusOverride > 0.0f ? radiusOverride : CompendiumTuning.GetFloat("blessing.pool.base_radius", 1.8f);
         var radius = baseRadius * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
         var baseDuration = durationOverride > 0.0f ? durationOverride : RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4);
         var duration = (baseDuration + RunState.GetEffectTotal("BloodPoolDuration.Flat")) * TemporaryEffectDurationMultiplier();
@@ -836,7 +843,7 @@ public partial class BloodBlessingRuntime : Node
     private bool HasNearbyEnemy()
     {
         var player = GetParent<Node3D>();
-        foreach (var node in GetTree().GetNodesInGroup("enemies")) if (node is Node3D enemy && enemy.GlobalPosition.DistanceTo(player.GlobalPosition) <= 4) return true;
+        foreach (var node in GetTree().GetNodesInGroup("enemies")) if (node is Node3D enemy && enemy.GlobalPosition.DistanceTo(player.GlobalPosition) <= CompendiumTuning.GetFloat("blessing.nearby_enemy_radius", 4.0f)) return true;
         return false;
     }
 

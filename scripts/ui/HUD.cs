@@ -66,6 +66,7 @@ public partial class HUD : CanvasLayer
 		ProcessMode = ProcessModeEnum.Always;
 		BuildLayout();
 		GroupCombatHud();
+		BuildDevPanel(_hudRoot); // só debug; fica por último, acima dos outros overlays
 		RegisterModalShortcuts(_compendiumOverlay, HandleCompendiumShortcut);
 		RegisterModalShortcuts(_bloodBlessingOverlay, HandleBlessingOfferShortcut);
 		RegisterModalShortcuts(_characterSheetOverlay, HandleCharacterSheetShortcut);
@@ -103,6 +104,12 @@ public partial class HUD : CanvasLayer
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (HandleDevPanelToggle(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+
 		if (RouteModalShortcut(@event))
 		{
 			GetViewport().SetInputAsHandled();
@@ -183,7 +190,7 @@ public partial class HUD : CanvasLayer
 		}
 		if (_combatHudLayer != null)
 		{
-			var hideCombatHud = _isGameOver || IsVisible(_pauseOverlay) || IsVisible(_compendiumOverlay);
+			var hideCombatHud = _isGameOver || IsVisible(_pauseOverlay) || IsVisible(_compendiumOverlay) || IsVisible(_devPanelOverlay);
 			if (_combatHudLayer.Visible == hideCombatHud)
 				_combatHudLayer.Visible = !hideCombatHud;
 		}
@@ -295,6 +302,8 @@ public partial class HUD : CanvasLayer
 			}
 			RegisterModalShortcuts(_bloodBlessingOverlay, HandleBlessingOfferShortcut);
 		}
+		if (_anvilOverlay != null && !IsVisible(_anvilOverlay))
+			RebuildOverlay(_anvilOverlay, () => BuildAnvilOfferOverlay(_hudRoot), () => _anvilOverlay);
 		if (_weaponBenchOverlay != null && !IsVisible(_weaponBenchOverlay))
 			RebuildOverlay(_weaponBenchOverlay, () => BuildWeaponBenchOverlay(_hudRoot), () => _weaponBenchOverlay);
 		if (_shopOverlay != null && !IsVisible(_shopOverlay))
@@ -334,7 +343,6 @@ public partial class HUD : CanvasLayer
 		{
 			("BloodFountain/BloodFountainLabel", Localization.Text("fountain.title")),
 			("WeaponBench/WeaponBenchLabel", Localization.Text("bench.title")),
-			("VirgilCoffin/CoffinLabel", Localization.Text("scene.crows_nest.coffin")),
 			("StartRunPortal/PortalLabel", Localization.Text("scene.crows_nest.start_portal"))
 		},
 		"RunStartBlessingRoom" => new[]
@@ -390,6 +398,12 @@ public partial class HUD : CanvasLayer
 				return true;
 			case "blessing_offer_replace":
 				PreviewBlessingOffer(true);
+				return true;
+			case "anvil_offer":
+				PreviewAnvilOffer(3);
+				return true;
+			case "anvil_offer_single":
+				PreviewAnvilOffer(1);
 				return true;
 			case "weapon_bench":
 				OpenWeaponBench();

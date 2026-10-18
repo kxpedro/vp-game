@@ -10,13 +10,21 @@ public sealed record BossMoveDefinition(
 )
 {
 	// O mesmo Id de golpe se repete entre chefes com nomes diferentes, por isso a chave inclui o chefe.
+	// Valores tunaveis (dev): chaves boss.<boss>.move.<golpe>.*; sem override devolvem o valor do catalogo.
+	private string TuningKey(string field) => $"boss.{BossId}.move.{Id}.{field}";
+	public float TunedCooldown => CompendiumTuning.GetFloat(TuningKey("cooldown"), Cooldown);
+	public float TunedDamageMultiplier => CompendiumTuning.GetFloat(TuningKey("damage_mult"), DamageMultiplier);
+	public float TunedRangeMultiplier => CompendiumTuning.GetFloat(TuningKey("range_mult"), RangeMultiplier);
+	public int TunedMinimumPhase => CompendiumTuning.GetInt(TuningKey("min_phase"), MinimumPhase);
 	public string NameKey => $"boss.{BossId}.move.{Id}.name";
 	public string DisplayName => Localization.Text(NameKey);
 }
 
 public sealed record BossDefinition(string Id, float TargetDurationSeconds, float ExpectedPlayerDps, BossMoveDefinition[] Moves)
 {
-	public float EstimatedMaxHealth => System.MathF.Round(TargetDurationSeconds * ExpectedPlayerDps);
+	public float TunedTargetDurationSeconds => CompendiumTuning.GetFloat($"boss.{Id}.target_seconds", TargetDurationSeconds);
+	public float TunedExpectedPlayerDps => CompendiumTuning.GetFloat($"boss.{Id}.expected_dps", ExpectedPlayerDps);
+	public float EstimatedMaxHealth => System.MathF.Round(TunedTargetDurationSeconds * TunedExpectedPlayerDps);
 	public string NameKey => $"boss.{Id}.name";
 	public string DisplayName => Localization.Text(NameKey);
 }
@@ -59,6 +67,8 @@ public static class BossCatalog
 			new BossMoveDefinition("armand", "singularity", 3.0f, 2.2f, 2.0f, 3)
 		})
 	};
+
+	public static System.Collections.Generic.IReadOnlyList<BossDefinition> All => Bosses;
 
 	public static BossDefinition Get(int mapIndex) => Bosses[System.Math.Clamp(mapIndex, 0, Bosses.Length - 1)];
 }

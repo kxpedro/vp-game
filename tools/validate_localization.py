@@ -17,7 +17,7 @@ REFERENCE_LANGUAGE = "pt-BR"
 # Prefixes of keys built at runtime (e.g. f"blessing.{id}.name"). Keys starting with
 # one of these are not reported as unreferenced. Add new dynamic prefixes here.
 # "portal." keys are referenced from ScenePortal.PromptText in .tscn files, not in C#.
-DYNAMIC_PREFIXES = ["blessing.", "artifact.", "skill.", "weapon.", "boss.", "map.", "enemy.", "portal.", "dlg.", "ui.dialogue.preview."]
+DYNAMIC_PREFIXES = ["blessing.", "artifact.", "skill.", "weapon.", "weaponmod.", "boss.", "map.", "enemy.", "portal.", "dlg.", "ui.dialogue.preview."]
 
 PLACEHOLDER = re.compile(r"(?<!\{)\{(\d+)(?:[,:][^}]*)?\}(?!\})")
 # Literal keys passed to Localization.Text/TextFormat/Has (strict: missing = error).

@@ -32,6 +32,13 @@
         "context": "Equipamento que modifica o moveset"
       },
       {
+        "id": "anvil",
+        "pt-BR": "Bigorna",
+        "en": "Anvil",
+        "es": "Yunque",
+        "context": "Recompensa de porta que modifica a arma equipada"
+      },
+      {
         "id": "boss",
         "pt-BR": "Chefe",
         "en": "Boss",

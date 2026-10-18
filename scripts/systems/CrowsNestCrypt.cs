@@ -18,24 +18,8 @@ public partial class CrowsNestCrypt : Node3D
         new Vector2I(0, 2)
     };
 
-    private Label3D _trainingHallLabel;
-
-    public override void _ExitTree()
-    {
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged -= OnLanguageChanged;
-    }
-
-    private void OnLanguageChanged(string language)
-    {
-        if (IsInstanceValid(_trainingHallLabel))
-            _trainingHallLabel.Text = Localization.Text("scene.crows_nest.training_hall");
-    }
-
     public override void _Ready()
     {
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged += OnLanguageChanged;
         // Mesma pedra das salas fixas; as paredes recebem um tom um pouco mais claro para separar do piso.
         var floorMaterial = ResourceLoader.Load<StandardMaterial3D>(StoneMaterialPath);
         var wallMaterial = (StandardMaterial3D)floorMaterial.Duplicate();
@@ -52,14 +36,6 @@ public partial class CrowsNestCrypt : Node3D
         CreateImportedDecorations();
         CreateCharacterPlaceholders();
         CreateDialogueNpc();
-
-        // Rótulo do caixão no padrão dos títulos 3D (§8.8): acima da cabeça do jogador no spawn.
-        var coffinLabel = GetNodeOrNull<Label3D>("../VirgilCoffin/CoffinLabel");
-        if (coffinLabel != null)
-        {
-            coffinLabel.Position = new Vector3(coffinLabel.Position.X, Mathf.Max(coffinLabel.Position.Y, 2.2f), coffinLabel.Position.Z);
-            InteractPrompt.StyleTitle(coffinLabel);
-        }
     }
 
     // 3 pontos reservados para personagens desbloqueáveis, na sala leste (a do antigo Baú de Artefatos), encostados na parede.
@@ -211,20 +187,6 @@ public partial class CrowsNestCrypt : Node3D
         });
         dummy.AddChild(new Health { Name = "Health", MaxHealth = 250000.0f });
         AddChild(dummy);
-
-        var title = new Label3D
-        {
-            PixelSize = 0.0085f,
-            Name = "TrainingHallLabel",
-            Text = Localization.Text("scene.crows_nest.training_hall"),
-            Position = center + new Vector3(-1.8f, 2.9f, -1.8f),
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            FontSize = 30,
-            OutlineSize = 8,
-            Modulate = new Color(0.86f, 0.68f, 0.34f)
-        };
-        AddChild(title);
-        _trainingHallLabel = title;
 
         var trainingMark = new MeshInstance3D
         {

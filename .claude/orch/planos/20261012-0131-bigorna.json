@@ -1,0 +1,273 @@
+{
+    "schema":  "orch.plano/1",
+    "id":  "20261012-0131-bigorna",
+    "titulo":  "Bigorna: aprimoramentos do set de armas equipado",
+    "status":  "concluido",
+    "demanda":  "adicionar um novo power up, uma bigorna, que faz aprimoramento no weapon set do jogador equipado. Cada set de armas deve ter possiveis modificações, sugira 5 por arma, exemplo para a \"Espada Grande\", \"aumenta o alcance do ataque em 15%\".",
+    "objetivo":  "Novo tipo de recompensa de sala (Bigorna) que oferece 1 entre 3 modificações da arma equipada, válida até o fim da run. A Espada Grande ganha 5 modificações, tunáveis pelo painel de dev.",
+    "grupo":  "20261012-0131-remover-titulos-3d",
+    "dependeDosPlanos":  [
+                             "20261012-0131-dev-tools"
+                         ],
+    "criado":  "2026-10-12T01:31:00-03:00",
+    "atualizado":  "2026-10-14T20:51:52-03:00",
+    "commitInicial":  "0740bf5",
+    "versaoOrch":  "0.5.0",
+    "ondas":  [
+                  [
+                      "T1"
+                  ],
+                  [
+                      "T2"
+                  ],
+                  [
+                      "T3",
+                      "T4"
+                  ],
+                  [
+                      "T5"
+                  ],
+                  [
+                      "T6"
+                  ]
+              ],
+    "tarefas":  [
+                    {
+                        "id":  "T1",
+                        "titulo":  "Desenhar as regras e os valores das modificações e da recompensa",
+                        "executor":  "game-designer",
+                        "dependeDe":  [
+
+                                      ],
+                        "arquivos":  [
+                                         "docs/design/bigorna.md"
+                                     ],
+                        "prontoQuando":  "Doc com tabela fechada de valores e textos prontos para os 3 idiomas.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:27:39-03:00",
+                        "fim":  "2026-10-14T20:31:55-03:00",
+                        "tentativas":  1,
+                        "resultado":  "docs/design/bigorna.md: Bigorna só na segunda porta (pool/arma/teto, pity intocado), oferta de até 3 mods sem repetir, mods por weaponId, efeito multiplicativo fora de GetEffectTotal e aplicado em GetTunedAttack. 5 mods da Espada Grande (alcance +15%, dano +15%, preparo+recuperação -12%, empurrão +30%/atordoamento +40%, Impacto Ampliado: raio +20%/recarga -20%); pesos 8/10/12, teto 3; 27 chaves de localização por idioma e 12 de tuning. Decisão do orquestrador: manter Moedas 22/24/26 (o doc propunha 18/18/18).",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T2",
+                        "titulo":  "Implementar dados, catálogo, estado da run e efeitos no combate",
+                        "executor":  "conteudo-run",
+                        "dependeDe":  [
+                                          "T1"
+                                      ],
+                        "arquivos":  [
+                                         "data/weapons/weapon_mods.json",
+                                         "scripts/systems/weapons/WeaponModCatalog.cs",
+                                         "scripts/systems/RunState.cs",
+                                         "scripts/player/PlayerCombat.cs",
+                                         "scripts/systems/weapons/WeaponDefinition.cs"
+                                     ],
+                        "prontoQuando":  "Build sem erro; sem modificação o combate é idêntico; com longsword_reach o alcance real sobe 15%.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:31:55-03:00",
+                        "fim":  "2026-10-14T20:35:45-03:00",
+                        "tentativas":  1,
+                        "resultado":  "data/weapons/weapon_mods.json + WeaponModCatalog, estado da run em RunState (zera em ResetRoomRewards; fora do save), PlayerCombat.GetTunedAttack aplica os mods como último multiplicador (sem mods = idêntico; Control continua descartado), 12 chaves de tuning no grupo Bigorna. API: CanOfferAnvilDoor, RegisterAnvilDoorChosen, RollWeaponModOffers, TryApplyWeaponMod, ResolveAnvilWithoutOffer, GetActiveWeaponMods; HUD OpenAnvilOffer(). Build 0/0; 4 validadores, smoke e self-test (658 chaves) OK; contas confirmam +15% de alcance etc.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T3",
+                        "titulo":  "Adicionar a Bigorna às portas de recompensa e ao item no chão",
+                        "executor":  "orch:desenvolvedor",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/rewards/RoomRewardCatalog.cs",
+                                         "scripts/systems/ScenePortal.cs",
+                                         "scripts/systems/DoorRewardIcon.cs",
+                                         "scripts/systems/RewardPickup.cs",
+                                         "scripts/systems/RunManager.cs"
+                                     ],
+                        "prontoQuando":  "Porta de Bigorna aparece, item cai, coleta chama OpenAnvilOffer, teto respeitado, sem regressão nas outras portas.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:35:45-03:00",
+                        "fim":  "2026-10-14T20:37:56-03:00",
+                        "tentativas":  1,
+                        "resultado":  "RoomRewardType.Anvil só na segunda porta (peso 8/10/12, 0 se não elegível, nunca única nem repetida), medalhão provisório em forma de bigorna, rótulo/hint da porta, RunState.ChooseRoomRewardDoor registra a escolha, RunManager.PayAnvilReward abre OpenAnvilOffer ou paga o fallback de Moedas com pool vazio. Build 0/0; simulação de 1000 sorteios/mapa: Bigorna em 24/27/27% das segundas portas, 0 sozinha, 0 duplicadas, 0 sem Bênção. Pesos de Moedas mantidos (22/24/26). Medalhão não conferido visualmente.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T4",
+                        "titulo":  "Criar a tela de oferta (3 opções) e mostrar as modificações ativas",
+                        "executor":  "ui-hud",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/ui/HUD.AnvilOffer.cs",
+                                         "scripts/ui/HUD.cs",
+                                         "scripts/ui/HUD.CharacterSheet.cs",
+                                         "scripts/ui/UiPreview.cs",
+                                         "data/localization/pt-BR/ui.json",
+                                         "data/localization/pt-BR/content.json",
+                                         "data/localization/en/ui.json",
+                                         "data/localization/en/content.json",
+                                         "data/localization/es/ui.json",
+                                         "data/localization/es/content.json"
+                                     ],
+                        "prontoQuando":  "Tela abre, escolhe e fecha com mouse e controle; 3 idiomas sem chave faltando; capturas geradas.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:35:45-03:00",
+                        "fim":  "2026-10-14T20:39:23-03:00",
+                        "tentativas":  1,
+                        "resultado":  "HUD.AnvilOffer.cs (OpenAnvilOffer: 1 a 3 cartas obrigatórias, foco mouse/teclado/controle, fallback de 75 Moedas com pool vazio, UnlockExitAfterReward ao fim), seção de mods ativos na ficha, 27 chaves nos 3 idiomas + glossário, telas anvil_offer e anvil_offer_single (54 x 3 = 162 capturas). Build 0/0; localização (1081 chaves) e tuning OK; capturas conferidas. Fluxo real item -\u003e oferta -\u003e portas não testado em jogo.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T5",
+                        "titulo":  "Validar: validador de dados, localização, build, smoke e capturas",
+                        "executor":  "orch:testador",
+                        "dependeDe":  [
+                                          "T3",
+                                          "T4"
+                                      ],
+                        "arquivos":  [
+                                         "tools/validate_weapon_mods.py"
+                                     ],
+                        "prontoQuando":  "Validador novo, localização, build, smoke e ui-batch sem erro.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:39:23-03:00",
+                        "fim":  "2026-10-14T20:47:31-03:00",
+                        "tentativas":  1,
+                        "resultado":  "tools/validate_weapon_mods.py criado (0 erros; teste negativo ok). Build 0/0; 5 validadores OK (1081 chaves); smoke de 3 cenas e self-test (658 chaves) sem erro. Fluxo ponta a ponta headless passou em todos os passos: porta, item no chão, oferta com 3 cartas, escolha, efeito no GetTunedAttack, portas destravam, FailRun zera, pool vazio paga 75 Moedas. ui-batch 162/162 capturas. Docs atualizados (ui-guia, perfil). Pendências: 3 erros \"Handle is not initialized\" ao fim do ui-batch (origem não investigada); sem preview da porta de Bigorna.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T6",
+                        "titulo":  "Revisar o conjunto",
+                        "executor":  "orch:revisor",
+                        "dependeDe":  [
+                                          "T5"
+                                      ],
+                        "arquivos":  [
+
+                                     ],
+                        "prontoQuando":  "Relatório sem bloqueantes, ou corrigidos.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T20:47:31-03:00",
+                        "fim":  "2026-10-14T20:51:52-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Sem bloqueantes nem importantes; sem mods o combate e as portas ficam idênticos, estado zera nos pontos certos, UnlockExitAfterReward chamado uma vez por caminho. Menores corrigidos pelo orquestrador: texto de recarga do Impacto Ampliado, termo Moedas de Sangue, remoção de \"uma de três\" das descrições, doc com Moedas 22/24/26. Em aberto (menores): TryApplyWeaponMod aceita id fora da oferta; pendência não reabre a oferta após recarga de cena em debug; RNG compartilhado com as portas; Fio Afiado também afeta rato/dano de Fúria; fallback de Moedas duplicado entre HUD e RunManager.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    }
+                ],
+    "eventos":  [
+                    {
+                        "quando":  "2026-10-12T01:31:00-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-criado",
+                        "texto":  "Plano criado"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:27:39-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-iniciado",
+                        "texto":  "Plano em-execucao"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:27:39-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T1 em-andamento game-designer"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:31:55-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T1 concluida game-designer"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:31:55-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T2 em-andamento conteudo-run"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:35:45-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T2 concluida conteudo-run"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:35:45-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T3 em-andamento orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:35:45-03:00",
+                        "tarefa":  "T4",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T4 em-andamento ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:37:56-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T3 concluida orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:39:23-03:00",
+                        "tarefa":  "T4",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T4 concluida ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:39:23-03:00",
+                        "tarefa":  "T5",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T5 em-andamento orch:testador"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:47:31-03:00",
+                        "tarefa":  "T5",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T5 concluida orch:testador"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:47:31-03:00",
+                        "tarefa":  "T6",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T6 em-andamento orch:revisor"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:51:52-03:00",
+                        "tarefa":  "T6",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T6 concluida orch:revisor"
+                    },
+                    {
+                        "quando":  "2026-10-14T20:51:52-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-encerrado",
+                        "texto":  "Plano concluido"
+                    }
+                ],
+    "resultadoFinal":  "Bigorna implementada: nova recompensa de porta (só na segunda porta, peso 8/10/12 por mapa, teto 3 por run, nunca única nem repetida) que cai como item no chão e abre uma oferta obrigatória de até 3 modificações da arma equipada, válidas até o fim da run (fora do save). Espada Grande com 5 modificações: Lâmina Alongada (+15% alcance), Fio Afiado (+15% dano básico/rápido), Cabo Equilibrado (-12% preparo e recuperação), Contrapeso de Aço (+30% empurrão, +40% atordoamento), Impacto Ampliado (+20% raio e -20% recarga do especial); 12 chaves no painel de dev. Verificação: build 0/0, 6 validadores sem erro, self-test (658 chaves), smoke de 3 cenas, fluxo ponta a ponta headless (porta, item, oferta, efeito, portas destravam, FailRun zera, pool vazio paga 75 Moedas), ui-batch 162/162, revisão sem bloqueantes. Não testado jogando: coleta real por interação, clique/teclado/controle na oferta, aparência do medalhão da porta (sem preview). Decisões e pendências: Moedas de porta mantidas em 22/24/26 (o design propunha 18/18/18); doc bigorna.md atualizado; GetTunedAttack ainda descarta o Control dos golpes; 3 erros Handle is not initialized ao fim do ui-batch (origem não investigada)."
+}

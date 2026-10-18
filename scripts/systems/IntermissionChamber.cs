@@ -8,7 +8,8 @@ using System.Collections.Generic;
 public partial class IntermissionChamber : Node3D
 {
     [Export] public float FountainHealFraction { get; set; } = 0.35f;
-    [Export] public float BlessingSacrificeFraction { get; set; } = 0.05f;
+    // Fracao da vida maxima sacrificada no altar (altar.sacrifice_fraction; padrao 0,05). Nenhuma cena sobrescreve o valor.
+    public float BlessingSacrificeFraction => CompendiumTuning.GetFloat("altar.sacrifice_fraction", 0.05f);
 
     private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
 

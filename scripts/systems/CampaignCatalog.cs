@@ -28,7 +28,28 @@ public static class CampaignCatalog
         new("armands_throne", 0, "armand", 2.25f)
     };
 
-    public static IReadOnlyList<MapDefinition> All => Maps;
+    // Salas comuns e dificuldade lidas do CompendiumTuning (campaign.map.<m>.rooms / .difficulty); sem override devolve o catalogo.
+    private static MapDefinition Tuned(int index)
+    {
+        var map = Maps[index];
+        var rooms = CompendiumTuning.GetInt($"campaign.map.{index}.rooms", map.CommonRoomCount);
+        var difficulty = CompendiumTuning.GetFloat($"campaign.map.{index}.difficulty", map.DifficultyMultiplier);
+        return rooms == map.CommonRoomCount && difficulty == map.DifficultyMultiplier
+            ? map
+            : map with { CommonRoomCount = rooms, DifficultyMultiplier = difficulty };
+    }
+
+    public static IReadOnlyList<MapDefinition> All
+    {
+        get
+        {
+            var result = new MapDefinition[Maps.Length];
+            for (var i = 0; i < result.Length; i++)
+                result[i] = Tuned(i);
+            return result;
+        }
+    }
+
     public static int Count => Maps.Length;
 
     public static MapDefinition Get(int index)
@@ -36,6 +57,6 @@ public static class CampaignCatalog
         if (Maps.Length == 0)
             throw new InvalidOperationException("A campanha precisa ter ao menos um mapa.");
 
-        return Maps[Math.Clamp(index, 0, Maps.Length - 1)];
+        return Tuned(Math.Clamp(index, 0, Maps.Length - 1));
     }
 }

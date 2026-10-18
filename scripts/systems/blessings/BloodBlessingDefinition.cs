@@ -49,7 +49,7 @@ public static class BloodBlessingProgression
     public const float BonusPerAdditionalLevel = 0.25f;
 
     public static float GetLevelMultiplier(int level)
-        => 1.0f + (System.Math.Clamp(level, 1, MaximumLevel) - 1) * BonusPerAdditionalLevel;
+        => 1.0f + (System.Math.Clamp(level, 1, MaximumLevel) - 1) * CompendiumTuning.GetFloat("blessing.level_bonus", BonusPerAdditionalLevel);
 }
 
 // Name = nome no idioma em que a bênção foi obtida (só fallback). Para exibir, use DisplayName.

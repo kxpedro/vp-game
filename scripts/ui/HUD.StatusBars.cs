@@ -88,6 +88,7 @@ public partial class HUD
 		BuildCharacterSheetOverlay(root);
 		BuildBloodFountainOverlay(root);
 		BuildBloodBlessingOverlay(root);
+		BuildAnvilOfferOverlay(root);
 		BuildWeaponBenchOverlay(root);
 		BuildCompendiumOverlay(root);
 		BuildShopOverlay(root);
@@ -498,7 +499,7 @@ public partial class HUD
 		_furyTooltipBar = _furyResourceBar.Bar;
 		_furyTooltipActive = isActive;
 		_furyTooltipLanguage = language;
-		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", 10.0f);
+		var furyDrainPerSecond = CompendiumTuning.GetFloat("attack.fury.drain_per_second", PlayerCombat.DefaultFuryDrainPerSecond);
 		_furyResourceBar.Bar.TooltipText = isActive
 			? Localization.TextFormat("hud.fury.tooltip_active", furyDrainPerSecond)
 			: Localization.Text("hud.fury.tooltip_ready");

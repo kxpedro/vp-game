@@ -930,7 +930,7 @@ public partial class HUD
 	{
 		var baseCost = CompendiumTuning.GetInt($"{definition.Id}.cost", definition.Cost);
 		var currentRank = CharacterSheet.GetSkillRank(definition.Id);
-		return Mathf.RoundToInt(baseCost * (1.0f + currentRank * 0.5f));
+		return Mathf.RoundToInt(baseCost * (1.0f + currentRank * CompendiumTuning.GetFloat("fountain.cost_step", 0.5f)));
 	}
 
 	private void AddCheatCursedBlood()

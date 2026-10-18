@@ -6,13 +6,15 @@ public partial class BossController : Node
 {
     // ---- Piso minimo de aviso (segundos): ponto unico de tuning da legibilidade dos golpes do boss. ----
     // Aplicado sobre o tempo final (ja com o multiplicador de cast do boss).
-    private const float MinSingleCircleWarning = 0.50f;   // circulos isolados / de sequencia (psionic, singularity, kinetic 2o golpe)
-    private const float MinSequenceFirstWarning = 0.60f;  // primeiro circulo de uma sequencia
-    private const float MinLineWarning = 0.60f;           // cargas / linhas
-    private const float MinClawFirstWarning = 0.45f;      // primeiro golpe do claw_combo
-    private const float MinClawFollowWarning = 0.35f;     // golpes 2 e 3 do claw_combo
-    private const float TeleportWarningSeconds = 0.40f;   // aviso antes do boss reaparecer
-    private const float PhaseBreakSeconds = 0.50f;        // pausa na transicao de fase (invulnerabilidade so por esse intervalo)
+    // Lidos do CompendiumTuning a cada uso (painel de dev); o padrao e o valor original.
+    private static float MinSingleCircleWarning => CompendiumTuning.GetFloat("boss.warning.single_circle", 0.50f);   // circulos isolados / de sequencia (psionic, singularity, kinetic 2o golpe)
+    private static float MinSequenceFirstWarning => CompendiumTuning.GetFloat("boss.warning.sequence_first", 0.60f);  // primeiro circulo de uma sequencia
+    private static float MinLineWarning => CompendiumTuning.GetFloat("boss.warning.line", 0.60f);           // cargas / linhas
+    private static float MinClawFirstWarning => CompendiumTuning.GetFloat("boss.warning.claw_first", 0.45f);      // primeiro golpe do claw_combo
+    private static float MinClawFollowWarning => CompendiumTuning.GetFloat("boss.warning.claw_follow", 0.35f);     // golpes 2 e 3 do claw_combo
+    private static float TeleportWarningSeconds => CompendiumTuning.GetFloat("boss.warning.teleport", 0.40f);   // aviso antes do boss reaparecer
+    private static float PhaseBreakSeconds => CompendiumTuning.GetFloat("boss.phase_break_seconds", 0.50f);        // pausa na transicao de fase (invulnerabilidade so por esse intervalo)
+    private static float G(string key, float defaultValue) => CompendiumTuning.GetFloat(key, defaultValue);
 
     // Meshes/materiais compartilhados entre telegraphs (os que precisam de tween de alfa sao criados por instancia).
     private static CylinderMesh _unitDisk;
@@ -37,7 +39,7 @@ public partial class BossController : Node
     private int _moveEpoch;
     private readonly List<Node3D> _activeTelegraphs = new();
     private string _lastMoveId = "";
-    private float CastTimeMultiplier => Definition?.Id == "silver_dragonkin" ? 1.3f : 1.0f;
+    private float CastTimeMultiplier => G($"boss.{Definition?.Id}.cast_multiplier", Definition?.Id == "silver_dragonkin" ? 1.3f : 1.0f);
 
     public void Configure(EnemyBasic enemy, BossDefinition definition)
     {
@@ -46,10 +48,10 @@ public partial class BossController : Node
         _health = enemy.GetNode<Health>("Health");
         _rng.Randomize();
         AddToGroup("boss_controller");
-        _health.SetMaxHealth(Mathf.Max(definition.EstimatedMaxHealth, 1000), true);
+        _health.SetMaxHealth(Mathf.Max(definition.EstimatedMaxHealth, G("boss.hp.min", 1000.0f)), true);
         _health.HealthChanged += OnHealthChanged;
         _enemy.EnableBossMoves();
-        _moveTimer = 1.1f;
+        _moveTimer = G("boss.first_move_delay", 1.1f);
     }
 
     public override void _ExitTree()
@@ -94,7 +96,7 @@ public partial class BossController : Node
         if (IsInstanceValid(_enemy) && !_health.IsDead)
             _enemy.SetBossActionLocked(false);
         _actionInProgress = false;
-        _moveTimer = Mathf.Max(move.Cooldown / (1.0f + (CurrentPhase - 1) * 0.12f), 0.75f);
+        _moveTimer = Mathf.Max(move.TunedCooldown / (1.0f + (CurrentPhase - 1) * G("boss.cooldown_phase_reduction", 0.12f)), G("boss.cooldown_min", 0.75f));
     }
 
     private BossMoveDefinition SelectMove()
@@ -102,11 +104,11 @@ public partial class BossController : Node
         if (Definition?.Moves == null || Definition.Moves.Length == 0) return null;
         var available = new List<BossMoveDefinition>();
         foreach (var move in Definition.Moves)
-            if (move.MinimumPhase <= CurrentPhase && (move.Id != _lastMoveId || Definition.Moves.Length == 1))
+            if (move.TunedMinimumPhase <= CurrentPhase && (move.Id != _lastMoveId || Definition.Moves.Length == 1))
                 available.Add(move);
         if (available.Count == 0)
             foreach (var move in Definition.Moves)
-                if (move.MinimumPhase <= CurrentPhase) available.Add(move);
+                if (move.TunedMinimumPhase <= CurrentPhase) available.Add(move);
         if (available.Count == 0) return null;
         var selected = available[_moveIndex % available.Count];
         _moveIndex++;
@@ -116,13 +118,13 @@ public partial class BossController : Node
     private Task ExecuteMove(BossMoveDefinition move) => move.Id switch
     {
         "claw_combo" => ExecuteClawCombo(move),
-        "tail_sweep" => ExecuteRadialPulse(move, 3.6f, 0.62f, 1),
-        "dragon_volley" => ExecuteGroundVolley(move, 3 + CurrentPhase, 1.25f, 0.46f, MinSequenceFirstWarning, 0.0f),
-        "blood_charge" => ExecuteCharge(move, 6.4f, 0.58f),
-        "meteor_requiem" => ExecuteMeteorField(move, 6, 1.35f, 0.82f),
-        "psionic_volley" => ExecuteGroundVolley(move, 4 + CurrentPhase, 1.15f, 0.38f, MinSequenceFirstWarning, MinSingleCircleWarning),
+        "tail_sweep" => ExecuteRadialPulse(move, G("boss.tail_sweep.radius", 3.6f), G("boss.tail_sweep.windup", 0.62f), CompendiumTuning.GetInt("boss.tail_sweep.pulses", 1)),
+        "dragon_volley" => ExecuteGroundVolley(move, CompendiumTuning.GetInt("boss.dragon_volley.shots_base", 3) + CurrentPhase, G("boss.dragon_volley.radius", 1.25f), G("boss.dragon_volley.cadence", 0.46f), MinSequenceFirstWarning, 0.0f),
+        "blood_charge" => ExecuteCharge(move, G("boss.blood_charge.distance", 6.4f), G("boss.blood_charge.windup", 0.58f)),
+        "meteor_requiem" => ExecuteMeteorField(move, CompendiumTuning.GetInt("boss.meteor_requiem.count", 6), G("boss.meteor_requiem.radius", 1.35f), G("boss.meteor_requiem.windup", 0.82f)),
+        "psionic_volley" => ExecuteGroundVolley(move, CompendiumTuning.GetInt("boss.psionic_volley.shots_base", 4) + CurrentPhase, G("boss.psionic_volley.radius", 1.15f), G("boss.psionic_volley.cadence", 0.38f), MinSequenceFirstWarning, MinSingleCircleWarning),
         "kinetic_shift" => ExecuteKineticShift(move),
-        "force_outbreak" => ExecuteRadialPulse(move, 5.0f, 0.48f, 2 + CurrentPhase),
+        "force_outbreak" => ExecuteRadialPulse(move, G("boss.force_outbreak.radius", 5.0f), G("boss.force_outbreak.windup", 0.48f), CompendiumTuning.GetInt("boss.force_outbreak.pulses_base", 2) + CurrentPhase),
         "mirror_dash" => ExecuteMirrorDash(move),
         "singularity" => ExecuteSingularity(move),
         _ => ExecuteRadialPulse(move, 2.8f, 0.55f, 1)
@@ -130,16 +132,17 @@ public partial class BossController : Node
 
     private async Task ExecuteClawCombo(BossMoveDefinition move)
     {
-        for (var hit = 0; hit < 3; hit++)
+        var hits = CompendiumTuning.GetInt("boss.claw_combo.hits", 3);
+        for (var hit = 0; hit < hits; hit++)
         {
             if (!CanContinue()) return;
             _enemy.FaceCombatTarget();
             var target = _enemy.GetCombatTarget();
             if (target == null) return;
             var direction = FlatDirection(_enemy.GlobalPosition, target.GlobalPosition);
-            await StrikeAt(_enemy.GlobalPosition + direction * (1.35f + hit * 0.18f), 1.45f, _enemy.AttackDamage * (hit == 2 ? 1.15f : 0.72f), 0.28f, move.DisplayName,
+            await StrikeAt(_enemy.GlobalPosition + direction * (G("boss.claw_combo.reach", 1.35f) + hit * G("boss.claw_combo.reach_step", 0.18f)), G("boss.claw_combo.radius", 1.45f), _enemy.AttackDamage * (hit == hits - 1 ? G("boss.claw_combo.damage_last", 1.15f) : G("boss.claw_combo.damage_first", 0.72f)), G("boss.claw_combo.windup", 0.28f), move.DisplayName,
                 hit == 0 ? MinClawFirstWarning : MinClawFollowWarning);
-            await WaitSeconds(0.1f);
+            await WaitSeconds(G("boss.claw_combo.gap", 0.1f));
         }
     }
 
@@ -150,8 +153,8 @@ public partial class BossController : Node
             if (!CanContinue()) return;
             var radius = maximumRadius * (pulse + 1.0f) / pulses;
             var floor = pulses == 1 ? MinSingleCircleWarning : pulse == 0 ? MinSequenceFirstWarning : 0.0f;
-            await StrikeAt(_enemy.GlobalPosition, radius, _enemy.AttackDamage / Mathf.Max(pulses * 0.72f, 1.0f), windup, move.DisplayName, floor);
-            await WaitSeconds(0.12f);
+            await StrikeAt(_enemy.GlobalPosition, radius, _enemy.AttackDamage / Mathf.Max(pulses * G("boss.radial.damage_factor", 0.72f), 1.0f), windup, move.DisplayName, floor);
+            await WaitSeconds(G("boss.radial.pulse_gap", 0.12f));
         }
     }
 
@@ -162,10 +165,11 @@ public partial class BossController : Node
             if (!CanContinue()) return;
             var target = _enemy.GetCombatTarget();
             if (target == null) return;
-            var lead = target is CharacterBody3D body ? body.Velocity * 0.22f : Vector3.Zero;
-            var scatter = new Vector3(_rng.RandfRange(-0.65f, 0.65f), 0.0f, _rng.RandfRange(-0.65f, 0.65f));
-            await StrikeAt(target.GlobalPosition + lead + scatter, radius, _enemy.AttackDamage * 0.58f, cadence, move.DisplayName, shot == 0 ? firstFloor : restFloor);
-            await WaitSeconds(0.08f);
+            var lead = target is CharacterBody3D body ? body.Velocity * G("boss.volley.lead", 0.22f) : Vector3.Zero;
+            var scatterRange = G("boss.volley.scatter", 0.65f);
+            var scatter = new Vector3(_rng.RandfRange(-scatterRange, scatterRange), 0.0f, _rng.RandfRange(-scatterRange, scatterRange));
+            await StrikeAt(target.GlobalPosition + lead + scatter, radius, _enemy.AttackDamage * G("boss.volley.damage", 0.58f), cadence, move.DisplayName, shot == 0 ? firstFloor : restFloor);
+            await WaitSeconds(G("boss.volley.gap", 0.08f));
         }
     }
 
@@ -175,7 +179,7 @@ public partial class BossController : Node
         if (target == null) return;
         var origin = _enemy.GlobalPosition;
         var direction = FlatDirection(_enemy.GlobalPosition, target.GlobalPosition);
-        const float chargeWidth = 1.7f;
+        var chargeWidth = G("boss.charge.width", 1.7f);
         var castTime = Mathf.Max(windup * CastTimeMultiplier, MinLineWarning);
         var telegraph = CreateLineTelegraph(direction, distance, chargeWidth, castTime);
         var threat = IsInstanceValid(_enemy) ? _enemy.AddBossLineThreat(origin, origin + direction * distance, chargeWidth * 0.5f) : 0;
@@ -186,24 +190,24 @@ public partial class BossController : Node
         PlayCue("boss_impact");
         _enemy.MoveBoss(direction * distance);
         DealDamageAlongSegment(origin, _enemy.GlobalPosition, chargeWidth * 0.5f, _enemy.AttackDamage, move.DisplayName);
-        await WaitSeconds(0.18f);
+        await WaitSeconds(G("boss.charge.recovery", 0.18f));
     }
 
     private async Task ExecuteKineticShift(BossMoveDefinition move)
     {
         var target = _enemy.GetCombatTarget();
         if (target == null) return;
-        _health.ShieldHits += 2 + CurrentPhase;
-        await StrikeAt(_enemy.GlobalPosition, 2.4f, _enemy.AttackDamage * 0.45f, 0.42f, move.DisplayName);
+        _health.ShieldHits += CompendiumTuning.GetInt("boss.kinetic_shift.shield_base", 2) + CurrentPhase;
+        await StrikeAt(_enemy.GlobalPosition, G("boss.kinetic_shift.radius", 2.4f), _enemy.AttackDamage * G("boss.kinetic_shift.damage", 0.45f), G("boss.kinetic_shift.windup", 0.42f), move.DisplayName);
         if (!CanContinue()) return;
         var angle = _rng.RandfRange(0.0f, Mathf.Tau);
-        var offset = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * 5.2f;
+        var offset = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * G("boss.kinetic_shift.teleport_distance", 5.2f);
         var destination = ClampBossDestination(target.GlobalPosition + offset);
         await WarnTeleport(destination);
         if (!CanContinue()) return;
         _enemy.TeleportBoss(destination);
         _enemy.FaceCombatTarget();
-        await StrikeAt(target.GlobalPosition, 1.55f, _enemy.AttackDamage * 0.65f, 0.35f, move.DisplayName, MinSingleCircleWarning);
+        await StrikeAt(target.GlobalPosition, G("boss.kinetic_shift.strike_radius", 1.55f), _enemy.AttackDamage * G("boss.kinetic_shift.strike_damage", 0.65f), G("boss.kinetic_shift.strike_windup", 0.35f), move.DisplayName, MinSingleCircleWarning);
     }
 
     private async Task ExecuteMirrorDash(BossMoveDefinition move)
@@ -213,13 +217,13 @@ public partial class BossController : Node
         var origin = _enemy.GlobalPosition;
         var direction = FlatDirection(origin, target.GlobalPosition);
         var side = new Vector3(-direction.Z, 0.0f, direction.X) * (_rng.Randf() < 0.5f ? -1.0f : 1.0f);
-        var destination = ClampBossDestination(target.GlobalPosition + side * 4.8f);
+        var destination = ClampBossDestination(target.GlobalPosition + side * G("boss.mirror_dash.teleport_distance", 4.8f));
         await WarnTeleport(destination);
         if (!CanContinue()) return;
         _enemy.TeleportBoss(destination);
-        await StrikeAt(origin, 1.8f, _enemy.AttackDamage * 0.55f, 0.38f, move.DisplayName, MinSingleCircleWarning);
+        await StrikeAt(origin, G("boss.mirror_dash.radius", 1.8f), _enemy.AttackDamage * G("boss.mirror_dash.damage", 0.55f), G("boss.mirror_dash.windup", 0.38f), move.DisplayName, MinSingleCircleWarning);
         if (!CanContinue()) return;
-        await ExecuteCharge(move, 7.0f, 0.38f);
+        await ExecuteCharge(move, G("boss.mirror_dash.charge_distance", 7.0f), G("boss.mirror_dash.charge_windup", 0.38f));
     }
 
     private async Task ExecuteMeteorField(BossMoveDefinition move, int count, float radius, float windup)
@@ -233,7 +237,7 @@ public partial class BossController : Node
         for (var i = 1; i < count; i++)
         {
             var angle = Mathf.Tau * i / (count - 1.0f);
-            centers.Add(target.GlobalPosition + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * _rng.RandfRange(2.4f, 4.8f));
+            centers.Add(target.GlobalPosition + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * _rng.RandfRange(G("boss.meteor_requiem.spread_min", 2.4f), G("boss.meteor_requiem.spread_max", 4.8f)));
         }
         var castTime = Mathf.Max(windup * CastTimeMultiplier, MinSequenceFirstWarning);
         foreach (var center in centers)
@@ -247,7 +251,7 @@ public partial class BossController : Node
         if (canContinue) PlayCue("boss_impact");
         foreach (var telegraph in telegraphs) ReleaseTelegraph(telegraph, canContinue);
         if (canContinue)
-            foreach (var center in centers) DealDamageIfWithin(center, radius, _enemy.AttackDamage * 0.72f, move.DisplayName);
+            foreach (var center in centers) DealDamageIfWithin(center, radius, _enemy.AttackDamage * G("boss.meteor_requiem.damage", 0.72f), move.DisplayName);
     }
 
     private async Task ExecuteSingularity(BossMoveDefinition move)
@@ -255,11 +259,11 @@ public partial class BossController : Node
         var target = _enemy.GetCombatTarget();
         if (target == null) return;
         var center = target.GlobalPosition;
-        for (var pulse = 0; pulse < 3 + CurrentPhase; pulse++)
+        for (var pulse = 0; pulse < CompendiumTuning.GetInt("boss.singularity.pulses_base", 3) + CurrentPhase; pulse++)
         {
             if (!CanContinue()) return;
-            var radius = 1.4f + pulse * 0.8f;
-            await StrikeAt(center, radius, _enemy.AttackDamage * 0.42f, 0.34f, move.DisplayName, pulse == 0 ? MinSequenceFirstWarning : MinSingleCircleWarning);
+            var radius = G("boss.singularity.radius", 1.4f) + pulse * G("boss.singularity.radius_step", 0.8f);
+            await StrikeAt(center, radius, _enemy.AttackDamage * G("boss.singularity.damage", 0.42f), G("boss.singularity.windup", 0.34f), move.DisplayName, pulse == 0 ? MinSequenceFirstWarning : MinSingleCircleWarning);
         }
     }
 
@@ -578,11 +582,11 @@ public partial class BossController : Node
     private void OnHealthChanged(float current, float maximum)
     {
         var ratio = maximum > 0 ? current / maximum : 0;
-        var phase = ratio <= 0.33f ? 3 : ratio <= 0.66f ? 2 : 1;
+        var phase = ratio <= G("boss.phase3_threshold", 0.33f) ? 3 : ratio <= G("boss.phase2_threshold", 0.66f) ? 2 : 1;
         if (phase == CurrentPhase) return;
         CurrentPhase = phase;
-        _enemy.MoveSpeed *= 1.12f;
-        _moveTimer = Mathf.Min(_moveTimer, 0.45f);
+        _enemy.MoveSpeed *= G("boss.phase_speed_multiplier", 1.12f);
+        _moveTimer = Mathf.Min(_moveTimer, G("boss.phase_move_delay", 0.45f));
         // Log de debug (literal).
         GetTree().CallGroup("hud", "AppendGameLog", $"{Definition.DisplayName} entrou na fase {phase}!");
         if (_health.IsDead) return;

@@ -119,7 +119,7 @@ public static class ArtifactCatalog
     }
 
     /// <summary>Desconto no preco da loja vindo da skill humanitas.collector_eye (0,05 por rank; limitado a 0,9).</summary>
-    public static float GetShopDiscount() => Mathf.Clamp(PlayerSkillController.ShopPriceDiscount(), 0.0f, MaxShopDiscount);
+    public static float GetShopDiscount() => Mathf.Clamp(PlayerSkillController.ShopPriceDiscount(), 0.0f, CompendiumTuning.GetFloat("economy.shop.max_discount", MaxShopDiscount));
 
     /// <summary>Preco final na loja: preco base da raridade com o desconto da skill (le o rank em CharacterSheet; estatico, serve a cena da Camara).</summary>
     public static int GetShopPrice(ArtifactDefinition definition)
@@ -234,12 +234,13 @@ public static class ArtifactCatalog
 
     private static int PickShopRarity(RandomNumberGenerator rng, List<ArtifactDefinition>[] pools, int visitIndex, bool cheapOnly)
     {
+        var firstSlotMaxRarity = CompendiumTuning.GetInt("economy.shop.first_slot_max_rarity", FirstSlotMaxRarityIndex);
         var weights = new float[pools.Length];
         var totalWeight = 0.0f;
         var firstAvailable = -1;
         for (var i = 0; i < pools.Length; i++)
         {
-            if (pools[i].Count == 0 || (cheapOnly && i > FirstSlotMaxRarityIndex))
+            if (pools[i].Count == 0 || (cheapOnly && i > firstSlotMaxRarity))
                 continue;
             if (firstAvailable < 0)
                 firstAvailable = i;

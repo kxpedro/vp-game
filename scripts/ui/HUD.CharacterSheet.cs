@@ -42,6 +42,8 @@ public partial class HUD
 		public List<BloodBlessingRecord> Blessings = new();
 		public List<ArtifactRecord> RunArtifacts = new();   // artefatos comprados na Loja nesta run (não há coleção nem slots)
 		public List<(string Id, int Rank)> Skills = new();
+		public List<WeaponModDefinition> WeaponMods = new(); // modificações da Bigorna ativas na arma equipada
+		public bool ShowWeaponMods;                          // run ativa (ou preview): mostra a seção mesmo vazia
 	}
 
 	private UiWindow _characterSheetWindow;
@@ -564,6 +566,12 @@ public partial class HUD
 
 	private void BuildCharacterSheetBlessings(CharacterSheetData data)
 	{
+		BuildCharacterSheetBlessingRows(data);
+		BuildCharacterSheetWeaponMods(data);
+	}
+
+	private void BuildCharacterSheetBlessingRows(CharacterSheetData data)
+	{
 		var section = Localization.TextFormat("sheet.section.blessings", data.Blessings.Count);
 		if (data.Blessings.Count == 0)
 			AddCharacterSheetEmptyNote(section, Localization.Text("sheet.empty.blessings"));
@@ -585,6 +593,40 @@ public partial class HUD
 				BadgeText = rarityLabel,
 				BadgeColor = UiPalette.Rarity(record.Rarity),
 				Detail = BuildBlessingSheetDetail(record, hasDefinition ? blessing : null, name, rarityLabel, level, lineage)
+			});
+		}
+	}
+
+	// Seção discreta ao fim da aba Bênçãos: modificações da Bigorna da arma equipada (nome + efeito). Some no hub sem modificações.
+	private void BuildCharacterSheetWeaponMods(CharacterSheetData data)
+	{
+		if (data.WeaponMods.Count == 0 && !data.ShowWeaponMods)
+			return;
+		var section = Localization.Text("anvil.sheet.title");
+		if (data.WeaponMods.Count == 0)
+		{
+			AddCharacterSheetEmptyNote(section, Localization.Text("anvil.sheet.none"));
+			return;
+		}
+		var weaponName = WeaponLoadout.EquippedWeapon.DisplayName;
+		foreach (var mod in data.WeaponMods)
+		{
+			var name = mod.DisplayName;
+			var description = mod.Description;
+			_characterSheetEntries.Add(new CharacterSheetEntry
+			{
+				Section = section,
+				BuildIcon = () => UiComponents.Monogram(name, UiMetrics.IconM),
+				Title = name,
+				Meta = description,
+				Detail = new DetailData
+				{
+					IconText = name,
+					Title = name,
+					Meta = weaponName,
+					BodyBbcode = EscapeSheetBbcode(description),
+					Flavor = mod.Flavor
+				}
 			});
 		}
 	}
@@ -766,7 +808,9 @@ public partial class HUD
 			// Mesmo critério do indicador do HUD: hub = Sangue Amaldiçoado permanente; run = Moedas de Sangue da run.
 			CursedBalance = ShowsCursedBloodIndicator(),
 			Blessings = RunState.RunBlessings.ToList(),
-			RunArtifacts = RunState.RunArtifacts.ToList()
+			RunArtifacts = RunState.RunArtifacts.ToList(),
+			WeaponMods = RunState.GetActiveWeaponMods(),
+			ShowWeaponMods = RunState.IsRunActive
 		};
 		data.Balance = data.CursedBalance ? CharacterSheet.CursedBlood : RunState.RunBloodCoins;
 		foreach (var skillId in CharacterSheet.AcquiredSkills)
@@ -798,6 +842,9 @@ public partial class HUD
 			if (definition != null)
 				data.RunArtifacts.Add(ArtifactCatalog.CreateRecord(definition));
 		}
+
+		data.ShowWeaponMods = true;
+		data.WeaponMods = WeaponModCatalog.ForWeapon(WeaponLoadout.EquippedWeaponId).Take(2).ToList();
 
 		var skills = SkillCatalog.All.Where(skill => skill.IsImplemented).ToList();
 		var bestialis = skills.Where(skill => skill.Tree == SkillTree.Bestialis).Take(2).ToList();

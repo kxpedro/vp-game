@@ -474,5 +474,22 @@
   "weapon.longsword.quick.name": "Whirling Cut",
   "weapon.longsword.special.name": "Crimson Fall",
   "weapon.whip.desc": "Long reach and crowd control.",
-  "weapon.whip.name": "Whip"
+  "weapon.whip.name": "Whip",
+  "reward.type.anvil.name": "Anvil",
+  "reward.type.anvil.desc": "Forges a modification for your equipped weapon: choose from those offered. Lasts until the end of the run.",
+  "weaponmod.longsword_reach.name": "Elongated Blade",
+  "weaponmod.longsword_reach.desc": "Increases the range of all attacks by {0}.",
+  "weaponmod.longsword_reach.flavor": "More steel between you and the danger.",
+  "weaponmod.longsword_edge.name": "Honed Edge",
+  "weaponmod.longsword_edge.desc": "Increases the damage of the basic combo and the quick attack by {0}.",
+  "weaponmod.longsword_edge.flavor": "The whetstone never sleeps.",
+  "weaponmod.longsword_tempo.name": "Balanced Hilt",
+  "weaponmod.longsword_tempo.desc": "Reduces the windup and recovery of attacks by {0}.",
+  "weaponmod.longsword_tempo.flavor": "The right weight in the right hand.",
+  "weaponmod.longsword_weight.name": "Steel Counterweight",
+  "weaponmod.longsword_weight.desc": "Increases knockback by {0} and stagger duration by {1}.",
+  "weaponmod.longsword_weight.flavor": "What the blade can't cut, the weight topples.",
+  "weaponmod.longsword_whirl.name": "Wider Slam",
+  "weaponmod.longsword_whirl.desc": "The special attack gains {0} radius and has {1} shorter cooldown.",
+  "weaponmod.longsword_whirl.flavor": "The crimson ground widens with every blow."
 }

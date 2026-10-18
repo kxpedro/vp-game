@@ -474,5 +474,22 @@
   "weapon.longsword.quick.name": "Corte em Rodopio",
   "weapon.longsword.special.name": "Queda Carmesim",
   "weapon.whip.desc": "Grande alcance e controle de grupos.",
-  "weapon.whip.name": "Chicote"
+  "weapon.whip.name": "Chicote",
+  "reward.type.anvil.name": "Bigorna",
+  "reward.type.anvil.desc": "Forja uma modificação para a arma equipada: escolha entre as oferecidas. Vale até o fim da run.",
+  "weaponmod.longsword_reach.name": "Lâmina Alongada",
+  "weaponmod.longsword_reach.desc": "Aumenta o alcance de todos os ataques em {0}.",
+  "weaponmod.longsword_reach.flavor": "Mais aço entre você e o perigo.",
+  "weaponmod.longsword_edge.name": "Fio Afiado",
+  "weaponmod.longsword_edge.desc": "Aumenta o dano do combo básico e do ataque rápido em {0}.",
+  "weaponmod.longsword_edge.flavor": "A pedra de amolar nunca dorme.",
+  "weaponmod.longsword_tempo.name": "Cabo Equilibrado",
+  "weaponmod.longsword_tempo.desc": "Reduz em {0} o preparo e a recuperação dos ataques.",
+  "weaponmod.longsword_tempo.flavor": "O peso certo na mão certa.",
+  "weaponmod.longsword_weight.name": "Contrapeso de Aço",
+  "weaponmod.longsword_weight.desc": "Aumenta o empurrão em {0} e a duração do atordoamento em {1}.",
+  "weaponmod.longsword_weight.flavor": "O que a lâmina não corta, o peso derruba.",
+  "weaponmod.longsword_whirl.name": "Impacto Ampliado",
+  "weaponmod.longsword_whirl.desc": "O ataque especial ganha {0} de raio e tem {1} menos de recarga.",
+  "weaponmod.longsword_whirl.flavor": "O chão carmesim se alarga a cada golpe."
 }
