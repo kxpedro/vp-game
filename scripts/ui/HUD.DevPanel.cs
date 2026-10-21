@@ -76,6 +76,13 @@ public partial class HUD
 		var resetAll = UiComponents.MenuButton("Resetar tudo", ConfirmResetDevAll, ButtonVariant.Destructive, ButtonSize.Small);
 		resetAll.Name = "DevResetAll";
 		toolbar.AddChild(resetAll);
+		var promote = UiComponents.MenuButton("Promover para o jogo", ConfirmPromoteDevTuning, ButtonVariant.Primary, ButtonSize.Small);
+		promote.Name = "DevPromote";
+		promote.Disabled = !CompendiumTuning.CanWriteShipped;
+		promote.TooltipText = CompendiumTuning.CanWriteShipped
+			? "Grava os ajustes alterados em data/tuning/tuning_overrides.json (versionado; vale em qualquer build)."
+			: "Só disponível rodando o jogo a partir do projeto.";
+		toolbar.AddChild(promote);
 
 		_devSummary = UiComponents.MakeLabel("", UiVariation.SecondaryLabel);
 		body.AddChild(_devSummary);
@@ -376,7 +383,11 @@ public partial class HUD
 			var modified = DevParameterRegistry.IsModified(p.Key);
 			name.Text = modified ? "● " + p.Label : p.Label;
 			name.AddThemeColorOverride("font_color", modified ? UiPalette.Gold : UiPalette.TextPrimary);
-			defaultLabel.Text = modified ? "padrão: " + DevFormat(p.Default) : "";
+			var shipped = DevParameterRegistry.IsShipped(p.Key);
+			defaultLabel.Text = modified
+				? (shipped ? "do jogo: " : "padrão: ") + DevFormat(DevParameterRegistry.EffectiveDefault(p))
+				: shipped ? "do jogo" : "";
+			defaultLabel.TooltipText = shipped ? $"Valor promovido em data/tuning/tuning_overrides.json (padrão do código: {DevFormat(p.Default)})." : "";
 			defaultLabel.AddThemeColorOverride("font_color", UiPalette.Warn);
 			resetButton.Disabled = !modified;
 		}
@@ -432,10 +443,40 @@ public partial class HUD
 		if (parent == null)
 			return;
 		var confirm = UiComponents.Confirm(parent, "Resetar tudo?",
-			"Todos os parâmetros do painel de dev voltam ao padrão e o arquivo dev_tuning.json é apagado.", "Resetar",
+			"Todos os parâmetros do painel de dev voltam ao padrão (ou ao valor já promovido para o jogo) e o arquivo dev_tuning.json é apagado.", "Resetar",
 			() => { DevParameterRegistry.ResetAll(); FlushDevApplyNow(); RefreshDevRows(); },
 			ConfirmKind.Destructive);
 		UiModalStack.Push(confirm.Window.Root, true, confirm.CancelButton, confirm.Cancel);
+	}
+
+	private void ConfirmPromoteDevTuning()
+	{
+		var parent = _devPanelOverlay?.GetParent() as Control;
+		if (parent == null)
+			return;
+		var count = DevParameterRegistry.CountModified();
+		if (count == 0)
+		{
+			_devSummary.Text = "Nada para promover: nenhum parâmetro alterado neste PC.";
+			return;
+		}
+		var confirm = UiComponents.Confirm(parent, "Promover para o jogo?",
+			$"{count} parâmetro(s) alterado(s) vão para data/tuning/tuning_overrides.json e passam a valer no jogo (inclusive no export). Os ajustes locais deste PC são limpos. Lembre de fazer commit do arquivo.", "Promover",
+			PromoteDevTuning,
+			ConfirmKind.Neutral);
+		UiModalStack.Push(confirm.Window.Root, true, confirm.CancelButton, confirm.Cancel);
+	}
+
+	private void PromoteDevTuning()
+	{
+		var promoted = DevParameterRegistry.PromoteAll(out var error);
+		FlushDevApplyNow();
+		RefreshDevRows();
+		var message = promoted < 0
+			? "Falha ao promover: " + error
+			: $"{promoted} parâmetro(s) promovido(s) para {ProjectSettings.GlobalizePath(CompendiumTuning.ShippedPath)}.";
+		_devSummary.Text = message;
+		AppendGameLog("[dev] " + message);
 	}
 
 	// ---------- Aplicação (debounce) ----------

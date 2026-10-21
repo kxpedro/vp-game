@@ -131,3 +131,13 @@ Longsword (dano / hit_delay / recovery / knockback / range / width): basic_1 32,
 - Chaves por mapa: `m` travado em 0..3; `RoomRewardCatalog` usa só 3 tiers (`Tier(...)`).
 - Formatos: `GetInt` arredonda e não aceita negativo; chaves de skill/artefato/bênção usam o ID cru; estado global em memória; `Reset()` limpa tudo.
 - Não lidos nesta rodada (podem ter constantes de gameplay): `PlayerSkillController` inteiro, ~830 linhas de `BloodBlessingRuntime`, `ScenePortal`, `DevilsFruit`, `RewardPickup`, `TrainingDummy`, `BloodBlessingProgression`.
+
+## Camadas de valores e "Promover para o jogo"
+
+Cada parâmetro é lido em três camadas, nesta ordem:
+
+1. **Locais** (`user://dev_tuning.json` e `user://game_tuning.cfg`): o que o F1, o console (`tune`) e a pausa gravam. Só valem neste PC; o `dev_tuning.json` só é lido em debug.
+2. **Do jogo** (`res://data/tuning/tuning_overrides.json`): versionado no git e lido em qualquer build, inclusive no export. Formato `{"version": 1, "values": {"chave": número}}`, com as chaves `game.*` dos ajustes rápidos incluídas.
+3. **Padrão do código** (`Default` em `DevParameters.*.cs`).
+
+O botão **"Promover para o jogo"** do F1 (ou o comando `promote` do console) copia os parâmetros alterados para a camada do jogo, tira do arquivo os que voltaram ao padrão do código e limpa os locais. Só funciona rodando a partir do projeto (`OS.HasFeature("editor")`). Depois, faça commit do arquivo. No F1, "do jogo" marca uma chave promovida, e "Resetar" volta ao valor do jogo, não ao do código. `py tools/validate_dev_tuning.py` confere as chaves e faixas do arquivo.

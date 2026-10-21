@@ -32,6 +32,7 @@ Console de texto dentro do jogo, só em build de debug (`OS.IsDebugBuild()`). Co
 | `doors <tipo> [tipo]`, `doors <1\|2>`, `doors off` | força as próximas portas (mesmo override do F1) | `doors anvil fruit` |
 | `time <escala>` | escala de tempo de 0.1 a 4 | `time 0.25` |
 | `tune <chave> [valor\|reset]` | lê ou altera um parâmetro do `DevParameterRegistry` (o mesmo do F1, gravado em `user://dev_tuning.json`) | `tune room.waves.count 1` |
+| `promote` | promove os parâmetros alterados neste PC para `data/tuning/tuning_overrides.json` (o mesmo botão "Promover para o jogo" do F1) | `promote` |
 
 ### Regras que valem a pena saber
 

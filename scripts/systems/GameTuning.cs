@@ -64,6 +64,19 @@ public static class GameTuning
 
     public static void Load()
     {
+        // Primeiro os valores do jogo (data/tuning/tuning_overrides.json, chaves game.*); o game_tuning.cfg deste PC vem por cima.
+        _walkSpeedPercent = ReadShipped("game.walk", _walkSpeedPercent);
+        _runSpeedPercent = ReadShipped("game.run", _runSpeedPercent);
+        _dashSpeedPercent = ReadShipped("game.dash_speed", _dashSpeedPercent);
+        _dashDistancePercent = ReadShipped("game.dash_distance", _dashDistancePercent);
+        _cameraZoomDistancePercent = ReadShipped("game.camera_zoom", _cameraZoomDistancePercent);
+        _damagePercent = ReadShipped("game.damage", _damagePercent);
+        _healthPercent = ReadShipped("game.health", _healthPercent);
+        _animationSpeedPercent = ReadShipped("game.animation_speed", _animationSpeedPercent);
+        _attackSpeedPercent = ReadShipped("game.attack_speed", _attackSpeedPercent);
+        _attackDelayPercent = ReadShipped("game.attack_delay", _attackDelayPercent);
+        _attackRangePercent = ReadShipped("game.attack_range", _attackRangePercent);
+
         var config = new ConfigFile();
         if (config.Load(SavePath) != Error.Ok)
             return;
@@ -80,10 +93,11 @@ public static class GameTuning
         _attackDelayPercent = ReadPercent(config, "tuning", "attack_delay", _attackDelayPercent);
         _attackRangePercent = ReadPercent(config, "tuning", "attack_range", _attackRangePercent);
 
-        if (_dashDistancePercent == 100)
+        // Migracao de cfg antigo (100 = padrao velho); nao vale se o arquivo do jogo define a chave.
+        if (_dashDistancePercent == 100 && !CompendiumTuning.TryGetShipped("game.dash_distance", out _))
             _dashDistancePercent = 70;
 
-        if (_attackRangePercent == 100)
+        if (_attackRangePercent == 100 && !CompendiumTuning.TryGetShipped("game.attack_range", out _))
             _attackRangePercent = 65;
     }
 
@@ -102,6 +116,20 @@ public static class GameTuning
         config.SetValue("tuning", "attack_delay", _attackDelayPercent);
         config.SetValue("tuning", "attack_range", _attackRangePercent);
         config.Save(SavePath);
+    }
+
+    // Depois de promover os ajustes para o arquivo do jogo, o cfg local deixa de ser necessario.
+    public static void DeleteLocalSave()
+    {
+        if (FileAccess.FileExists(SavePath))
+            DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(SavePath));
+    }
+
+    private static int ReadShipped(string key, int fallback)
+    {
+        return CompendiumTuning.TryGetShipped(key, out var value)
+            ? Math.Clamp((int)Math.Round(value), MinPercent, MaxPercent)
+            : fallback;
     }
 
     private static void SetPercent(ref int field, int value)

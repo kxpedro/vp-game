@@ -7,6 +7,8 @@ Checagens (parse por regex, sem compilar o C#):
   (b) ERRO   chave literal registrada duas vezes
   (c) AVISO  chave registrada que nenhum codigo le
   (d) ERRO   Min <= Default <= Max quando os valores sao literais numericos simples
+  (e) data/tuning/tuning_overrides.json (valores promovidos): ERRO se o JSON/formato for invalido ou o valor
+      sair da faixa registrada (quando literal); AVISO se a chave nao casar com nenhum registro
 
 Chaves interpoladas ($"...{x}...") viram padroes: cada {...} casa qualquer segmento [\\w.-]+.
 Limites conhecidos (falsos positivos/negativos possiveis):
@@ -17,12 +19,14 @@ Saida 1 se houver erro; aviso nao conta.
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
+SHIPPED = ROOT / "data" / "tuning" / "tuning_overrides.json"
 WILD = r"[\w.\-]+"
 
 # Excecoes: chaves lidas pelo codigo que NAO precisam estar registradas. Mantenha curta e comentada.
@@ -116,6 +120,7 @@ class Reg:
         self.key, self.interp, self.file, self.line, self.kind = key, interp, file, line, kind
         self.regex = to_regex(key, interp or "{m}" in key)
         self.is_pattern = interp or "{m}" in key
+        self.min = self.max = None
 
 
 def main() -> int:
@@ -163,6 +168,7 @@ def main() -> int:
             reg = Reg(key, interp, rel, ln, kind)
             registered.append(reg)
             if kind == "Q":
+                reg.min, reg.max = 1.0, 250.0  # GameTuning: 1..250 %
                 continue
             # (d) faixa Min <= Default <= Max
             if kind == "RegisterPerMap":
@@ -170,6 +176,7 @@ def main() -> int:
                 if len(args) >= 6:
                     arr = re.search(r"\{([^}]*)\}", args[3])
                     mn, mx = num(args[4]), num(args[5])
+                    reg.min, reg.max = mn, mx
                     if arr and mn is not None and mx is not None:
                         vals = [num(v) for v in arr.group(1).split(",") if v.strip()]
                         for i, v in enumerate(vals):
@@ -184,6 +191,7 @@ def main() -> int:
                 # P(key,label,group,def,min,max,...) ; Register(new DevParameter(key,label,group,def,min,max,...)
                 if len(args) >= 6:
                     d, mn, mx = num(args[3]), num(args[4]), num(args[5])
+                    reg.min, reg.max = mn, mx
                     if None not in (d, mn, mx):
                         range_checked += 1
                         if not (mn <= d <= mx):
@@ -278,10 +286,37 @@ def main() -> int:
         unread += 1
         warnings.append(f"{r.file}:{r.line}: chave registrada que nenhum codigo le: {r.key}")
 
+    # (e) valores promovidos para o jogo
+    shipped_count = 0
+    if SHIPPED.exists():
+        rel = SHIPPED.relative_to(ROOT).as_posix()
+        try:
+            data = json.loads(SHIPPED.read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError) as exc:
+            data = None
+            errors.append(f"{rel}: JSON invalido: {exc}")
+        if data is not None:
+            values = data.get("values") if isinstance(data, dict) else None
+            if not isinstance(data, dict) or not isinstance(data.get("version"), int) or not isinstance(values, dict):
+                errors.append(f"{rel}: esperado {{\"version\": int, \"values\": {{chave: numero}}}}")
+            else:
+                for key, value in values.items():
+                    shipped_count += 1
+                    if isinstance(value, bool) or not isinstance(value, (int, float)):
+                        errors.append(f"{rel}: {key}: valor nao numerico ({value!r})")
+                        continue
+                    match = next((r for r in registered if not r.is_pattern and r.key == key), None)
+                    match = match or next((r for r in registered if r.is_pattern and r.regex.fullmatch(key)), None)
+                    if match is None:
+                        warnings.append(f"{rel}: {key}: chave sem registro em DevParameters.*.cs (o jogo le, mas o F1 nao mostra)")
+                    elif match.min is not None and match.max is not None and not (match.min <= value <= match.max):
+                        errors.append(f"{rel}: {key} = {value} fora de [{match.min}, {match.max}] ({match.file}:{match.line})")
+
     n_lit = sum(1 for r in registered if not r.is_pattern)
     n_pat = len(registered) - n_lit
     print(f"validate_dev_tuning: {len(registered)} chamadas de registro ({n_lit} literais, {n_pat} padroes/por-mapa/laco), "
-          f"{len(used)} leituras com chave literal ou interpolada, {range_checked} faixas conferidas.")
+          f"{len(used)} leituras com chave literal ou interpolada, {range_checked} faixas conferidas, "
+          f"{shipped_count} valor(es) promovido(s) em data/tuning.")
     for w in warnings:
         print("AVISO:", w)
     for e in errors:

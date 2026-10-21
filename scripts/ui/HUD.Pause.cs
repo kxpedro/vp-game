@@ -607,7 +607,7 @@ public partial class HUD
 	private void SavePauseTuning()
 	{
 		GameTuning.Save();
-		SetPauseTuningStatus("Parâmetros salvos como padrão definitivo.");
+		SetPauseTuningStatus("Parâmetros salvos neste PC. Para valerem no jogo, use \"Promover para o jogo\" no painel F1.");
 	}
 
 	// Sem sinal: abrir a pausa não reaplica os valores nem troca o status.

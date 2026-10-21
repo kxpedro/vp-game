@@ -28,7 +28,8 @@ public sealed record DevParameter(
     Action<double> Setter = null);
 
 // Registro central dos parametros de gameplay ajustaveis (base do painel F1, so debug).
-// As chaves normais ficam em CompendiumTuning (persistidas em user://dev_tuning.json em debug).
+// As chaves normais ficam em CompendiumTuning (locais em user://dev_tuning.json em debug; do jogo em data/tuning/tuning_overrides.json).
+// "Padrao" aqui = valor do jogo quando a chave foi promovida, senao o Default do codigo. "Modificado" = difere desse padrao.
 public static partial class DevParameterRegistry
 {
     private const double Epsilon = 1e-9;
@@ -125,6 +126,14 @@ public static partial class DevParameterRegistry
         return Parameters.Where(p => p.Group == group);
     }
 
+    // Valor sem os ajustes locais: o promovido para o arquivo do jogo, ou o Default do codigo.
+    public static double EffectiveDefault(DevParameter p)
+    {
+        return CompendiumTuning.TryGetShipped(p.Key, out var shipped) ? shipped : p.Default;
+    }
+
+    public static bool IsShipped(string key) => CompendiumTuning.TryGetShipped(key, out _);
+
     public static double Get(string key)
     {
         var p = Find(key);
@@ -155,7 +164,7 @@ public static partial class DevParameterRegistry
         }
 
         // Valor igual ao padrao nao e override: mantem o arquivo limpo e IsModified falso.
-        if (Math.Abs(value - p.Default) < Epsilon)
+        if (Math.Abs(value - EffectiveDefault(p)) < Epsilon)
             CompendiumTuning.Remove(key);
         else
             CompendiumTuning.SetNumber(key, value); // dispara CompendiumTuning.Changed -> Changed e agenda a gravacao
@@ -169,7 +178,7 @@ public static partial class DevParameterRegistry
 
         if (p.Setter != null)
         {
-            p.Setter(p.Default);
+            p.Setter(EffectiveDefault(p));
             Changed?.Invoke(key);
         }
         else
@@ -188,20 +197,68 @@ public static partial class DevParameterRegistry
     {
         EnsureRegistered();
         foreach (var p in Parameters.Where(x => x.Setter != null))
-            p.Setter(p.Default);
+            p.Setter(EffectiveDefault(p));
 
-        CompendiumTuning.Reset(); // limpa tudo, apaga o arquivo e dispara Changed(null)
+        CompendiumTuning.Reset(); // limpa os locais, apaga dev_tuning.json e dispara Changed(null); os valores do jogo ficam
     }
 
     public static bool IsModified(string key)
     {
         var p = Find(key);
         if (p == null)
-            return CompendiumTuning.HasOverride(key);
+            return CompendiumTuning.HasLocalOverride(key);
 
         return p.Getter != null
-            ? Math.Abs(p.Getter() - p.Default) > Epsilon
-            : CompendiumTuning.HasOverride(key);
+            ? Math.Abs(p.Getter() - EffectiveDefault(p)) > Epsilon
+            : CompendiumTuning.HasLocalOverride(key);
+    }
+
+    public static int CountModified()
+    {
+        EnsureRegistered();
+        return Parameters.Count(p => IsModified(p.Key)) + CompendiumTuning.Overrides.Keys.Count(k => Find(k) == null);
+    }
+
+    // Passa os ajustes locais para data/tuning/tuning_overrides.json (versionado, vale em qualquer build) e limpa os locais.
+    // Valor igual ao Default do codigo sai do arquivo. Devolve quantas chaves mudaram ou -1 com o erro.
+    public static int PromoteAll(out string error)
+    {
+        EnsureRegistered();
+        var values = new Dictionary<string, double>(CompendiumTuning.ShippedOverrides);
+        var promoted = 0;
+        foreach (var p in Parameters)
+        {
+            if (!IsModified(p.Key))
+                continue;
+
+            var value = Get(p.Key);
+            if (Math.Abs(value - p.Default) < Epsilon)
+                values.Remove(p.Key);
+            else
+                values[p.Key] = value;
+            promoted++;
+        }
+
+        // Familias dinamicas (chaves locais sem registro) vao como estao.
+        foreach (var pair in CompendiumTuning.Overrides.Where(pair => Find(pair.Key) == null))
+        {
+            values[pair.Key] = pair.Value;
+            promoted++;
+        }
+
+        if (promoted == 0)
+        {
+            error = null;
+            return 0;
+        }
+
+        if (!CompendiumTuning.WriteShipped(values, out error))
+            return -1;
+
+        // Agora o padrao efetivo e o valor promovido: os locais deixam de ser necessarios.
+        GameTuning.DeleteLocalSave();
+        CompendiumTuning.Reset();
+        return promoted;
     }
 
     private static void OnCompendiumChanged(string key) => Changed?.Invoke(key);
@@ -248,6 +305,16 @@ public static partial class DevParameterRegistry
 
             ResetAll();
             ok &= Check(!IsModified(key) && !FileAccess.FileExists("user://dev_tuning.json"), "ResetAll apaga arquivo");
+
+            // Camada do jogo (so em memoria): vira o padrao efetivo, sem contar como alteracao local.
+            CompendiumTuning.SetShippedForSelfTest(new Dictionary<string, double> { [key] = 7 });
+            ok &= Check(Math.Abs(Get(key) - 7) < Epsilon && !IsModified(key) && IsShipped(key), "valor do jogo e padrao efetivo");
+            Set(key, 7);
+            ok &= Check(!CompendiumTuning.HasLocalOverride(key), "igual ao valor do jogo nao vira local");
+            Set(key, 9);
+            ok &= Check(IsModified(key) && Math.Abs(EffectiveDefault(Find(key)) - 7) < Epsilon, "local por cima do jogo");
+            Reset(key);
+            ok &= Check(Math.Abs(Get(key) - 7) < Epsilon && !IsModified(key), "Reset volta ao valor do jogo");
         }
         catch (Exception exception)
         {
@@ -261,7 +328,8 @@ public static partial class DevParameterRegistry
             restored?.StoreString(backup);
         }
 
-        // A memoria deve refletir o arquivo do usuario restaurado.
+        // A memoria deve refletir os arquivos reais (do usuario restaurado e do jogo).
+        CompendiumTuning.LoadShipped();
         CompendiumTuning.ClearMemoryForSelfTest();
         CompendiumTuning.EnsureLoaded();
 
