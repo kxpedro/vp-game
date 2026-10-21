@@ -521,8 +521,8 @@ public partial class HUD
 		AddCharacterSheetStat(stats, Localization.Text("sheet.stat.fury"), FormatSheetMultiplier(CharacterSheet.GetFuryMultiplier()), null,
 			Localization.Text("sheet.stat.fury.desc"));
 		if (OS.IsDebugBuild())
-			AddCharacterSheetStat("DEV", "Dano tuning", FormatSheetMultiplier(GameTuning.GetDamageMultiplier()), null,
-				"Multiplicador global de dano do tuning (só em build de debug).");
+			AddCharacterSheetStat("DEV", "Dano tuning", FormatSheetMultiplier(WeaponLoadout.EquippedWeapon.TunedDamageMultiplier), null,
+				"Multiplicador de dano da arma equipada no tuning (weapon.<arma>.damage_mult; só em build de debug).");
 	}
 
 	private void AddCharacterSheetAttribute(string section, CharacterAttribute attribute, string name, string effect, string description)

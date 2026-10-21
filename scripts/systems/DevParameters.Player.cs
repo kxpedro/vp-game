@@ -79,12 +79,15 @@ public static partial class DevParameterRegistry
                 P($"{attackKey}.hit_delay", $"{attackLabel}: atraso do acerto (s)", group, a.HitDelay, 0, 2, 0.01, false, DevApplyMode.Live, soon);
                 P($"{attackKey}.recovery", $"{attackLabel}: recuperação (s)", group, a.Recovery, 0, 2, 0.01, false, DevApplyMode.Live, soon);
                 P($"{attackKey}.knockback", $"{attackLabel}: knockback", group, a.Knockback, 0, 50, 0.1, false, DevApplyMode.Live, soon);
-                P($"{attackKey}.range", $"{attackLabel}: alcance", group, a.Range, 0.1, 20, 0.05, false, DevApplyMode.Live, ("O alcance efetivo é multiplicado pelo ajuste rápido attack_range (padrão 65/50 = 1,3). " + soon).Trim());
+                P($"{attackKey}.range", $"{attackLabel}: alcance", group, a.Range, 0.1, 20, 0.05, false, DevApplyMode.Live, ("O alcance efetivo é multiplicado pelo multiplicador de alcance da arma (range_mult, padrão 1,3). " + soon).Trim());
                 P($"{attackKey}.width", $"{attackLabel}: largura", group, a.Width, 0.1, 20, 0.05, false, DevApplyMode.Live, soon);
                 P($"{attackKey}.stagger", $"{attackLabel}: stagger (s)", group, a.StaggerDuration, 0, 3, 0.01, false, DevApplyMode.Live, soon);
             }
 
+            P($"{key}.damage_mult", $"{label}: multiplicador de dano (x)", group, w.DamageMultiplier, 0, 10, 0.05, false, DevApplyMode.Live, ("Vale para todos os golpes da arma. " + soon).Trim());
             P($"{key}.basic_attack_speed", $"{label}: velocidade do combo básico (x)", group, w.BasicAttackSpeedMultiplier, 0.1, 5, 0.05, false, DevApplyMode.Live, soon);
+            P($"{key}.attack_delay_mult", $"{label}: atraso do combo básico (x)", group, w.AttackDelayMultiplier, 0.1, 5, 0.05, false, DevApplyMode.Live, ("Multiplica atraso do acerto + recuperação do combo básico; maior = mais lento. " + soon).Trim());
+            P($"{key}.range_mult", $"{label}: multiplicador de alcance (x)", group, w.RangeMultiplier, 0.1, 5, 0.05, false, DevApplyMode.Live, ("Vale para todos os golpes da arma (padrão 1,3, o antigo ajuste geral 65/50). " + soon).Trim());
             P($"{key}.arc_degrees", $"{label}: arco do golpe (graus)", group, w.AttackArcDegrees, 5, 360, 1, false, DevApplyMode.Live, soon);
             P($"{key}.edge_forgiveness", $"{label}: tolerância de borda", group, w.HitboxEdgeForgiveness, 0, 5, 0.05, false, DevApplyMode.Live, soon);
             P($"{key}.quick_hitbox_scale", $"{label}: escala do hitbox do golpe rápido", group, w.QuickAttackHitboxScale, 0.05, 3, 0.05, false, DevApplyMode.Live, soon);

@@ -138,7 +138,7 @@ public static partial class DevParameterRegistry
         GameTuning.Save();
     }
 
-    // Os 11 percentuais do GameTuning: armazenamento externo (user://game_tuning.cfg), fora do dev_tuning.json.
+    // Os 7 percentuais do GameTuning (os de ataque sao por arma): armazenamento externo (user://game_tuning.cfg), fora do dev_tuning.json.
     private static void RegisterQuickTuning()
     {
         void Q(string key, string label, int def, Func<int> get, Action<int> set, string note = "")
@@ -158,12 +158,8 @@ public static partial class DevParameterRegistry
         Q("game.dash_speed", "Velocidade do dash (%)", 100, () => GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent);
         Q("game.dash_distance", "Distância do dash (%)", 70, () => GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent);
         Q("game.camera_zoom", "Distância da câmera (%)", 100, () => GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent);
-        Q("game.damage", "Dano do jogador (%)", 100, () => GameTuning.DamagePercent, GameTuning.SetDamagePercent);
         Q("game.health", "Vida do jogador (%)", 100, () => GameTuning.HealthPercent, GameTuning.SetHealthPercent);
         Q("game.animation_speed", "Velocidade das animações (%)", 100, () => GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent);
-        Q("game.attack_speed", "Velocidade de ataque (%)", 100, () => GameTuning.AttackSpeedPercent, GameTuning.SetAttackSpeedPercent);
-        Q("game.attack_delay", "Atraso de ataque (%)", 100, () => GameTuning.AttackDelayPercent, GameTuning.SetAttackDelayPercent);
-        Q("game.attack_range", "Alcance de ataque (%)", 65, () => GameTuning.AttackRangePercent, GameTuning.SetAttackRangePercent, "Multiplicador efetivo = valor / 50.");
     }
 
     // Chaves por ID, geradas a partir dos catalogos (padroes vindos do JSON).

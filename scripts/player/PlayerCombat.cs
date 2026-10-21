@@ -274,7 +274,7 @@ public partial class PlayerCombat : Node
 		// Teto do Livro-Caixa: +100% de dano (economy.ledger.max_bonus).
 		var currencyDamage = Mathf.Min(RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * RunState.RunBloodCoins, CompendiumTuning.GetFloat("economy.ledger.max_bonus", 1.0f));
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
-		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus) * GameTuning.GetDamageMultiplier();
+		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus) * EquippedWeapon.TunedDamageMultiplier;
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		furyDamageMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
@@ -350,7 +350,7 @@ public partial class PlayerCombat : Node
 		await Wait(quickHitDelay);
 		if (!IsCurrentAttack(attackGeneration)) return;
 
-		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * GameTuning.GetDamageMultiplier();
+		var damageMultiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier * EquippedWeapon.TunedDamageMultiplier;
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		furyDamageMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
@@ -587,7 +587,7 @@ public partial class PlayerCombat : Node
 		var artifactSpeed = 1.0f + RunState.GetEffectTotal("AttackSpeed.Multiplier")
 			+ RunState.GetEffectTotal("AttackSpeedMissingHealth.Multiplier") * missingHealth
 			+ RunState.ContextAttackSpeed + (_blessings?.BonusAttackSpeed() ?? 0.0f);
-		return Mathf.Max(GameTuning.GetAttackSpeedMultiplier() * EquippedWeapon.TunedBasicAttackSpeedMultiplier * artifactSpeed, 0.01f);
+		return Mathf.Max(EquippedWeapon.TunedBasicAttackSpeedMultiplier * artifactSpeed, 0.01f);
 	}
 
 	public float GetCurrentBasicAttackDamage()
@@ -598,7 +598,7 @@ public partial class PlayerCombat : Node
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
 		var multiplier = CharacterSheet.GetDamageMultiplier() * RunState.DamageMultiplier
 			* (1.0f + currencyDamage + roomDamage + RunState.ContextDamageBonus)
-			* GameTuning.GetDamageMultiplier();
+			* EquippedWeapon.TunedDamageMultiplier;
 		multiplier *= Mathf.Max(1.0f + RunState.GetEffectTotal("BasicAttackDamage.Multiplier"), 0.0f);
 		if (IsFuryActive)
 		{
@@ -613,7 +613,7 @@ public partial class PlayerCombat : Node
 	public float GetCurrentBasicAttackInterval()
 	{
 		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1", PlayerAttackType.Basic);
-		return Mathf.Max((attack.HitDelay + attack.Recovery) * GameTuning.GetAttackDelayMultiplier()
+		return Mathf.Max((attack.HitDelay + attack.Recovery) * EquippedWeapon.TunedAttackDelayMultiplier
 			/ GetCurrentAttackSpeedMultiplier(), 0.08f);
 	}
 
@@ -622,7 +622,7 @@ public partial class PlayerCombat : Node
 		if (attackType != PlayerAttackType.Basic)
 			return Mathf.Max(baseDelay, 0.01f);
 
-		return Mathf.Max((baseDelay * GameTuning.GetAttackDelayMultiplier()) / GetCurrentAttackSpeedMultiplier(), 0.01f);
+		return Mathf.Max((baseDelay * EquippedWeapon.TunedAttackDelayMultiplier) / GetCurrentAttackSpeedMultiplier(), 0.01f);
 	}
 
 	private readonly record struct HitResult(int TargetsHit, bool IsCritical);
@@ -1230,7 +1230,7 @@ void fragment() {
 			CompendiumTuning.GetFloat($"{keyPrefix}.hit_delay", attack.HitDelay) * timingMod,
 			CompendiumTuning.GetFloat($"{keyPrefix}.recovery", attack.Recovery) * timingMod,
 			CompendiumTuning.GetFloat($"{keyPrefix}.knockback", attack.Knockback) * RunState.GetWeaponModMultiplier("Knockback.Multiplier"),
-			CompendiumTuning.GetFloat($"{keyPrefix}.range", attack.Range) * GameTuning.GetAttackRangeMultiplier() * rangeMod,
+			CompendiumTuning.GetFloat($"{keyPrefix}.range", attack.Range) * EquippedWeapon.TunedRangeMultiplier * rangeMod,
 			CompendiumTuning.GetFloat($"{keyPrefix}.width", attack.Width),
 			attack.SlashTilt,
 			attack.Shape,
