@@ -656,6 +656,8 @@ public partial class HUD
 				return OpenDevPanelPreview();
 			case "dev_panel_actions":
 				return OpenDevPanelPreview(true);
+			case "dev_console":
+				return OpenDevConsolePreview();
 			case "tuning":
 			case "pause_tuning":
 				PauseGame();

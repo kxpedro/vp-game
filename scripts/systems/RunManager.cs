@@ -43,6 +43,8 @@ public partial class RunManager : Node3D
     private readonly List<ScenePortal> _rewardDoors = new();
     // Itens do chão da sala ainda não pegos (bônus de sala limpa + recompensa da porta). Portas e saída só abrem em zero.
     private int _roomPickupsLeft;
+    // DEBUG: inimigos criados pelo console (DevSpawnEnemies) somados ao total da sala, que só limpa depois deles.
+    private int _devExtraEnemies;
     private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
 
     public override void _Ready()
@@ -102,7 +104,7 @@ public partial class RunManager : Node3D
         {
             ApplyCommonEnemyTuning(GetTree().GetNodesInGroup("enemies"));
         }
-        TotalEnemies = totalPlanned;
+        TotalEnemies = totalPlanned + _devExtraEnemies;
         EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
         GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {waveCount} inimigos surgiu ({DefeatedEnemies}/{TotalEnemies}).");
     }
@@ -368,6 +370,8 @@ public partial class RunManager : Node3D
     public void UnlockExitAfterReward()
     {
         if (_exitPortal == null) return;
+        // Oferta aberta pelo painel/console de dev no meio do combate tambem chama este metodo ao fechar: sem a sala paga, nada abre.
+        if (!_roomRewardsPaid) return;
         if (_roomPickupsLeft > 0) return;
         if (_rewardDoors.Count > 0)
         {
@@ -648,5 +652,36 @@ public partial class RunManager : Node3D
         else
             OpenRewardDoors();
         return set;
+    }
+
+    /// <summary>
+    /// DEBUG (console de dev): cria <paramref name="count"/> inimigos comuns em volta de <paramref name="center"/>, com o tuning
+    /// da sala atual. Raridade/arquetipo null = Normal / sorteio da sala. Com a sala ainda em combate, entram no total da sala
+    /// (as portas so abrem depois deles). Devolve quantos criou (0 sem gerador de sala ou fora de debug).
+    /// </summary>
+    public int DevSpawnEnemies(int count, EnemyRarity? rarity, EnemyArchetype? archetype, Vector3 center)
+    {
+        if (!OS.IsDebugBuild() || _roomGenerator == null || count <= 0)
+            return 0;
+        var spawned = new Godot.Collections.Array<Node>();
+        for (var i = 0; i < count; i++)
+        {
+            var angle = Mathf.Tau * i / count + _rng.RandfRange(-0.3f, 0.3f);
+            var position = center + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * _rng.RandfRange(3.0f, 4.5f);
+            position = _roomGenerator.ClampToWalkableArea(position, 1);
+            position.Y = 0.2f; // altura das waves (RoomGenerator.CellToWorld)
+            var enemy = _roomGenerator.DevSpawnEnemy(position, rarity ?? EnemyRarity.Normal, archetype);
+            if (enemy != null)
+                spawned.Add(enemy);
+        }
+        ApplyCommonEnemyTuning(spawned);
+        if (!IsRoomCleared && spawned.Count > 0)
+        {
+            _devExtraEnemies += spawned.Count;
+            TotalEnemies += spawned.Count;
+            EmitSignal(SignalName.EnemyProgressChanged, DefeatedEnemies, TotalEnemies);
+            GetTree().CallGroup("hud", "SyncEnemyProgress", DefeatedEnemies, TotalEnemies);
+        }
+        return spawned.Count;
     }
 }

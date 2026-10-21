@@ -67,6 +67,7 @@ public partial class HUD : CanvasLayer
 		BuildLayout();
 		GroupCombatHud();
 		BuildDevPanel(_hudRoot); // só debug; fica por último, acima dos outros overlays
+		BuildDevConsole(_hudRoot); // só debug; acima até do painel F1
 		RegisterModalShortcuts(_compendiumOverlay, HandleCompendiumShortcut);
 		RegisterModalShortcuts(_bloodBlessingOverlay, HandleBlessingOfferShortcut);
 		RegisterModalShortcuts(_characterSheetOverlay, HandleCharacterSheetShortcut);
@@ -91,6 +92,11 @@ public partial class HUD : CanvasLayer
 	{
 		if (@event is InputEventMouseMotion)
 			_lastMouseMotionMs = Time.GetTicksMsec();
+		if (HandleDevConsoleToggle(@event))
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (@event.IsActionPressed("ui_cancel") && !_isGameOver)
 		{
 			if (CloseTopmostOverlay())

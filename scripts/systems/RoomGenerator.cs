@@ -362,6 +362,24 @@ public partial class RoomGenerator : Node3D
         return roll < rangedChance + meleeChance ? EnemyArchetype.Melee : EnemyArchetype.Tank;
     }
 
+    /// <summary>
+    /// DEBUG (console de dev): cria um inimigo comum ja ativo em <paramref name="position"/>. Arquetipo null = sorteio normal
+    /// da sala. Nao marca o Diario. O tuning da sala (vida/dano por sala e mapa) fica com o RunManager.DevSpawnEnemies.
+    /// </summary>
+    public EnemyBasic DevSpawnEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype)
+    {
+        if (!OS.IsDebugBuild() || EnemyScene == null)
+            return null;
+        var resolvedArchetype = archetype ?? RollEnemyArchetype();
+        var enemy = EnemyScene.Instantiate<EnemyBasic>();
+        enemy.Name = $"Dev_{resolvedArchetype}_{rarity}";
+        enemy.Position = position;
+        AddChild(enemy, true);
+        enemy.ConfigureVariant(rarity, resolvedArchetype);
+        enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetEnemy(resolvedArchetype));
+        return enemy;
+    }
+
     private Vector3 PickRandomWavePosition()
     {
         if (_enemySpawnCells.Count == 0)

@@ -313,6 +313,30 @@ public static class BloodBlessingCatalog
         return result.ToArray();
     }
 
+    /// <summary>Elegível para oferta agora (mesma regra do sorteio: não adquirida e pré-requisitos atendidos). Usado pelo console de dev.</summary>
+    public static bool IsOfferable(BloodBlessingDefinition definition) => definition != null && IsEligible(definition);
+
+    /// <summary>
+    /// DEBUG (console de dev): até <paramref name="count"/> ofertas elegíveis de uma linhagem só, sem repetir, com raridade
+    /// sorteada como na Fonte. Lista vazia se a linhagem não tiver nada elegível. Não marca descoberta no Diário.
+    /// </summary>
+    public static List<BloodBlessingOffer> DevRollFamilyOffers(RandomNumberGenerator rng, string family, int count)
+    {
+        EnsureLoaded();
+        var pool = new List<BloodBlessingDefinition>();
+        foreach (var definition in Definitions)
+            if (definition.Family.Equals(family, StringComparison.OrdinalIgnoreCase) && IsEligible(definition))
+                pool.Add(definition);
+        var offers = new List<BloodBlessingOffer>();
+        while (offers.Count < count && pool.Count > 0)
+        {
+            var selected = SelectWeighted(rng, pool);
+            offers.Add(RollOffer(rng, selected, false));
+            pool.Remove(selected);
+        }
+        return offers;
+    }
+
     private static bool IsEligible(BloodBlessingDefinition definition)
     {
         if (RunState.GetBlessingStack(definition.Id) > 0)
