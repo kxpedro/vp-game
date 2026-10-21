@@ -68,7 +68,8 @@ public partial class PlayerWeaponVisual : Node
             return;
 
         var phase = _combat?.CurrentAttackPhase ?? PlayerAttackPhase.None;
-        var swinging = _combat?.IsAttacking == true && phase != PlayerAttackPhase.None;
+        // TESTE: com o sprite 2D ligado o rastro 3D fica desligado (a espada do sprite ja desenha o golpe).
+        var swinging = _combat?.IsAttacking == true && phase != PlayerAttackPhase.None && !PlayerSpriteVisual.Enabled;
         if (swinging && _weaponVisible)
         {
             var transform = _rightWeapon.GlobalTransform;

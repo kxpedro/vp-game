@@ -3,10 +3,13 @@ using System.Collections.Generic;
 
 // TESTE (nao definitivo): Virgil como sprite pixel art 2D (LPC) em billboard no mundo 3D.
 // Esconde o CharacterModel e toca as animacoes do sprite a partir das mesmas chamadas do PlayerAnimator.
-// Liga/desliga em debug com F3 ou com o comando "sprite" do console.
+// Junto com o sprite liga um filtro de tela que pixela o mundo 3D em blocos do tamanho do pixel do sprite.
+// Liga/desliga em debug com F3 ou com o comando "sprite" do console ("pixel <n>" ajusta o tamanho do bloco).
 public partial class PlayerSpriteVisual : Node
 {
     public static bool Enabled { get; set; } = true;
+    // Bloco do filtro de tela, em pixels do sprite (1 = mesmo tamanho; 0 = filtro desligado).
+    public static float PixelBlockScale { get; set; } = 1.0f;
 
     private const string SheetFolder = "res://assets/characters/lpc_virgil_test/";
     private const int CellSize = 192;
@@ -16,6 +19,20 @@ public partial class PlayerSpriteVisual : Node
     private const float WalkFps = 12.0f;
     private const float WalkReferenceSpeed = 3.0f;
 
+    private const string PixelateShaderCode = @"
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
+// Tamanho do bloco como fracao da altura da tela.
+uniform float block_ratio = 0.0015;
+uniform float color_levels = 24.0;
+void fragment() {
+    float block = max(block_ratio / SCREEN_PIXEL_SIZE.y, 1.0);
+    vec2 cell = (floor(FRAGCOORD.xy / block) + 0.5) * block;
+    vec3 c = texture(screen_tex, cell * SCREEN_PIXEL_SIZE).rgb;
+    c = floor(c * color_levels + 0.5) / color_levels;
+    COLOR = vec4(c, 1.0);
+}";
+
     private static readonly string[] Directions = { "n", "w", "s", "e" };
 
     private enum Mode { Loop, OneShot, Dead }
@@ -23,6 +40,9 @@ public partial class PlayerSpriteVisual : Node
     private CharacterBody3D _player;
     private Node3D _model;
     private AnimatedSprite3D _sprite;
+    private MeshInstance3D _blobShadow;
+    private CanvasLayer _pixelLayer;
+    private ShaderMaterial _pixelMaterial;
     private Health _health;
     private readonly Dictionary<string, int> _frameCounts = new();
     private string _direction = "s";
@@ -55,13 +75,17 @@ public partial class PlayerSpriteVisual : Node
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            Shaded = false,
+            Shaded = true,
             DoubleSided = true,
             PixelSize = PixelSize,
             Offset = new Vector2(0.0f, FeetOffsetPixels),
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.On,
+            // Sombra de billboard gira com a camera; a sombra fica por conta do disco nos pes.
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         _player.AddChild(_sprite);
+        _blobShadow = CreateBlobShadow();
+        _player.AddChild(_blobShadow);
+        CreatePixelFilter();
         ApplyEnabled();
         PlayLoop();
     }
@@ -89,6 +113,7 @@ public partial class PlayerSpriteVisual : Node
             return;
 
         ApplyEnabled();
+        UpdatePixelFilter();
         UpdateDirection();
 
         if (_mode == Mode.OneShot)
@@ -136,8 +161,76 @@ public partial class PlayerSpriteVisual : Node
         var on = Enabled && _sprite != null;
         if (_sprite != null && _sprite.Visible != on)
             _sprite.Visible = on;
+        if (_blobShadow != null && _blobShadow.Visible != on)
+            _blobShadow.Visible = on;
         if (_model != null && _model.Visible == on)
             _model.Visible = !on;
+    }
+
+    private MeshInstance3D CreateBlobShadow()
+    {
+        var gradient = new Gradient();
+        gradient.SetColor(0, new Color(0.0f, 0.0f, 0.0f, 0.55f));
+        gradient.SetColor(1, new Color(0.0f, 0.0f, 0.0f, 0.0f));
+        var texture = new GradientTexture2D
+        {
+            Gradient = gradient,
+            Fill = GradientTexture2D.FillEnum.Radial,
+            FillFrom = new Vector2(0.5f, 0.5f),
+            FillTo = new Vector2(0.5f, 0.0f),
+            Width = 64,
+            Height = 64,
+        };
+        var material = new StandardMaterial3D
+        {
+            AlbedoTexture = texture,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+        };
+        return new MeshInstance3D
+        {
+            Name = "SpriteBlobShadow",
+            Mesh = new PlaneMesh { Size = new Vector2(0.9f, 0.6f) },
+            MaterialOverride = material,
+            Position = new Vector3(0.0f, 0.03f, 0.0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+    }
+
+    private void CreatePixelFilter()
+    {
+        _pixelMaterial = new ShaderMaterial { Shader = new Shader { Code = PixelateShaderCode } };
+        var rect = new ColorRect { Name = "PixelFilter", Material = _pixelMaterial, MouseFilter = Control.MouseFilterEnum.Ignore };
+        rect.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        // Abaixo do HUD (layer 1): pixela so o mundo, a interface continua nitida.
+        _pixelLayer = new CanvasLayer { Name = "SpritePixelFilter", Layer = -50 };
+        _pixelLayer.AddChild(rect);
+        _player.AddChild(_pixelLayer);
+    }
+
+    // Bloco = tamanho na tela de um pixel do sprite, medido na distancia da camera ao jogador.
+    private void UpdatePixelFilter()
+    {
+        if (_pixelLayer == null)
+            return;
+
+        var on = Enabled && PixelBlockScale > 0.0f;
+        if (_pixelLayer.Visible != on)
+            _pixelLayer.Visible = on;
+        var camera = GetViewport()?.GetCamera3D();
+        if (!on || camera == null)
+            return;
+
+        float visibleHeight;
+        if (camera.Projection == Camera3D.ProjectionType.Orthogonal)
+            visibleHeight = camera.Size;
+        else
+        {
+            var distance = Mathf.Max(camera.GlobalPosition.DistanceTo(_player.GlobalPosition), 0.1f);
+            visibleHeight = 2.0f * distance * Mathf.Tan(Mathf.DegToRad(camera.Fov) * 0.5f);
+        }
+        _pixelMaterial.SetShaderParameter("block_ratio", PixelSize * PixelBlockScale / Mathf.Max(visibleHeight, 0.01f));
     }
 
     private void OnDied()

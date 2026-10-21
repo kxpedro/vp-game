@@ -51,9 +51,13 @@ public static partial class DevCommands
         });
         DevConsole.Register(new DevCommand("sprite", "Teste: Virgil como sprite 2D em vez do modelo 3D (também F3). Sem argumento, alterna.", Sprite)
         {
-            Aliases = new[] { "sprite2d", "pixel" },
+            Aliases = new[] { "sprite2d" },
             Usage = "[on|off]",
             Complete = _ => ToggleWords
+        });
+        DevConsole.Register(new DevCommand("pixel", "Teste: tamanho do bloco do filtro pixelado, em pixels do sprite (1 = padrão, 0 = desliga).", Pixel)
+        {
+            Usage = "<n>"
         });
     }
 
@@ -213,5 +217,16 @@ public static partial class DevCommands
             return;
         PlayerSpriteVisual.Enabled = on;
         c.Ok(on ? "Virgil em sprite 2D." : "Virgil em modelo 3D.");
+    }
+
+    private static void Pixel(DevCommandContext c)
+    {
+        if (c.Args.Count < 1 || !float.TryParse(c.Args[0].Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value) || value < 0.0f)
+        {
+            c.Error("Uso: pixel <n> (ex.: pixel 1, pixel 2, pixel 0 para desligar).");
+            return;
+        }
+        PlayerSpriteVisual.PixelBlockScale = value;
+        c.Ok(value <= 0.0f ? "Filtro pixelado desligado." : $"Bloco do filtro: {value:0.##}x o pixel do sprite.");
     }
 }
