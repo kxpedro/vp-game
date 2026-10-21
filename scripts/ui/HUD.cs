@@ -158,8 +158,7 @@ public partial class HUD : CanvasLayer
 		var top = UiModalStack.Top;
 		if (top != null)
 			return _modalShortcutHandlers.TryGetValue(top, out var handler) && handler(@event);
-		// Pausa (camada legada, fora da pilha): só sem nada empilhado por cima.
-		return IsVisible(_pauseOverlay) && HandlePauseShortcut(@event);
+		return false;
 	}
 
 	// Move os painéis de combate (entre a vinheta e o primeiro overlay) para uma camada própria, para esconder tudo de uma vez.

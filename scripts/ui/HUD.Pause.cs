@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// Pausa, opções, ajustes de tuning (debug) e game over (docs/design/ui-guia.md §7, §8.10, §8.11).
+// Pausa, opções e game over (docs/design/ui-guia.md §7, §8.10, §8.11).
 // A pausa continua como camada legada (IsLegacyPauseRequested lê _pauseOverlay.Visible): as demais telas ainda são
 // legadas e um Push faria MoveToFront da pausa por cima do compêndio/ficha. Confirmações e game over entram na UiModalStack.
 public partial class HUD
@@ -11,16 +11,9 @@ public partial class HUD
 	private const string AbandonRunDeathSource = "abandon_run";
 	private const float GameOverButtonWidth = 280.0f;
 
-	private sealed class PauseTuningEntry
-	{
-		public UiOptionRow Row;
-		public Func<int> Get;
-	}
-
 	private UiWindow _pauseWindow;
 	private VBoxContainer _pauseMainPage;
 	private VBoxContainer _pauseOptionsPage;
-	private VBoxContainer _pauseTuningPage;
 	private Button _pauseContinueButton;
 	private Button _pauseCompendiumButton;
 	private Button _pauseAbandonButton;
@@ -29,7 +22,6 @@ public partial class HUD
 	private Control _pauseReturnFocus;
 	private UiConfirm _pauseConfirm;
 	private bool _pauseCompendiumHooked;
-	private readonly List<PauseTuningEntry> _pauseTuningEntries = new();
 	private UiWindow _gameOverWindow;
 	private Label _gameOverCauseLabel;
 	private Label _gameOverLastHitLabel;
@@ -214,9 +206,6 @@ public partial class HUD
 		var optionsBack = AddPauseMenuButton(_pauseOptionsPage, Localization.Text("hud.back"), ShowPauseMainMenu);
 		optionsBack.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
 		optionsPanel.SetFooterTarget(optionsBack);
-		if (OS.IsDebugBuild())
-			BuildPauseTuningPage();
-		RefreshPauseTuningValues();
 	}
 
 	// Troca de idioma com a pausa aberta (opções): recria a janela no mesmo índice e volta à página em que estava.
@@ -226,10 +215,8 @@ public partial class HUD
 			return;
 		var wasVisible = IsVisible(_pauseOverlay);
 		var onOptions = wasVisible && IsVisible(_pauseOptionsPage);
-		var onTuning = wasVisible && IsVisible(_pauseTuningPage);
 		if (_pauseConfirm != null && _pauseConfirm.IsOpen)
 			_pauseConfirm.Cancel();
-		_pauseTuningEntries.Clear();
 		var index = _pauseOverlay.GetIndex();
 		var old = _pauseOverlay;
 		_hudRoot.RemoveChild(old);
@@ -244,8 +231,6 @@ public partial class HUD
 		_pauseOverlay.Visible = true;
 		if (onOptions)
 			ShowPausePage(_pauseOptionsPage, _pauseOptionsButton);
-		else if (onTuning && _pauseTuningPage != null)
-			ShowPausePage(_pauseTuningPage, null);
 		else
 			ShowPauseMainMenu();
 		RefreshModalPause();
@@ -262,7 +247,7 @@ public partial class HUD
 	// "PAUSADO" (hud.paused) vira "Pausa" (§8.10); chave nova até a fase 4.
 	private static string PauseTitle() => Localization.Text("pause.title");
 
-	// Ordem: Continuar · Opções · Dicionário · [DEV: ajustes, reiniciar] · [divisor] · Desistir · Menu principal.
+	// Ordem: Continuar · Opções · Dicionário · [DEV: painel F1, reiniciar] · [divisor] · Desistir · Menu principal.
 	private void BuildPauseMainPage()
 	{
 		_pauseMainPage = AddPausePage("PauseMainPage");
@@ -286,8 +271,6 @@ public partial class HUD
 			column.AddChild(new Control { CustomMinimumSize = new Vector2(0.0f, UiMetrics.S1), MouseFilter = Control.MouseFilterEnum.Ignore });
 			var dev = UiComponents.DevSection();
 			column.AddChild(dev.Root);
-			Button tuningButton = null;
-			tuningButton = AddPauseMenuButton(dev.Body, "Ajustes de gameplay", () => ShowPausePage(_pauseTuningPage, tuningButton));
 			// Recarregar a sala mantém o RunState e permite repetir recompensas; só em debug.
 			AddPauseMenuButton(dev.Body, "Painel de dev (F1)", OpenDevPanel);
 			AddPauseMenuButton(dev.Body, "Reiniciar teste", RestartCurrentScene);
@@ -308,48 +291,8 @@ public partial class HUD
 		return button;
 	}
 
-	// Ferramenta de dev (§7): seção DEV, sliders com valor visível; rodapé só "Voltar" e "Salvar".
-	private void BuildPauseTuningPage()
-	{
-		_pauseTuningPage = AddPausePage("GameplayParametersPage");
-		var dev = UiComponents.DevSection();
-		_pauseTuningPage.AddChild(dev.Root);
-		dev.Body.AddChild(UiComponents.MakeLabel("Ajustes temporários aplicados em tempo real. Salve para torná-los o padrão.", UiVariation.SecondaryLabel, true));
-
-		var scroll = UiComponents.ScrollList(400.0f, out var list);
-		scroll.Name = "PauseTuningScroll";
-		list.AddThemeConstantOverride("separation", UiMetrics.S1);
-		dev.Body.AddChild(scroll);
-
-		AddPauseTuningSlider(list, "Velocidade de andar", () => GameTuning.WalkSpeedPercent, GameTuning.SetWalkSpeedPercent);
-		AddPauseTuningSlider(list, "Velocidade de correr", () => GameTuning.RunSpeedPercent, GameTuning.SetRunSpeedPercent);
-		AddPauseTuningSlider(list, "Velocidade do dash", () => GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent);
-		AddPauseTuningSlider(list, "Distância do dash", () => GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent, 180);
-		AddPauseTuningSlider(list, "Distância do zoom da câmera", () => GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent, 200);
-		AddPauseTuningSlider(list, "Dano do jogador", () => GameTuning.DamagePercent, GameTuning.SetDamagePercent);
-		AddPauseTuningSlider(list, "Vida máxima", () => GameTuning.HealthPercent, GameTuning.SetHealthPercent);
-		AddPauseTuningSlider(list, "Velocidade da animação", () => GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent);
-		AddPauseTuningSlider(list, "Velocidade do ataque", () => GameTuning.AttackSpeedPercent, GameTuning.SetAttackSpeedPercent);
-		AddPauseTuningSlider(list, "Delay entre ataques", () => GameTuning.AttackDelayPercent, GameTuning.SetAttackDelayPercent);
-		AddPauseTuningSlider(list, "Distância do ataque", () => GameTuning.AttackRangePercent, GameTuning.SetAttackRangePercent, 250);
-	}
-
-	private void AddPauseTuningSlider(VBoxContainer list, string title, Func<int> getter, Action<int> setter, int maxValue = 100)
-	{
-		var row = UiComponents.LabeledSlider(title, 1.0, maxValue, getter(), value =>
-		{
-			// Clamp na faixa do próprio slider (antes era sempre 100, prendendo dash/zoom/alcance).
-			var percent = Mathf.Clamp(Mathf.RoundToInt((float)value), 1, maxValue);
-			setter(percent);
-			SetPauseTuningStatus($"Ajuste temporário aplicado: {title} = {percent}");
-		});
-		list.AddChild(row.Root);
-		_pauseTuningEntries.Add(new PauseTuningEntry { Row = row, Get = getter });
-	}
-
 	private void PauseGame()
 	{
-		RefreshPauseTuningValues();
 		var runActive = RunState.IsRunActive;
 		_pauseAbandonButton.Visible = runActive;
 		// Sem run ativa, voltar ao menu não perde nada: botão comum e sem confirmação.
@@ -370,14 +313,14 @@ public partial class HUD
 		RefreshModalPause();
 	}
 
-	// Subpágina (opções, ajustes): `opener` recebe o foco de volta em ShowPauseMainMenu.
+	// Subpágina (opções): `opener` recebe o foco de volta em ShowPauseMainMenu.
 	private void ShowPausePage(Control page, Control opener)
 	{
 		if (page == null)
 			return;
 		_pauseReturnFocus = opener;
 		SetPausePageVisible(page);
-		_pauseWindow.SetTitle(page == _pauseOptionsPage ? Localization.Text("options.title") : "Ajustes de gameplay");
+		_pauseWindow.SetTitle(Localization.Text("options.title"));
 		_pauseWindow.SetStatus(null);
 		SetPauseFooter(page);
 		// Opções: a vizinhança de foco é do próprio painel (abas); o ciclo plano daqui a sobrescreveria.
@@ -408,7 +351,7 @@ public partial class HUD
 
 	private void SetPausePageVisible(Control page)
 	{
-		foreach (var candidate in new Control[] { _pauseMainPage, _pauseOptionsPage, _pauseTuningPage })
+		foreach (var candidate in new Control[] { _pauseMainPage, _pauseOptionsPage })
 		{
 			if (candidate != null)
 				candidate.Visible = candidate == page;
@@ -426,8 +369,6 @@ public partial class HUD
 			return;
 		}
 		footer.Add(UiAction.Cancel, Localization.Text("hud.back"), ShowPauseMainMenu, left: true);
-		if (page == _pauseTuningPage)
-			footer.Add(UiAction.Alt, "Salvar", SavePauseTuning);
 	}
 
 	// Ciclo vertical explícito entre os controles visíveis da página (evita o foco escapar pela geometria).
@@ -441,16 +382,6 @@ public partial class HUD
 		}
 		ControllerUiSupport.SetVerticalCycle(focusables);
 		return focusables;
-	}
-
-	// ui_alt (R / Y / △) = "Salvar" na página de ajustes. Chamado pelo HUD._UnhandledInput (RouteModalShortcut) com a pausa
-	// visível e nada empilhado: tecla/controle vai só ao Control focado e não chegaria ao GuiInput da raiz da pausa.
-	private bool HandlePauseShortcut(InputEvent @event)
-	{
-		if (!IsVisible(_pauseTuningPage) || !InputMap.HasAction("ui_alt") || !@event.IsActionPressed("ui_alt") || @event.IsEcho())
-			return false;
-		SavePauseTuning();
-		return true;
 	}
 
 	// O compêndio (legado) abre por cima; ao fechar, o foco volta ao botão "Compêndio" (§8.12).
@@ -602,31 +533,6 @@ public partial class HUD
 		UiModalStack.RefreshPause();
 	}
 
-	// ---------- Ajustes de tuning ----------
-
-	private void SavePauseTuning()
-	{
-		GameTuning.Save();
-		SetPauseTuningStatus("Parâmetros salvos neste PC. Para valerem no jogo, use \"Promover para o jogo\" no painel F1.");
-	}
-
-	// Sem sinal: abrir a pausa não reaplica os valores nem troca o status.
-	private void RefreshPauseTuningValues()
-	{
-		foreach (var entry in _pauseTuningEntries)
-		{
-			var value = entry.Get();
-			entry.Row.Slider.SetValueNoSignal(value);
-			entry.Row.Value.Text = value.ToString();
-		}
-	}
-
-	private void SetPauseTuningStatus(string text)
-	{
-		if (IsVisible(_pauseTuningPage))
-			_pauseWindow.SetStatus(text);
-	}
-
 	// ---------- Pré-visualização (debug, UiPreview) ----------
 
 	private bool OpenPausePreviewScreen(string screen)
@@ -658,11 +564,6 @@ public partial class HUD
 				return OpenDevPanelPreview(true);
 			case "dev_console":
 				return OpenDevConsolePreview();
-			case "tuning":
-			case "pause_tuning":
-				PauseGame();
-				ShowPausePage(_pauseTuningPage, null);
-				return true;
 			case "pause_confirm_abandon":
 				EnsurePreviewRunActive();
 				PauseGame();
