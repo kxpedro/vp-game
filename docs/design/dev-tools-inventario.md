@@ -9,7 +9,7 @@ Levantamento feito para o plano `20261012-0131-dev-tools` (T1, só leitura). Nú
 - **Já existe um sistema paralelo**: `scripts/systems/GameTuning.cs` (`user://game_tuning.cfg`), com 11 percentuais (walk, run, dash_speed, dash_distance, camera_zoom, damage, health, animation_speed, attack_speed, attack_delay, attack_range) e evento `Changed` que reaplica `PlayerController`, `PlayerAnimator` e `IsoCamera`. O painel F1 deve **incorporá-lo ao registro**, sem duplicar nem quebrar o arquivo atual.
 - Chaves mortas com editor no Compêndio: `attack.light_1|2|3|special|dash.*` e `attack.dash.damage_multiplier` (`HUD.Compendium.cs:749-754,795-799`): nenhum código as lê (o `PlayerCombat` lê `weapon.<arma>.*`). Remover ou apontar para as chaves reais.
 - `enemy.blood_mage.damage` e `.attack_range` estão efetivamente mortas para golpes de boss: `ApplyBossMoveTuning` (`EnemyBasic.cs:1207-1214`) reescreve `AttackDamage = 30*(1+0.22*mapa)*...` e `AttackRange = 2.25*mult` a cada golpe. Só `move_speed` funciona (`RunManager.cs:433`). Manter o nome legado das chaves (valores salvos no compêndio).
-- `GetTunedAttack` (`PlayerCombat.cs:1214`): `range` é multiplicado por `GameTuning.GetAttackRangeMultiplier()` (padrão 65/50 = 1,3); o valor do editor não é o efetivo.
+- `GetTunedAttack` (`PlayerCombat.cs:1214`): `range` é multiplicado por `EquippedWeapon.TunedRangeMultiplier` (`weapon.<id>.range_mult`, padrão 1,3); o valor do editor não é o efetivo.
 
 ## (a) Chaves já tunáveis
 
@@ -131,3 +131,17 @@ Longsword (dano / hit_delay / recovery / knockback / range / width): basic_1 32,
 - Chaves por mapa: `m` travado em 0..3; `RoomRewardCatalog` usa só 3 tiers (`Tier(...)`).
 - Formatos: `GetInt` arredonda e não aceita negativo; chaves de skill/artefato/bênção usam o ID cru; estado global em memória; `Reset()` limpa tudo.
 - Não lidos nesta rodada (podem ter constantes de gameplay): `PlayerSkillController` inteiro, ~830 linhas de `BloodBlessingRuntime`, `ScenePortal`, `DevilsFruit`, `RewardPickup`, `TrainingDummy`, `BloodBlessingProgression`.
+
+## Camadas de valores e "Promover para o jogo"
+
+Cada parâmetro é lido em três camadas, nesta ordem:
+
+1. **Locais** (`user://dev_tuning.json` e `user://game_tuning.cfg`): o que o F1, o console (`tune`) e a pausa gravam. Só valem neste PC; o `dev_tuning.json` só é lido em debug.
+2. **Do jogo** (`res://data/tuning/tuning_overrides.json`): versionado no git e lido em qualquer build, inclusive no export. Formato `{"version": 1, "values": {"chave": número}}`, com as chaves `game.*` dos ajustes rápidos incluídas.
+3. **Padrão do código** (`Default` em `DevParameters.*.cs`).
+
+O botão **"Promover para o jogo"** do F1 (ou o comando `promote` do console) copia os parâmetros alterados para a camada do jogo, tira do arquivo os que voltaram ao padrão do código e limpa os locais. Só funciona rodando a partir do projeto (`OS.HasFeature("editor")`). Depois, faça commit do arquivo. No F1, "do jogo" marca uma chave promovida, e "Resetar" volta ao valor do jogo, não ao do código. `py tools/validate_dev_tuning.py` confere as chaves e faixas do arquivo.
+
+## Armas por grupo
+
+O F1 tem um grupo por arma do `WeaponCatalog` ("Armas: Espada longa", "Armas: Revólver duplo", "Armas: Chicote"), registrado em `DevParameters.Player.cs` (`RegisterWeapons`) a partir do próprio catálogo: os golpes (`weapon.<id>.<golpe>.damage/hit_delay/recovery/knockback/range/width/stagger`) e os multiplicadores da arma (`weapon.<id>.<campo>`). Os padrões vêm do catálogo, então arma nova entra sozinha. As armas sem moveset (Em breve) já aparecem, com aviso na nota. Não há mais ajuste global de ataque: dano, velocidade, atraso e alcance são por arma (`weapon.<id>.damage_mult`, `basic_attack_speed`, `attack_delay_mult`, `range_mult`; o alcance começa em 1,3, o antigo `game.attack_range` 65/50). Os ajustes rápidos `game.*` ficaram com 7 itens (movimento, câmera, vida e animação); as chaves antigas `damage`/`attack_*` do `game_tuning.cfg` são ignoradas.

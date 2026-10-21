@@ -1,6 +1,8 @@
 using Godot;
 using System;
 
+// Ajustes rapidos globais do jogador (movimento, camera, vida, animacao). Dano, velocidade, atraso e alcance de ataque
+// sao por arma (weapon.<id>.*, WeaponDefinition); as chaves antigas do cfg (damage, attack_*) ficam ignoradas.
 public static class GameTuning
 {
     private const string SavePath = "user://game_tuning.cfg";
@@ -12,12 +14,8 @@ public static class GameTuning
     private static int _dashSpeedPercent = 100;
     private static int _dashDistancePercent = 70;
     private static int _cameraZoomDistancePercent = 100;
-    private static int _damagePercent = 100;
     private static int _healthPercent = 100;
     private static int _animationSpeedPercent = 100;
-    private static int _attackSpeedPercent = 100;
-    private static int _attackDelayPercent = 100;
-    private static int _attackRangePercent = 65;
 
     static GameTuning()
     {
@@ -31,39 +29,36 @@ public static class GameTuning
     public static int DashSpeedPercent => _dashSpeedPercent;
     public static int DashDistancePercent => _dashDistancePercent;
     public static int CameraZoomDistancePercent => _cameraZoomDistancePercent;
-    public static int DamagePercent => _damagePercent;
     public static int HealthPercent => _healthPercent;
     public static int AnimationSpeedPercent => _animationSpeedPercent;
-    public static int AttackSpeedPercent => _attackSpeedPercent;
-    public static int AttackDelayPercent => _attackDelayPercent;
-    public static int AttackRangePercent => _attackRangePercent;
 
     public static void SetWalkSpeedPercent(int value) => SetPercent(ref _walkSpeedPercent, value);
     public static void SetRunSpeedPercent(int value) => SetPercent(ref _runSpeedPercent, value);
     public static void SetDashSpeedPercent(int value) => SetPercent(ref _dashSpeedPercent, value);
     public static void SetDashDistancePercent(int value) => SetPercent(ref _dashDistancePercent, value);
     public static void SetCameraZoomDistancePercent(int value) => SetPercent(ref _cameraZoomDistancePercent, value);
-    public static void SetDamagePercent(int value) => SetPercent(ref _damagePercent, value);
     public static void SetHealthPercent(int value) => SetPercent(ref _healthPercent, value);
     public static void SetAnimationSpeedPercent(int value) => SetPercent(ref _animationSpeedPercent, value);
-    public static void SetAttackSpeedPercent(int value) => SetPercent(ref _attackSpeedPercent, value);
-    public static void SetAttackDelayPercent(int value) => SetPercent(ref _attackDelayPercent, value);
-    public static void SetAttackRangePercent(int value) => SetPercent(ref _attackRangePercent, value);
 
     public static float GetWalkSpeedMultiplier() => _walkSpeedPercent / 100.0f;
     public static float GetRunSpeedMultiplier() => _runSpeedPercent / 100.0f;
     public static float GetDashSpeedMultiplier() => _dashSpeedPercent / 100.0f;
     public static float GetDashDistanceMultiplier() => _dashDistancePercent / 100.0f;
     public static float GetCameraZoomDistanceMultiplier() => _cameraZoomDistancePercent / 100.0f;
-    public static float GetDamageMultiplier() => _damagePercent / 100.0f;
     public static float GetHealthMultiplier() => _healthPercent / 100.0f;
     public static float GetAnimationSpeedMultiplier() => _animationSpeedPercent / 100.0f;
-    public static float GetAttackSpeedMultiplier() => _attackSpeedPercent / 100.0f;
-    public static float GetAttackDelayMultiplier() => _attackDelayPercent / 100.0f;
-    public static float GetAttackRangeMultiplier() => _attackRangePercent / 50.0f;
 
     public static void Load()
     {
+        // Primeiro os valores do jogo (data/tuning/tuning_overrides.json, chaves game.*); o game_tuning.cfg deste PC vem por cima.
+        _walkSpeedPercent = ReadShipped("game.walk", _walkSpeedPercent);
+        _runSpeedPercent = ReadShipped("game.run", _runSpeedPercent);
+        _dashSpeedPercent = ReadShipped("game.dash_speed", _dashSpeedPercent);
+        _dashDistancePercent = ReadShipped("game.dash_distance", _dashDistancePercent);
+        _cameraZoomDistancePercent = ReadShipped("game.camera_zoom", _cameraZoomDistancePercent);
+        _healthPercent = ReadShipped("game.health", _healthPercent);
+        _animationSpeedPercent = ReadShipped("game.animation_speed", _animationSpeedPercent);
+
         var config = new ConfigFile();
         if (config.Load(SavePath) != Error.Ok)
             return;
@@ -73,18 +68,12 @@ public static class GameTuning
         _dashSpeedPercent = ReadPercent(config, "tuning", "dash_speed", _dashSpeedPercent);
         _dashDistancePercent = ReadPercent(config, "tuning", "dash_distance", _dashDistancePercent);
         _cameraZoomDistancePercent = ReadPercent(config, "tuning", "camera_zoom_distance", _cameraZoomDistancePercent);
-        _damagePercent = ReadPercent(config, "tuning", "damage", _damagePercent);
         _healthPercent = ReadPercent(config, "tuning", "health", _healthPercent);
         _animationSpeedPercent = ReadPercent(config, "tuning", "animation_speed", _animationSpeedPercent);
-        _attackSpeedPercent = ReadPercent(config, "tuning", "attack_speed", _attackSpeedPercent);
-        _attackDelayPercent = ReadPercent(config, "tuning", "attack_delay", _attackDelayPercent);
-        _attackRangePercent = ReadPercent(config, "tuning", "attack_range", _attackRangePercent);
 
-        if (_dashDistancePercent == 100)
+        // Migracao de cfg antigo (100 = padrao velho); nao vale se o arquivo do jogo define a chave.
+        if (_dashDistancePercent == 100 && !CompendiumTuning.TryGetShipped("game.dash_distance", out _))
             _dashDistancePercent = 70;
-
-        if (_attackRangePercent == 100)
-            _attackRangePercent = 65;
     }
 
     public static void Save()
@@ -95,13 +84,23 @@ public static class GameTuning
         config.SetValue("tuning", "dash_speed", _dashSpeedPercent);
         config.SetValue("tuning", "dash_distance", _dashDistancePercent);
         config.SetValue("tuning", "camera_zoom_distance", _cameraZoomDistancePercent);
-        config.SetValue("tuning", "damage", _damagePercent);
         config.SetValue("tuning", "health", _healthPercent);
         config.SetValue("tuning", "animation_speed", _animationSpeedPercent);
-        config.SetValue("tuning", "attack_speed", _attackSpeedPercent);
-        config.SetValue("tuning", "attack_delay", _attackDelayPercent);
-        config.SetValue("tuning", "attack_range", _attackRangePercent);
         config.Save(SavePath);
+    }
+
+    // Depois de promover os ajustes para o arquivo do jogo, o cfg local deixa de ser necessario.
+    public static void DeleteLocalSave()
+    {
+        if (FileAccess.FileExists(SavePath))
+            DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(SavePath));
+    }
+
+    private static int ReadShipped(string key, int fallback)
+    {
+        return CompendiumTuning.TryGetShipped(key, out var value)
+            ? Math.Clamp((int)Math.Round(value), MinPercent, MaxPercent)
+            : fallback;
     }
 
     private static void SetPercent(ref int field, int value)

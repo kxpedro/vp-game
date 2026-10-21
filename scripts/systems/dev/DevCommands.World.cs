@@ -54,12 +54,17 @@ public static partial class DevCommands
             Examples = new[] { "time 0.25", "time 1" }
         });
 
-        DevConsole.Register(new DevCommand("tune", "Lê, altera ou reseta um parâmetro do painel F1 (vai para dev_tuning.json).", Tune)
+        DevConsole.Register(new DevCommand("tune", "Lê, altera ou reseta um parâmetro do painel F1 (vai para dev_tuning.json, só neste PC).", Tune)
         {
             Aliases = new[] { "param", "tuning", "cvar" },
             Usage = "<chave> [valor|reset]",
             Examples = new[] { "tune economy.fruit.max_health", "tune room.waves.count 1", "tune room.waves.count reset" },
             Complete = c => c.Count == 0 ? DevParameterRegistry.All.Select(p => p.Key) : new[] { "reset" }
+        });
+
+        DevConsole.Register(new DevCommand("promote", "Promove os parâmetros alterados para data/tuning/tuning_overrides.json (passam a valer no jogo).", Promote)
+        {
+            Aliases = new[] { "promover" }
         });
 
         ListRoot.Add(new DevCommand("enemies", "Inimigos vivos na cena, arquétipos e raridades aceitos por spawn enemy.", ListEnemies)
@@ -282,7 +287,8 @@ public static partial class DevCommands
     {
         var value = DevParameterRegistry.Get(p.Key);
         var modified = DevParameterRegistry.IsModified(p.Key) ? " *" : "";
-        return $"{p.Key} = {DevText.Number(value)}{modified} (padrão {DevText.Number(p.Default)}, {DevText.Number(p.Min)}..{DevText.Number(p.Max)}) — {p.Label}";
+        var origin = DevParameterRegistry.IsShipped(p.Key) ? "do jogo" : "padrão";
+        return $"{p.Key} = {DevText.Number(value)}{modified} ({origin} {DevText.Number(DevParameterRegistry.EffectiveDefault(p))}, {DevText.Number(p.Min)}..{DevText.Number(p.Max)}) — {p.Label}";
     }
 
     private static void Tune(DevCommandContext c)
@@ -331,6 +337,23 @@ public static partial class DevCommands
         };
         if (when != null)
             c.Print(when);
+    }
+
+    private static void Promote(DevCommandContext c)
+    {
+        var promoted = DevParameterRegistry.PromoteAll(out var error);
+        if (promoted < 0)
+        {
+            c.Error("Falha ao promover: " + error);
+            return;
+        }
+        if (promoted == 0)
+        {
+            c.Print("Nada para promover: nenhum parâmetro alterado neste PC.");
+            return;
+        }
+        c.Hud?.DevConsoleApplyTuning();
+        c.Ok($"{promoted} parâmetro(s) promovido(s) para {CompendiumTuning.ShippedPath}. Faça commit do arquivo.");
     }
 
     private static void ListParams(DevCommandContext c)

@@ -231,7 +231,7 @@ public partial class PlayerAnimator : Node
         return GetAnimationDuration(_heavyAttackAnimation, HeavyAttackAnimationSpeed, false);
     }
 
-    private float CurrentAttackSpeed() => _combat?.GetCurrentAttackSpeedMultiplier() ?? GameTuning.GetAttackSpeedMultiplier();
+    private float CurrentAttackSpeed() => _combat?.GetCurrentAttackSpeedMultiplier() ?? 1.0f;
 
     public float GetAnimationLength(string animationName)
     {

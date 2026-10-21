@@ -46,7 +46,7 @@ using System.Collections.Generic;
 ///   --ui-shots=PASTA         onde gravar os PNGs (tela[_aba]_idioma.png); padrão user://ui_shots
 ///   --ui-langs=a,b,c         idiomas (padrão pt-BR,en,es)
 ///   --ui-screens=a,b         só estas telas (nomes da lista acima; padrão todas)
-/// Apelidos: skill_detail = skill_popup, pause_tuning = tuning, wave_alert = wave_warning.
+/// Apelidos: skill_detail = skill_popup, wave_alert = wave_warning.
 /// Toast, aviso de wave, banner de sala limpa, flash de dano (0,5 s) e número de dano (1 s) se repetem
 /// para aparecerem em qualquer quadro da captura. event_log só aparece em build de debug.
 /// Dados fictícios: chefe com 60% de vida, causa de game over e Loja com estoque fixo. Nada é salvo.
@@ -88,7 +88,7 @@ public partial class UiPreview : Node
 		("menu_credits", null, SceneMenu),
 		("hud_combat", null, SceneArena), ("blessing_bar", null, SceneArena), ("pause", null, SceneArena),
 		("options", null, SceneArena), ("options_audio", null, SceneArena), ("options_game", null, SceneArena),
-		("options_confirm", null, SceneArena), ("options_video_end", null, SceneArena), ("tuning", null, SceneArena), ("dev_panel", null, SceneArena), ("dev_panel_actions", null, SceneArena), ("dev_console", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
+		("options_confirm", null, SceneArena), ("options_video_end", null, SceneArena), ("dev_panel", null, SceneArena), ("dev_panel_actions", null, SceneArena), ("dev_console", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
 		("pause_confirm_menu", null, SceneArena), ("game_over", null, SceneArena),
 		("compendium", "Artifacts", SceneArena), ("compendium", "Blessings", SceneArena), ("compendium", "Skills", SceneArena),
 		("compendium", "Attacks", SceneArena), ("compendium", "Enemies", SceneArena), ("compendium", "Weapons", SceneArena),
@@ -353,7 +353,6 @@ public partial class UiPreview : Node
 	private static string NormalizeScreen(string screen) => screen switch
 	{
 		"skill_detail" => "skill_popup",
-		"pause_tuning" => "tuning",
 		"wave_alert" => "wave_warning",
 		"options_video" => "options",
 		"menu_options_video" => "menu_options",

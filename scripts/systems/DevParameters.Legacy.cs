@@ -9,7 +9,7 @@ public static partial class DevParameterRegistry
     private const string GRewards = "Recompensas / Portas";
     private const string GCombat = "Combate";
     private const string GEnemies = "Inimigos";
-    private const string GWeapons = "Armas";
+    private const string GWeapons = "Armas";  // prefixo: o grupo de cada arma e "Armas: <nome>"
     private const string GQuick = "Ajustes rápidos (GameTuning)";
     private const string GSkills = "Skills (Fonte de Sangue)";
     private const string GArtifacts = "Artefatos";
@@ -24,7 +24,7 @@ public static partial class DevParameterRegistry
         RegisterRewardsLegacy();
         RegisterCombatLegacy();
         RegisterEnemiesLegacy();
-        RegisterWeaponsLegacy();
+        RegisterWeapons(); // DevParameters.Player.cs: um grupo por arma do WeaponCatalog
         RegisterQuickTuning();
         RegisterByIdKeys();
     }
@@ -101,32 +101,6 @@ public static partial class DevParameterRegistry
         P("enemy.blood_mage.attack_range", "Boss: alcance base (nome legado blood_mage)", GEnemies, 2.25, 0, 20, 0.05, false, DevApplyMode.NextRoom, "Base do alcance de cada golpe: x multiplicador de alcance do golpe (ApplyBossMoveTuning, mín. 1). Nome legado preservado.");
     }
 
-    private static void RegisterWeaponsLegacy()
-    {
-        // basic_1..3, quick, special da espada longa: dano, hit_delay, recovery, knockback, range, width, stagger.
-        var attacks = new (string id, string name, double[] v)[]
-        {
-            ("basic_1", "Golpe 1", new[] { 32, 0.12, 0.12, 4.2, 1.55, 1.65, 0.20 }),
-            ("basic_2", "Golpe 2", new[] { 38, 0.11, 0.11, 4.8, 1.75, 1.75, 0.24 }),
-            ("basic_3", "Golpe 3", new[] { 52, 0.16, 0.12, 7.2, 2.85, 0.85, 0.34 }),
-            ("quick", "Golpe rápido", new[] { 68, 0.08, 0.18, 7.4, 2.45, 2.05, 0.28 }),
-            ("special", "Especial", new[] { 56, 0.12, 0.30, 11.0, 3.15, 3.15, 0.44 })
-        };
-
-        foreach (var (id, name, v) in attacks)
-        {
-            var key = $"weapon.longsword.{id}";
-            var label = $"Espada longa - {name}";
-            P($"{key}.damage", $"{label}: dano", GWeapons, v[0], 0, 1000, 1, false);
-            P($"{key}.hit_delay", $"{label}: atraso do acerto (s)", GWeapons, v[1], 0, 2, 0.01, false);
-            P($"{key}.recovery", $"{label}: recuperação (s)", GWeapons, v[2], 0, 2, 0.01, false);
-            P($"{key}.knockback", $"{label}: knockback", GWeapons, v[3], 0, 50, 0.1, false);
-            P($"{key}.range", $"{label}: alcance", GWeapons, v[4], 0.1, 20, 0.05, false, DevApplyMode.Live, "O alcance efetivo é multiplicado pelo ajuste rápido attack_range (padrão 65/50 = 1,3).");
-            P($"{key}.width", $"{label}: largura", GWeapons, v[5], 0.1, 20, 0.05, false);
-            P($"{key}.stagger", $"{label}: stagger (s)", GWeapons, v[6], 0, 3, 0.01, false);
-        }
-    }
-
     private static bool _gameTuningDirty;
     private static int _gameTuningSaveGeneration;
     private static bool _gameTuningExitHooked;
@@ -164,7 +138,7 @@ public static partial class DevParameterRegistry
         GameTuning.Save();
     }
 
-    // Os 11 percentuais do GameTuning: armazenamento externo (user://game_tuning.cfg), fora do dev_tuning.json.
+    // Os 7 percentuais do GameTuning (os de ataque sao por arma): armazenamento externo (user://game_tuning.cfg), fora do dev_tuning.json.
     private static void RegisterQuickTuning()
     {
         void Q(string key, string label, int def, Func<int> get, Action<int> set, string note = "")
@@ -184,12 +158,8 @@ public static partial class DevParameterRegistry
         Q("game.dash_speed", "Velocidade do dash (%)", 100, () => GameTuning.DashSpeedPercent, GameTuning.SetDashSpeedPercent);
         Q("game.dash_distance", "Distância do dash (%)", 70, () => GameTuning.DashDistancePercent, GameTuning.SetDashDistancePercent);
         Q("game.camera_zoom", "Distância da câmera (%)", 100, () => GameTuning.CameraZoomDistancePercent, GameTuning.SetCameraZoomDistancePercent);
-        Q("game.damage", "Dano do jogador (%)", 100, () => GameTuning.DamagePercent, GameTuning.SetDamagePercent);
         Q("game.health", "Vida do jogador (%)", 100, () => GameTuning.HealthPercent, GameTuning.SetHealthPercent);
         Q("game.animation_speed", "Velocidade das animações (%)", 100, () => GameTuning.AnimationSpeedPercent, GameTuning.SetAnimationSpeedPercent);
-        Q("game.attack_speed", "Velocidade de ataque (%)", 100, () => GameTuning.AttackSpeedPercent, GameTuning.SetAttackSpeedPercent);
-        Q("game.attack_delay", "Atraso de ataque (%)", 100, () => GameTuning.AttackDelayPercent, GameTuning.SetAttackDelayPercent);
-        Q("game.attack_range", "Alcance de ataque (%)", 65, () => GameTuning.AttackRangePercent, GameTuning.SetAttackRangePercent, "Multiplicador efetivo = valor / 50.");
     }
 
     // Chaves por ID, geradas a partir dos catalogos (padroes vindos do JSON).

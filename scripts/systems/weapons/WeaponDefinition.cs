@@ -79,6 +79,10 @@ public sealed record WeaponDefinition(
     float SpecialAttackKnockbackMultiplier = 2.5f,
     float LineAttackLungeDistance = 0.8f,
     float SpecialAttackCooldown = 0.26f,
+    // Multiplicadores gerais da arma (antes eram os ajustes rápidos globais game.damage/attack_delay/attack_range).
+    float DamageMultiplier = 1.0f,
+    float AttackDelayMultiplier = 1.0f,
+    float RangeMultiplier = 1.3f,
     // false = arma placeholder (WeaponCatalog.Placeholder): sem moveset próprio, só aparece como "Em breve".
     bool IsImplemented = true
 )
@@ -97,6 +101,9 @@ public sealed record WeaponDefinition(
     public float TunedSpecialAttackKnockbackMultiplier => Tuned("knockback_special", SpecialAttackKnockbackMultiplier);
     public float TunedLineAttackLungeDistance => Tuned("lunge", LineAttackLungeDistance);
     public float TunedSpecialAttackCooldown => Tuned("special_cooldown", SpecialAttackCooldown);
+    public float TunedDamageMultiplier => Tuned("damage_mult", DamageMultiplier);
+    public float TunedAttackDelayMultiplier => Tuned("attack_delay_mult", AttackDelayMultiplier);
+    public float TunedRangeMultiplier => Tuned("range_mult", RangeMultiplier);
     public string DisplayName => Localization.Text($"weapon.{Id}.name");
     public string Description => Localization.Text($"weapon.{Id}.desc");
 }

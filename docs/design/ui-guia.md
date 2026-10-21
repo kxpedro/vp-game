@@ -509,7 +509,7 @@ Substitui `_damageFlash` e `_criticalHealthVignette` (`ColorRect` cheios, `HUD.S
 
 - Tudo atrás de `OS.IsDebugBuild()`: parâmetros de gameplay (tuning), editores `SpinBox` e "Redefinir valores originais" do Dicionário, caminhos de arquivo/IDs internos, cheat de moedas, "Reiniciar teste", FPS, log de eventos, linha "Dano tuning" da ficha.
 - Separação visual: seção própria com cabeçalho **"Ferramentas de desenvolvimento"** (`Section 22` em `TextSecondary`), borda tracejada 1 px `TextSecondary` a 50% e selo `Badge` "DEV" (`PanelInset`). Nunca dourado nem destaque de ação primária.
-- Na pausa: botão "Ferramentas de desenvolvimento" após divisor, abaixo das ações do jogador e acima das destrutivas. Dentro: tuning e editor do Dicionário.
+- Na pausa: botão "Ferramentas de desenvolvimento" após divisor, abaixo das ações do jogador e acima das destrutivas. Dentro: "Painel de dev (F1)" e "Reiniciar teste" (os ajustes de gameplay da pausa foram para o grupo "Ajustes rápidos" do F1).
 - Nos overlays: botão de cheat no rodapé, à direita, `Small`, com selo DEV.
 
 ---
@@ -597,7 +597,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 - **Componentes:** `Window(Medium)` "Pausa", `MenuButton`, `Confirm`, `OptionsPanel(showLanguage: true)` (a pausa tem o seletor de idioma; o HUD reage a `LanguageChanged`), seção DEV (§7), `LabeledSlider`.
 - **Muda:** ordem: Continuar (foco) · Opções · Dicionário · *[divisor]* · Ferramentas de desenvolvimento (debug) · Reiniciar teste (debug) · *[divisor]* · Desistir da run (`Destructive`, só com run ativa) · Voltar ao menu principal (`Destructive` se run ativa, senão `Secondary`). Título e log do HUD escondidos enquanto a pausa estiver aberta. Tuning: rodapé só "Salvar" e "Voltar". Subpáginas voltam com foco no botão que as abriu.
 - **Bugs junto:** sliders presos em 100 (`HUD.Pause.cs:351`: alinhar o clamp ao `MaxValue` de cada slider); pausa inconsistente (wrappers §5.2); game over abaixo de outros overlays (§5.1 regra 6).
-- **Previews:** `pause`, `options`, `options_audio`, `options_game`, `options_video_end`, `options_confirm`, `pause_tuning`, `pause_confirm_abandon`, `pause_confirm_menu`.
+- **Previews:** `pause`, `options`, `options_audio`, `options_game`, `options_video_end`, `options_confirm`, `pause_confirm_abandon`, `pause_confirm_menu`.
 
 ### 8.11 Game over (Aud §11) — **P1**
 
@@ -742,13 +742,13 @@ F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=C
 - `--ui-langs=a,b,c` limita os idiomas (padrão `pt-BR,en,es`); `--ui-screens=a,b` limita as telas (padrão: todas).
 - Cada captura espera cerca de 0,8 s depois de a tela abrir; uma tela que não abre em 6 s é ignorada com aviso. Ao fim, o processo encerra sozinho.
 
-Apelidos: `skill_detail` = `skill_popup`, `pause_tuning` = `tuning`, `wave_alert` = `wave_warning`. Toast, aviso de wave, banner de sala limpa, flash de dano e número de dano se repetem para aparecerem em qualquer quadro da captura. `event_log` só aparece em build de debug.
+Apelidos: `skill_detail` = `skill_popup`, `wave_alert` = `wave_warning`. Toast, aviso de wave, banner de sala limpa, flash de dano e número de dano se repetem para aparecerem em qualquer quadro da captura. `event_log` só aparece em build de debug.
 
 | Nome | Cena | Seção |
 |---|---|---|
 | `menu_main`, `menu_slots`, `menu_confirm_delete`, `menu_options`, `menu_options_audio`, `menu_options_game`, `menu_credits` | `MainMenu` | 8.9 |
 | `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `wave_warning`, `room_clear`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
-| `pause`, `options`, `options_audio`, `options_game`, `options_video_end`, `options_confirm`, `tuning`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
+| `pause`, `options`, `options_audio`, `options_game`, `options_video_end`, `options_confirm`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
 | `dev_panel`, `dev_panel_actions` | `TestArena` | Painel de desenvolvedor F1 (`HUD.DevPanel.cs`, só debug): lista de parâmetros do `DevParameterRegistry` e aba "Ações de teste" |
 | `character_sheet`, `blessing_offer`, `blessing_offer_replace` | `TestArena` | 8.13, 8.17 |
 | `anvil_offer`, `anvil_offer_single` | `TestArena` | Oferta da Bigorna (`HUD.AnvilOffer.cs`; `docs/design/bigorna.md`): 3 cartas de modificação da arma equipada / 1 carta; obrigatória, sem "Voltar" |
