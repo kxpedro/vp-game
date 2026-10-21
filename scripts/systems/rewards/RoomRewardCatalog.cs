@@ -11,7 +11,8 @@ public enum RoomRewardType
 {
     Blessing,
     DevilsFruit,
-    Coins
+    Coins,
+    Anvil
 }
 
 // Opcoes pre-sorteadas de uma porta de Bencao: a linhagem sorteada e as bencoes (com raridade ja rolada), na ordem
@@ -52,6 +53,7 @@ public static class RoomRewardCatalog
     private static readonly int[] DefaultBlessingWeight = { 72, 68, 64 };
     private static readonly int[] DefaultFruitWeight = { 6, 8, 10 };
     private static readonly int[] DefaultCoinsWeight = { 22, 24, 26 };
+    private static readonly int[] DefaultAnvilWeight = { 8, 10, 12 };
     private const float DefaultRampFromFraction = 0.5f;
     private const int DefaultRampShift = 2;
 
@@ -108,7 +110,8 @@ public static class RoomRewardCatalog
     /// </summary>
     /// <param name="setsWithoutBlessing">CPs seguidas sem Bencao antes desta (pity, secao 3.3).</param>
     /// <param name="fruitDoorsChosen">Frutas de porta ja escolhidas na run (teto, secao 5.3).</param>
-    public static RoomRewardSet Roll(int mapIndex, int originRoom, int setsWithoutBlessing, int fruitDoorsChosen, RandomNumberGenerator rng)
+    /// <param name="anvilAvailable">Bigorna elegivel (RunState.CanOfferAnvilDoor: arma com modificacao livre e teto nao atingido); false = peso 0.</param>
+    public static RoomRewardSet Roll(int mapIndex, int originRoom, int setsWithoutBlessing, int fruitDoorsChosen, RandomNumberGenerator rng, bool anvilAvailable = false)
     {
         if (rng == null || !HasRoomRewardSet(mapIndex, originRoom))
             return null;
@@ -125,7 +128,7 @@ public static class RoomRewardCatalog
         // Demais portas (3.2.2): sem repetir tipo na mesma CP; teto de Fruta sai do sorteio (3.2.3).
         while (types.Count < doorCount)
         {
-            if (!TryDrawType(mapIndex, originRoom, totalRooms, types, fruitCapReached, rng, out var type))
+            if (!TryDrawType(mapIndex, originRoom, totalRooms, types, fruitCapReached, anvilAvailable, rng, out var type))
                 break;
             types.Add(type);
         }
@@ -134,13 +137,59 @@ public static class RoomRewardCatalog
             return null;
 
         // Ordem esquerda/direita sorteada por CP (secao 6.3), para o jogador nao decorar a posicao.
-        if (types.Count == 2 && rng.Randf() < DoorSwapChance)
+        if (types.Count == 2 && rng.Randf() < CompendiumTuning.GetFloat("reward.door_swap_chance", DoorSwapChance))
             (types[0], types[1]) = (types[1], types[0]);
 
         var doors = new List<RoomRewardDoor>(types.Count);
         foreach (var type in types)
             doors.Add(new RoomRewardDoor(type, mapIndex, type == RoomRewardType.Coins ? CoinPackAmount(mapIndex) : 0));
 
+        return new RoomRewardSet(mapIndex, originRoom, doors);
+    }
+
+    /// <summary>
+    /// DEBUG (painel de dev, "Forcar portas"): monta o conjunto da saida a partir do override, sem pity, sem teto de Bigorna
+    /// e sem checar elegibilidade (o chamador avisa). <paramref name="forcedCount"/> 0 = Auto (2 se a porta 2 tem tipo forcado;
+    /// senao sorteia pela chance normal de duas portas); <paramref name="forcedTypes"/> tem 2 posicoes (null = Auto: Bencao se
+    /// ainda nao ha, senao sorteio normal sem repetir). Doors[0] = esquerda, sem troca de lado. Aceita tipos repetidos.
+    /// O plano de bencaos NAO e gravado aqui (RunState faz). Devolve null fora de debug ou sem CP.
+    /// </summary>
+    public static RoomRewardSet DevRollForced(int mapIndex, int originRoom, int forcedCount, RoomRewardType?[] forcedTypes, int fruitDoorsChosen, bool anvilAvailable, RandomNumberGenerator rng)
+    {
+        if (!OS.IsDebugBuild() || rng == null || forcedTypes == null || forcedTypes.Length < 2 || !HasRoomRewardSet(mapIndex, originRoom))
+            return null;
+
+        var totalRooms = CampaignCatalog.All[mapIndex].CommonRoomCount;
+        var doorCount = forcedCount is 1 or 2
+            ? forcedCount
+            : forcedTypes[1].HasValue ? 2 : (rng.Randf() < TwoDoorChance(mapIndex, originRoom) ? 2 : 1);
+
+        var slots = new RoomRewardType?[doorCount];
+        var chosen = new List<RoomRewardType>(doorCount);
+        for (var i = 0; i < doorCount; i++)
+        {
+            slots[i] = forcedTypes[i];
+            if (slots[i].HasValue)
+                chosen.Add(slots[i].Value);
+        }
+
+        var fruitCapReached = fruitDoorsChosen >= FruitDoorRunCap;
+        for (var i = 0; i < doorCount; i++)
+        {
+            if (slots[i].HasValue)
+                continue;
+            RoomRewardType type;
+            if (!chosen.Contains(RoomRewardType.Blessing))
+                type = RoomRewardType.Blessing;
+            else if (!TryDrawType(mapIndex, originRoom, totalRooms, chosen, fruitCapReached, anvilAvailable, rng, out type))
+                type = RoomRewardType.Coins;
+            slots[i] = type;
+            chosen.Add(type);
+        }
+
+        var doors = new List<RoomRewardDoor>(doorCount);
+        foreach (var type in slots)
+            doors.Add(new RoomRewardDoor(type.Value, mapIndex, type.Value == RoomRewardType.Coins ? CoinPackAmount(mapIndex) : 0));
         return new RoomRewardSet(mapIndex, originRoom, doors);
     }
 
@@ -154,7 +203,7 @@ public static class RoomRewardCatalog
         if (rng == null)
             return null;
 
-        var offers = BloodBlessingCatalog.RollOffers(rng, BlessingPlanSize, out var family, guaranteeBasicAttack, false);
+        var offers = BloodBlessingCatalog.RollOffers(rng, Math.Max(1, CompendiumTuning.GetInt("reward.blessing.choices", BlessingPlanSize)), out var family, guaranteeBasicAttack, false);
         return offers.Count == 0 ? null : new RoomBlessingPlan(family, offers);
     }
 
@@ -176,6 +225,7 @@ public static class RoomRewardCatalog
         int totalRooms,
         List<RoomRewardType> chosen,
         bool fruitCapReached,
+        bool anvilAvailable,
         RandomNumberGenerator rng,
         out RoomRewardType type)
     {
@@ -185,7 +235,9 @@ public static class RoomRewardCatalog
         var blessing = chosen.Contains(RoomRewardType.Blessing) ? 0 : BlessingWeight(mapIndex);
         var fruit = chosen.Contains(RoomRewardType.DevilsFruit) || fruitCapReached ? 0 : FruitWeight(mapIndex) + shift;
         var coins = chosen.Contains(RoomRewardType.Coins) ? 0 : Math.Max(0, CoinsWeight(mapIndex) - shift);
-        var total = blessing + fruit + coins;
+        // Bigorna: so como segunda porta (nunca a unica: chosen vazio = peso 0), sem repetir tipo e fora do sorteio sem elegibilidade.
+        var anvil = !anvilAvailable || chosen.Count == 0 || chosen.Contains(RoomRewardType.Anvil) ? 0 : Math.Max(0, AnvilWeight(mapIndex));
+        var total = blessing + fruit + coins + anvil;
 
         if (total <= 0)
         {
@@ -198,10 +250,15 @@ public static class RoomRewardCatalog
             type = RoomRewardType.Blessing;
         else if (pick < blessing + fruit)
             type = RoomRewardType.DevilsFruit;
-        else
+        else if (pick < blessing + fruit + coins)
             type = RoomRewardType.Coins;
+        else
+            type = RoomRewardType.Anvil;
         return true;
     }
+
+    private static int AnvilWeight(int mapIndex) =>
+        CompendiumTuning.GetInt($"reward.door_weight.anvil.{mapIndex}", Tier(DefaultAnvilWeight, mapIndex));
 
     private static int BlessingWeight(int mapIndex) =>
         CompendiumTuning.GetInt($"reward.door_weight.blessing.{mapIndex}", Tier(DefaultBlessingWeight, mapIndex));
@@ -217,6 +274,7 @@ public static class RoomRewardCatalog
     {
         RoomRewardType.Blessing => Localization.Text("reward.type.blessing.name"),
         RoomRewardType.DevilsFruit => Localization.Text("reward.type.devils_fruit.name"),
+        RoomRewardType.Anvil => Localization.Text("reward.type.anvil.name"),
         _ => Localization.Text("reward.type.coins.name"),
     };
 
@@ -225,6 +283,7 @@ public static class RoomRewardCatalog
     {
         RoomRewardType.Blessing => Localization.Text("reward.type.blessing.desc"),
         RoomRewardType.DevilsFruit => Localization.Text("reward.type.devils_fruit.desc"),
+        RoomRewardType.Anvil => Localization.Text("reward.type.anvil.desc"),
         _ => Localization.TextFormat("reward.type.coins.desc", coinAmount),
     };
 

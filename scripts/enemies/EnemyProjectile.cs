@@ -104,7 +104,7 @@ public partial class EnemyProjectile : Node3D
             return;
         }
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
-        if (player != null && SegmentDistanceToPlayer(from, to, player.GlobalPosition) <= 0.82f)
+        if (player != null && SegmentDistanceToPlayer(from, to, player.GlobalPosition) <= CompendiumTuning.GetFloat("enemy.projectile.hit_radius", 0.82f))
         {
             player.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, ResolveSourceName());
             QueueFree();

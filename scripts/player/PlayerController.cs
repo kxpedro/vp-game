@@ -5,17 +5,30 @@ public partial class PlayerController : CharacterBody3D
 	[Signal]
 	public delegate void StaminaChangedEventHandler(float currentStamina, float maxStamina);
 
-	[Export] public float WalkSpeed { get; set; } = 3.6f;
-	[Export] public float SprintSpeed { get; set; } = 7.4f;
-	[Export] public float DodgeSpeed { get; set; } = 13.5f;
-	[Export] public float DodgeDuration { get; set; } = 0.22f;
-	[Export] public float DashAttackGraceSeconds { get; set; } = 0.5f;
-	[Export] public float DodgeCooldownSeconds { get; set; } = 0.18f;
-	[Export] public float DodgeInputBufferSeconds { get; set; } = 0.28f;
-	[Export] public float MaxStamina { get; set; } = 100.0f;
-	[Export] public float StaminaRegenPerSecond { get; set; } = 28.0f;
-	[Export] public float DodgeCost { get; set; } = 28.0f;
-	[Export] public float DamageStaggerDuration { get; set; } = 0.24f;
+	public const float DefaultWalkSpeed = 3.6f;
+	public const float DefaultSprintSpeed = 7.4f;
+	public const float DefaultDodgeSpeed = 13.5f;
+	public const float DefaultDodgeDuration = 0.22f;
+	public const float DefaultDashAttackGraceSeconds = 0.5f;
+	public const float DefaultDodgeCooldownSeconds = 0.18f;
+	public const float DefaultDodgeInputBufferSeconds = 0.28f;
+	public const float DefaultMaxStamina = 100.0f;
+	public const float DefaultStaminaRegenPerSecond = 28.0f;
+	public const float DefaultDamageStaggerDuration = 0.24f;
+	// Vida base do jogador: Health.MaxHealth em Player.tscn (100).
+	public const float DefaultMaxHealth = 100.0f;
+
+	[Export] public float WalkSpeed { get; set; } = DefaultWalkSpeed;
+	[Export] public float SprintSpeed { get; set; } = DefaultSprintSpeed;
+	[Export] public float DodgeSpeed { get; set; } = DefaultDodgeSpeed;
+	[Export] public float DodgeDuration { get; set; } = DefaultDodgeDuration;
+	[Export] public float DashAttackGraceSeconds { get; set; } = DefaultDashAttackGraceSeconds;
+	[Export] public float DodgeCooldownSeconds { get; set; } = DefaultDodgeCooldownSeconds;
+	[Export] public float DodgeInputBufferSeconds { get; set; } = DefaultDodgeInputBufferSeconds;
+	[Export] public float MaxStamina { get; set; } = DefaultMaxStamina;
+	[Export] public float StaminaRegenPerSecond { get; set; } = DefaultStaminaRegenPerSecond;
+	[Export] public float DodgeCost { get; set; } = 28.0f; // sem uso no codigo (nao parametrizado)
+	[Export] public float DamageStaggerDuration { get; set; } = DefaultDamageStaggerDuration;
 	[Export] public NodePath HealthPath { get; set; } = new("Health");
 
 	public float CurrentStamina { get; private set; }
@@ -24,19 +37,21 @@ public partial class PlayerController : CharacterBody3D
 	public bool IsStaggered => _damageStaggerTimeRemaining > 0.0f;
 	public Vector3 DodgeDirection => _dodgeDirection;
 	public Vector3 LastMoveDirection => _lastMoveDirection;
-	public float DodgeAnimationSpeedMultiplier => _baseDodgeSpeed > 0.0f ? DodgeSpeed / _baseDodgeSpeed : 1.0f;
+	public float DodgeAnimationSpeedMultiplier => BaseDodgeSpeed > 0.0f ? DodgeSpeed / BaseDodgeSpeed : 1.0f;
+	private float BaseDodgeSpeed => CompendiumTuning.GetFloat("player.dodge.speed", _defaultDodgeSpeed);
 
 	private Health _health;
 	private PlayerSkillController _skillController;
 	private PlayerCombat _combat;
 	private PlayerAnimator _animator;
 	private BloodBlessingRuntime _blessings;
-	private float _baseWalkSpeed;
-	private float _baseSprintSpeed;
-	private float _baseDodgeSpeed;
-	private float _baseDodgeDuration;
-	private float _baseMaxHealth;
-	private float _baseMaxStamina;
+	// Padroes vindos da cena (Export); as chaves player.* do CompendiumTuning sobrescrevem em ApplyRuntimeTuning.
+	private float _defaultWalkSpeed;
+	private float _defaultSprintSpeed;
+	private float _defaultDodgeSpeed;
+	private float _defaultDodgeDuration;
+	private float _defaultMaxHealth;
+	private float _defaultMaxStamina;
 	private Vector3 _lastMoveDirection = Vector3.Forward;
 	private Vector3 _dodgeDirection = Vector3.Zero;
 	private float _dodgeTimeRemaining;
@@ -48,20 +63,21 @@ public partial class PlayerController : CharacterBody3D
 	public override void _Ready()
 	{
 		AddToGroup("player");
-		_baseWalkSpeed = WalkSpeed;
-		_baseSprintSpeed = SprintSpeed;
-		_baseDodgeSpeed = DodgeSpeed;
-		_baseDodgeDuration = DodgeDuration;
+		_defaultWalkSpeed = WalkSpeed;
+		_defaultSprintSpeed = SprintSpeed;
+		_defaultDodgeSpeed = DodgeSpeed;
+		_defaultDodgeDuration = DodgeDuration;
 		CurrentStamina = MaxStamina;
-		_baseMaxStamina = MaxStamina;
+		_defaultMaxStamina = MaxStamina;
 		_health = GetNode<Health>(HealthPath);
 		_skillController = GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
 		_combat = GetNodeOrNull<PlayerCombat>("PlayerCombat");
 		_animator = GetNodeOrNull<PlayerAnimator>("PlayerAnimator");
 		_blessings = GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
-		_baseMaxHealth = _health.MaxHealth;
+		_defaultMaxHealth = _health.MaxHealth;
 
 		GameTuning.Changed += ApplyRuntimeTuning;
+		CompendiumTuning.Changed += OnCompendiumTuningChanged;
 		ApplyRuntimeTuning();
 		CurrentStamina = MaxStamina;
 		if (RunState.SavedPlayerHealth >= 0.0f)
@@ -78,6 +94,7 @@ public partial class PlayerController : CharacterBody3D
 	public override void _ExitTree()
 	{
 		GameTuning.Changed -= ApplyRuntimeTuning;
+		CompendiumTuning.Changed -= OnCompendiumTuningChanged;
 		if (_health != null)
 		{
 			_health.HealthChanged -= OnHealthChanged;
@@ -105,7 +122,7 @@ public partial class PlayerController : CharacterBody3D
 		_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - deltaF, 0.0f);
 		_dodgeInputBufferTimer = Mathf.Max(_dodgeInputBufferTimer - deltaF, 0.0f);
 		if (Input.IsActionJustPressed("dodge"))
-			_dodgeInputBufferTimer = DodgeInputBufferSeconds;
+			_dodgeInputBufferTimer = CompendiumTuning.GetFloat("player.dodge.buffer", DodgeInputBufferSeconds);
 		if (_damageStaggerTimeRemaining > 0.0f)
 		{
 			_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining - deltaF, 0.0f);
@@ -159,7 +176,7 @@ public partial class PlayerController : CharacterBody3D
 				_combat?.QueueQuickAttack();
 			_dodgeDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection : _lastMoveDirection;
 			_dodgeTimeRemaining = DodgeDuration;
-			_dodgeCooldownTimeRemaining = DodgeDuration + DodgeCooldownSeconds;
+			_dodgeCooldownTimeRemaining = DodgeDuration + CompendiumTuning.GetFloat("player.dodge.cooldown", DodgeCooldownSeconds);
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();
@@ -214,20 +231,26 @@ public partial class PlayerController : CharacterBody3D
 	public void ApplyRuntimeTuning()
 	{
 		var moveMultiplier = CharacterSheet.GetMoveSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("MoveSpeed.Multiplier"));
-		WalkSpeed = _baseWalkSpeed * moveMultiplier * GameTuning.GetWalkSpeedMultiplier();
-		SprintSpeed = _baseSprintSpeed * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
-		DodgeSpeed = _baseDodgeSpeed * GameTuning.GetDashSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("DashSpeed.Multiplier"));
-		DodgeDuration = _baseDodgeDuration * GameTuning.GetDashDistanceMultiplier();
-		MaxStamina = _baseMaxStamina + CharacterSheet.GetMaxStaminaBonus();
+		WalkSpeed = CompendiumTuning.GetFloat("player.walk_speed", _defaultWalkSpeed) * moveMultiplier * GameTuning.GetWalkSpeedMultiplier();
+		SprintSpeed = CompendiumTuning.GetFloat("player.sprint_speed", _defaultSprintSpeed) * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
+		DodgeSpeed = BaseDodgeSpeed * GameTuning.GetDashSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("DashSpeed.Multiplier"));
+		DodgeDuration = CompendiumTuning.GetFloat("player.dodge.duration", _defaultDodgeDuration) * GameTuning.GetDashDistanceMultiplier();
+		MaxStamina = CompendiumTuning.GetFloat("player.stamina.max", _defaultMaxStamina) + CharacterSheet.GetMaxStaminaBonus();
 		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
 		var attributeHealthBonus = CharacterSheet.GetMaxHealthBonus() + (_skillController?.MaxHealthBonus() ?? 0.0f);
-		var tunedMaxHealth = ((_baseMaxHealth + attributeHealthBonus) * GameTuning.GetHealthMultiplier()
+		var tunedMaxHealth = ((CompendiumTuning.GetFloat("player.max_health", _defaultMaxHealth) + attributeHealthBonus) * GameTuning.GetHealthMultiplier()
 			+ RunState.MaxHealthBonus)
 			* RunState.MaxHealthMultiplier
 			* RunState.SacrificedMaxHealthMultiplier
 			+ RunState.DevilsFruitMaxHealthTotal;
 		_health?.SetMaxHealthPreservingMissingHealth(tunedMaxHealth);
+	}
+
+	private void OnCompendiumTuningChanged(string key)
+	{
+		if (key == null || key.StartsWith("player."))
+			ApplyRuntimeTuning();
 	}
 
 	public void ConsumeDashAttackGrace()
@@ -260,13 +283,18 @@ public partial class PlayerController : CharacterBody3D
 		if (_combat != null && _combat.TryReleaseQueuedQuickAttack(_dodgeDirection))
 			return;
 
-		_dashAttackGraceTimeRemaining = DashAttackGraceSeconds;
+		_dashAttackGraceTimeRemaining = CompendiumTuning.GetFloat("player.dodge.grace", DashAttackGraceSeconds);
 	}
+
+	// DEBUG (painel de dev, aba Ações): stamina sempre cheia. Só vale em build de debug.
+	public static bool DevInfiniteStamina { get; set; }
 
 	private void RegenerateStamina(float delta)
 	{
 		var previous = CurrentStamina;
-		CurrentStamina = Mathf.Min(CurrentStamina + StaminaRegenPerSecond * delta, MaxStamina);
+		CurrentStamina = DevInfiniteStamina && OS.IsDebugBuild()
+			? MaxStamina
+			: Mathf.Min(CurrentStamina + CompendiumTuning.GetFloat("player.stamina.regen", StaminaRegenPerSecond) * delta, MaxStamina);
 
 		if (!Mathf.IsEqualApprox(previous, CurrentStamina))
 			EmitSignal(SignalName.StaminaChanged, CurrentStamina, MaxStamina);
@@ -284,13 +312,14 @@ public partial class PlayerController : CharacterBody3D
 		if (amount <= 0.0f || _health.IsDead || IsDodging)
 			return;
 
-		_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining, DamageStaggerDuration);
+		var staggerDuration = CompendiumTuning.GetFloat("player.hit_stagger", DamageStaggerDuration);
+		_damageStaggerTimeRemaining = Mathf.Max(_damageStaggerTimeRemaining, staggerDuration);
 		_dodgeTimeRemaining = 0.0f;
 		_dashAttackGraceTimeRemaining = 0.0f;
 		_combat?.CancelCurrentAttack();
 		Velocity = Vector3.Zero;
 		_animator?.SetMovementState(false, false, 0.0f);
-		_animator?.PlayHitReaction(DamageStaggerDuration);
+		_animator?.PlayHitReaction(staggerDuration);
 		CombatFeedback.Instance?.PlayPlayerDamaged(amount);
 	}
 

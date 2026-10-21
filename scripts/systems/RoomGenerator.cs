@@ -54,13 +54,10 @@ public partial class RoomGenerator : Node3D
     private int _nextWaveEnemyIndex;
     private bool _isSpawningWave;
     private float _waveCountdown;
-    private readonly List<(Label3D Label, System.Func<string> Text)> _localizedLabels = new();
 
     public override void _Ready()
     {
         AddToGroup("room_generator");
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged += OnLanguageChanged;
         _rng.Seed = BuildRoomSeed();
         _layoutQuarterTurns = _rng.RandiRange(0, 3);
         _layoutMirror = _rng.Randf() < 0.5f;
@@ -72,12 +69,6 @@ public partial class RoomGenerator : Node3D
         GeneratePointsOfInterest();
         BuildEnemySpawnCells();
         GenerateEnemies();
-    }
-
-    public override void _ExitTree()
-    {
-        if (Localization.Instance != null)
-            Localization.Instance.LanguageChanged -= OnLanguageChanged;
     }
 
     public override void _Process(double delta)
@@ -301,20 +292,20 @@ public partial class RoomGenerator : Node3D
 
     private void GeneratePointsOfInterest()
     {
-        CreatePointOfInterest("Entrance", () => Localization.Text("room.poi.entrance"), CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
+        CreatePointOfInterest("Entrance", CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
         if (RunState.IsBossRoom)
-            CreatePointOfInterest("FinalGate", () => Localization.Text("room.poi.final_gate"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
+            CreatePointOfInterest("FinalGate", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
         else if (!_exitHasDoors)
             // Com conjunto de portas não há marcador "Saída" no piso: as portas da parede são a saída.
-            CreatePointOfInterest("Exit", () => Localization.Text("room.poi.exit"), CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
+            CreatePointOfInterest("Exit", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
         if (!RunState.IsBossRoom)
         {
-            CreatePointOfInterest("CentralChamber", () => Localization.Text("room.poi.central_chamber"), CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
+            CreatePointOfInterest("CentralChamber", CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
         }
         else
         {
-            CreatePointOfInterest("BossArena", () => Localization.Text("room.poi.boss_arena"), Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
+            CreatePointOfInterest("BossArena", Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
         }
     }
 
@@ -324,6 +315,9 @@ public partial class RoomGenerator : Node3D
             return;
 
         _pendingEnemyWaves.Clear();
+        // Parametros de geracao (painel de dev): valem para a proxima sala gerada.
+        WaveCount = CompendiumTuning.GetInt("room.waves.count", WaveCount);
+        EnemiesPerWave = Mathf.Max(CompendiumTuning.GetInt("room.waves.size", EnemiesPerWave), 1);
         EnemyVisualCatalog.BeginWarmup(RunState.IsBossRoom, RunState.CurrentMapIndex);
 
         if (RunState.IsBossRoom)
@@ -361,9 +355,11 @@ public partial class RoomGenerator : Node3D
         // Ranged used to be one third of the pool. Twenty percent fewer yields 26.67%,
         // with the freed weight shared evenly between melee and tank enemies.
         var roll = _rng.Randf();
-        if (roll < 0.266667f)
+        var rangedChance = CompendiumTuning.GetFloat("room.archetype.ranged_chance", 0.266667f);
+        var meleeChance = CompendiumTuning.GetFloat("room.archetype.melee_chance", 0.366666f);
+        if (roll < rangedChance)
             return EnemyArchetype.Ranged;
-        return roll < 0.633333f ? EnemyArchetype.Melee : EnemyArchetype.Tank;
+        return roll < rangedChance + meleeChance ? EnemyArchetype.Melee : EnemyArchetype.Tank;
     }
 
     private Vector3 PickRandomWavePosition()
@@ -373,14 +369,17 @@ public partial class RoomGenerator : Node3D
 
         var best = Vector3.Zero;
         var bestClearance = -1.0f;
-        for (var attempt = 0; attempt < 18; attempt++)
+        var spacing = CompendiumTuning.GetFloat("room.spawn.min_spacing", 2.35f);
+        var jitter = CompendiumTuning.GetFloat("room.spawn.jitter", 0.45f);
+        var attempts = CompendiumTuning.GetInt("room.spawn.attempts", 18);
+        for (var attempt = 0; attempt < attempts; attempt++)
         {
             var cell = _enemySpawnCells[_rng.RandiRange(0, _enemySpawnCells.Count - 1)];
-            var candidate = CellToWorld(cell) + new Vector3(_rng.RandfRange(-0.45f, 0.45f), 0, _rng.RandfRange(-0.45f, 0.45f));
+            var candidate = CellToWorld(cell) + new Vector3(_rng.RandfRange(-jitter, jitter), 0, _rng.RandfRange(-jitter, jitter));
             var clearance = float.MaxValue;
             foreach (var existing in _pendingEnemyWaves)
                 clearance = Mathf.Min(clearance, candidate.DistanceTo(existing.Position));
-            if (_pendingEnemyWaves.Count == 0 || clearance >= 2.35f)
+            if (_pendingEnemyWaves.Count == 0 || clearance >= spacing)
                 return candidate;
             if (clearance > bestClearance) { best = candidate; bestClearance = clearance; }
         }
@@ -392,13 +391,14 @@ public partial class RoomGenerator : Node3D
         if (_isSpawningWave || _nextWaveEnemyIndex >= _pendingEnemyWaves.Count) return;
         _isSpawningWave = true;
         AddToGroup("enemy_spawn_pending");
+        var spawnDelay = CompendiumTuning.GetFloat("room.spawn.delay", EnemySpawnDelaySeconds);
         var wave = _pendingEnemyWaves.GetRange(_nextWaveEnemyIndex, Mathf.Min(EnemiesPerWave, _pendingEnemyWaves.Count - _nextWaveEnemyIndex));
         _nextWaveEnemyIndex += wave.Count;
         var markers = new List<Node3D>();
         foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position));
-        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {EnemySpawnDelaySeconds:0} segundos.");
-        GetTree().CallGroup("hud", "NotifyWaveIncoming", wave.Count, EnemySpawnDelaySeconds);
-        await ToSignal(GetTree().CreateTimer(EnemySpawnDelaySeconds), SceneTreeTimer.SignalName.Timeout);
+        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
+        GetTree().CallGroup("hud", "NotifyWaveIncoming", wave.Count, spawnDelay);
+        await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
 
         if (RunState.IsBossRoom)
         {
@@ -437,7 +437,7 @@ public partial class RoomGenerator : Node3D
         RemoveFromGroup("enemy_spawn_pending");
         if (_nextWaveEnemyIndex >= _pendingEnemyWaves.Count) RemoveFromGroup("enemy_waves_remaining");
         _isSpawningWave = false;
-        _waveCountdown = Mathf.Max(WaveIntervalSeconds - EnemySpawnDelaySeconds, 0.1f);
+        _waveCountdown = Mathf.Max(CompendiumTuning.GetFloat("room.waves.interval", WaveIntervalSeconds) - spawnDelay, 0.1f);
         GetTree().CallGroup("run_manager", "NotifyWaveSpawned", wave.Count, _pendingEnemyWaves.Count);
     }
 
@@ -461,7 +461,7 @@ public partial class RoomGenerator : Node3D
     {
         _enemySpawnCells.Clear();
 
-        AddEnemySpawnCellsWithPadding(EnemySpawnWallPaddingCells, true);
+        AddEnemySpawnCellsWithPadding(CompendiumTuning.GetInt("room.spawn.wall_padding", EnemySpawnWallPaddingCells), true);
 
         if (_enemySpawnCells.Count < EnemyBlocksPerRoom)
             AddEnemySpawnCellsWithPadding(1, true);
@@ -484,7 +484,7 @@ public partial class RoomGenerator : Node3D
         center /= _roomCells.Count;
         _enemySpawnCells.Sort((a, b) =>
             new Vector2(a.X, a.Y).DistanceSquaredTo(center).CompareTo(new Vector2(b.X, b.Y).DistanceSquaredTo(center)));
-        var keep = Mathf.Max(Mathf.CeilToInt(_enemySpawnCells.Count * 0.62f), 8);
+        var keep = Mathf.Max(Mathf.CeilToInt(_enemySpawnCells.Count * CompendiumTuning.GetFloat("room.spawn.central_fraction", 0.62f)), 8);
         if (_enemySpawnCells.Count > keep) _enemySpawnCells.RemoveRange(keep, _enemySpawnCells.Count - keep);
         Shuffle(_enemySpawnCells);
     }
@@ -729,8 +729,7 @@ public partial class RoomGenerator : Node3D
         body.AddChild(visual);
     }
 
-    // labelText resolve a chave de world.json (room.poi.*); e reavaliado quando o idioma muda.
-    private void CreatePointOfInterest(string nodeId, System.Func<string> labelText, Vector3 position, Color color)
+    private void CreatePointOfInterest(string nodeId, Vector3 position, Color color)
     {
         var marker = new MeshInstance3D
         {
@@ -753,26 +752,6 @@ public partial class RoomGenerator : Node3D
             }
         };
         AddChild(marker);
-
-        // Título de lugar em Gold e acima da cabeça do jogador (guia §2.2/§8.8); a cor fica só no marcador do piso.
-        var label = new Label3D
-        {
-            Name = $"{nodeId}Label",
-            Text = labelText(),
-            Position = new Vector3(position.X, Mathf.Max(position.Y + 0.75f, InteractPrompt.TitleMinHeight), position.Z)
-        };
-        InteractPrompt.StyleTitle(label);
-        AddChild(label);
-        _localizedLabels.Add((label, labelText));
-    }
-
-    private void OnLanguageChanged(string language)
-    {
-        foreach (var (label, text) in _localizedLabels)
-        {
-            if (IsInstanceValid(label))
-                label.Text = text();
-        }
     }
 
     private void RemoveStaticArenaShell()

@@ -1,0 +1,155 @@
+{
+    "schema":  "orch.plano/1",
+    "id":  "20261012-0131-remover-titulos-3d",
+    "titulo":  "Remover os títulos flutuantes de lugar nas salas",
+    "status":  "concluido",
+    "demanda":  "remover textos que ficam flutuando no mapa, exemplo na imagem (Portão Final, Calabouços de Armand - Chefe: Guardiã Invisível, Arena do Chefe)",
+    "objetivo":  "Nenhum título decorativo de lugar fica flutuando nas salas da run. A informação continua no HUD. Prompts de interação e textos de combate não mudam.",
+    "grupo":  "20261012-0131-remover-titulos-3d",
+    "dependeDosPlanos":  [
+
+                         ],
+    "criado":  "2026-10-12T01:31:00-03:00",
+    "atualizado":  "2026-10-12T02:03:00-03:00",
+    "commitInicial":  "0740bf5",
+    "versaoOrch":  "0.5.0",
+    "ondas":  [
+                  [
+                      "T1"
+                  ],
+                  [
+                      "T2"
+                  ],
+                  [
+                      "T3"
+                  ]
+              ],
+    "tarefas":  [
+                    {
+                        "id":  "T1",
+                        "titulo":  "Inventariar os Label3D e classificar (decorativo / interativo / combate)",
+                        "executor":  "orch:pesquisador",
+                        "dependeDe":  [
+
+                                      ],
+                        "arquivos":  [
+
+                                     ],
+                        "prontoQuando":  "Tabela arquivo:linha → categoria → remover? entregue; os 3 textos da imagem têm origem confirmada.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:40:00-03:00",
+                        "fim":  "2026-10-12T01:46:00-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Origem confirmada: RunManager.CreateRoomLabel (RoomTitle, 2 chamadas) e RoomGenerator.CreatePointOfInterest (5 POIs: Entrada, Portão Final, Saída, Câmara Central, Arena do Chefe). Decorativos do hub: TrainingHallLabel e CoffinLabel. Nada lê esses nós por nome (exceto HUD.cs:337 para o caixão); StyleTitlesAndAnchor não é afetado.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T2",
+                        "titulo":  "Remover os títulos decorativos e o encanamento de idioma que ficar sem uso",
+                        "executor":  "orch:desenvolvedor",
+                        "dependeDe":  [
+                                          "T1"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/RunManager.cs",
+                                         "scripts/systems/RoomGenerator.cs",
+                                         "scripts/systems/CrowsNestCrypt.cs",
+                                         "scripts/ui/HUD.cs",
+                                         "scenes/game/CrowsNest.tscn",
+                                         "data/localization/*/world.json",
+                                         "data/localization/*/ui.json"
+                                     ],
+                        "prontoQuando":  "dotnet build com 0 erros e 0 avisos; nenhum título decorativo na árvore em runtime; prompts de interação e números de dano continuam.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:46:00-03:00",
+                        "fim":  "2026-10-12T01:55:00-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Removidos RoomTitle (RunManager), Label3D dos 5 POIs (RoomGenerator, marcador de piso mantido), TrainingHallLabel e CoffinLabel (CrowsNestCrypt, CrowsNest.tscn, HUD.cs) e 9 chaves órfãs nos 3 idiomas. Build 0 erros/0 avisos; validate_localization 0 erros (1054 chaves).",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T3",
+                        "titulo":  "Verificar build, localização e smoke headless",
+                        "executor":  "orch:testador",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+
+                                     ],
+                        "prontoQuando":  "Build e validadores sem erro; smoke da TestArena e da sala de boss sem ERROR.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:55:00-03:00",
+                        "fim":  "2026-10-12T02:03:00-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Build 0 erros/0 avisos; validadores de localização (1054 chaves), bênçãos (63) e artefatos (20) sem erro; smoke headless de TestArena e CrowsNest sem ERROR; ui-batch hud_combat gerou captura. Só avisos de vazamento no encerramento do Godot (não relacionados).",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    }
+                ],
+    "eventos":  [
+                    {
+                        "quando":  "2026-10-12T01:31:00-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-criado",
+                        "texto":  "Plano criado"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:40:00-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-iniciado",
+                        "texto":  "Plano iniciado"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:40:00-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T1 iniciada (orch:pesquisador)"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:46:00-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T1 concluída"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:46:00-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T2 iniciada (orch:desenvolvedor)"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:55:00-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T2 concluída"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:55:00-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T3 iniciada (orch:testador)"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:03:00-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T3 concluída"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:03:00-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-encerrado",
+                        "texto":  "Plano concluído"
+                    }
+                ],
+    "resultadoFinal":  "Títulos decorativos removidos das salas da run (RoomTitle, 5 POIs) e do hub (Sala de Treinamento, Caixão); marcadores de piso, prompts e textos de combate intactos. Arquivos: RunManager.cs, RoomGenerator.cs, CrowsNestCrypt.cs, HUD.cs, CrowsNest.tscn, world.json e ui.json nos 3 idiomas. Pendência: README.md:18 e :100 citam a sala de treinamento (a sala continua existindo; só o rótulo saiu)."
+}

@@ -378,6 +378,10 @@ public partial class ScenePortal : Area3D
                 label = Localization.Text("reward.door.fruit.short");
                 hint = Localization.TextFormat("reward.door.fruit.hint", Mathf.RoundToInt(RunState.DevilsFruitMaxHealthAmount));
                 break;
+            case RoomRewardType.Anvil:
+                label = Localization.Text("reward.door.anvil.short");
+                hint = Localization.Text("reward.door.anvil.hint");
+                break;
             default:
                 label = Localization.TextFormat("reward.door.coins.short", door.CoinAmount);
                 hint = Localization.TextFormat("reward.door.coins.hint", door.CoinAmount);

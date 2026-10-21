@@ -221,7 +221,7 @@
   "menu.slot_unreadable": "Guardado ilegible",
   "menu.unreadable_confirm_body": "No se pudo leer este guardado. Empezar una partida nueva reemplaza el archivo actual (se guarda una copia en la carpeta de guardados).",
   "menu.unreadable_confirm_title": "Ranura {0}: guardado ilegible",
-  "offer.blessing.all_found": "Se encontraron todas las bendiciones únicas. La sangre se convirtió en {0} Monedas.",
+  "offer.blessing.all_found": "Se encontraron todas las bendiciones únicas. La sangre se convirtió en {0} Monedas de Sangre.",
   "offer.blessing.level_new": "Nueva (Nv1)",
   "offer.blessing.level_up": "Nv{0} → Nv{1}",
   "offer.blessing.lineage": "Linaje {0}",
@@ -294,9 +294,7 @@
   "prompt.weapon_bench": "Elegir arma",
   "scene.crows_nest.character_locked": "???\nBloqueado",
   "prompt.character_soon": "Próximamente",
-  "scene.crows_nest.coffin": "Ataúd de Virgil",
   "scene.crows_nest.start_portal": "Ascenso al Castillo de Armand",
-  "scene.crows_nest.training_hall": "SALA DE ENTRENAMIENTO\nMuñeco regenerativo",
   "scene.start_room.fountain": "Fuente de la Primera Herencia",
   "scene.start_room.fountain_prompt": "Revelar una Bendición de Sangre",
   "sheet.artifact.origin.shop": "Comprado en la Tienda",
@@ -408,5 +406,13 @@
   "ui.rarity.stirps": "Stirps",
   "ui.rarity.uncommon": "Poco común",
   "ui.skill_tree.bestialis": "Bestialis",
-  "ui.skill_tree.humanitas": "Humanitas"
+  "ui.skill_tree.humanitas": "Humanitas",
+  "anvil.offer.title": "Ferrum Sanguinis",
+  "anvil.offer.status": "El yunque espera. Elige una modificación para {0}.",
+  "anvil.offer.choose": "Forjar",
+  "anvil.offer.must_choose": "Elige una modificación para desbloquear la salida.",
+  "anvil.offer.none": "No hay modificaciones disponibles para esta arma. El hierro se convirtió en {0} Monedas de Sangre.",
+  "anvil.offer.applied": "Modificación forjada: {0}",
+  "anvil.sheet.title": "Modificaciones del arma",
+  "anvil.sheet.none": "Ninguna modificación forjada."
 }

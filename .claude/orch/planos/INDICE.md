@@ -2,6 +2,9 @@
 
 | Data | Plano | Demanda | Status | Tarefas |
 |---|---|---|---|---|
+| 2026-10-12 01:31 | [bigorna](20261012-0131-bigorna.md) | Bigorna: aprimoramentos do set de armas equipado | concluido | 6/6 |
+| 2026-10-12 01:31 | [dev-tools](20261012-0131-dev-tools.md) | Painel de ferramentas de desenvolvedor dentro do jogo | concluido | 11/11 |
+| 2026-10-12 01:31 | [remover-titulos-3d](20261012-0131-remover-titulos-3d.md) | Remover os títulos flutuantes de lugar nas salas | concluido | 3/3 |
 | 2026-10-11 08:15 | [revisao-graficos](20261011-0815-revisao-graficos.md) | Revisão das configurações gráficas | em-execucao | 0/3 |
 | 2026-10-11 08:15 | [sistema-dialogo](20261011-0815-sistema-dialogo.md) | Mecânica de diálogo no estilo Hades | em-execucao | 0/6 |
 | 2026-10-11 08:15 | [combate-leitura-visual](20261011-0815-combate-leitura-visual.md) | Animações de ataque e telegraph legíveis (jogador e inimigos) | em-execucao | 0/4 |

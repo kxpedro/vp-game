@@ -474,5 +474,22 @@
   "weapon.longsword.quick.name": "Corte Giratorio",
   "weapon.longsword.special.name": "Caída Carmesí",
   "weapon.whip.desc": "Gran alcance y control de grupos.",
-  "weapon.whip.name": "Látigo"
+  "weapon.whip.name": "Látigo",
+  "reward.type.anvil.name": "Yunque",
+  "reward.type.anvil.desc": "Forja una modificación para el arma equipada: elige entre las ofrecidas. Dura hasta el final de la run.",
+  "weaponmod.longsword_reach.name": "Hoja Alargada",
+  "weaponmod.longsword_reach.desc": "Aumenta el alcance de todos los ataques en {0}.",
+  "weaponmod.longsword_reach.flavor": "Más acero entre tú y el peligro.",
+  "weaponmod.longsword_edge.name": "Filo Afilado",
+  "weaponmod.longsword_edge.desc": "Aumenta el daño del combo básico y del ataque rápido en {0}.",
+  "weaponmod.longsword_edge.flavor": "La piedra de afilar nunca duerme.",
+  "weaponmod.longsword_tempo.name": "Empuñadura Equilibrada",
+  "weaponmod.longsword_tempo.desc": "Reduce en {0} la preparación y la recuperación de los ataques.",
+  "weaponmod.longsword_tempo.flavor": "El peso justo en la mano justa.",
+  "weaponmod.longsword_weight.name": "Contrapeso de Acero",
+  "weaponmod.longsword_weight.desc": "Aumenta el empuje en {0} y la duración del aturdimiento en {1}.",
+  "weaponmod.longsword_weight.flavor": "Lo que la hoja no corta, el peso lo derriba.",
+  "weaponmod.longsword_whirl.name": "Impacto Ampliado",
+  "weaponmod.longsword_whirl.desc": "El ataque especial gana {0} de radio y tiene {1} menos de recarga.",
+  "weaponmod.longsword_whirl.flavor": "El suelo carmesí se ensancha con cada golpe."
 }

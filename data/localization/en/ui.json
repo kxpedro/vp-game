@@ -221,7 +221,7 @@
   "menu.slot_unreadable": "Unreadable save",
   "menu.unreadable_confirm_body": "This save could not be read. Starting a new game replaces the current file (a copy is kept in the saves folder).",
   "menu.unreadable_confirm_title": "Slot {0}: unreadable save",
-  "offer.blessing.all_found": "All unique blessings have been found. The blood turned into {0} Coins.",
+  "offer.blessing.all_found": "All unique blessings have been found. The blood turned into {0} Blood Coins.",
   "offer.blessing.level_new": "New (Lv1)",
   "offer.blessing.level_up": "Lv{0} → Lv{1}",
   "offer.blessing.lineage": "{0} lineage",
@@ -294,9 +294,7 @@
   "prompt.weapon_bench": "Choose weapon",
   "scene.crows_nest.character_locked": "???\nLocked",
   "prompt.character_soon": "Coming soon",
-  "scene.crows_nest.coffin": "Virgil's Coffin",
   "scene.crows_nest.start_portal": "Ascent to Armand's Castle",
-  "scene.crows_nest.training_hall": "TRAINING HALL\nRegenerating dummy",
   "scene.start_room.fountain": "Fount of the First Inheritance",
   "scene.start_room.fountain_prompt": "Reveal a Blood Blessing",
   "sheet.artifact.origin.shop": "Bought at the Shop",
@@ -408,5 +406,13 @@
   "ui.rarity.stirps": "Stirps",
   "ui.rarity.uncommon": "Uncommon",
   "ui.skill_tree.bestialis": "Bestialis",
-  "ui.skill_tree.humanitas": "Humanitas"
+  "ui.skill_tree.humanitas": "Humanitas",
+  "anvil.offer.title": "Ferrum Sanguinis",
+  "anvil.offer.status": "The anvil awaits. Choose a modification for {0}.",
+  "anvil.offer.choose": "Forge",
+  "anvil.offer.must_choose": "Choose a modification to unlock the exit.",
+  "anvil.offer.none": "No modifications available for this weapon. The iron became {0} Blood Coins.",
+  "anvil.offer.applied": "Modification forged: {0}",
+  "anvil.sheet.title": "Weapon modifications",
+  "anvil.sheet.none": "No modifications forged."
 }

@@ -843,8 +843,8 @@ public partial class HUD
 					AddCompendiumNumberEditor(section, "Velocidade", "enemy.blood_mage.move_speed", 2.7, 0.1, 100.0);
 					AddCompendiumNumberEditor(section, "Alcance", "enemy.blood_mage.attack_range", 2.25, 0.05, 100.0);
 					var rewardIndex = Mathf.Clamp(mapNumber - 1, 0, 3);
-					AddCompendiumNumberEditor(section, "Moedas da run (fixo)", $"economy.coins.boss.{rewardIndex}", new[] { 100.0, 130.0, 160.0, 0.0 }[rewardIndex]);
-					AddCompendiumNumberEditor(section, "Sangue Amaldiçoado (fixo)", $"economy.cursed_blood.boss.{rewardIndex}", new[] { 40.0, 60.0, 80.0, 120.0 }[rewardIndex]);
+					AddCompendiumNumberEditor(section, "Moedas da run (fixo)", $"economy.coins.boss.{rewardIndex}", EconomyDefaults.BossCoins[rewardIndex]);
+					AddCompendiumNumberEditor(section, "Sangue Amaldiçoado (fixo)", $"economy.cursed_blood.boss.{rewardIndex}", EconomyDefaults.BossCursedBlood[rewardIndex]);
 				}
 			});
 		}
@@ -882,8 +882,8 @@ public partial class HUD
 				AddCompendiumNumberEditor(section, "Vida base", "enemy.basic.health", 110.0);
 				AddCompendiumNumberEditor(section, "Dano base", "enemy.basic.damage", 22.0);
 				AddCompendiumNumberEditor(section, "Velocidade", "enemy.basic.move_speed", 3.2, 0.1, 100.0);
-				AddCompendiumNumberEditor(section, "Moedas da run: sorteio mínimo", "economy.coins.enemy.base_min", 3.0);
-				AddCompendiumNumberEditor(section, "Moedas da run: sorteio máximo", "economy.coins.enemy.base_max", 7.0);
+				AddCompendiumNumberEditor(section, "Moedas da run: sorteio mínimo", "economy.coins.enemy.base_min", EconomyDefaults.EnemyCoinsMin);
+				AddCompendiumNumberEditor(section, "Moedas da run: sorteio máximo", "economy.coins.enemy.base_max", EconomyDefaults.EnemyCoinsMax);
 				AddCompendiumNumberEditor(section, "Fúria ao morrer", "enemy.basic.fury_on_death", 12.0);
 			}
 		});
@@ -973,7 +973,11 @@ public partial class HUD
 		};
 		valueInput.ValueChanged += value =>
 		{
-			CompendiumTuning.SetNumber(key, value);
+			// Chave registrada passa pelo registro (clamp, inteiro, "igual ao padrão não é override"); as demais vão direto.
+			if (DevParameterRegistry.Find(key) != null)
+				DevParameterRegistry.Set(key, value);
+			else
+				CompendiumTuning.SetNumber(key, value);
 			SetCompendiumStatus($"Valor customizado: {label} = {value:0.##}");
 			ScheduleCompendiumApply();
 		};
@@ -1055,7 +1059,7 @@ public partial class HUD
 		// Rodapé do Dicionário ("Fechar") some enquanto a confirmação está aberta.
 		SetCompendiumFooterInert(true);
 		var confirm = UiComponents.Confirm(parent, "Redefinir valores originais?",
-			"Todos os valores customizados no Dicionário voltam ao original.", "Redefinir",
+			"Todos os valores customizados no Dicionário voltam ao original. Isto também apaga TODOS os valores do painel de dev (F1).", "Redefinir",
 			() => { SetCompendiumFooterInert(false); ResetCompendiumValues(); },
 			ConfirmKind.Destructive, () => SetCompendiumFooterInert(false));
 		UiModalStack.Push(confirm.Window.Root, true, confirm.CancelButton, confirm.Cancel);

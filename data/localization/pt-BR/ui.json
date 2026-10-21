@@ -221,7 +221,7 @@
   "menu.slot_unreadable": "Save ilegível",
   "menu.unreadable_confirm_body": "Este save não pôde ser lido. Começar um novo jogo substitui o arquivo atual (uma cópia é guardada na pasta de saves).",
   "menu.unreadable_confirm_title": "Slot {0}: save ilegível",
-  "offer.blessing.all_found": "Todas as bênçãos únicas foram encontradas. O sangue virou {0} Moedas.",
+  "offer.blessing.all_found": "Todas as bênçãos únicas foram encontradas. O sangue virou {0} Moedas de Sangue.",
   "offer.blessing.level_new": "Nova (N1)",
   "offer.blessing.level_up": "N{0} → N{1}",
   "offer.blessing.lineage": "Linhagem {0}",
@@ -294,9 +294,7 @@
   "prompt.weapon_bench": "Escolher arma",
   "scene.crows_nest.character_locked": "???\nBloqueado",
   "prompt.character_soon": "Em breve",
-  "scene.crows_nest.coffin": "Caixão de Virgil",
   "scene.crows_nest.start_portal": "Subida ao Castelo de Armand",
-  "scene.crows_nest.training_hall": "SALA DE TREINAMENTO\nBoneco regenerativo",
   "scene.start_room.fountain": "Fonte da Primeira Herança",
   "scene.start_room.fountain_prompt": "Revelar uma Bênção de Sangue",
   "sheet.artifact.origin.shop": "Comprado na Loja",
@@ -408,5 +406,13 @@
   "ui.rarity.stirps": "Stirps",
   "ui.rarity.uncommon": "Incomum",
   "ui.skill_tree.bestialis": "Bestialis",
-  "ui.skill_tree.humanitas": "Humanitas"
+  "ui.skill_tree.humanitas": "Humanitas",
+  "anvil.offer.title": "Ferrum Sanguinis",
+  "anvil.offer.status": "A bigorna aguarda. Escolha uma modificação para {0}.",
+  "anvil.offer.choose": "Forjar",
+  "anvil.offer.must_choose": "Escolha uma modificação para liberar a saída.",
+  "anvil.offer.none": "Nenhuma modificação disponível para esta arma. O ferro virou {0} Moedas de Sangue.",
+  "anvil.offer.applied": "Modificação forjada: {0}",
+  "anvil.sheet.title": "Modificações da arma",
+  "anvil.sheet.none": "Nenhuma modificação forjada."
 }

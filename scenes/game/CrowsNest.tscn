@@ -188,15 +188,6 @@ position = Vector3(0, 0.28, -1.66)
 material_override = SubResource("WoodMaterial")
 mesh = SubResource("CoffinRailShortMesh")
 
-[node name="CoffinLabel" type="Label3D" parent="VirgilCoffin"]
-pixel_size = 0.0085
-position = Vector3(0, 1.2, 0)
-billboard = 1
-modulate = Color(0.72, 0.68, 0.72, 1)
-text = "Caixão de Virgil"
-font_size = 30
-outline_size = 8
-
 [node name="AncientCoffinWest" type="MeshInstance3D" parent="."]
 position = Vector3(-3.1, 0.15, 11.5)
 rotation = Vector3(0, 0.18, 0)

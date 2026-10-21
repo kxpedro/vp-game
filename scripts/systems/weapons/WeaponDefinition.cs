@@ -83,6 +83,20 @@ public sealed record WeaponDefinition(
     bool IsImplemented = true
 )
 {
+    // Valores efetivos: chaves weapon.<id>.<campo> do CompendiumTuning (padrao = valor do catalogo).
+    private float Tuned(string field, float fallback) => CompendiumTuning.GetFloat($"weapon.{Id}.{field}", fallback);
+    public float TunedBasicAttackSpeedMultiplier => Tuned("basic_attack_speed", BasicAttackSpeedMultiplier);
+    public float TunedAttackArcDegrees => Tuned("arc_degrees", AttackArcDegrees);
+    public float TunedHitboxEdgeForgiveness => Tuned("edge_forgiveness", HitboxEdgeForgiveness);
+    public float TunedQuickAttackHitboxScale => Tuned("quick_hitbox_scale", QuickAttackHitboxScale);
+    public float TunedQuickAttackDamageMultiplier => Tuned("quick_damage_mult", QuickAttackDamageMultiplier);
+    public float TunedBackstabDamageMultiplier => Tuned("backstab_mult", BackstabDamageMultiplier);
+    public float TunedWallImpactDamageMultiplier => Tuned("wall_impact_mult", WallImpactDamageMultiplier);
+    public float TunedBasicAttackKnockbackMultiplier => Tuned("knockback_basic", BasicAttackKnockbackMultiplier);
+    public float TunedQuickAttackKnockbackMultiplier => Tuned("knockback_quick", QuickAttackKnockbackMultiplier);
+    public float TunedSpecialAttackKnockbackMultiplier => Tuned("knockback_special", SpecialAttackKnockbackMultiplier);
+    public float TunedLineAttackLungeDistance => Tuned("lunge", LineAttackLungeDistance);
+    public float TunedSpecialAttackCooldown => Tuned("special_cooldown", SpecialAttackCooldown);
     public string DisplayName => Localization.Text($"weapon.{Id}.name");
     public string Description => Localization.Text($"weapon.{Id}.desc");
 }

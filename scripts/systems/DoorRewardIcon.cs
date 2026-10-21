@@ -6,7 +6,8 @@ using System;
 // Emblema por tipo (forma e luminância primeiro, cor só reforça):
 //   Bênção de Sangue: ícone da família sorteada (ou losango dourado claro, se faltar arte);
 //   Fruta do Diabo: esfera vermelho-escuro com haste (emissiva, para não sumir no disco escuro);
-//   Moedas de Sangue: pilha de três discos bronze.
+//   Moedas de Sangue: pilha de três discos bronze;
+//   Bigorna: silhueta de bigorna em aço claro (base larga, cintura, tampo e chifre).
 // Tudo fica de frente para a câmera (billboard), inclusive a faixa, para o rótulo ler igual de qualquer ponto da sala.
 // Quem chama: ScenePortal.AddRewardIcon (porta, medalhão a 3,5 m do piso, acima do lintel) e RewardPickup (item no chão).
 public static class DoorRewardIcon
@@ -40,6 +41,8 @@ public static class DoorRewardIcon
     private const string BlessingHex = "E2B94A";
     private const string FruitHex = "8E0F1A";
     private const string StemHex = "1F0D0A";
+    private const string AnvilHex = "8795A8";
+    private const string AnvilTopHex = "C4CEDA";
     private const string CoinHex = "B9733B";
     private const string CoinRimHex = "D9A066";
     private const string FillHex = "2A1B12";
@@ -68,6 +71,7 @@ public static class DoorRewardIcon
         {
             RoomRewardType.Blessing => BlessingLabel(door),
             RoomRewardType.DevilsFruit => Localization.Text("reward.door.fruit.short"),
+            RoomRewardType.Anvil => Localization.Text("reward.door.anvil.short"),
             _ => Localization.TextFormat("reward.door.coins.short", door.CoinAmount),
         };
     }
@@ -88,6 +92,9 @@ public static class DoorRewardIcon
                 break;
             case RoomRewardType.DevilsFruit:
                 AddDevilsFruit(GeometryShape(emblem));
+                break;
+            case RoomRewardType.Anvil:
+                AddAnvil(GeometryShape(emblem));
                 break;
             default:
                 AddCoins(GeometryShape(emblem));
@@ -199,6 +206,50 @@ public static class DoorRewardIcon
             MaterialOverride = Material(StemHex, 0.0f, 0.8f),
             Position = new Vector3(0.0f, 0.22f, 0.0f)
         });
+    }
+
+    // Bigorna: silhueta em T assimétrica (base larga, cintura estreita, tampo largo e chifre cônico à direita). Aço claro com
+    // brilho leve, para ler no disco escuro; a forma (não a cor) a distingue da esfera, da pilha de discos e do losango.
+    private static void AddAnvil(Node3D parent)
+    {
+        var steel = AnvilMaterial(AnvilHex, 0.25f);
+        var top = AnvilMaterial(AnvilTopHex, 0.35f);
+        AddBox(parent, "AnvilBase", new Vector3(0.34f, 0.07f, 0.16f), new Vector3(0.0f, -0.16f, 0.0f), steel);
+        AddBox(parent, "AnvilWaist", new Vector3(0.16f, 0.14f, 0.12f), new Vector3(0.0f, -0.055f, 0.0f), steel);
+        AddBox(parent, "AnvilTop", new Vector3(0.40f, 0.09f, 0.16f), new Vector3(0.0f, 0.055f, 0.0f), top);
+        parent.AddChild(new MeshInstance3D
+        {
+            Name = "AnvilHorn",
+            Mesh = new CylinderMesh { TopRadius = 0.01f, BottomRadius = 0.075f, Height = 0.20f, RadialSegments = 12 },
+            MaterialOverride = top,
+            Position = new Vector3(0.30f, 0.055f, 0.0f),
+            RotationDegrees = new Vector3(0.0f, 0.0f, -90.0f)
+        });
+    }
+
+    private static void AddBox(Node3D parent, string name, Vector3 size, Vector3 position, Material material)
+    {
+        parent.AddChild(new MeshInstance3D
+        {
+            Name = name,
+            Mesh = new BoxMesh { Size = size },
+            MaterialOverride = material,
+            Position = position
+        });
+    }
+
+    private static StandardMaterial3D AnvilMaterial(string hex, float emission)
+    {
+        var color = Color.FromHtml("#" + hex);
+        return new StandardMaterial3D
+        {
+            AlbedoColor = color,
+            Roughness = 0.4f,
+            Metallic = 0.5f,
+            EmissionEnabled = true,
+            Emission = color,
+            EmissionEnergyMultiplier = emission
+        };
     }
 
     // Três discos achatados empilhados. Cada disco é um cilindro bronze com um anel externo mais claro por cima.

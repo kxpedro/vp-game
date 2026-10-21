@@ -8,10 +8,11 @@ public partial class PlayerCombat : Node
 
 	[Export] public NodePath AttackAreaPath { get; set; } = new("../AttackArea");
 	[Export] public NodePath AttackShapePath { get; set; } = new("../AttackArea/CollisionShape3D");
+	public const float DefaultFuryDrainPerSecond = 10.0f;
 	[Export] public float ComboResetTime { get; set; } = 1.0f;
 	[Export] public float QuickAttackInputBufferSeconds { get; set; } = 0.32f;
 	[Export] public float MaxFury { get; set; } = 100.0f;
-	[Export] public float FuryDrainPerSecond { get; set; } = 10.0f;
+	[Export] public float FuryDrainPerSecond { get; set; } = DefaultFuryDrainPerSecond;
 	[Export] public float FuryEndBurstDamageRatio { get; set; } = 0.15f;
 	[Export] public float FuryEndBurstRadius { get; set; } = 3.5f;
 	[Export] public float FuryDamageMultiplier { get; set; } = 1.75f;
@@ -98,7 +99,7 @@ public partial class PlayerCombat : Node
 			return;
 		if (Input.IsActionJustPressed("attack_light") && !IsPointerAttackBlocked())
 		{
-			_quickAttackInputBufferTimer = QuickAttackInputBufferSeconds;
+			_quickAttackInputBufferTimer = CompendiumTuning.GetFloat("combat.quick.buffer", QuickAttackInputBufferSeconds);
 			BeginBasicAttack();
 		}
 		if (Input.IsActionJustPressed("attack_special"))
@@ -141,7 +142,7 @@ public partial class PlayerCombat : Node
 			return;
 		}
 
-		BeginAttack(GetTunedAttack(BasicCombo[_lightComboIndex], $"weapon.{EquippedWeapon.Id}.basic_{_lightComboIndex + 1}"), PlayerAttackType.Basic);
+		BeginAttack(GetTunedAttack(BasicCombo[_lightComboIndex], $"weapon.{EquippedWeapon.Id}.basic_{_lightComboIndex + 1}", PlayerAttackType.Basic), PlayerAttackType.Basic);
 	}
 
 	private void RequestSpecialAttack()
@@ -169,8 +170,8 @@ public partial class PlayerCombat : Node
 		if (!CanBeginSpecialAttack())
 			return;
 
-		var attack = GetTunedAttack(EquippedWeapon.SpecialAttack, $"weapon.{EquippedWeapon.Id}.special");
-		_specialAttackCooldownTimer = Mathf.Max(EquippedWeapon.SpecialAttackCooldown, 0.05f);
+		var attack = GetTunedAttack(EquippedWeapon.SpecialAttack, $"weapon.{EquippedWeapon.Id}.special", PlayerAttackType.Special);
+		_specialAttackCooldownTimer = Mathf.Max(EquippedWeapon.TunedSpecialAttackCooldown * (1.0f - Mathf.Clamp(RunState.GetWeaponModTotal("SpecialCooldown.Reduction"), 0.0f, 0.9f)), 0.05f);
 		if (_isAttacking)
 			CancelCurrentAttackInternal(false);
 
@@ -260,7 +261,7 @@ public partial class PlayerCombat : Node
 
 		if (attack.Shape == WeaponAttackShape.Line)
 		{
-			_controller?.PerformAttackLunge(_attackDirection, EquippedWeapon.LineAttackLungeDistance);
+			_controller?.PerformAttackLunge(_attackDirection, EquippedWeapon.TunedLineAttackLungeDistance);
 			SpawnThrustIndicator(attack, attackType);
 		}
 		else if (attack.Shape == WeaponAttackShape.Radial)
@@ -277,7 +278,7 @@ public partial class PlayerCombat : Node
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		furyDamageMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
-		var attackDamage = attack.Damage * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f);
+		var attackDamage = attack.Damage * damageMultiplier * (attackType == PlayerAttackType.Basic ? RunState.GetWeaponModMultiplier("BasicQuickDamage.Multiplier") : 1.0f) * (IsFuryActive ? furyDamageMultiplier : 1.0f);
 		var hit = attack.Shape == WeaponAttackShape.Radial
 			? DealCircularDamage(attackDamage, attack, attackType)
 			: DealDamage(attackDamage, attack.Knockback, attack, attackType);
@@ -300,7 +301,7 @@ public partial class PlayerCombat : Node
 
 		_isAttacking = false;
 		SetAttackPhase(PlayerAttackPhase.None, 0.0f);
-		_comboResetTimer = ComboResetTime;
+		_comboResetTimer = CompendiumTuning.GetFloat("combat.combo.reset_time", ComboResetTime);
 
 		if (attackType == PlayerAttackType.Special)
 		{
@@ -331,11 +332,11 @@ public partial class PlayerCombat : Node
 		_controller?.ConsumeDashAttackGrace();
 		_health?.SetInvincible(true);
 
-		var tunedQuickAttack = GetTunedAttack(EquippedWeapon.QuickAttack, $"weapon.{EquippedWeapon.Id}.quick");
+		var tunedQuickAttack = GetTunedAttack(EquippedWeapon.QuickAttack, $"weapon.{EquippedWeapon.Id}.quick", PlayerAttackType.Quick);
 		var attack = tunedQuickAttack with
 		{
-			Range = tunedQuickAttack.Range * EquippedWeapon.QuickAttackHitboxScale,
-			Width = tunedQuickAttack.Width * EquippedWeapon.QuickAttackHitboxScale
+			Range = tunedQuickAttack.Range * EquippedWeapon.TunedQuickAttackHitboxScale,
+			Width = tunedQuickAttack.Width * EquippedWeapon.TunedQuickAttackHitboxScale
 		};
 		_currentControl = attack.Control ?? AttackControlProfile.Default;
 		_attackDirection = GetAssistedAttackDirection(NormalizeFallback(dashDirection), attack);
@@ -353,11 +354,11 @@ public partial class PlayerCombat : Node
 		var furyDamageMultiplier = CompendiumTuning.GetFloat("attack.fury.damage_multiplier", FuryDamageMultiplier);
 		furyDamageMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 		if (IsFuryActive) furyDamageMultiplier *= CharacterSheet.GetBloodcraftMultiplier();
-		var quickDamageMultiplier = EquippedWeapon.QuickAttackDamageMultiplier;
+		var quickDamageMultiplier = EquippedWeapon.TunedQuickAttackDamageMultiplier;
 		if (attack.Shape == WeaponAttackShape.Radial) SpawnRadialAttackCircle(attack, PlayerAttackType.Quick);
 		else if (attack.Shape == WeaponAttackShape.Line) SpawnThrustIndicator(attack, PlayerAttackType.Quick);
 		else SpawnAttackSlash(attack, PlayerAttackType.Quick, true);
-		var quickDamage = attack.Damage * quickDamageMultiplier * damageMultiplier * (IsFuryActive ? furyDamageMultiplier : 1.0f);
+		var quickDamage = attack.Damage * quickDamageMultiplier * damageMultiplier * RunState.GetWeaponModMultiplier("BasicQuickDamage.Multiplier") * (IsFuryActive ? furyDamageMultiplier : 1.0f);
 		var dashHit = attack.Shape == WeaponAttackShape.Radial
 			? DealCircularDamage(quickDamage, attack, PlayerAttackType.Quick)
 			: DealDamage(quickDamage, attack.Knockback, attack, PlayerAttackType.Quick);
@@ -374,7 +375,7 @@ public partial class PlayerCombat : Node
 		IsQuickAttacking = false;
 		_isAttacking = false;
 		SetAttackPhase(PlayerAttackPhase.None, 0.0f);
-		_comboResetTimer = ComboResetTime;
+		_comboResetTimer = CompendiumTuning.GetFloat("combat.combo.reset_time", ComboResetTime);
 		_lightComboIndex = 0;
 	}
 
@@ -448,11 +449,11 @@ public partial class PlayerCombat : Node
 	private HitResult DealDamage(float damage, float knockback, WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
-		var halfArcRadians = Mathf.DegToRad(EquippedWeapon.AttackArcDegrees * 0.5f);
+		var halfArcRadians = Mathf.DegToRad(EquippedWeapon.TunedAttackArcDegrees * 0.5f);
 		var edgeForgiveness = GetEdgeForgiveness(attackType);
 		var criticalChance = Mathf.Clamp(RunState.GetEffectTotal("CriticalChance.Flat") + RunState.ContextCriticalChance + (_blessings?.BonusCriticalChance() ?? 0.0f), 0, 1);
 		var isCritical = RunState.ConsumeGuaranteedCritical() || GD.Randf() < criticalChance;
-		var criticalMultiplier = 1.5f + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
+		var criticalMultiplier = CompendiumTuning.GetFloat("combat.crit.base_multiplier", 1.5f) + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
 		var nonCriticalMultiplier = 1.0f + RunState.GetEffectTotal("NonCriticalDamage.Multiplier");
 		var targetsHit = 0;
 
@@ -500,7 +501,7 @@ public partial class PlayerCombat : Node
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
 			var isBackstab = enemyNode is EnemyBasic backstabTarget && backstabTarget.IsAttackedFromBehind(player.GlobalPosition);
-			if (isBackstab) finalDamage *= EquippedWeapon.BackstabDamageMultiplier;
+			if (isBackstab) finalDamage *= EquippedWeapon.TunedBackstabDamageMultiplier;
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
 			targetHealth.ApplyDamage(finalDamage, isCritical, isBackstab ? EnemyBasic.BackstabDamageSource : attack.Name);
 			if (enemyNode is EnemyBasic hitEnemy)
@@ -515,7 +516,7 @@ public partial class PlayerCombat : Node
 				_health?.Heal(finalDamage * (RunState.GetEffectTotal("CriticalLifeSteal.Multiplier") + RunState.ContextLifeSteal));
 			}
 			if (enemyNode is EnemyBasic enemy)
-				enemy.ApplyKnockback(enemyNode.GlobalPosition - player.GlobalPosition, GetAttackKnockback(knockback, attackType, enemy), finalDamage * EquippedWeapon.WallImpactDamageMultiplier);
+				enemy.ApplyKnockback(enemyNode.GlobalPosition - player.GlobalPosition, GetAttackKnockback(knockback, attackType, enemy), finalDamage * EquippedWeapon.TunedWallImpactDamageMultiplier);
 		}
 
 		return new HitResult(targetsHit, isCritical);
@@ -529,7 +530,7 @@ public partial class PlayerCombat : Node
 		var edgeForgiveness = GetEdgeForgiveness(attackType);
 		var criticalChance = Mathf.Clamp(RunState.GetEffectTotal("CriticalChance.Flat") + RunState.ContextCriticalChance + (_blessings?.BonusCriticalChance() ?? 0.0f), 0, 1);
 		var isCritical = RunState.ConsumeGuaranteedCritical() || GD.Randf() < criticalChance;
-		var criticalMultiplier = 1.5f + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
+		var criticalMultiplier = CompendiumTuning.GetFloat("combat.crit.base_multiplier", 1.5f) + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
 		var nonCriticalMultiplier = 1.0f + RunState.GetEffectTotal("NonCriticalDamage.Multiplier");
 
 		foreach (var node in GetTree().GetNodesInGroup("enemies"))
@@ -557,7 +558,7 @@ public partial class PlayerCombat : Node
 				finalDamage = _blessings?.ModifyOutgoingDamage(finalDamage, special, attackType) ?? finalDamage;
 			}
 			var isBackstab = enemyNode is EnemyBasic backstabTarget && backstabTarget.IsAttackedFromBehind(player.GlobalPosition);
-			if (isBackstab) finalDamage *= EquippedWeapon.BackstabDamageMultiplier;
+			if (isBackstab) finalDamage *= EquippedWeapon.TunedBackstabDamageMultiplier;
 			if (enemyNode is EnemyBasic skillTarget) finalDamage = _skills?.ModifyOutgoingDamage(finalDamage, skillTarget, isBackstab, attackType) ?? finalDamage;
 			var executeThreshold = RunState.GetEffectTotal("ExecuteThreshold.Flat") + (isCritical ? RunState.GetEffectTotal("ExecuteThresholdOnCritical.Flat") : 0);
 			if (executeThreshold > 0 && targetHealth.CurrentHealth / targetHealth.MaxHealth <= executeThreshold) finalDamage = targetHealth.CurrentHealth;
@@ -574,7 +575,7 @@ public partial class PlayerCombat : Node
 				_health?.Heal(finalDamage * (RunState.GetEffectTotal("CriticalLifeSteal.Multiplier") + RunState.ContextLifeSteal));
 			}
 			if (enemyNode is EnemyBasic enemy)
-				enemy.ApplyKnockback(toEnemy.LengthSquared() > 0.001f ? toEnemy : _attackDirection, GetAttackKnockback(attack.Knockback, attackType, enemy), finalDamage * EquippedWeapon.WallImpactDamageMultiplier);
+				enemy.ApplyKnockback(toEnemy.LengthSquared() > 0.001f ? toEnemy : _attackDirection, GetAttackKnockback(attack.Knockback, attackType, enemy), finalDamage * EquippedWeapon.TunedWallImpactDamageMultiplier);
 		}
 
 		return new HitResult(targetsHit, isCritical);
@@ -586,12 +587,12 @@ public partial class PlayerCombat : Node
 		var artifactSpeed = 1.0f + RunState.GetEffectTotal("AttackSpeed.Multiplier")
 			+ RunState.GetEffectTotal("AttackSpeedMissingHealth.Multiplier") * missingHealth
 			+ RunState.ContextAttackSpeed + (_blessings?.BonusAttackSpeed() ?? 0.0f);
-		return Mathf.Max(GameTuning.GetAttackSpeedMultiplier() * EquippedWeapon.BasicAttackSpeedMultiplier * artifactSpeed, 0.01f);
+		return Mathf.Max(GameTuning.GetAttackSpeedMultiplier() * EquippedWeapon.TunedBasicAttackSpeedMultiplier * artifactSpeed, 0.01f);
 	}
 
 	public float GetCurrentBasicAttackDamage()
 	{
-		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1");
+		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1", PlayerAttackType.Basic);
 		// Teto do Livro-Caixa: +100% de dano (economy.ledger.max_bonus).
 		var currencyDamage = Mathf.Min(RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * RunState.RunBloodCoins, CompendiumTuning.GetFloat("economy.ledger.max_bonus", 1.0f));
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
@@ -605,12 +606,13 @@ public partial class PlayerCombat : Node
 			furyMultiplier *= 1.0f + RunState.GetEffectTotal("FuryDamage.Multiplier") + (_skills?.FuryDamageBonus() ?? 0.0f);
 			multiplier *= furyMultiplier * CharacterSheet.GetBloodcraftMultiplier();
 		}
+		multiplier *= RunState.GetWeaponModMultiplier("BasicQuickDamage.Multiplier");
 		return attack.Damage * multiplier;
 	}
 
 	public float GetCurrentBasicAttackInterval()
 	{
-		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1");
+		var attack = GetTunedAttack(BasicCombo[0], $"weapon.{EquippedWeapon.Id}.basic_1", PlayerAttackType.Basic);
 		return Mathf.Max((attack.HitDelay + attack.Recovery) * GameTuning.GetAttackDelayMultiplier()
 			/ GetCurrentAttackSpeedMultiplier(), 0.08f);
 	}
@@ -628,14 +630,14 @@ public partial class PlayerCombat : Node
 	private float GetAttackKnockback(float knockback, PlayerAttackType attackType, EnemyBasic enemy)
 	{
 		if (attackType == PlayerAttackType.Special)
-			return knockback * EquippedWeapon.SpecialAttackKnockbackMultiplier;
+			return knockback * EquippedWeapon.TunedSpecialAttackKnockbackMultiplier;
 		if (attackType == PlayerAttackType.Quick)
-			return knockback * EquippedWeapon.QuickAttackKnockbackMultiplier;
+			return knockback * EquippedWeapon.TunedQuickAttackKnockbackMultiplier;
 		if (attackType != PlayerAttackType.Basic || enemy == null || enemy.Name.ToString().Contains("Boss"))
 			return knockback;
-		var archetypeMultiplier = enemy.Archetype == EnemyArchetype.Tank ? 0.5f : 1.0f;
-		var comboMultiplier = _lightComboIndex == BasicCombo.Length - 1 ? 1.2f : 1.0f;
-		return knockback * EquippedWeapon.BasicAttackKnockbackMultiplier * archetypeMultiplier * comboMultiplier;
+		var archetypeMultiplier = enemy.Archetype == EnemyArchetype.Tank ? CompendiumTuning.GetFloat("combat.knockback.tank_mult", 0.5f) : 1.0f;
+		var comboMultiplier = _lightComboIndex == BasicCombo.Length - 1 ? CompendiumTuning.GetFloat("combat.knockback.finisher_mult", 1.2f) : 1.0f;
+		return knockback * EquippedWeapon.TunedBasicAttackKnockbackMultiplier * archetypeMultiplier * comboMultiplier;
 	}
 
 	private void ConfigureAttackArea(WeaponAttackDefinition attack)
@@ -649,8 +651,8 @@ public partial class PlayerCombat : Node
 	private float GetEdgeForgiveness(PlayerAttackType attackType)
 	{
 		return attackType == PlayerAttackType.Quick
-			? EquippedWeapon.HitboxEdgeForgiveness * EquippedWeapon.QuickAttackHitboxScale
-			: EquippedWeapon.HitboxEdgeForgiveness;
+			? EquippedWeapon.TunedHitboxEdgeForgiveness * EquippedWeapon.TunedQuickAttackHitboxScale
+			: EquippedWeapon.TunedHitboxEdgeForgiveness;
 	}
 
 	private async void SpawnAttackSlash(WeaponAttackDefinition attack, PlayerAttackType attackType, bool isHeavy)
@@ -681,8 +683,8 @@ public partial class PlayerCombat : Node
 		player.AddChild(indicator);
 
 		var visualRange = attack.Range + GetEdgeForgiveness(attackType);
-		AddArcMesh(indicator, "ArcFill", visualRange, EquippedWeapon.AttackArcDegrees, fillMaterial, 0.075f);
-		AddArcMesh(indicator, "ArcEdge", visualRange, EquippedWeapon.AttackArcDegrees, edgeMaterial, 0.12f, true);
+		AddArcMesh(indicator, "ArcFill", visualRange, EquippedWeapon.TunedAttackArcDegrees, fillMaterial, 0.075f);
+		AddArcMesh(indicator, "ArcEdge", visualRange, EquippedWeapon.TunedAttackArcDegrees, edgeMaterial, 0.12f, true);
 
 		var tween = indicator.CreateTween();
 		indicator.Scale = new Vector3(0.9f, 1.0f, 0.85f);
@@ -815,11 +817,11 @@ public partial class PlayerCombat : Node
 		};
 		var preview = new Node3D { Name = "AttackPreviewIndicator" };
 		player.AddChild(preview);
-		var visualRange = attack.Range + EquippedWeapon.HitboxEdgeForgiveness;
+		var visualRange = attack.Range + EquippedWeapon.TunedHitboxEdgeForgiveness;
 		if (attack.Shape == WeaponAttackShape.Line)
 			AddHitboxBox(preview, "PreviewLine", new Vector3(attack.Width, 0.04f, visualRange), new Vector3(0.0f, 0.07f, -visualRange * 0.5f), material);
 		else
-			AddArcMesh(preview, "PreviewArc", visualRange, EquippedWeapon.AttackArcDegrees, material, 0.07f);
+			AddArcMesh(preview, "PreviewArc", visualRange, EquippedWeapon.TunedAttackArcDegrees, material, 0.07f);
 		preview.Scale = new Vector3(0.85f, 1.0f, 0.85f);
 		var tween = preview.CreateTween();
 		tween.SetParallel(true);
@@ -949,14 +951,16 @@ public partial class PlayerCombat : Node
 	private void DealFuryEndBurst()
 	{
 		var player = GetParent<Node3D>();
-		var damage = GetCurrentBasicAttackDamage() * FuryEndBurstDamageRatio;
+		var damage = GetCurrentBasicAttackDamage() * CompendiumTuning.GetFloat("attack.fury.end_burst_ratio", FuryEndBurstDamageRatio);
+		var burstRadius = CompendiumTuning.GetFloat("attack.fury.end_burst_radius", FuryEndBurstRadius);
+		var burstKnockback = CompendiumTuning.GetFloat("attack.fury.end_burst_knockback", 2.5f);
 		foreach (var node in GetTree().GetNodesInGroup("enemies"))
 		{
-			if (node is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(player.GlobalPosition) > FuryEndBurstRadius)
+			if (node is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(player.GlobalPosition) > burstRadius)
 				continue;
 			var finalDamage = damage * enemy.DamageTakenMultiplier;
 			enemy.GetNodeOrNull<Health>("Health")?.ApplyDamage(finalDamage, false, "Explosão final da Fúria Bestial");
-			enemy.ApplyKnockback(enemy.GlobalPosition - player.GlobalPosition, 2.5f, 0.0f);
+			enemy.ApplyKnockback(enemy.GlobalPosition - player.GlobalPosition, burstKnockback, 0.0f);
 		}
 		SpawnFuryBloodBurst(player.GlobalPosition);
 		GetTree().CallGroup("hud", "AppendGameLog", $"A Fúria terminou com uma explosão de {Mathf.RoundToInt(damage)} de dano base.");
@@ -1082,6 +1086,8 @@ void fragment() {
 		var control = attack.Control ?? AttackControlProfile.Default;
 		var assistStrength = Mathf.Clamp(control.AimAssistStrength, 0.0f, 1.0f);
 		var assistRadius = control.AimAssistRadius > 0.0f ? control.AimAssistRadius : AutoAimRadius;
+		if (CompendiumTuning.HasOverride("combat.aim.radius"))
+			assistRadius = CompendiumTuning.GetFloat("combat.aim.radius", assistRadius);
 		if (assistStrength <= 0.0f || assistRadius <= 0.0f)
 			return rawDirection;
 
@@ -1211,19 +1217,24 @@ void fragment() {
 			player.LookAt(player.GlobalPosition + _attackDirection, Vector3.Up);
 	}
 
-	private WeaponAttackDefinition GetTunedAttack(WeaponAttackDefinition attack, string keyPrefix)
+	private WeaponAttackDefinition GetTunedAttack(WeaponAttackDefinition attack, string keyPrefix, PlayerAttackType attackType)
 	{
+		// Modificacoes da Bigorna (docs/design/bigorna.md): ultimo multiplicador, sobre o valor ja tunado. Sem mods todos valem 1.
+		var rangeMod = RunState.GetWeaponModMultiplier("AttackRange.Multiplier");
+		if (attackType == PlayerAttackType.Special)
+			rangeMod *= RunState.GetWeaponModMultiplier("SpecialRadius.Multiplier");
+		var timingMod = 1.0f - Mathf.Clamp(RunState.GetWeaponModTotal("AttackTiming.Reduction"), 0.0f, 0.9f);
 		return new WeaponAttackDefinition(
 			attack.NameKey,
 			CompendiumTuning.GetFloat($"{keyPrefix}.damage", attack.Damage),
-			CompendiumTuning.GetFloat($"{keyPrefix}.hit_delay", attack.HitDelay),
-			CompendiumTuning.GetFloat($"{keyPrefix}.recovery", attack.Recovery),
-			CompendiumTuning.GetFloat($"{keyPrefix}.knockback", attack.Knockback),
-			CompendiumTuning.GetFloat($"{keyPrefix}.range", attack.Range) * GameTuning.GetAttackRangeMultiplier(),
+			CompendiumTuning.GetFloat($"{keyPrefix}.hit_delay", attack.HitDelay) * timingMod,
+			CompendiumTuning.GetFloat($"{keyPrefix}.recovery", attack.Recovery) * timingMod,
+			CompendiumTuning.GetFloat($"{keyPrefix}.knockback", attack.Knockback) * RunState.GetWeaponModMultiplier("Knockback.Multiplier"),
+			CompendiumTuning.GetFloat($"{keyPrefix}.range", attack.Range) * GameTuning.GetAttackRangeMultiplier() * rangeMod,
 			CompendiumTuning.GetFloat($"{keyPrefix}.width", attack.Width),
 			attack.SlashTilt,
 			attack.Shape,
-			CompendiumTuning.GetFloat($"{keyPrefix}.stagger", attack.StaggerDuration)
+			CompendiumTuning.GetFloat($"{keyPrefix}.stagger", attack.StaggerDuration) * RunState.GetWeaponModMultiplier("Stagger.Multiplier")
 		);
 	}
 

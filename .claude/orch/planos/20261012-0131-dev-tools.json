@@ -1,0 +1,473 @@
+{
+    "schema":  "orch.plano/1",
+    "id":  "20261012-0131-dev-tools",
+    "titulo":  "Painel de ferramentas de desenvolvedor dentro do jogo",
+    "status":  "concluido",
+    "demanda":  "preciso de mais ferramentas para desenvolvedor dentro do jogo, preciso poder mexer em literalmente todos os parametros que envolvem a gameplay; um exemplo de muitos, queria mudar a quantidade de moedas que o jogador ganha mas nao consigo fazer isso sem pedir por prompt.",
+    "objetivo":  "Em build de debug, F1 abre um painel único com todos os parâmetros de gameplay, agrupados, com busca, editáveis em tempo real, com reset e persistência, mais ações de teste. Em release nada disso existe.",
+    "grupo":  "20261012-0131-remover-titulos-3d",
+    "dependeDosPlanos":  [
+                             "20261012-0131-remover-titulos-3d"
+                         ],
+    "criado":  "2026-10-12T01:31:00-03:00",
+    "atualizado":  "2026-10-14T18:00:42-03:00",
+    "commitInicial":  "0740bf5",
+    "versaoOrch":  "0.5.0",
+    "ondas":  [
+                  [
+                      "T1"
+                  ],
+                  [
+                      "T2"
+                  ],
+                  [
+                      "T3",
+                      "T4",
+                      "T5",
+                      "T6"
+                  ],
+                  [
+                      "T7",
+                      "T7b"
+                  ],
+                  [
+                      "T8"
+                  ],
+                  [
+                      "T9"
+                  ],
+                  [
+                      "T10"
+                  ]
+              ],
+    "tarefas":  [
+                    {
+                        "id":  "T1",
+                        "titulo":  "Inventariar parâmetros de gameplay (chaves existentes e constantes soltas, por domínio)",
+                        "executor":  "orch:pesquisador",
+                        "dependeDe":  [
+
+                                      ],
+                        "arquivos":  [
+
+                                     ],
+                        "prontoQuando":  "Tabela chave | padrão | tipo | domínio | arquivo:linha entregue, marcando já tunável vs constante.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:44:14-03:00",
+                        "fim":  "2026-10-12T01:49:15-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Inventário completo gravado em docs/design/dev-tools-inventario.md (o agente é só leitura; o doc foi salvo pelo orquestrador a partir do relatório). ~60 padrões de chave tunáveis, ~150 constantes fixas, 6 domínios. Achados: já existe GameTuning (11 percentuais, user://game_tuning.cfg) a incorporar; chaves mortas attack.light_*/dash.* no Compêndio; enemy.blood_mage.damage/attack_range sem efeito em golpes de boss; valores capturados no _Ready do jogador.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T2",
+                        "titulo":  "Criar o registro central de parâmetros e a persistência em CompendiumTuning",
+                        "executor":  "orch:desenvolvedor",
+                        "dependeDe":  [
+                                          "T1"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/CompendiumTuning.cs",
+                                         "scripts/systems/DevParameterRegistry.cs"
+                                     ],
+                        "prontoQuando":  "Build sem erro; override gravado é lido na sessão seguinte; sem efeito em release.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:49:15-03:00",
+                        "fim":  "2026-10-12T01:53:36-03:00",
+                        "tentativas":  1,
+                        "resultado":  "DevParameterRegistry (+DevApplyMode, DevParameter com Getter/Setter), CompendiumTuning com Load/Save/Changed (user://dev_tuning.json, só debug, gravação atômica), DevParameters.Legacy.cs com 293 chaves (inclui as 11 do GameTuning via adaptador, skills/artefatos/bênçãos por ID) e esqueletos Player/Enemies/Economy. Build 0/0; self-test --dev-tuning-selftest OK. Pendente: .cs.uid dos 5 arquivos novos; TODO(T6): efeitos booleanos de bênção.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T3",
+                        "titulo":  "Construir o painel F1 (grupos, busca, edição, reset, persistência)",
+                        "executor":  "ui-hud",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/ui/HUD.DevPanel.cs",
+                                         "scripts/ui/HUD.cs",
+                                         "scripts/ui/HUD.Pause.cs",
+                                         "project.godot"
+                                     ],
+                        "prontoQuando":  "F1 abre/fecha; busca \u0027moedas\u0027 acha os parâmetros de economia; editar economy.coins.enemy.base_max muda o drop seguinte; valor persiste.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:53:36-03:00",
+                        "fim":  "2026-10-12T01:56:49-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Painel HUD.DevPanel.cs (F1 e botão na pausa, só debug): grupos, busca sem acento, só alterados, slider+SpinBox, reset por item/grupo/tudo com confirmação, aviso de aplicação, ApplyCompendiumTuning com debounce; aba Ações pronta para T7; tela dev_panel no UiPreview; ação dev_panel (F1) em project.godot. Build 0/0, localização OK, captura conferida. Não testado em jogo rodando; sem navegação por controle.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T4",
+                        "titulo":  "Parametrizar jogador, combate e câmera",
+                        "executor":  "game-designer",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/player/PlayerController.cs",
+                                         "scripts/player/PlayerCombat.cs",
+                                         "scripts/combat/Health.cs",
+                                         "scripts/camera/IsoCamera.cs"
+                                     ],
+                        "prontoQuando":  "Build sem erro; comportamento idêntico com os padrões; chaves novas aparecem no painel com mín/máx.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:53:36-03:00",
+                        "fim":  "2026-10-12T01:56:23-03:00",
+                        "tentativas":  1,
+                        "resultado":  "37 chaves novas (Jogador 6, Esquiva 5, Combate +9, Armas +12, Câmera 5), defaults como const públicas; PlayerController/IsoCamera reaplicam ao assinar CompendiumTuning.Changed. Build 0/0, validadores e smoke OK, self-test 381 chaves únicas. Achado: PlayerCombat.GetTunedAttack descarta o Control do golpe, então os perfis por golpe (buffer, aim assist) não têm efeito hoje; DodgeCost é código morto; camera.yaw não gira o movimento isométrico.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T5",
+                        "titulo":  "Parametrizar inimigos, bosses, salas e waves",
+                        "executor":  "inimigos-e-bosses",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/enemies/*.cs",
+                                         "scripts/bosses/*.cs",
+                                         "scripts/systems/RoomGenerator.cs",
+                                         "scripts/systems/CampaignCatalog.cs"
+                                     ],
+                        "prontoQuando":  "Build sem erro; sem mudança de comportamento com os padrões; chaves no painel.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:53:36-03:00",
+                        "fim":  "2026-10-12T01:59:39-03:00",
+                        "tentativas":  1,
+                        "resultado":  "268 chaves novas em RegisterEnemies (Inimigos Base 32, Arquétipos 29, Raridade 21, Bosses 167, Salas e waves 11, Campanha 8); enemy.blood_mage.damage/attack_range agora valem nos golpes de boss. Build 0/0; self-test 649 chaves únicas; smoke sem erro de script. Pendências: rótulos de blood_mage em Legacy.cs desatualizados; vida do Tank e multiplicadores de raridade podem ser sobrescritos por RunManager.ApplyCommonEnemyTuning; fatores de ConfigureBossRoom sem chave.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T6",
+                        "titulo":  "Parametrizar economia, recompensas, bênçãos, skills e artefatos",
+                        "executor":  "conteudo-run",
+                        "dependeDe":  [
+                                          "T2"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/RunState.cs",
+                                         "scripts/systems/RunManager.cs",
+                                         "scripts/player/BloodBlessingRuntime.cs",
+                                         "scripts/player/PlayerSkillController.cs",
+                                         "scripts/systems/rewards/RoomRewardCatalog.cs",
+                                         "scripts/systems/artifacts/ArtifactCatalog.cs"
+                                     ],
+                        "prontoQuando":  "Build sem erro; todo parâmetro de economia aparece no painel com rótulo; validadores de bênção e artefato passam.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T01:53:36-03:00",
+                        "fim":  "2026-10-12T01:56:33-03:00",
+                        "tentativas":  1,
+                        "resultado":  "51 chaves novas em RegisterEconomy (loja, fonte, altar, portas, escala de dificuldade enemy.scale.*, boss.*, 14 de bênçãos) e tabela EconomyDefaults. Build 0/0; validadores de bênção/artefato/localização e smoke OK; self-test 381 chaves únicas. Pendente em arquivos de outros donos: HUD.BlessingOffer.cs:331 (reward.blessing.choices não afeta a oferta da Fonte), EnemyBasic/HUD.Compendium podem usar EconomyDefaults.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T7",
+                        "titulo":  "Adicionar ações de teste ao painel (Moedas, cura, pular sala, matar tudo, deus, velocidade do jogo)",
+                        "executor":  "ui-hud",
+                        "dependeDe":  [
+                                          "T3",
+                                          "T4",
+                                          "T5",
+                                          "T6"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/ui/HUD.DevPanel.cs"
+                                     ],
+                        "prontoQuando":  "Cada ação funciona na TestArena; nenhuma existe em release.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T02:00:13-03:00",
+                        "fim":  "2026-10-12T02:04:03-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Aba Ações do painel F1: Moedas (dar/definir/zerar), Sangue Amaldiçoado, vida (curar, definir, modo deus, stamina infinita, Fúria cheia), sala (matar todos, completar, pular para mapa/sala, ir ao boss), dar bênção/artefato/Fruta, abrir oferta, escala de tempo com aviso, aplicar tuning, pasta de dados e caminho do dev_tuning.json. Métodos Dev* só em debug em RunManager/RunState/Health/PlayerController. Build 0/0, localização OK, captura conferida; ações não clicadas em runtime.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T7b",
+                        "titulo":  "Reconciliar chaves sobrescritas pelo RunManager e limpar rótulos/defaults duplicados",
+                        "executor":  "orch:desenvolvedor",
+                        "dependeDe":  [
+                                          "T5",
+                                          "T6"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/RunManager.cs",
+                                         "scripts/systems/DevParameters.Legacy.cs",
+                                         "scripts/ui/HUD.BlessingOffer.cs",
+                                         "scripts/enemies/EnemyBasic.cs",
+                                         "scripts/ui/HUD.Compendium.cs"
+                                     ],
+                        "prontoQuando":  "Editar enemy.rarity.*, tank health e fatores de boss no painel altera o valor final do inimigo/boss; rótulos de blood_mage corretos; oferta da Fonte usa reward.blessing.choices; defaults de moedas vêm de EconomyDefaults; build 0/0.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T02:00:13-03:00",
+                        "fim":  "2026-10-12T02:02:18-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Chaves de vida do Tank e de dano/velocidade de raridade e arquétipo agora alteram o valor final (razão valor/padrão em ApplyCommonEnemyTuning; 3 chaves enemy.scale.* duplicadas removidas); ordem de aplicação documentada; rótulos de blood_mage corrigidos; HUD.BlessingOffer usa reward.blessing.choices; defaults de moedas via EconomyDefaults. Build 0/0; validadores OK; self-test 646 chaves OK. Achado de design: bônus de velocidade/dano por raridade já estavam embutidos em enemy.basic.* (a reescrita do RunManager os descartava).",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T8",
+                        "titulo":  "Validar: registro x código, build, smoke e captura do painel",
+                        "executor":  "orch:testador",
+                        "dependeDe":  [
+                                          "T7",
+                                          "T7b"
+                                      ],
+                        "arquivos":  [
+                                         "tools/validate_dev_tuning.py",
+                                         "scripts/ui/UiPreview.cs"
+                                     ],
+                        "prontoQuando":  "Validador novo, build, validadores existentes e smoke sem erro; captura do painel gerada.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T02:04:03-03:00",
+                        "fim":  "2026-10-12T02:08:49-03:00",
+                        "tentativas":  1,
+                        "resultado":  "tools/validate_dev_tuning.py criado (305 registros, 301 leituras, 264 faixas; 0 erros/0 avisos; teste negativo ok). Build 0/0; validadores de localização (1054 chaves), bênçãos e artefatos OK; self-test OK com 646 chaves; smoke de TestArena, CrowsNest e IntermissionChamber sem erro; --ui-batch pt-BR 52/52 telas. Docs: contagem de telas (52 x 3 = 156) e novos comandos no perfil.md. Achado corrigido pelo orquestrador: o self-test apagava user://dev_tuning.json do usuário; agora faz backup e restaura.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T9",
+                        "titulo":  "Revisar o conjunto",
+                        "executor":  "orch:revisor",
+                        "dependeDe":  [
+                                          "T8"
+                                      ],
+                        "arquivos":  [
+
+                                     ],
+                        "prontoQuando":  "Relatório sem bloqueantes, ou bloqueantes corrigidos.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-12T02:08:49-03:00",
+                        "fim":  "2026-10-14T17:57:57-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Sem bloqueantes; padrões idênticos sem override, nada vaza para release, persistência segura. 2 IMPORTANTES (multiplicador de velocidade aplicado em dobro com override de arquétipo/raridade; Engine.TimeScale preso ao ir ao menu), 6 .cs.uid faltando e menores (clamp ao carregar, Load vs EnsureLoaded, Reset do Compêndio apaga tudo, save síncrono do GameTuning, flush ao exportar, campaign rooms Min 0). Correções em T10.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    },
+                    {
+                        "id":  "T10",
+                        "titulo":  "Corrigir achados da revisão (velocidade em dobro, TimeScale, persistência) e gerar .cs.uid",
+                        "executor":  "orch:desenvolvedor",
+                        "dependeDe":  [
+                                          "T9"
+                                      ],
+                        "arquivos":  [
+                                         "scripts/systems/RunManager.cs",
+                                         "scripts/ui/HUD.DevPanel.cs",
+                                         "scripts/systems/CompendiumTuning.cs",
+                                         "scripts/systems/DevParameterRegistry.cs",
+                                         "scripts/systems/DevParameters.Legacy.cs",
+                                         "scripts/systems/DevParameters.Enemies.cs",
+                                         "scripts/systems/CombatFeedback.cs",
+                                         "scripts/ui/HUD.Compendium.cs"
+                                     ],
+                        "prontoQuando":  "Achados importantes e menores 4,5,7,8,9,10 corrigidos; build 0/0; validadores e self-test OK.",
+                        "status":  "concluida",
+                        "inicio":  "2026-10-14T17:57:57-03:00",
+                        "fim":  "2026-10-14T18:00:42-03:00",
+                        "tentativas":  1,
+                        "resultado":  "Corrigidos: velocidade aplicada em dobro com override de arquétipo/raridade (só aplica a razão com override de enemy.basic.move_speed), Engine.TimeScale restaurado ao sair do HUD e coerente com hit-stop, clamp ao carregar o JSON, EnsureLoaded, aviso no reset do Compêndio, debounce do GameTuning, flush ao exportar, campaign rooms Min 1 (mapa 4 Min 0). 6 .cs.uid gerados pelo orquestrador (Godot --headless --editor --quit). Build 0/0; 4 validadores e self-test OK.",
+                        "modelo":  null,
+                        "sessaoApp":  null,
+                        "pasta":  null,
+                        "merge":  null
+                    }
+                ],
+    "eventos":  [
+                    {
+                        "quando":  "2026-10-12T01:31:00-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-criado",
+                        "texto":  "Plano criado"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:44:14-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-iniciado",
+                        "texto":  "Plano em-execucao"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:44:14-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T1 em-andamento orch:pesquisador"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:44:23-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-iniciado",
+                        "texto":  "Plano em-execucao"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:49:15-03:00",
+                        "tarefa":  "T1",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T1 concluida orch:pesquisador"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:49:15-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T2 em-andamento orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:53:36-03:00",
+                        "tarefa":  "T2",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T2 concluida orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:53:36-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T3 em-andamento ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:53:36-03:00",
+                        "tarefa":  "T4",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T4 em-andamento game-designer"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:53:36-03:00",
+                        "tarefa":  "T5",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T5 em-andamento inimigos-e-bosses"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:53:36-03:00",
+                        "tarefa":  "T6",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T6 em-andamento conteudo-run"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:56:23-03:00",
+                        "tarefa":  "T4",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T4 concluida game-designer"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:56:33-03:00",
+                        "tarefa":  "T6",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T6 concluida conteudo-run"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:56:49-03:00",
+                        "tarefa":  "T3",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T3 concluida ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:59:39-03:00",
+                        "tarefa":  "T5",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T5 concluida inimigos-e-bosses"
+                    },
+                    {
+                        "quando":  "2026-10-12T01:59:40-03:00",
+                        "tarefa":  "T7b",
+                        "tipo":  "replanejado",
+                        "texto":  "Adicionada T7b: reconciliar chaves sobrescritas pelo RunManager (achado de T5/T6); T8 passa a depender de T7 e T7b"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:00:13-03:00",
+                        "tarefa":  "T7",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T7 em-andamento ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:00:13-03:00",
+                        "tarefa":  "T7b",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T7b em-andamento orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:02:18-03:00",
+                        "tarefa":  "T7b",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T7b concluida orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:04:03-03:00",
+                        "tarefa":  "T7",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T7 concluida ui-hud"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:04:03-03:00",
+                        "tarefa":  "T8",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T8 em-andamento orch:testador"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:08:49-03:00",
+                        "tarefa":  "T8",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T8 concluida orch:testador"
+                    },
+                    {
+                        "quando":  "2026-10-12T02:08:49-03:00",
+                        "tarefa":  "T9",
+                        "tipo":  "tarefa-iniciada",
+                        "texto":  "T9 em-andamento orch:revisor"
+                    },
+                    {
+                        "quando":  "2026-10-14T17:57:57-03:00",
+                        "tarefa":  "T9",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T9 concluida orch:revisor"
+                    },
+                    {
+                        "quando":  "2026-10-14T17:57:57-03:00",
+                        "tarefa":  "T10",
+                        "tipo":  "replanejado",
+                        "texto":  "Adicionada T10 com as correções da revisão"
+                    },
+                    {
+                        "quando":  "2026-10-14T18:00:42-03:00",
+                        "tarefa":  "T10",
+                        "tipo":  "tarefa-concluida",
+                        "texto":  "T10 concluida orch:desenvolvedor"
+                    },
+                    {
+                        "quando":  "2026-10-14T18:00:42-03:00",
+                        "tarefa":  null,
+                        "tipo":  "plano-encerrado",
+                        "texto":  "Plano concluido"
+                    }
+                ],
+    "resultadoFinal":  "Painel F1 de dev (só debug) com 646 chaves de gameplay (jogador, combate, armas, câmera, inimigos, bosses, salas, campanha, economia, recompensas, bênçãos, skills, artefatos) editáveis em tempo real, com busca, reset, persistência em user://dev_tuning.json e aba de Ações (moedas, vida, sala, recompensas, tempo). Registro central em DevParameterRegistry/CompendiumTuning; novo validador tools/validate_dev_tuning.py. Verificação: build 0/0, validadores de localização/bênçãos/artefatos/tuning sem erro, self-test OK, smoke headless sem erro, ui-batch 52/52 telas; revisão sem bloqueantes. Não testado jogando: ações do painel, troca de cena com TimeScale, hit-stop com painel aberto; sem navegação por controle. Pendências: Restaurar do Compêndio apaga também os valores do F1; PlayerCombat.GetTunedAttack descarta o Control dos golpes (perfis de buffer/aim assist sem efeito); botões de cheat antigos do HUD redundantes; parágrafo \"As 37 são\" do ui-guia.md desatualizado."
+}

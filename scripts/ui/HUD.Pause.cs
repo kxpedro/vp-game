@@ -171,7 +171,7 @@ public partial class HUD
 		FlushCompendiumApply();
 		foreach (var overlay in new[]
 		{
-			_pauseOverlay, _bloodBlessingOverlay, _compendiumOverlay, _characterSheetOverlay,
+			_pauseOverlay, _bloodBlessingOverlay, _anvilOverlay, _compendiumOverlay, _characterSheetOverlay,
 			_bloodFountainOverlay, _weaponBenchOverlay,
 			_playerHudFrame, _blessingHudList, _bossHealthPanel
 		})
@@ -289,6 +289,7 @@ public partial class HUD
 			Button tuningButton = null;
 			tuningButton = AddPauseMenuButton(dev.Body, "Ajustes de gameplay", () => ShowPausePage(_pauseTuningPage, tuningButton));
 			// Recarregar a sala mantém o RunState e permite repetir recompensas; só em debug.
+			AddPauseMenuButton(dev.Body, "Painel de dev (F1)", OpenDevPanel);
 			AddPauseMenuButton(dev.Body, "Reiniciar teste", RestartCurrentScene);
 		}
 
@@ -651,6 +652,10 @@ public partial class HUD
 				else if (screen == "options_video_end")
 					optionsView?.PreviewScrollToEnd();
 				return true;
+			case "dev_panel":
+				return OpenDevPanelPreview();
+			case "dev_panel_actions":
+				return OpenDevPanelPreview(true);
 			case "tuning":
 			case "pause_tuning":
 				PauseGame();

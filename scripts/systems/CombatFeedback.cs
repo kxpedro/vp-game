@@ -117,6 +117,18 @@ public partial class CombatFeedback : Node
         Engine.TimeScale = _timeScaleBeforeHitStop;
     }
 
+    // Escala base de tempo do painel de dev (so debug). Durante um hit-stop altera so o valor a restaurar, para EndHitStop nao desfazer a mudanca.
+    public static void DevSetBaseTimeScale(float scale)
+    {
+        if (!OS.IsDebugBuild())
+            return;
+
+        if (Instance != null && Instance._hitStopActive)
+            Instance._timeScaleBeforeHitStop = scale;
+        else
+            Engine.TimeScale = scale;
+    }
+
     public override void _ExitTree()
     {
         EndHitStop();

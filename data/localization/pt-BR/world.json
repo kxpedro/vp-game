@@ -66,11 +66,6 @@
   "reward.door.fruit.short": "Fruta",
   "reward.door.prompt": "Atravessar: {0}",
   "reward.door.badge": "Recompensa: {0}",
-  "room.label.boss": "{0} - Chefe: {1}",
-  "room.label.common": "{0} - Sala {1}/{2}",
-  "room.poi.boss_arena": "Arena do Chefe",
-  "room.poi.central_chamber": "Câmara Central",
-  "room.poi.entrance": "Entrada",
-  "room.poi.exit": "Saída",
-  "room.poi.final_gate": "Portão Final"
+  "reward.door.anvil.short": "Bigorna",
+  "reward.door.anvil.hint": "Bigorna: escolha uma modificação para a arma."
 }

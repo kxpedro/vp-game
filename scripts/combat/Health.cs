@@ -17,6 +17,8 @@ public partial class Health : Node
     public bool IsInvincible { get; private set; }
     public bool IsDead => CurrentHealth <= 0.0f;
     public int ShieldHits { get; set; }
+    // DEBUG (painel de dev, aba Ações): o jogador não perde vida. Estático e só vale em build de debug.
+    public static bool DevGodMode { get; set; }
     public bool LastDamageWasCritical { get; private set; }
     // Causa exibida na morte. Fonte vazia = texto generico de world.json, resolvido na leitura
     // (acompanha a troca de idioma). Fontes nao vazias sao guardadas como vieram (ex.: "abandon_run").
@@ -64,6 +66,8 @@ public partial class Health : Node
     public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "")
     {
         if (GetTree()?.Paused == true || IsDead || IsInvincible || amount <= 0.0f)
+            return;
+        if (DevGodMode && OS.IsDebugBuild() && GetParent()?.IsInGroup("player") == true)
             return;
 
         LastDamageWasCritical = isCritical;

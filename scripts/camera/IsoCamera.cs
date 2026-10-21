@@ -3,11 +3,20 @@ using Godot;
 public partial class IsoCamera : Camera3D
 {
     [Export] public NodePath TargetPath { get; set; } = new("../Player");
-    [Export] public float CameraYawDegrees { get; set; } = 45.0f;
-    [Export] public float CameraPitchDegrees { get; set; } = 60.0f;
-    [Export] public float StartZoomDistance { get; set; } = 15.0f;
-    [Export] public float FollowSpeed { get; set; } = 18.0f;
-    [Export] public float ShakeFrequency { get; set; } = 32.0f;
+    public const float DefaultYawDegrees = 45.0f;
+    public const float DefaultPitchDegrees = 60.0f;
+    public const float DefaultStartZoomDistance = 15.0f;
+    public const float DefaultFollowSpeed = 18.0f;
+    public const float DefaultShakeFrequency = 32.0f;
+
+    [Export] public float CameraYawDegrees { get; set; } = DefaultYawDegrees;
+    [Export] public float CameraPitchDegrees { get; set; } = DefaultPitchDegrees;
+    [Export] public float StartZoomDistance { get; set; } = DefaultStartZoomDistance;
+    [Export] public float FollowSpeed { get; set; } = DefaultFollowSpeed;
+    [Export] public float ShakeFrequency { get; set; } = DefaultShakeFrequency;
+
+    private float Yaw => CompendiumTuning.GetFloat("camera.yaw", CameraYawDegrees);
+    private float Pitch => CompendiumTuning.GetFloat("camera.pitch", CameraPitchDegrees);
 
     private Node3D _target;
     private Vector3 _offsetDirection;
@@ -23,6 +32,7 @@ public partial class IsoCamera : Camera3D
         AddToGroup("combat_camera");
         _target = GetNodeOrNull<Node3D>(TargetPath);
         GameTuning.Changed += ApplyRuntimeTuning;
+        CompendiumTuning.Changed += OnCompendiumTuningChanged;
         ApplyRuntimeTuning();
         _offsetDirection = BuildOffsetDirection();
         GlobalRotation = BuildCameraRotation();
@@ -40,11 +50,26 @@ public partial class IsoCamera : Camera3D
     public override void _ExitTree()
     {
         GameTuning.Changed -= ApplyRuntimeTuning;
+        CompendiumTuning.Changed -= OnCompendiumTuningChanged;
     }
 
     private void ApplyRuntimeTuning()
     {
-        _zoomDistance = StartZoomDistance * GameTuning.GetCameraZoomDistanceMultiplier();
+        _zoomDistance = CompendiumTuning.GetFloat("camera.zoom_distance", StartZoomDistance) * GameTuning.GetCameraZoomDistanceMultiplier();
+    }
+
+    private void OnCompendiumTuningChanged(string key)
+    {
+        if (key != null && !key.StartsWith("camera."))
+            return;
+
+        ApplyRuntimeTuning();
+        if (_target == null)
+            return;
+
+        // Yaw/pitch mudaram: refaz a direcao do offset e a rotacao fixa (so apos edicao; sem override nada muda).
+        _offsetDirection = BuildOffsetDirection();
+        _fixedRotation = BuildCameraRotation();
     }
 
     public override void _Process(double delta)
@@ -53,7 +78,7 @@ public partial class IsoCamera : Camera3D
             return;
 
         var desiredPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance;
-        GlobalPosition = GlobalPosition.Lerp(desiredPosition, 1.0f - Mathf.Exp(-FollowSpeed * (float)delta));
+        GlobalPosition = GlobalPosition.Lerp(desiredPosition, 1.0f - Mathf.Exp(-CompendiumTuning.GetFloat("camera.follow_speed", FollowSpeed) * (float)delta));
         ApplyShake((float)delta);
         GlobalRotation = _fixedRotation;
     }
@@ -77,7 +102,7 @@ public partial class IsoCamera : Camera3D
             return;
 
         _shakeRemaining = Mathf.Max(_shakeRemaining - delta, 0.0f);
-        _shakePhase += delta * ShakeFrequency;
+        _shakePhase += delta * CompendiumTuning.GetFloat("camera.shake_frequency", ShakeFrequency);
         var falloff = _shakeDuration > 0.0f ? _shakeRemaining / _shakeDuration : 0.0f;
         var offset = new Vector3(
             Mathf.Sin(_shakePhase * 1.37f),
@@ -95,8 +120,8 @@ public partial class IsoCamera : Camera3D
 
     private Vector3 BuildOffsetDirection()
     {
-        var yaw = Mathf.DegToRad(CameraYawDegrees);
-        var pitch = Mathf.DegToRad(CameraPitchDegrees);
+        var yaw = Mathf.DegToRad(Yaw);
+        var pitch = Mathf.DegToRad(Pitch);
         var horizontal = Mathf.Cos(pitch);
         return new Vector3(
             Mathf.Sin(yaw) * horizontal,
@@ -108,8 +133,8 @@ public partial class IsoCamera : Camera3D
     private Vector3 BuildCameraRotation()
     {
         return new Vector3(
-            Mathf.DegToRad(-CameraPitchDegrees),
-            Mathf.DegToRad(CameraYawDegrees),
+            Mathf.DegToRad(-Pitch),
+            Mathf.DegToRad(Yaw),
             0.0f
         );
     }
