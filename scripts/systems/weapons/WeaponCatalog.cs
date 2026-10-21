@@ -87,7 +87,7 @@ public static class WeaponCatalog
                     AimAssistStrength: 0.22f,
                     RetargetAtImpactStrength: 0.0f)),
             SpecialAttackCooldown: 1.0f),
-        // Revolver Duplo (docs/design: "Novas armas do Virgil"): disparo instantaneo alternando as maos, tambor de
+        // Revolver Duplo: disparo instantaneo alternando as maos, tambor de
         // 12 balas com recarga automatica; o rapido e um tiro curto em leque; a Bala de Prata perfura e recarrega.
         new(
             "dual_revolvers",
