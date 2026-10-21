@@ -25,7 +25,7 @@ using System.Collections.Generic;
 ///   TestArena:  hud_combat, critical_health, damage_flash, damage_number, blessing_bar, event_log,
 ///               character_sheet, blessing_offer, blessing_offer_replace, anvil_offer (3 cartas), anvil_offer_single (1 carta),
 ///               pause, options (= options_video), options_audio, options_game, options_video_end (Vídeo rolado até o fim), options_confirm ("Manter estas configurações?", só a janela),
-///               tuning, pause_confirm_abandon, pause_confirm_menu,
+///               tuning, dev_panel, dev_panel_actions, dev_console (console de dev com help e list boons orlok), pause_confirm_abandon, pause_confirm_menu,
 ///               compendium, game_over, room_clear, toast, wave_warning, boss_bar,
 ///               dialogue_bark (legenda de Virgil, repetida a cada 3 s)
 ///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
@@ -88,7 +88,7 @@ public partial class UiPreview : Node
 		("menu_credits", null, SceneMenu),
 		("hud_combat", null, SceneArena), ("blessing_bar", null, SceneArena), ("pause", null, SceneArena),
 		("options", null, SceneArena), ("options_audio", null, SceneArena), ("options_game", null, SceneArena),
-		("options_confirm", null, SceneArena), ("options_video_end", null, SceneArena), ("tuning", null, SceneArena), ("dev_panel", null, SceneArena), ("dev_panel_actions", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
+		("options_confirm", null, SceneArena), ("options_video_end", null, SceneArena), ("tuning", null, SceneArena), ("dev_panel", null, SceneArena), ("dev_panel_actions", null, SceneArena), ("dev_console", null, SceneArena), ("pause_confirm_abandon", null, SceneArena),
 		("pause_confirm_menu", null, SceneArena), ("game_over", null, SceneArena),
 		("compendium", "Artifacts", SceneArena), ("compendium", "Blessings", SceneArena), ("compendium", "Skills", SceneArena),
 		("compendium", "Attacks", SceneArena), ("compendium", "Enemies", SceneArena), ("compendium", "Weapons", SceneArena),
