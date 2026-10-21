@@ -82,6 +82,7 @@ public static partial class DevParameterRegistry
                 P($"{attackKey}.range", $"{attackLabel}: alcance", group, a.Range, 0.1, 20, 0.05, false, DevApplyMode.Live, ("O alcance efetivo é multiplicado pelo multiplicador de alcance da arma (range_mult, padrão 1,3). " + soon).Trim());
                 P($"{attackKey}.width", $"{attackLabel}: largura", group, a.Width, 0.1, 20, 0.05, false, DevApplyMode.Live, soon);
                 P($"{attackKey}.stagger", $"{attackLabel}: stagger (s)", group, a.StaggerDuration, 0, 3, 0.01, false, DevApplyMode.Live, soon);
+                P($"{attackKey}.max_targets", $"{attackLabel}: limite de alvos (0 = todos)", group, a.MaxTargets, 0, 20, 1, false, DevApplyMode.Live, ("Só os N inimigos mais próximos na direção do golpe são atingidos (tiro do revólver). " + soon).Trim());
             }
 
             P($"{key}.damage_mult", $"{label}: multiplicador de dano (x)", group, w.DamageMultiplier, 0, 10, 0.05, false, DevApplyMode.Live, ("Vale para todos os golpes da arma. " + soon).Trim());
@@ -99,6 +100,11 @@ public static partial class DevParameterRegistry
             P($"{key}.knockback_special", $"{label}: multiplicador de knockback especial", group, w.SpecialAttackKnockbackMultiplier, 0, 20, 0.1, false, DevApplyMode.Live, soon);
             P($"{key}.lunge", $"{label}: avanço da estocada (distância)", group, w.LineAttackLungeDistance, 0, 10, 0.1, false, DevApplyMode.Live, soon);
             P($"{key}.special_cooldown", $"{label}: recarga do especial (s)", group, w.SpecialAttackCooldown, 0.05, 30, 0.05, false, DevApplyMode.Live, soon);
+            if (w.MagazineSize > 0)
+            {
+                P($"{key}.magazine", $"{label}: balas no tambor", group, w.MagazineSize, 1, 60, 1, false, DevApplyMode.Live, "Recarga automática com o tambor vazio.");
+                P($"{key}.reload_time", $"{label}: tempo de recarga (s)", group, w.ReloadSeconds, 0.05, 5, 0.05, false);
+            }
         }
     }
 

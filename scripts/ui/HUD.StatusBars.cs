@@ -21,6 +21,8 @@ public partial class HUD
 	private float _hudClock;
 	private UiResourceBar _healthResourceBar;
 	private UiResourceBar _furyResourceBar;
+	// Munição da arma equipada (Revólver Duplo); oculto para armas sem munição.
+	private Label _ammoLabel;
 	private UiResourceBar _bossResourceBar;
 	private string _bossDisplayName;
 	private Control _roomTitleGroup;
@@ -128,6 +130,12 @@ public partial class HUD
 		_furyResourceBar.Root.Name = "Fury";
 		_furyResourceBar.Root.Visible = false;
 		column.AddChild(_furyResourceBar.Root);
+
+		_ammoLabel = UiComponents.MakeLabel("", UiVariation.HudValueLabel);
+		_ammoLabel.Name = "Ammo";
+		_ammoLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_ammoLabel.Visible = false;
+		column.AddChild(_ammoLabel);
 
 		FitPlayerPanel();
 		var showCombatHud = !IsHubScene();
@@ -341,6 +349,8 @@ public partial class HUD
 			_runtimePlayerCombat = combat;
 			combat.FuryChanged += OnFuryChanged;
 			OnFuryChanged(combat.CurrentFury, combat.MaxFury, combat.IsFuryActive);
+			combat.AmmoChanged += OnAmmoChanged;
+			OnAmmoChanged(combat.CurrentAmmo, combat.MaxAmmo, combat.IsReloading);
 		}
 
 		if (runManager != null)
@@ -503,6 +513,24 @@ public partial class HUD
 		_furyResourceBar.Bar.TooltipText = isActive
 			? Localization.TextFormat("hud.fury.tooltip_active", furyDrainPerSecond)
 			: Localization.Text("hud.fury.tooltip_ready");
+	}
+
+	private void OnAmmoChanged(int current, int max, bool isReloading)
+	{
+		if (_ammoLabel == null || _statusPreviewActive)
+			return;
+		var visible = max > 0;
+		if (_ammoLabel.Visible != visible)
+		{
+			_ammoLabel.Visible = visible;
+			FitPlayerPanel();
+		}
+		if (!visible)
+			return;
+		_ammoLabel.Text = isReloading
+			? Localization.Text("hud.ammo.reloading")
+			: Localization.TextFormat("hud.ammo", current, max);
+		_ammoLabel.Modulate = isReloading || current <= 0 ? new Color(1.0f, 0.75f, 0.45f) : Colors.White;
 	}
 
 	// A fúria só aparece quando liberada por uma Bênção de Sangue (§8.1).

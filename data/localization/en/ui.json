@@ -190,6 +190,8 @@
   "hud.fury": "Fury",
   "hud.fury.tooltip_active": "Bestial Fury active: drains {0:0.#} points per second and bursts when it reaches zero",
   "hud.fury.tooltip_ready": "Bestial Fury: press F (R1/RB) when the bar is full",
+  "hud.ammo": "Ammo {0}/{1}",
+  "hud.ammo.reloading": "Reloading...",
   "hud.game_over": "GAME OVER",
   "hud.room.boss": "Boss",
   "hud.room.cleared": "Room cleared",

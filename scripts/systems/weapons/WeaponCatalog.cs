@@ -87,7 +87,62 @@ public static class WeaponCatalog
                     AimAssistStrength: 0.22f,
                     RetargetAtImpactStrength: 0.0f)),
             SpecialAttackCooldown: 1.0f),
-        Placeholder("dual_revolvers"),
+        // Revolver Duplo (docs/design: "Novas armas do Virgil"): disparo instantaneo alternando as maos, tambor de
+        // 12 balas com recarga automatica; o rapido e um tiro curto em leque; a Bala de Prata perfura e recarrega.
+        new(
+            "dual_revolvers",
+            new[]
+            {
+                RevolverShot("weapon.dual_revolvers.basic_1.name"),
+                RevolverShot("weapon.dual_revolvers.basic_2.name")
+            },
+            new(
+                "weapon.dual_revolvers.quick.name", 36, 0.06f, 0.16f, 5.0f, 3.2f, 2.4f, 0.0f,
+                WeaponAttackShape.Arc, 0.30f,
+                Control: new(
+                    InputBufferSeconds: 0.18f,
+                    DodgeCancelsStartup: false,
+                    DodgeCancelRecoveryStart: 0.50f,
+                    SpecialCancelsStartup: false,
+                    SpecialCancelRecoveryStart: 0.30f,
+                    StartupMovementMultiplier: 0.0f,
+                    RecoveryMovementMultiplier: 0.80f,
+                    AimAssistRadius: 4.0f,
+                    AimAssistConeDegrees: 40.0f,
+                    AimAssistStrength: 0.45f,
+                    RetargetAtImpactStrength: 0.0f)),
+            new(
+                "weapon.dual_revolvers.special.name", 70, 0.20f, 0.25f, 6.0f, 12.0f, 0.9f, 0.0f,
+                WeaponAttackShape.Line, 0.60f,
+                Control: new(
+                    InputBufferSeconds: 0.18f,
+                    DodgeCancelsStartup: true,
+                    DodgeCancelRecoveryStart: 0.30f,
+                    SpecialCancelsStartup: false,
+                    SpecialCancelRecoveryStart: 1.0f,
+                    StartupMovementMultiplier: 0.20f,
+                    RecoveryMovementMultiplier: 0.60f,
+                    AimAssistRadius: 12.0f,
+                    AimAssistConeDegrees: 10.0f,
+                    AimAssistStrength: 0.50f,
+                    RetargetAtImpactStrength: 0.30f)),
+            AttackArcDegrees: 90.0f,
+            HitboxEdgeForgiveness: 0.3f,
+            QuickAttackHitboxScale: 1.0f,
+            QuickAttackDamageMultiplier: 1.0f,
+            BackstabDamageMultiplier: 1.25f,
+            BasicAttackKnockbackMultiplier: 1.0f,
+            QuickAttackKnockbackMultiplier: 1.5f,
+            SpecialAttackKnockbackMultiplier: 1.5f,
+            LineAttackLungeDistance: 0.0f,
+            SpecialAttackCooldown: 2.0f,
+            RangeMultiplier: 1.0f,
+            IsRanged: true,
+            MagazineSize: 12,
+            ReloadSeconds: 0.9f,
+            SpecialReloadsMagazine: true,
+            HasComboFinisher: false,
+            AutoFire: true),
         Placeholder("whip")
     };
 
@@ -105,6 +160,24 @@ public static class WeaponCatalog
 
         return Weapons[0];
     }
+
+    // Disparo básico do revólver (as duas mãos têm o mesmo golpe; muda só o nome e a mão do rastro).
+    private static WeaponAttackDefinition RevolverShot(string nameKey) => new(
+        nameKey, 18, 0.05f, 0.10f, 1.2f, 10.0f, 0.45f, 0.0f,
+        WeaponAttackShape.Line, 0.08f,
+        Control: new(
+            InputBufferSeconds: 0.16f,
+            DodgeCancelsStartup: true,
+            DodgeCancelRecoveryStart: 0.0f,
+            SpecialCancelsStartup: true,
+            SpecialCancelRecoveryStart: 0.0f,
+            StartupMovementMultiplier: 0.80f,
+            RecoveryMovementMultiplier: 0.90f,
+            AimAssistRadius: 10.0f,
+            AimAssistConeDegrees: 12.0f,
+            AimAssistStrength: 0.55f,
+            RetargetAtImpactStrength: 0.0f),
+        MaxTargets: 1);
 
     // Textos (nome, descrição) em content.json: weapon.<id>.name/.desc. O golpe genérico usa o nome da arma.
     private static WeaponDefinition Placeholder(string id)
