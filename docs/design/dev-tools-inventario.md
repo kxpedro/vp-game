@@ -141,3 +141,7 @@ Cada parâmetro é lido em três camadas, nesta ordem:
 3. **Padrão do código** (`Default` em `DevParameters.*.cs`).
 
 O botão **"Promover para o jogo"** do F1 (ou o comando `promote` do console) copia os parâmetros alterados para a camada do jogo, tira do arquivo os que voltaram ao padrão do código e limpa os locais. Só funciona rodando a partir do projeto (`OS.HasFeature("editor")`). Depois, faça commit do arquivo. No F1, "do jogo" marca uma chave promovida, e "Resetar" volta ao valor do jogo, não ao do código. `py tools/validate_dev_tuning.py` confere as chaves e faixas do arquivo.
+
+## Armas por grupo
+
+O F1 tem um grupo por arma do `WeaponCatalog` ("Armas: Espada longa", "Armas: Revólver duplo", "Armas: Chicote"), registrado em `DevParameters.Player.cs` (`RegisterWeapons`) a partir do próprio catálogo: os golpes (`weapon.<id>.<golpe>.damage/hit_delay/recovery/knockback/range/width/stagger`) e os multiplicadores da arma (`weapon.<id>.<campo>`). Os padrões vêm do catálogo, então arma nova entra sozinha. As armas sem moveset (Em breve) já aparecem, com aviso na nota. Os ajustes rápidos `game.*` (dano, velocidade e atraso de ataque, alcance) continuam globais: valem para qualquer arma equipada.
