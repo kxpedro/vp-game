@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// Jogador e recursos: add/set (vida, moedas, sangue amaldiçoado, fúria, frutas), heal, god, stamina.
+// Jogador e recursos: add/set (vida, moedas, sangue amaldiçoado, fúria, frutas), heal, god, stamina, sprite.
 public static partial class DevCommands
 {
     private enum DevResource { Health, Coins, CursedBlood, Fury, Fruit }
@@ -46,6 +46,12 @@ public static partial class DevCommands
         DevConsole.Register(new DevCommand("stamina", "Stamina infinita. Sem argumento, alterna.", Stamina)
         {
             Aliases = new[] { "estamina", "infstamina" },
+            Usage = "[on|off]",
+            Complete = _ => ToggleWords
+        });
+        DevConsole.Register(new DevCommand("sprite", "Teste: Virgil como sprite 2D em vez do modelo 3D (também F3). Sem argumento, alterna.", Sprite)
+        {
+            Aliases = new[] { "sprite2d", "pixel" },
             Usage = "[on|off]",
             Complete = _ => ToggleWords
         });
@@ -199,5 +205,13 @@ public static partial class DevCommands
             return;
         PlayerController.DevInfiniteStamina = on;
         c.Ok(on ? "Stamina infinita ligada." : "Stamina infinita desligada.");
+    }
+
+    private static void Sprite(DevCommandContext c)
+    {
+        if (ParseToggle(c, 0, PlayerSpriteVisual.Enabled) is not { } on)
+            return;
+        PlayerSpriteVisual.Enabled = on;
+        c.Ok(on ? "Virgil em sprite 2D." : "Virgil em modelo 3D.");
     }
 }

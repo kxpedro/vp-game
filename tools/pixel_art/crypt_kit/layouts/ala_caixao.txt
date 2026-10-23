@@ -1,0 +1,70 @@
+# Ala do caixão do Virgil: sala 9x4, corredor largo para o hub (fundo) e corredor de saída (frente)
+[grid]
+   ,,,
+   ,,,
+   ,,,
+   ,,,
+   ;;;
+   ;;;
+.........
+.........
+.........
+.........
+   ;;;
+   ;;;
+   ,,,
+   ,,,
+[edges]
+plain ne 3 6
+arch ne 4 6
+plain ne 5 6
+low sw 3 9
+gap sw 4 9
+low sw 5 9
+niche nw 0 7
+none ne 3 0
+none ne 4 0
+none ne 5 0
+none sw 3 13
+none sw 4 13
+none sw 5 13
+niche nw 0 9
+niche ne 1 6
+niche ne 7 6
+[props]
+carpet_sw 4 6
+carpet_sw 4 7
+coffin_virgil_sw 4 8 0 8
+coffin_wood_closed_sw 0 6 18 42
+coffin_stone_closed_sw 1 6 46 40
+coffin_wood_broken_sw 2 6 42 40
+coffin_stone_broken_sw 6 6 16 40
+coffin_wood_closed_sw 7 6 14 40
+coffin_wood_open_sw 8 6 8 40
+coffin_wood_closed_se 0 8 16 6
+coffin_stone_closed_se 0 9 20 10
+coffin_wood_broken_se 8 9 8 10
+candles_large_a 0 6 -14 -18
+candles_large_b 8 6 18 -18
+candles_large_a 0 9 -14 20
+candles_large_b 8 9 18 18
+candles_medium_a 3 6 -2 -18
+candles_medium_b 5 6 2 -18
+candles_small_a 1 6 0 -20
+candles_small_b 6 6 30 -20
+candles_small_a 0 7 -20 10
+candles_medium_a 3 8 6 -8
+candles_medium_b 5 8 -10 0
+candles_small_a 3 9 30 20
+candles_small_b 5 9 -26 30
+sconce_ne 3 6 0 0
+sconce_ne 5 6 0 0
+sconce_nw 0 7 0 0
+sconce_nw 3 2 0 0
+bones 2 8
+bones 6 9
+rubble_a 1 9
+rubble_b 7 7
+[settings]
+ambient -0.6
+seed 12

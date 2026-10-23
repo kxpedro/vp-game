@@ -7,6 +7,10 @@ public partial class CrowsNestCrypt : Node3D
     [Export] public float FloorThickness { get; set; } = 0.3f;
     [Export] public float WallHeight { get; set; } = 3.2f;
     [Export] public float WallThickness { get; set; } = 0.5f;
+    // TESTE: troca a cripta 3D pelo hub em pixel art do kit (PixelArtHub.cs). Desligado = hub 3D antigo.
+    [Export] public bool UsePixelArtHub { get; set; } = true;
+
+    private PixelArtHub _pixelHub;
 
     private readonly Vector2I[] _crossRooms =
     {
@@ -20,6 +24,9 @@ public partial class CrowsNestCrypt : Node3D
 
     public override void _Ready()
     {
+        if (UsePixelArtHub && TryCreatePixelArtHub())
+            return;
+
         // Mesma pedra das salas fixas; as paredes recebem um tom um pouco mais claro para separar do piso.
         var floorMaterial = ResourceLoader.Load<StandardMaterial3D>(StoneMaterialPath);
         var wallMaterial = (StandardMaterial3D)floorMaterial.Duplicate();
@@ -38,10 +45,63 @@ public partial class CrowsNestCrypt : Node3D
         CreateDialogueNpc();
     }
 
+    // Hub do kit da cripta (tools/pixel_art/crypt_kit/layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem),
+    // portal na sala de cima, bancada e Odalric na da esquerda, personagens futuros na da direita, caixão do Virgil embaixo.
+    // Posições em unidades do kit (64 = 1 tile).
+    private bool TryCreatePixelArtHub()
+    {
+        _pixelHub = new PixelArtHub { Name = "PixelArtHub" };
+        AddChild(_pixelHub);
+        if (!_pixelHub.Build())
+        {
+            _pixelHub.QueueFree();
+            _pixelHub = null;
+            return false;
+        }
+
+        var scene = GetParent();
+        // A IsoCamera vem depois deste nó na cena: a configuração entra antes do _Ready dela.
+        if (scene.GetNodeOrNull<IsoCamera>("IsoCamera") is { } camera)
+            _pixelHub.ConfigureCamera(camera);
+
+        // A luz das velas já está pintada na arte: sem tonemap, glow, SSAO, névoa nem ajuste de cor, os pixels saem exatos.
+        if (scene.GetNodeOrNull<WorldEnvironment>("WorldEnvironment")?.Environment is { } environment)
+        {
+            environment.BackgroundColor = new Color("060608");
+            environment.TonemapMode = Environment.ToneMapper.Linear;
+            environment.GlowEnabled = false;
+            environment.SsaoEnabled = false;
+            environment.FogEnabled = false;
+            environment.AdjustmentEnabled = false;
+        }
+
+        // Geometria 3D antiga que o kit substitui.
+        foreach (var name in new[] { "VirgilCoffin", "AncientCoffinWest", "AncientCoffinEast", "CenterPillarNW", "CenterPillarNE", "CenterPillarSW", "CenterPillarSE" })
+            scene.GetNodeOrNull<Node>(name)?.QueueFree();
+
+        // Jogador acorda diante do caixão do Virgil, olhando para o tapete.
+        if (scene.GetNodeOrNull<Node3D>("Player") is { } player)
+            player.Position = _pixelHub.KitToWorld(992.0f, 1610.0f, 0.2f);
+        if (scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
+            bench.Position = _pixelHub.KitToWorld(330.0f, 900.0f, 0.45f);
+        if (scene.GetNodeOrNull<Node3D>("StartRunPortal") is { } portal)
+            portal.Position = _pixelHub.KitToWorld(992.0f, 320.0f, 0.12f);
+
+        var placeholderSpots = new[] { _pixelHub.KitToWorld(1700.0f, 860.0f), _pixelHub.KitToWorld(1700.0f, 992.0f), _pixelHub.KitToWorld(1700.0f, 1124.0f) };
+        CreateCharacterPlaceholders(placeholderSpots);
+        AddChild(new DialogueNpc { Name = "NpcOdalric", SpeakerId = "odalric", Position = _pixelHub.KitToWorld(330.0f, 1160.0f), RotationDegrees = new Vector3(0.0f, -60.0f, 0.0f) });
+        CreateTrainingDummy(_pixelHub.KitToWorld(780.0f, 1200.0f));
+        return true;
+    }
+
     // 3 pontos reservados para personagens desbloqueáveis, na sala leste (a do antigo Baú de Artefatos), encostados na parede.
     private void CreateCharacterPlaceholders()
     {
-        var spots = new[] { new Vector3(12.9f, 0.0f, -3.4f), new Vector3(12.9f, 0.0f, 0.0f), new Vector3(12.9f, 0.0f, 3.4f) };
+        CreateCharacterPlaceholders(new[] { new Vector3(12.9f, 0.0f, -3.4f), new Vector3(12.9f, 0.0f, 0.0f), new Vector3(12.9f, 0.0f, 3.4f) });
+    }
+
+    private void CreateCharacterPlaceholders(Vector3[] spots)
+    {
         for (var i = 0; i < spots.Length; i++)
         {
             // Sarcófago com a cabeceira ao longo de Z; a frente fica voltada ao centro do hub (-X).
@@ -166,7 +226,11 @@ public partial class CrowsNestCrypt : Node3D
 
     private void CreateTrainingHall()
     {
-        var center = new Vector3(0.0f, 0.0f, RoomSize * 2.0f);
+        CreateTrainingDummy(new Vector3(0.0f, 0.0f, RoomSize * 2.0f));
+    }
+
+    private void CreateTrainingDummy(Vector3 center)
+    {
         var dummy = new TrainingDummy { Position = center };
         dummy.AddChild(new CollisionShape3D
         {

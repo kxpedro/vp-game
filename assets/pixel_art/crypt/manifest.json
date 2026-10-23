@@ -1,0 +1,463 @@
+{
+ "canvas": [
+  224,
+  208
+ ],
+ "tile_top_vertex": [
+  112,
+  116
+ ],
+ "tile_center": [
+  112,
+  148
+ ],
+ "tile_size": [
+  128,
+  64
+ ],
+ "godot_texture_origin": [
+  0,
+  44
+ ],
+ "palette": "AAP-64",
+ "baked_ambient": -0.6,
+ "pieces": {
+  "walls/wall_ne_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_n": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_s": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w_tall": {
+   "kind": "wall",
+   "lights": []
+  },
+  "props/coffin_virgil_sw": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 129,
+     "y": 99,
+     "power": 1.1,
+     "radius": 40.0
+    },
+    {
+     "x": 161,
+     "y": 115,
+     "power": 1.1,
+     "radius": 40.0
+    }
+   ]
+  },
+  "props/coffin_stone_closed_sw": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_stone_broken_sw": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_closed_sw": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_open_sw": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_broken_sw": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/carpet_sw": {
+   "kind": "decal",
+   "lights": []
+  },
+  "props/coffin_virgil_se": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 95,
+     "y": 99,
+     "power": 1.1,
+     "radius": 40.0
+    },
+    {
+     "x": 63,
+     "y": 115,
+     "power": 1.1,
+     "radius": 40.0
+    }
+   ]
+  },
+  "props/coffin_stone_closed_se": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_stone_broken_se": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_closed_se": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_open_se": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/coffin_wood_broken_se": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/carpet_se": {
+   "kind": "decal",
+   "lights": []
+  },
+  "props/candles_small_a": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 118,
+     "y": 135,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 111,
+     "y": 135,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candles_small_b": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 107,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 110,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 110,
+     "y": 134,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candles_medium_a": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 105,
+     "y": 138,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 107,
+     "y": 135,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 105,
+     "y": 140,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 110,
+     "y": 138,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 110,
+     "y": 137,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candles_medium_b": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 106,
+     "y": 144,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 114,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 103,
+     "y": 138,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 117,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 109,
+     "y": 144,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candles_large_a": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 117,
+     "y": 142,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 106,
+     "y": 134,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 111,
+     "y": 126,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 119,
+     "y": 137,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 113,
+     "y": 143,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 110,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 103,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 126,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 123,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candles_large_b": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 111,
+     "y": 136,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 118,
+     "y": 142,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 105,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 97,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 114,
+     "y": 143,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 109,
+     "y": 129,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 108,
+     "y": 141,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 106,
+     "y": 133,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ]
+  },
+  "props/candle_tall": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 129,
+     "power": 1.1,
+     "radius": 40.0
+    }
+   ]
+  },
+  "props/sconce_ne": {
+   "kind": "wall_prop",
+   "lights": [
+    {
+     "x": 136,
+     "y": 81,
+     "power": 1.6,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/sconce_nw": {
+   "kind": "wall_prop",
+   "lights": [
+    {
+     "x": 78,
+     "y": 81,
+     "power": 1.6,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/bones": {
+   "kind": "decal",
+   "lights": []
+  },
+  "props/rubble_a": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/rubble_b": {
+   "kind": "prop",
+   "lights": []
+  }
+ }
+}

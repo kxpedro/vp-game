@@ -5,6 +5,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 ## Personagem
 
 - `Knight_Male` do [Ultimate Animated Character Pack](https://quaternius.com/packs/ultimatedanimatedcharacter.html), por Quaternius — CC0 1.0.
+- Sprite de teste do Virgil (`assets/characters/lpc_virgil_test/`), montado com camadas do [Universal LPC Spritesheet Character Generator](https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator) — CC-BY-SA 3.0 / GPL 3.0 (algumas camadas OGA-BY 3.0). Autores por camada em `assets/characters/lpc_virgil_test/CREDITS.txt`, entre eles Stephen Challener (Redshrike), Johannes Sjölund (wulax), bluecarrot16, JaidynReiman, Eliza Wyatt (ElizaWy), Manuel Riecke (MrBeast) e Nila122.
 
 ## Inimigos e bosses
 
@@ -14,6 +15,10 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 
 - Detalhes de piso e portão do [Modular Dungeon Kit](https://kenney.nl/assets/modular-dungeon-kit), por Kenney — CC0 1.0.
 - Barris, ossos, livro, candelabros, carpete, baú, entrada e tochas do [Modular Medieval Dungeon](https://quaternius.com/packs/medievaldungeon.html), por Quaternius — CC0 1.0.
+
+## Pixel art própria
+
+- `assets/pixel_art/`: arte 2D feita para o jogo (autoria própria), na paleta [AAP-64](https://lospec.com/palette-list/aap-64), de Adigun A. Polack. Detalhes em `assets/pixel_art/SOURCE.md`.
 
 ## Interface
 
