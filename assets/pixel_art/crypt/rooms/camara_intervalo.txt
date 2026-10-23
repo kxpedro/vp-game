@@ -1,0 +1,45 @@
+# Câmara de Hemomancia (modo 2D): 9x9 tiles, saída em arco no meio da parede norte (tile 4,0).
+# Fonte a oeste, altar a leste, loja ao norte (posições na cena 3D; a origem é o centro da sala).
+[grid]
+.........
+.........
+.........
+.........
+.........
+.........
+.........
+.........
+.........
+[edges]
+arch ne 4 0
+niche ne 1 0
+niche ne 7 0
+niche nw 0 2
+niche nw 0 6
+[props]
+carpet_sw 4 1
+carpet_sw 4 5
+carpet_sw 4 6
+carpet_sw 4 7
+carpet_sw 4 8
+candles_large_a 0 0 -14 -16
+candles_large_b 8 0 16 -16
+candles_large_a 0 8 -14 18
+candles_large_b 8 8 16 18
+candles_medium_a 3 0 0 -18
+candles_medium_b 5 0 0 -18
+sconce_ne 2 0
+sconce_ne 6 0
+sconce_nw 0 4
+candle_tall 2 3 0 0
+candle_tall 2 5 0 0
+candle_tall 6 3 0 0
+candle_tall 6 5 0 0
+coffin_stone_closed_sw 0 7 -12 0
+coffin_wood_closed_sw 8 2 12 0
+coffin_stone_broken_sw 8 6 12 0
+rubble_b 1 8
+bones 7 8
+[settings]
+ambient -0.6
+seed 17

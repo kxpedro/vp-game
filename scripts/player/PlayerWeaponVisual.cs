@@ -68,7 +68,9 @@ public partial class PlayerWeaponVisual : Node
             return;
 
         var phase = _combat?.CurrentAttackPhase ?? PlayerAttackPhase.None;
-        var swinging = _combat?.IsAttacking == true && phase != PlayerAttackPhase.None;
+        // Modo 2D: com o sprite ligado o modelo 3D some, e o rastro dele duplicaria a espada do sprite.
+        var spriteOn = GameMode.IsPixelArt && PlayerSpriteVisual.Enabled;
+        var swinging = _combat?.IsAttacking == true && phase != PlayerAttackPhase.None && !spriteOn;
         if (swinging && _weaponVisible)
         {
             var transform = _rightWeapon.GlobalTransform;

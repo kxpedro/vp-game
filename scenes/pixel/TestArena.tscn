@@ -1,0 +1,223 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/RunManager.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/camera/IsoCamera.cs" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/EnemyBasic.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="5"]
+[ext_resource type="Script" path="res://scripts/systems/ScenePortal.cs" id="6"]
+[ext_resource type="Script" path="res://scripts/systems/RoomGenerator.cs" id="7"]
+[ext_resource type="Script" path="res://scripts/pixel/PixelSceneSetup.cs" id="pixel_setup"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(24, 0.3, 24)
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(24, 0.3, 24)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.12, 0.12, 0.13, 1)
+roughness = 0.9
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall_long"]
+size = Vector3(24, 2.4, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wall_short"]
+size = Vector3(0.5, 2.4, 24)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_long"]
+size = Vector3(24, 2.4, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.2, 0.18, 0.2, 1)
+roughness = 0.88
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_portal"]
+top_radius = 1.15
+bottom_radius = 1.15
+height = 0.12
+radial_segments = 48
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_portal"]
+albedo_color = Color(0.7, 0.02, 0.04, 0.72)
+emission_enabled = true
+emission = Color(0.95, 0.01, 0.02, 1)
+emission_energy_multiplier = 2.0
+transparency = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_portal_pillar"]
+size = Vector3(0.34, 2.7, 0.42)
+
+[sub_resource type="BoxMesh" id="BoxMesh_portal_lintel"]
+size = Vector3(2.64, 0.34, 0.42)
+
+[sub_resource type="BoxMesh" id="BoxMesh_portal_bar"]
+size = Vector3(0.11, 2.25, 0.15)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_portal_area"]
+height = 2.0
+radius = 1.35
+
+[sub_resource type="Environment" id="ArenaEnvironment"]
+background_mode = 1
+background_color = Color(0.014, 0.012, 0.022, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.3, 0.34, 0.46, 1)
+ambient_light_energy = 0.57
+reflected_light_source = 1
+tonemap_mode = 2
+glow_enabled = true
+glow_normalized = false
+glow_intensity = 0.9
+glow_strength = 1.1
+glow_bloom = 0.04
+glow_hdr_threshold = 1.0
+ssao_enabled = true
+ssao_radius = 1.4
+ssao_intensity = 1.6
+fog_enabled = true
+fog_light_color = Color(0.09, 0.05, 0.1, 1)
+fog_density = 0.006
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.08
+
+[sub_resource type="StandardMaterial3D" id="PortalFrameMaterial"]
+albedo_color = Color(0.16, 0.12, 0.13, 1)
+roughness = 0.84
+emission_enabled = true
+emission = Color(0.45, 0.02, 0.04, 1)
+emission_energy_multiplier = 0.18
+
+[node name="TestArena" type="Node3D"]
+script = ExtResource("1")
+
+[node name="PixelSetup" type="Node3D" parent="."]
+script = ExtResource("pixel_setup")
+Kind = 0
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Visual" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("StandardMaterial3D_floor")
+
+[node name="NorthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.05, -12)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("BoxShape3D_wall_long")
+
+[node name="Visual" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("BoxMesh_wall_long")
+material_override = SubResource("StandardMaterial3D_wall")
+
+[node name="SouthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.05, 12)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("BoxShape3D_wall_long")
+
+[node name="Visual" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("BoxMesh_wall_long")
+material_override = SubResource("StandardMaterial3D_wall")
+
+[node name="EastWall" type="StaticBody3D" parent="."]
+position = Vector3(12, 1.05, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("BoxShape3D_wall_short")
+
+[node name="Visual" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("BoxMesh_wall_long")
+rotation = Vector3(0, 1.5707964, 0)
+material_override = SubResource("StandardMaterial3D_wall")
+
+[node name="WestWall" type="StaticBody3D" parent="."]
+position = Vector3(-12, 1.05, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WestWall"]
+shape = SubResource("BoxShape3D_wall_short")
+
+[node name="Visual" type="MeshInstance3D" parent="WestWall"]
+mesh = SubResource("BoxMesh_wall_long")
+rotation = Vector3(0, 1.5707964, 0)
+material_override = SubResource("StandardMaterial3D_wall")
+
+[node name="Player" parent="." instance=ExtResource("3")]
+position = Vector3(0, 0.2, 5.8)
+
+[node name="RoomGenerator" type="Node3D" parent="."]
+script = ExtResource("7")
+EnemyScene = ExtResource("4")
+
+[node name="ExitPortal" type="Node3D" parent="."]
+position = Vector3(0, 0.18, -9.4)
+
+[node name="Disc" type="MeshInstance3D" parent="ExitPortal"]
+mesh = SubResource("CylinderMesh_portal")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="PillarA" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(-1.15, 1.35, 0)
+mesh = SubResource("BoxMesh_portal_pillar")
+material_override = SubResource("PortalFrameMaterial")
+
+[node name="PillarB" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(1.15, 1.35, 0)
+mesh = SubResource("BoxMesh_portal_pillar")
+material_override = SubResource("PortalFrameMaterial")
+
+[node name="Lintel" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 2.7, 0)
+mesh = SubResource("BoxMesh_portal_lintel")
+material_override = SubResource("PortalFrameMaterial")
+
+[node name="BarA" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(-0.55, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="BarB" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="BarC" type="MeshInstance3D" parent="ExitPortal"]
+position = Vector3(0.55, 1.18, 0)
+mesh = SubResource("BoxMesh_portal_bar")
+material_override = SubResource("StandardMaterial3D_portal")
+
+[node name="PortalArea" type="Area3D" parent="ExitPortal"]
+script = ExtResource("6")
+TargetScenePath = "res://scenes/game/CrowsNest.tscn"
+PromptText = "portal.return_nest"
+StartsEnabled = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ExitPortal/PortalArea"]
+position = Vector3(0, 1, 0)
+shape = SubResource("CylinderShape3D_portal_area")
+
+[node name="IsoCamera" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.408248, 0.57735, 0, 0.816497, 0.57735, -0.707107, -0.408248, 0.57735, 8, 10, 8)
+script = ExtResource("2")
+TargetPath = NodePath("../Player")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.872665, -0.610865, 0)
+light_energy = 1.12
+shadow_enabled = true
+shadow_bias = 0.075
+shadow_normal_bias = 0.58
+shadow_blur = 1.45
+directional_shadow_max_distance = 34.0
+directional_shadow_blend_splits = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("ArenaEnvironment")
+
+[node name="HUD" parent="." instance=ExtResource("5")]

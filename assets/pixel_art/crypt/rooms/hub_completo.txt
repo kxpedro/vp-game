@@ -1,0 +1,197 @@
+# Hub completo (planta baixa do Pedro): fonte no centro, 4 alas em cruz, caixão do Virgil na ala de baixo.
+# Feito só com peças do kit; o lugar da fonte está marcado por um anel de velas.
+[grid]
+              ,,,
+              ,,,
+              ;;;
+           .........
+           .........
+           .........
+           .........
+              ...
+              ...
+              ...
+              ...
+   ....    .........    ....
+   ....    .........    ....
+   ....    .........    ....
+,,;.........................;,,
+,,;.........................;,,
+,,;.........................;,,
+   ....    .........    ....
+   ....    .........    ....
+   ....    .........    ....
+              ...
+              ...
+              ...
+              ...
+           .........
+           .........
+           .........
+           .........
+              ;;;
+              ,,,
+              ,,,
+[edges]
+plain ne 14 3
+arch ne 15 3
+plain ne 16 3
+low sw 14 6
+gap sw 15 6
+low sw 16 6
+plain ne 14 11
+arch ne 15 11
+plain ne 16 11
+low sw 14 19
+gap sw 15 19
+low sw 16 19
+plain ne 14 24
+arch ne 15 24
+plain ne 16 24
+low sw 14 27
+gap sw 15 27
+low sw 16 27
+plain nw 3 14
+arch nw 3 15
+plain nw 3 16
+low se 6 14
+gap se 6 15
+low se 6 16
+plain nw 11 14
+arch nw 11 15
+plain nw 11 16
+low se 19 14
+gap se 19 15
+low se 19 16
+plain nw 24 14
+arch nw 24 15
+plain nw 24 16
+low se 27 14
+gap se 27 15
+low se 27 16
+none ne 14 0
+none sw 14 30
+none ne 15 0
+none sw 15 30
+none ne 16 0
+none sw 16 30
+none nw 0 14
+none se 30 14
+none nw 0 15
+none se 30 15
+none nw 0 16
+none se 30 16
+niche ne 12 3
+niche ne 12 11
+niche ne 12 24
+niche ne 18 3
+niche ne 18 11
+niche ne 18 24
+niche nw 3 12
+niche nw 11 12
+niche nw 24 12
+niche nw 3 18
+niche nw 11 18
+niche nw 24 18
+[props]
+carpet_sw 15 24
+carpet_sw 15 25
+coffin_virgil_sw 15 26 0 8
+coffin_wood_closed_sw 11 24 18 42
+coffin_stone_closed_sw 12 24 46 40
+coffin_wood_broken_sw 13 24 42 40
+coffin_stone_broken_sw 17 24 16 40
+coffin_wood_closed_sw 18 24 14 40
+coffin_wood_open_sw 19 24 8 40
+coffin_wood_closed_se 11 26 16 6
+coffin_stone_closed_se 11 27 20 10
+coffin_wood_broken_se 19 27 8 10
+candles_large_a 11 24 -14 -18
+candles_large_b 19 24 18 -18
+candles_large_a 11 27 -14 20
+candles_large_b 19 27 18 18
+candles_medium_a 14 24 -2 -18
+candles_medium_b 16 24 2 -18
+candles_small_a 12 24 0 -20
+candles_small_b 17 24 30 -20
+candles_small_a 11 25 -20 10
+candles_medium_a 14 26 6 -8
+candles_medium_b 16 26 -10 0
+candles_small_a 14 27 30 20
+candles_small_b 16 27 -26 30
+sconce_ne 14 24 0 0
+sconce_ne 16 24 0 0
+sconce_nw 11 25 0 0
+bones 13 26
+bones 17 27
+rubble_a 12 27
+rubble_b 18 25
+carpet_sw 15 20
+carpet_sw 15 21
+carpet_sw 15 22
+carpet_sw 15 23
+candles_medium_a 17 15 22 0
+candles_small_b 17 16 11 -7
+candles_medium_a 17 17 -22 -22
+candles_small_b 16 17 -7 11
+candles_medium_a 15 17 0 22
+candles_small_b 14 17 7 11
+candles_medium_a 13 17 22 -22
+candles_small_b 13 16 -11 -7
+candles_medium_a 13 15 -22 0
+candles_small_b 13 14 -11 7
+candles_medium_a 13 13 22 22
+candles_small_b 14 13 7 -11
+candles_medium_a 15 13 0 -22
+candles_small_b 16 13 -7 -11
+candles_medium_a 17 13 -22 22
+candles_small_b 17 14 11 7
+candles_large_a 11 11 -14 -16
+candles_large_a 19 11 16 -16
+candles_large_a 11 19 -14 18
+candles_large_a 19 19 16 18
+sconce_ne 13 11
+sconce_ne 17 11
+sconce_nw 11 13
+sconce_nw 11 17
+candle_tall 13 13 0 0
+candle_tall 17 13 0 0
+candle_tall 13 17 0 0
+candle_tall 17 17 0 0
+candles_large_a 11 3 -14 -16
+candles_large_b 19 3 16 -16
+candles_medium_a 11 6 -14 18
+candles_medium_b 19 6 16 18
+sconce_ne 13 3
+sconce_ne 17 3
+coffin_stone_closed_sw 11 3 30 40
+coffin_wood_broken_sw 19 3 30 40
+rubble_a 12 6
+bones 18 6
+candles_large_a 3 11 -14 -16
+candles_large_b 6 11 16 -16
+candles_medium_a 3 19 -14 18
+candles_medium_b 6 19 16 18
+sconce_nw 3 13
+sconce_nw 3 17
+coffin_stone_closed_se 3 11 40 30
+coffin_wood_open_se 3 19 40 0
+rubble_b 6 12
+bones 6 18
+candles_large_a 24 11 -14 -16
+candles_large_b 27 11 16 -16
+candles_medium_a 24 19 -14 18
+candles_medium_b 27 19 16 18
+sconce_nw 24 13
+sconce_nw 24 17
+coffin_stone_closed_se 24 11 40 30
+coffin_wood_open_se 24 19 40 0
+rubble_b 27 12
+bones 27 18
+sconce_nw 14 8
+sconce_nw 14 21
+sconce_ne 8 14
+sconce_ne 21 14
+[settings]
+ambient -0.6
+seed 21

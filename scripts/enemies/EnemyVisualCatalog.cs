@@ -23,7 +23,11 @@ public static class EnemyVisualCatalog
         }
 
         foreach (EnemyArchetype archetype in System.Enum.GetValues(typeof(EnemyArchetype)))
-            Godot.ResourceLoader.LoadThreadedRequest(GetEnemy(archetype).ScenePath);
+        {
+            var path = GetEnemy(archetype).ScenePath;
+            if (!PixelEnemySprite.IsPixelPath(path))
+                Godot.ResourceLoader.LoadThreadedRequest(path);
+        }
     }
 
     public static Godot.PackedScene LoadScene(EnemyVisualDefinition definition)
@@ -41,7 +45,7 @@ public static class EnemyVisualCatalog
         return scene;
     }
 
-    public static EnemyVisualDefinition GetEnemy(EnemyArchetype archetype) => archetype switch
+    public static EnemyVisualDefinition GetEnemy(EnemyArchetype archetype) => GameMode.IsPixelArt ? GetPixelEnemy(archetype) : archetype switch
     {
         EnemyArchetype.Ranged => new(
             "res://assets/enemies/quaternius_ultimate_monsters/Demon.gltf",
@@ -52,6 +56,15 @@ public static class EnemyVisualCatalog
         _ => new(
             "res://assets/enemies/quaternius_ultimate_monsters/Ninja.gltf",
             1.0f, "Idle", 0.48f, true, 1.0f, 180.0f, "Run", "Weapon", "HitReact")
+    };
+
+    // Modo 2D: monstros em pixel art (PixelEnemySprite). Corpo a corpo = goblin ou cogumelo, a distancia = olho voador,
+    // tanque = esqueleto. Os chefes continuam com o modelo 3D.
+    private static EnemyVisualDefinition GetPixelEnemy(EnemyArchetype archetype) => archetype switch
+    {
+        EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "flying_eye", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
+        EnemyArchetype.Tank => new(PixelEnemySprite.PathPrefix + "skeleton", 1.0f, "Idle", 0.68f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
+        _ => new(PixelEnemySprite.PathPrefix + (Godot.GD.Randf() < 0.5f ? "goblin" : "mushroom"), 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
     };
 
     public static EnemyVisualDefinition GetBoss(int mapIndex) => mapIndex switch

@@ -15,8 +15,13 @@ public partial class IsoCamera : Camera3D
     [Export] public float FollowSpeed { get; set; } = DefaultFollowSpeed;
     [Export] public float ShakeFrequency { get; set; } = DefaultShakeFrequency;
 
-    private float Yaw => CompendiumTuning.GetFloat("camera.yaw", CameraYawDegrees);
-    private float Pitch => CompendiumTuning.GetFloat("camera.pitch", CameraPitchDegrees);
+    // Travas usadas pelo hub em pixel art (PixelArtHub.cs): o ângulo e a distância ignoram o tuning da câmera.
+    public float? LockedYawDegrees { get; set; }
+    public float? LockedPitchDegrees { get; set; }
+    public float? LockedZoomDistance { get; set; }
+
+    private float Yaw => LockedYawDegrees ?? CompendiumTuning.GetFloat("camera.yaw", CameraYawDegrees);
+    private float Pitch => LockedPitchDegrees ?? CompendiumTuning.GetFloat("camera.pitch", CameraPitchDegrees);
 
     private Node3D _target;
     private Vector3 _offsetDirection;
@@ -55,7 +60,7 @@ public partial class IsoCamera : Camera3D
 
     private void ApplyRuntimeTuning()
     {
-        _zoomDistance = CompendiumTuning.GetFloat("camera.zoom_distance", StartZoomDistance) * GameTuning.GetCameraZoomDistanceMultiplier();
+        _zoomDistance = LockedZoomDistance ?? CompendiumTuning.GetFloat("camera.zoom_distance", StartZoomDistance) * GameTuning.GetCameraZoomDistanceMultiplier();
     }
 
     private void OnCompendiumTuningChanged(string key)

@@ -1,0 +1,46 @@
+# Exemplo de reaproveitamento: ossuário em L com corredor saindo pela esquerda
+[grid]
+     ......
+     ......
+,,;;.......
+,,;;.......
+     ......
+     ......
+     ......
+     ......
+[edges]
+niche ne 5 0
+niche ne 7 0
+niche ne 9 0
+niche nw 5 5
+niche nw 5 7
+arch ne 8 0
+none nw 0 2
+none nw 0 3
+gap se 10 6
+[props]
+coffin_stone_closed_se 6 4 10 8
+coffin_stone_broken_se 8 4 10 8
+coffin_stone_closed_se 6 6 10 8
+coffin_wood_open_se 8 6 10 8
+coffin_wood_closed_sw 10 0 20 30
+coffin_wood_broken_sw 10 4 20 20
+candles_large_a 5 0 -14 -16
+candles_large_b 10 0 16 -16
+candles_large_a 5 7 -14 18
+candles_medium_a 7 5 30 0
+candles_medium_b 9 3 0 20
+candles_small_a 6 1 20 -20
+candles_small_b 9 1 0 -20
+candle_tall 7 4 40 10
+candle_tall 7 6 40 30
+sconce_ne 6 0
+sconce_ne 8 0
+sconce_nw 5 4
+bones 6 2
+bones 9 7
+rubble_a 10 7
+rubble_b 5 1
+[settings]
+ambient -0.6
+seed 5

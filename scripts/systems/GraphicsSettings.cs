@@ -60,7 +60,12 @@ public static class GraphicsSettings
         _attached = true;
         // SceneChanged (troca por ChangeSceneToFile: ScenePortal, menu, recarga) em vez de NodeAdded, que marshalizava cada nó da run.
         // Nenhum script cria WorldEnvironment/DirectionalLight3D em runtime: estão nos .tscn.
-        tree.SceneChanged += () => ApplyCurrentScene(GlobalSettings.Instance?.Data);
+        // A renderização global também é reaplicada: o modo 2D desliga escala e antisserrilhado, o 3D volta às opções.
+        tree.SceneChanged += () =>
+        {
+            ApplyRendering(GlobalSettings.Instance?.Data);
+            ApplyCurrentScene(GlobalSettings.Instance?.Data);
+        };
     }
 
     public static void ApplyAll(GlobalSettingsData data, bool applyWindow)
@@ -229,12 +234,14 @@ public static class GraphicsSettings
         var root = _tree?.Root;
         if (root != null)
         {
-            var scale = Mathf.Clamp(d.RenderScalePercent / 100.0f, 0.5f, 1.0f);
+            // Modo 2D: a arte já sai em múltiplo inteiro de pixels; escala menor, FXAA ou MSAA borram os pixels.
+            var pixel = GameMode.IsPixelArt;
+            var scale = pixel ? 1.0f : Mathf.Clamp(d.RenderScalePercent / 100.0f, 0.5f, 1.0f);
             // Em 100% o upscaler não faz nada: fica Bilinear para não passar pelo FSR à toa.
             root.Scaling3DMode = d.Upscaler == 1 && scale < 0.999f ? Viewport.Scaling3DModeEnum.Fsr : Viewport.Scaling3DModeEnum.Bilinear;
             root.Scaling3DScale = scale;
-            root.Msaa3D = d.AntiAliasing == 2 ? Viewport.Msaa.Msaa2X : d.AntiAliasing == 3 ? Viewport.Msaa.Msaa4X : Viewport.Msaa.Disabled;
-            root.ScreenSpaceAA = d.AntiAliasing == 1 ? Viewport.ScreenSpaceAAEnum.Fxaa : Viewport.ScreenSpaceAAEnum.Disabled;
+            root.Msaa3D = pixel ? Viewport.Msaa.Disabled : d.AntiAliasing == 2 ? Viewport.Msaa.Msaa2X : d.AntiAliasing == 3 ? Viewport.Msaa.Msaa4X : Viewport.Msaa.Disabled;
+            root.ScreenSpaceAA = !pixel && d.AntiAliasing == 1 ? Viewport.ScreenSpaceAAEnum.Fxaa : Viewport.ScreenSpaceAAEnum.Disabled;
         }
         if (ScreenCount > 0)
         {

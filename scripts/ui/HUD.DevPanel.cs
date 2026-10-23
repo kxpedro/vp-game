@@ -1061,7 +1061,7 @@ public partial class HUD
 		CloseDevPanel();
 		UiModalStack.Clear();
 		UiModalStack.ApplyPause(false);
-		GetTree().ChangeSceneToFile("res://scenes/game/TestArena.tscn");
+		GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/TestArena.tscn"));
 	}
 
 	private void DevAfterRewardGiven()

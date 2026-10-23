@@ -30,6 +30,7 @@ public partial class PlayerAnimator : Node
     private AnimationPlayer _animationPlayer;
     private CharacterBody3D _player;
     private PlayerCombat _combat;
+    private PlayerSpriteVisual _spriteVisual;
     private string _currentAnimation = "";
     private string _idleAnimation = "";
     private string _walkAnimation = "";
@@ -62,6 +63,12 @@ public partial class PlayerAnimator : Node
     {
         _player = GetParent<CharacterBody3D>();
         _combat = _player.GetNodeOrNull<PlayerCombat>("PlayerCombat");
+        // Modo 2D: Virgil em sprite pixel art (PlayerSpriteVisual.cs, F3 alterna em debug). O modo 3D fica só com o modelo.
+        if (GameMode.IsPixelArt)
+        {
+            _spriteVisual = new PlayerSpriteVisual { Name = "PlayerSpriteVisual" };
+            _player.CallDeferred(Node.MethodName.AddChild, _spriteVisual);
+        }
         var modelRoot = GetNodeOrNull<Node>(ModelRootPath);
         _animationPlayer = FindAnimationPlayer(modelRoot ?? _player);
 
@@ -116,6 +123,7 @@ public partial class PlayerAnimator : Node
         _isMoving = isMoving;
         _isRunning = isRunning;
         _movementSpeed = Mathf.Max(movementSpeed, 0.0f);
+        _spriteVisual?.SetMovementState(isMoving, isRunning, movementSpeed);
 
         if (_animationPlayer == null || _oneShotLockTimer > 0.0f)
             return;
@@ -133,6 +141,7 @@ public partial class PlayerAnimator : Node
         var animation = attackShape == WeaponAttackShape.Line
             ? _thrustAttackAnimation
             : comboIndex % 2 == 0 ? _lightAttackAnimation : _heavyAttackAnimation;
+        _spriteVisual?.PlayLightAttack(comboIndex, combatDuration, attackShape);
         PlaySyncedOneShot(animation, combatDuration);
     }
 
@@ -147,33 +156,39 @@ public partial class PlayerAnimator : Node
             : isFinisher
                 ? new AttackAnimProfile(0.50f, 0.65f, 0.25f, 0.050f)
                 : new AttackAnimProfile(0.45f, 0.55f, 0.30f, 0.030f);
+        _spriteVisual?.PlayLightAttack(comboIndex, hitDelay + recovery, attackShape);
         PlaySegmentedOneShot(animation, hitDelay, recovery, profile);
     }
 
     public void PlayHeavyAttack(float combatDuration)
     {
+        _spriteVisual?.PlayHeavyAttack(combatDuration);
         PlaySyncedOneShot(_heavyAttackAnimation, combatDuration);
     }
 
     // Especial: preparacao longa e hold marcante no impacto.
     public void PlayHeavyAttack(float hitDelay, float recovery)
     {
+        _spriteVisual?.PlayHeavyAttack(hitDelay + recovery);
         PlaySegmentedOneShot(_heavyAttackAnimation, hitDelay, recovery, new AttackAnimProfile(0.50f, 0.70f, 0.20f, 0.070f));
     }
 
     public void PlayDashAttack(float combatDuration)
     {
+        _spriteVisual?.PlayHeavyAttack(combatDuration);
         PlaySyncedOneShot(_heavyAttackAnimation, combatDuration);
     }
 
     // Rapido da esquiva: sem preparacao, estalo direto.
     public void PlayDashAttack(float hitDelay, float recovery)
     {
+        _spriteVisual?.PlayHeavyAttack(hitDelay + recovery);
         PlaySegmentedOneShot(_heavyAttackAnimation, hitDelay, recovery, new AttackAnimProfile(0.42f, 0.30f, 0.45f, 0.025f));
     }
 
     public void PlayDodge(float duration)
     {
+        _spriteVisual?.PlayDodge(duration);
         if (!HasAnimation(_dodgeAnimation))
             return;
 
@@ -184,6 +199,7 @@ public partial class PlayerAnimator : Node
 
     public void PlayHitReaction(float duration)
     {
+        _spriteVisual?.PlayHitReaction(duration);
         if (!HasAnimation(_hitAnimation))
             return;
 
@@ -197,6 +213,7 @@ public partial class PlayerAnimator : Node
 
     public void CancelOneShot()
     {
+        _spriteVisual?.CancelOneShot();
         EndSegments();
         _oneShotLockTimer = 0.0f;
         _oneShotAnimation = "";
