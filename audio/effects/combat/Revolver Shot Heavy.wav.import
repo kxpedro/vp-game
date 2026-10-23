@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://b71p1c0exa6tw"
+path="res://.godot/imported/Revolver Shot Heavy.wav-8c2c84cf948574c0f6e48f4083d9b8d7.sample"
+
+[deps]
+
+source_file="res://audio/effects/combat/Revolver Shot Heavy.wav"
+dest_files=["res://.godot/imported/Revolver Shot Heavy.wav-8c2c84cf948574c0f6e48f4083d9b8d7.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

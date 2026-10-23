@@ -42,6 +42,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 - Swishes e cortes de espada: “Swishes Sound Pack”, por artisticdude, via [OpenGameArt](https://opengameart.org/content/swishes-sound-pack) — CC0 1.0.
 - Impactos de espada: “20 Sword Sound Effects (Attacks and Clashes)”, por StarNinjas, via [OpenGameArt](https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes) — CC0 1.0.
 - Impactos carnais: “Fleshy Fight Sounds”, por Will Leamon, via [OpenGameArt](https://opengameart.org/content/fleshy-fight-sounds) — OGA-BY 3.0.
+- Tiros e recarga do Revólver Duplo (`Revolver *.wav`): sintetizados para o projeto por `tools/generate_revolver_sfx.py` — CC0 1.0.
 
 Attribution: “Additional Sound FX by Will Leamon”.
 
