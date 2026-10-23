@@ -57,6 +57,7 @@ Os arquivos abaixo estão no projeto sem `SOURCE.md` nem licença documentada. A
 
 - Músicas: `audio/ambience/*.mp3` (Floor 1–3, Game Over, Hub, Main Menu Theme) e `audio/boss/*.mp3`.
 - Efeitos: `audio/effects/Boss Defeated.mp3`, `Death.mp3`, `Treasure.mp3`.
+- Monstros do modo 2D: `assets/pixel_art/monsters/*` (pacote “Monsters Creatures Fantasy”, provavelmente de Luiz Melo; ver o `SOURCE.md` da pasta).
 - Imagens: `images/bloodBoons/*`, `images/effects/*`, `images/inventory/*`, `images/generic.png` e `icon.png`.
 
 ## Material arquivado

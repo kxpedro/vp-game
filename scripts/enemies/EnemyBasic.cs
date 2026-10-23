@@ -391,20 +391,32 @@ public partial class EnemyBasic : CharacterBody3D
     public void ApplyPlaceholderVisual(EnemyVisualDefinition definition)
     {
         if (definition == null || string.IsNullOrWhiteSpace(definition.ScenePath)) return;
-        var scene = EnemyVisualCatalog.LoadScene(definition);
-        if (scene == null)
+        // Modo 2D: sprite de pixel art com as mesmas animacoes, no lugar do modelo 3D.
+        var pixelSprite = PixelEnemySprite.IsPixelPath(definition.ScenePath);
+        Node3D visual;
+        if (pixelSprite)
         {
-            GD.PushWarning($"Placeholder 3D ainda nao importado: {definition.ScenePath}");
-            return;
+            visual = PixelEnemySprite.Create(definition.ScenePath);
+            if (visual == null) return;
+        }
+        else
+        {
+            var scene = EnemyVisualCatalog.LoadScene(definition);
+            if (scene == null)
+            {
+                GD.PushWarning($"Placeholder 3D ainda nao importado: {definition.ScenePath}");
+                return;
+            }
+            visual = scene.Instantiate<Node3D>();
         }
 
         _importedVisual?.QueueFree();
-        _importedVisual = scene.Instantiate<Node3D>();
+        _importedVisual = visual;
         _importedVisual.Name = "ImportedVisual";
         _importedVisual.Scale = Vector3.One * definition.Scale;
         _importedVisual.RotationDegrees = new Vector3(0.0f, definition.FacingYawDegrees, 0.0f);
         AddChild(_importedVisual);
-        if (definition.MatchPlayerHeight)
+        if (definition.MatchPlayerHeight && !pixelSprite)
             MatchImportedVisualToPlayerHeight(definition.PlayerHeightMultiplier);
         HitTargetRadius = definition.CombatRadius;
         if (_visual != null) _visual.Visible = false;
@@ -1108,6 +1120,11 @@ public partial class EnemyBasic : CharacterBody3D
     public async void FlashWindup()
     {
         if (_health == null || _health.IsDead) return;
+        if (_importedVisual is PixelEnemySprite windupSprite)
+        {
+            windupSprite.Flash(new Color(1.0f, 0.85f, 0.35f), WindupFlashSeconds);
+            return;
+        }
         if (_importedVisual != null)
         {
             foreach (var pair in _importedBaseMaterials)
@@ -1317,6 +1334,7 @@ public partial class EnemyBasic : CharacterBody3D
         combat?.AddFury(FuryOnDeath);
 
         SetPhysicsProcess(false);
+        (_importedVisual as PixelEnemySprite)?.DetachAndDie();
         QueueFree();
     }
 
@@ -1477,6 +1495,8 @@ public partial class EnemyBasic : CharacterBody3D
     {
         if (_importedVisual == null) return;
         var version = ++_hitFeedbackVersion;
+        if (_importedVisual is PixelEnemySprite hitSprite)
+            hitSprite.Flash(new Color(1.0f, 0.3f, 0.3f), 0.12f);
 
         _importedHitTween?.Kill();
         foreach (var pair in _importedBaseMaterials)
