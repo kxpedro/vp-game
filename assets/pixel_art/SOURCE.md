@@ -35,3 +35,8 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
 - `manifest.json`: tipo de cada peça e a posição das luzes (velas e arandelas) em pixels do PNG, para pôr
   `PointLight2D` no jogo. A luz das velas não vem "assada": as peças só têm a penumbra base (ambient -0.6).
 - Escala: Virgil com ~49px de altura e parede de 76px (ele fica com ~65% da parede).
+
+## characters/virgil
+
+Sprite do Virgil (idle de 8 quadros, 3/4 sudoeste, com e sem arma), gerado por `tools/pixel_art/virgil/`.
+Detalhes em `characters/virgil/SOURCE.md`.
