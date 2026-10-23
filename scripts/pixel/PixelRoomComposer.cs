@@ -107,11 +107,10 @@ public static class PixelRoomComposer
     private static readonly string[] WallEdges = { "plain", "niche", "low" };
 
     // Meia-largura x meia-profundidade (unidades do kit; eixo "sw" = comprido em y) dos objetos que bloqueiam o passo.
+    // Velas, arandelas, entulho e ossos são decoração: ficam de fora e o jogador atravessa.
     private static readonly (string Prefix, Vector2 Half)[] BlockerSizes =
     {
-        ("coffin_virgil", new Vector2(19, 36)), ("coffin_stone", new Vector2(13, 31)), ("coffin_wood", new Vector2(12, 29)),
-        ("candles_large", new Vector2(13, 13)), ("candles_medium", new Vector2(9, 9)), ("candles_small", new Vector2(6, 6)),
-        ("candle_tall", new Vector2(4, 4))
+        ("coffin_virgil", new Vector2(19, 36)), ("coffin_stone", new Vector2(13, 31)), ("coffin_wood", new Vector2(12, 29))
     };
 
     // Paleta AAP-64 em famílias (mesma ordem de tools/pixel_art/crypt_kit/iso.py).
