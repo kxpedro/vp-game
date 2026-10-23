@@ -15,7 +15,7 @@ J = dict(
 )
 J = {k: np.array(v, float) for k, v in J.items()}
 J0 = {k: v.copy() for k, v in J.items()}
-ANIM = dict(up=0.0, breath=0.0, sway=0.0)
+ANIM = dict(up=0.0, breath=0.0, sway=0.0, dy=0.0, lean=0.0, sword_dir=None, coat_back=0.0)
 def set_pose(up=0.0, head_up=0.0, breath=0.0, sway=0.0, arm_lag=0.0):
     for k, v in J0.items(): J[k] = v.copy()
     for k in ("neck1", "shR", "shL"): J[k][1] += up
@@ -23,14 +23,66 @@ def set_pose(up=0.0, head_up=0.0, breath=0.0, sway=0.0, arm_lag=0.0):
     J["head"][1] += head_up
     for s in ("R", "L"):
         J["el" + s][1] += up * 0.85; J["wr" + s][1] += arm_lag; J["ha" + s][1] += arm_lag
-    ANIM.update(up=up, breath=breath, sway=sway)
+    ANIM.update(up=up, breath=breath, sway=sway, dy=0.0, lean=0.0, sword_dir=None, coat_back=0.0, coat_sz=1.0, solid=False,
+                coat_open=0.80, coat_drag=0.0, coat_flap=0.0, coat_ph=0.0, coat_lift=0.0)
 import os
 _az = np.radians(float(os.environ.get('AZ', '-30')))
-_el = np.radians(35)
+_el = np.radians(float(os.environ.get('EL', '35')))
 CAM_DIR = np.array([np.sin(_az) * np.cos(_el), np.sin(_el), np.cos(_az) * np.cos(_el)])
 SWORD_TIP = np.array([-0.50, 0.03, 0.30])
 
+def _leg(hip, a, k, Lt=0.44, Ls=0.43):
+    knee = hip + Lt * np.array([0, -np.cos(a), np.sin(a)])
+    b = a - k
+    ankle = knee + Ls * np.array([0, -np.cos(b), np.sin(b)])
+    return knee, ankle
+
+def set_run(ph, lean=0.16):
+    """Corrida: ph em [0, 2pi). Pernas em oposição, braços ao contrário das pernas, corpo inclinado."""
+    for k, v in J0.items(): J[k] = v.copy()
+    legs = {}
+    for s, off in (("R", 0.0), ("L", np.pi)):
+        f = ph + off
+        a = 0.62 * np.sin(f)
+        k = 0.22 + 1.15 * max(0.0, -np.cos(f)) ** 1.2
+        hip = np.array([-0.095 if s == "R" else 0.095, 0.97, 0.0])
+        legs[s] = (hip,) + _leg(hip, a, k)
+    low = min(legs["R"][2][1], legs["L"][2][1])
+    dy = 0.10 - low + 0.018 * np.sin(2 * ph) ** 2
+    for s in ("R", "L"):
+        hip, kn, an = legs[s]
+        J["hip" + s] = hip + [0, dy, 0]; J["kn" + s] = kn + [0, dy, 0]; J["an" + s] = an + [0, dy, 0]
+    # braços: ombro fixo, cotovelo dobrado, balanço oposto à perna do mesmo lado
+    for s, off in (("R", np.pi), ("L", 0.0)):
+        sw = 0.55 * np.sin(ph + off)
+        sh = J["sh" + s]; sx = -1 if s == "R" else 1
+        el = sh + 0.29 * np.array([0, -np.cos(sw), np.sin(sw)]) + [sx * 0.03, 0, 0]
+        fa = sw + 1.25
+        wr = el + 0.25 * np.array([0, -np.cos(fa), np.sin(fa)]) + [-sx * 0.03, 0, 0]
+        J["el" + s] = el; J["wr" + s] = wr; J["ha" + s] = wr + 0.05 * np.array([0, -np.cos(fa), np.sin(fa)])
+    # braço da espada: mão na frente do ombro e lâmina apoiada nele, apontando para trás e para cima;
+    # só um quique leve no ritmo dos passos
+    bob = 0.012 * np.cos(2 * ph)
+    J["elR"] = np.array([-0.30, 1.25 + bob, 0.09])
+    J["wrR"] = np.array([-0.235, 1.455 + bob, 0.145])
+    J["haR"] = np.array([-0.215, 1.50 + bob, 0.165])
+    J["head"][2] += 0.02
+    ANIM.update(up=0.0, breath=0.4 + 0.3 * np.sin(2 * ph), sway=0.0, dy=dy - 0.0, lean=lean,
+                sword_dir=norm([0.45, 0.30 + 0.03 * np.sin(2 * ph), -1.0]),
+                # casaco solto: aberto na frente para as pernas passarem, barra arrastada para trás e ondulando
+                coat_back=-0.08, coat_sz=1.0, solid=False, coat_open=1.30,
+                coat_drag=0.17 + 0.03 * np.sin(2 * ph), coat_flap=0.03, coat_ph=2 * ph,
+                coat_lift=0.12 + 0.04 * np.sin(2 * ph + 0.8))
+    return dy
+
+def to_world(q):
+    q = np.array(q, float); dy = ANIM["dy"]; lean = ANIM["lean"]
+    return np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0)])
+
 def scene(p, with_sword=True, want_mat=False):
+    pw = p
+    if ANIM["dy"] or ANIM["lean"]:
+        p = pw.copy(); p[:, 1] -= ANIM["dy"]; p[:, 2] -= ANIM["lean"] * (p[:, 1] - 1.0)
     parts = []
     def add(d, m): parts.append((d, m))
     # cabeça: crânio + mandíbula mais estreita (formato adulto, não bola)
@@ -78,23 +130,26 @@ def scene(p, with_sword=True, want_mat=False):
                        np.abs(p[:, 1] - (0.965 + p[:, 0] * 0.18)) - 0.016)
     add(belt2, LEATHER)
     # aba do casaco (aberta na frente, cai até abaixo do joelho)
-    sk, inner = sd_skirt(p, 1.05 + U * .3, 0.34, 0.165, 0.31, 1.18, 0.40, 0.80, 0.011, back=-0.07 + ANIM['sway'])
+    sk, inner = sd_skirt(p, 1.05 + U * .3, 0.34, 0.165, 0.31, 1.18, 0.40, ANIM.get('coat_open', 0.80), 0.011,
+                         back=-0.07 + ANIM['sway'] + ANIM['coat_back'], sz=ANIM.get('coat_sz', 1.0), solid=ANIM.get('solid', False),
+                         drag=ANIM.get('coat_drag', 0.0), flap=ANIM.get('coat_flap', 0.0), ph=ANIM.get('coat_ph', 0.0),
+                         lift=ANIM.get('coat_lift', 0.0))
     add(sk, COAT)
     # gola alta
     col, _ = sd_skirt(p, 1.66 + U, 1.44 + U, 0.135, 0.09, 1.15, 0.75, 0.55, 0.012)
     add(col, COAT)
     # pernas
     for s in ("R", "L"):
-        add(sd_capsule(p, J["hip" + s], J["kn" + s], 0.075, 0.058), CLOTH)
-        add(sd_capsule(p, J["kn" + s], J["an" + s], 0.058, 0.048), LEATHER)
+        add(sd_capsule(pw, J["hip" + s], J["kn" + s], 0.075, 0.058), CLOTH)
+        add(sd_capsule(pw, J["kn" + s], J["an" + s], 0.058, 0.048), LEATHER)
         kn = J["kn" + s]; an = J["an" + s]
-        add(sd_ellipsoid(p, kn + [0, 0.0, 0.035], np.array([0.068, 0.062, 0.05])), STEEL)
+        add(sd_ellipsoid(pw, kn + [0, 0.0, 0.035], np.array([0.068, 0.062, 0.05])), STEEL)
         mid = kn + (an - kn) * 0.42 + [0, 0, 0.03]
-        add(sd_ellipsoid(p, mid, np.array([0.05, 0.16, 0.042])), STEEL)
-        fdir = norm([0.05 if s == "R" else 0.55, 0, 1])
+        add(sd_ellipsoid(pw, mid, np.array([0.05, 0.16, 0.042])), STEEL)
+        fdir = norm([0.05 if (s == "R" or ANIM["lean"]) else 0.55, 0, 1])
         u, v, w = frame(fdir, (0, 1, 0))
-        add(sd_box_oriented(p, an + [0, -0.055, 0] + fdir * 0.055, (u, v, w), (0.05, 0.045, 0.12), 0.03), LEATHER)
-        add(sd_capsule(p, an + [0, 0.02, 0], an + [0, 0.10, 0], 0.062, 0.062) * 1.0, LEATHER)
+        add(sd_box_oriented(pw, an + [0, -0.055, 0] + fdir * 0.055, (u, v, w), (0.05, 0.045, 0.12), 0.03), LEATHER)
+        add(sd_capsule(pw, an + [0, 0.02, 0], an + [0, 0.10, 0], 0.062, 0.062) * 1.0, LEATHER)
     # braços
     for s in ("R", "L"):
         add(sd_capsule(p, J["sh" + s], J["el" + s], 0.07, 0.058), COAT)
@@ -106,7 +161,9 @@ def scene(p, with_sword=True, want_mat=False):
             add(sd_ellipsoid(p, sh + [sx * (0.012 + i * 0.018), dy, 0], np.array(r)), STEEL)
     # espada
     if with_sword:
-        ha = J["haR"]; tip = SWORD_TIP + (ha - J0["haR"]) * 0.4; b = norm(tip - ha)
+        ha = J["haR"]; tip = SWORD_TIP + (ha - J0["haR"]) * 0.4
+        if ANIM['sword_dir'] is not None: tip = ha + ANIM['sword_dir'] * 0.98
+        b = norm(tip - ha)
         u, v, w = frame(b, np.cross(b, CAM_DIR))
         L = np.linalg.norm(tip - ha)
         g = ha + b * 0.07

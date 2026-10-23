@@ -1,22 +1,32 @@
 using Godot;
 using System.Collections.Generic;
 
-// TESTE (nao definitivo): Virgil como sprite pixel art 2D (LPC) em billboard no mundo 3D.
+// Modo 2D: Virgil como sprite pixel art em billboard no mundo 3D (folha gerada por tools/pixel_art/virgil/).
 // Esconde o CharacterModel e toca as animacoes do sprite a partir das mesmas chamadas do PlayerAnimator.
 // Liga/desliga em debug com F3 ou com o comando "sprite" do console.
 public partial class PlayerSpriteVisual : Node
 {
     public static bool Enabled { get; set; } = true;
 
-    private const string SheetFolder = "res://assets/characters/lpc_virgil_test/";
-    private const int CellSize = 192;
+    private const string SheetFolder = "res://assets/pixel_art/characters/virgil/";
+    private const string SheetFile = "virgil_sheet.png";
+    // Folha: uma linha por direcao (ordem de Directions); colunas 0-7 = idle, 8-15 = corrida.
+    private const int CellWidth = 80;
+    private const int CellHeight = 112;
+    private const int IdleFrames = 8;
+    private const int RunFrames = 8;
     public const float PixelSize = 0.033f;
-    // Pes do personagem ficam 30 px abaixo do centro da celula de 192 px.
-    private const float FeetOffsetPixels = 30.0f;
+    // A folha do Virgil e renderizada a 0,0185 m por pixel (render.py, px): com esse PixelSize ele fica com a altura
+    // real (~1,8 m) sem perder resolucao; com o pixel do cenario (0,033) ficava com ~3,2 m.
+    private const float VirgilPixelSize = 0.0185f;
+    // Pes do personagem ficam 40 px abaixo do centro da celula de 112 px.
+    private const float FeetOffsetPixels = 40.0f;
+    private const float IdleFps = 6.0f;
     private const float WalkFps = 12.0f;
     private const float WalkReferenceSpeed = 3.0f;
 
-    private static readonly string[] Directions = { "n", "w", "s", "e" };
+    // 8 direcoes em sentido horario, a partir de "de costas para a camera".
+    private static readonly string[] Directions = { "n", "ne", "e", "se", "s", "sw", "w", "nw" };
 
     // TESTE de arte (PixelLab): F6 alterna LPC animado -> imagem parada "frente" -> "de cima".
     private const string PreviewFolder = "res://assets/characters/pixellab_virgil_test/";
@@ -30,8 +40,7 @@ public partial class PlayerSpriteVisual : Node
     private const float ScaleStep = 1.1f;
     private const float MinScale = 0.5f;
     private const float MaxScale = 3.0f;
-    // Modo 2D: 1x deixa o pixel do sprite igual ao pixel do cenário (PixelRoom.PixelMeters). No teste com a câmera 3D
-    // em 70% o Pedro tinha escolhido 1,4x.
+    // Modo 2D: 1x = Virgil na altura real (VirgilPixelSize), com pixel menor que o do cenario (PixelRoom.PixelMeters).
     private static float _spriteScale = 1.0f;
 
     private enum Mode { Loop, OneShot, Dead }
@@ -80,7 +89,7 @@ public partial class PlayerSpriteVisual : Node
             // Recebe a luz da cena (tochas, portas) em vez de brilho fixo.
             Shaded = true,
             DoubleSided = true,
-            PixelSize = PixelSize,
+            PixelSize = VirgilPixelSize,
             Offset = new Vector2(0.0f, FeetOffsetPixels),
             // Sombra de billboard sai torta; a sombra fica por conta da mancha no chao.
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
@@ -152,7 +161,7 @@ public partial class PlayerSpriteVisual : Node
     private void ApplyScale()
     {
         if (_sprite != null)
-            _sprite.PixelSize = PixelSize * _spriteScale;
+            _sprite.PixelSize = VirgilPixelSize * _spriteScale;
         if (_previewSprite != null)
             _previewSprite.PixelSize = _previewBasePixelSize * _spriteScale;
         if (_blobShadow != null)
@@ -331,7 +340,7 @@ public partial class PlayerSpriteVisual : Node
 
     private void OnDied()
     {
-        if (_sprite == null)
+        if (_sprite == null || !_sprite.SpriteFrames.HasAnimation("death"))
             return;
         _mode = Mode.Dead;
         _sprite.SpeedScale = 1.0f;
@@ -409,11 +418,13 @@ public partial class PlayerSpriteVisual : Node
         camRight.Y = 0.0f;
         var x = forward.Dot(camRight.Normalized());
         var y = forward.Dot(camForward.Normalized());
-        // Folga pequena evita trocar de linha a cada quadro na diagonal exata.
-        if (Mathf.Abs(x) > Mathf.Abs(y) * 1.05f)
-            _direction = x > 0.0f ? "e" : "w";
-        else if (Mathf.Abs(y) > Mathf.Abs(x) * 1.05f)
-            _direction = y > 0.0f ? "n" : "s";
+        // 0 = de costas para a camera (n), sentido horario: ne, e, se...
+        var angle = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(x, y)), 360.0f);
+        var current = System.Array.IndexOf(Directions, _direction);
+        // Folga pequena evita trocar de linha a cada quadro na divisa entre duas direcoes.
+        if (current >= 0 && Mathf.Abs(Mathf.AngleDifference(Mathf.DegToRad(angle), Mathf.DegToRad(current * 45.0f))) < Mathf.DegToRad(26.0f))
+            return;
+        _direction = Directions[Mathf.RoundToInt(angle / 45.0f) % Directions.Length];
     }
 
     private static MeshInstance3D BuildBlobShadow()
@@ -448,28 +459,20 @@ public partial class PlayerSpriteVisual : Node
 
     private SpriteFrames BuildFrames()
     {
-        var walk = LoadSheet("virgil_walk.png");
-        var slash = LoadSheet("virgil_slash.png");
-        var slashReverse = LoadSheet("virgil_slash_reverse.png");
-        var thrust = LoadSheet("virgil_thrust.png");
-        var hurt = LoadSheet("virgil_hurt.png");
-        if (walk == null)
+        var sheet = LoadSheet(SheetFile);
+        if (sheet == null)
             return null;
 
+        // Golpes, dano e morte ainda nao tem quadros: sem a animacao, PlayOneShot mantem o idle/corrida.
         var frames = new SpriteFrames();
         frames.RemoveAnimation("default");
         for (var row = 0; row < Directions.Length; row++)
         {
             var dir = Directions[row];
-            AddAnimation(frames, "idle_" + dir, walk, row, 0, 1, 1.0f, true);
-            AddAnimation(frames, "walk_" + dir, walk, row, 1, 8, WalkFps, true);
-            AddAnimation(frames, "dodge_" + dir, walk, row, 1, 8, WalkFps * 2.0f, false);
-            AddAnimation(frames, "slash_" + dir, slash, row, 0, 6, 12.0f, false);
-            AddAnimation(frames, "slash_reverse_" + dir, slashReverse, row, 0, 6, 12.0f, false);
-            AddAnimation(frames, "thrust_" + dir, thrust, row, 0, 8, 14.0f, false);
+            AddAnimation(frames, "idle_" + dir, sheet, row, 0, IdleFrames, IdleFps, true);
+            AddAnimation(frames, "walk_" + dir, sheet, row, IdleFrames, RunFrames, WalkFps, true);
+            AddAnimation(frames, "dodge_" + dir, sheet, row, IdleFrames, RunFrames, WalkFps * 2.0f, false);
         }
-        AddAnimation(frames, "hit_s", hurt, 0, 0, 2, 10.0f, false);
-        AddAnimation(frames, "death", hurt, 0, 0, 6, 8.0f, false);
         return frames;
     }
 
@@ -485,7 +488,7 @@ public partial class PlayerSpriteVisual : Node
             var atlas = new AtlasTexture
             {
                 Atlas = sheet,
-                Region = new Rect2((first + i) * CellSize, row * CellSize, CellSize, CellSize)
+                Region = new Rect2((first + i) * CellWidth, row * CellHeight, CellWidth, CellHeight)
             };
             frames.AddFrame(name, atlas);
         }
