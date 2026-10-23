@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 // TESTE (nao definitivo): Virgil como sprite pixel art 2D (LPC) em billboard no mundo 3D.
 // Esconde o CharacterModel e toca as animacoes do sprite a partir das mesmas chamadas do PlayerAnimator.
-// Liga/desliga em debug com F3 ou com o comando "sprite" do console. F4 = render pixelado (PixelRenderTest.cs).
+// Liga/desliga em debug com F3 ou com o comando "sprite" do console.
 public partial class PlayerSpriteVisual : Node
 {
     public static bool Enabled { get; set; } = true;
@@ -100,7 +100,6 @@ public partial class PlayerSpriteVisual : Node
         _player.AddChild(_previewSprite);
         _blobShadow = BuildBlobShadow();
         _player.AddChild(_blobShadow);
-        _player.AddChild(new PixelRenderTest { Name = "PixelRenderTest" });
         if (OS.IsDebugBuild())
         {
             var layer = new CanvasLayer { Name = "SpriteScaleLayer", Layer = 50 };

@@ -82,14 +82,11 @@ public partial class IsoCamera : Camera3D
         if (_target == null)
             return;
 
-        var desiredPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance * TestZoomMultiplier;
+        var desiredPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance;
         GlobalPosition = GlobalPosition.Lerp(desiredPosition, 1.0f - Mathf.Exp(-CompendiumTuning.GetFloat("camera.follow_speed", FollowSpeed) * (float)delta));
         ApplyShake((float)delta);
         GlobalRotation = _fixedRotation;
     }
-
-    // TESTE: aproximacao da camera no modo pixel (PixelRenderTest.cs); 1 = normal.
-    public static float TestZoomMultiplier { get; set; } = 1.0f;
 
     // Multiplicador global do shake (0 desliga; reducao de movimento).
     public static float ShakeIntensity { get; set; } = 1.0f;
