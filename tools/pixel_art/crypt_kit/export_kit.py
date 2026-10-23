@@ -2,12 +2,15 @@
 
 O vértice de cima do tile fica no pixel (112, 116) e o centro do tile em (112, 148), em todas as peças.
 No TileSet do Godot (tile_size 128x64) isso equivale a texture_origin = (0, 44).
-Gera também manifest.json com o tipo de cada peça e as luzes (velas, arandelas) em pixels do PNG.
+Gera também manifest.json com o tipo de cada peça e as luzes (velas, arandelas) em pixels do PNG,
+e heights/<peça>.png: altura (z do mundo) de cada pixel, x100 em 16 bits (R = byte alto, G = byte baixo),
+usada pelo modo 2D do jogo para escrever a profundidade de cada pixel (PixelRoomComposer.cs).
 
 Uso: py tools/pixel_art/crypt_kit/export_kit.py [pasta_de_saida]
 """
 import os, sys, json
 import numpy as np
+from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from iso import Canvas
 import walls as W
@@ -21,11 +24,13 @@ def render(draw, X0=0, Y0=0):
     lights = []
     draw(cv, lights)
     img = cv.render([], ambient=AMBIENT, bg=None)
+    v = np.where(cv.fam >= 0, np.clip(np.round(cv.wz * 100), 0, 65535), 0).astype(np.uint32)
+    height = Image.fromarray(np.dstack([(v >> 8).astype(np.uint8), (v & 255).astype(np.uint8), np.zeros_like(v, np.uint8)]), "RGB")
     L = []
     for (lx, ly, lz, power, rad) in lights:
         sx, sy = cv.proj(np.array([lx]), np.array([ly]), np.array([lz]))
         L.append({"x": int(sx[0]), "y": int(sy[0]), "power": round(power, 2), "radius": round(rad * 1.0, 1)})
-    return img, L
+    return img, L, height
 
 def pieces():
     P = {}
@@ -61,10 +66,13 @@ def main(out):
     man = {"canvas": [CW, CH], "tile_top_vertex": [TX, TY], "tile_center": [TX, TY + 32], "tile_size": [128, 64],
            "godot_texture_origin": [0, TY + 32 - CH // 2], "palette": "AAP-64", "baked_ambient": AMBIENT, "pieces": {}}
     for name, (kind, fn) in pieces().items():
-        img, L = render(fn)
+        img, L, height = render(fn)
         path = os.path.join(out, name + ".png")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         img.save(path)
+        hpath = os.path.join(out, "heights", name + ".png")
+        os.makedirs(os.path.dirname(hpath), exist_ok=True)
+        height.save(hpath)
         man["pieces"][name] = {"kind": kind, "lights": L}
         print(name, len(L))
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:

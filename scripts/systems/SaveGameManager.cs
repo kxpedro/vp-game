@@ -231,7 +231,7 @@ public partial class SaveGameManager : Node
     // Prefixo de teste (so debug, autoteste): isola os arquivos dos saves reais. null = comportamento normal.
     private static string _testSlotPrefix;
 
-    private static string SlotBase(int slot) => $"{_testSlotPrefix ?? "user://save_slot_"}{Math.Clamp(slot, 1, 3)}";
+    private static string SlotBase(int slot) => $"{_testSlotPrefix ?? GameMode.SavePrefix}{Math.Clamp(slot, 1, 3)}";
 
     /// <summary>So autoteste (debug): redireciona os slots para user://{prefix}N.*. Nao toca nos saves reais.</summary>
     public void BeginTestSlots(string prefix)

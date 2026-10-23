@@ -87,7 +87,7 @@ public partial class ScenePortal : Area3D
         }
 
         ApplyPortalAction();
-        GetTree().ChangeSceneToFile(TargetScenePath);
+        GetTree().ChangeSceneToFile(GameMode.Scene(TargetScenePath));
     }
 
     public void ConfigureDestination(string targetScenePath, string promptText, RunPortalAction portalAction)
@@ -208,7 +208,7 @@ public partial class ScenePortal : Area3D
         timer.Timeout += () =>
         {
             if (IsInstanceValid(this) && !string.IsNullOrWhiteSpace(TargetScenePath))
-                GetTree().ChangeSceneToFile(TargetScenePath);
+                GetTree().ChangeSceneToFile(GameMode.Scene(TargetScenePath));
         };
     }
 

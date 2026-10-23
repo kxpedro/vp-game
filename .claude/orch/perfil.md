@@ -58,6 +58,7 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
 
 ## Arquitetura
 
+- **Dois modos (`GameMode`):** o menu tem "Jogar 3D" (o jogo original, cenas em `scenes/game/`) e "Jogar 2D (pixel art)" (cenas em `scenes/pixel/`, mesmos nomes de arquivo). As regras são as mesmas; o 2D troca só a apresentação: salas montadas com o kit da cripta (`scripts/pixel/`, `assets/pixel_art/crypt/`), câmera ortográfica 2:1 travada e Virgil em sprite (`PlayerSpriteVisual`, só no 2D). Saves separados (`user://pixel_save_slot_N.json` no 2D). Toda troca de cena passa por `GameMode.Scene(caminho3D)`.
 - **Entradas:** cena principal `scenes/ui/MainMenu.tscn`. Autoloads (`project.godot:20-25`): Localization, GlobalSettings, AudioManager, SaveGameManager, CombatFeedback e GameCursor.
 - **Fluxo:** MainMenu (`StartSlot`) → CrowsNest (hub) → RunStartBlessingRoom → TestArena (repetida a cada sala) → IntermissionChamber entre mapas (fonte, altar de aprimoramento e Loja de Artefatos). As cenas mudam via `ScenePortal` (`TargetScenePath` + `RunPortalAction`, `ScenePortal.cs:100-110`), e o `RunManager` só reconfigura o portal de saída (`RunManager.cs:261-287`).
 - **Estado:**

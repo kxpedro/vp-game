@@ -16,7 +16,8 @@ public partial class RoomGenerator : Node3D
     public IReadOnlyCollection<Vector2I> WalkableCells => _walkableCells;
     public float MapCellSize => CellSize;
 
-    private const float CellSize = 1.45f;
+    // Modo 2D: 1 tile do kit da cripta = 2x2 células (PixelRoom.TileMeters / 2 = 1,49 m, quase o 1,45 do 3D).
+    private static float CellSize => GameMode.IsPixelArt ? PixelRoom.TileMeters * 0.5f : 1.45f;
     // Espessura das paredes de borda geradas (AddBoundaryWalls). A moldura da saída usa este valor para encostar na face interna.
     private const float WallThickness = 0.28f;
     private const float FloorHeight = 0.22f;
@@ -42,6 +43,7 @@ public partial class RoomGenerator : Node3D
     private Vector2I _exitWallDirection = Vector2I.Zero;
     // true = a saída tem conjunto de portas (esconde o visual antigo "Saída"). A sala N tem saída na parede, mas sem portas.
     private bool _exitHasDoors;
+    private PixelRoom _pixelRoom;
 
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
@@ -65,7 +67,10 @@ public partial class RoomGenerator : Node3D
         RemoveStaticArenaShell();
         BuildMap();
         ApplySceneAnchors();
-        GenerateMapGeometry();
+        if (GameMode.IsPixelArt)
+            GeneratePixelRoom();
+        else
+            GenerateMapGeometry();
         GeneratePointsOfInterest();
         BuildEnemySpawnCells();
         GenerateEnemies();
@@ -136,12 +141,80 @@ public partial class RoomGenerator : Node3D
         _exitHasDoors = false;
 
         if (RunState.IsBossRoom)
-        {
             BuildBossMap();
+        else
+            BuildCompactLinearMap();
+
+        if (GameMode.IsPixelArt)
+            SnapCellsToPixelTiles();
+    }
+
+    // Modo 2D: a sala vira blocos de 2x2 células (1 tile do kit); um tile entra se tiver qualquer célula caminhável.
+    // A saída na parede é empurrada até a nova borda.
+    private void SnapCellsToPixelTiles()
+    {
+        foreach (var tile in CellsToPixelTiles(_walkableCells))
+        {
+            for (var dx = 0; dx < 2; dx++)
+            for (var dy = 0; dy < 2; dy++)
+            {
+                var cell = new Vector2I(tile.X * 2 + dx, tile.Y * 2 + dy);
+                _walkableCells.Add(cell);
+                _roomCells.Add(cell);
+            }
+        }
+
+        if (!HasExitOnWall)
+            return;
+        while (_walkableCells.Contains(_exitCell + _exitWallDirection))
+            _exitCell += _exitWallDirection;
+    }
+
+    private static HashSet<Vector2I> CellsToPixelTiles(IEnumerable<Vector2I> cells)
+    {
+        var tiles = new HashSet<Vector2I>();
+        foreach (var cell in cells)
+            tiles.Add(CellToPixelTile(cell));
+        return tiles;
+    }
+
+    private static Vector2I CellToPixelTile(Vector2I cell) => new(Mathf.FloorToInt(cell.X / 2.0f), Mathf.FloorToInt(cell.Y / 2.0f));
+
+    // Modo 2D: a sala desenhada com as peças do kit (PixelRoom), no lugar do piso, paredes e detalhes 3D.
+    // Com 1 tile = 2x2 células, a célula (0, 0) fica no centro do primeiro quarto do tile (0, 0): origem do kit em (16, 16).
+    private void GeneratePixelRoom()
+    {
+        var tiles = CellsToPixelTiles(_walkableCells);
+        Vector2I? exitTile = HasExitOnWall ? CellToPixelTile(_exitCell) : (Vector2I?)null;
+        var extraProps = new List<PixelRoomProp>();
+        if (RunState.IsBossRoom)
+        {
+            // No lugar dos pilares do boss (AddBossPillars): caixões de pedra, que também bloqueiam o passo.
+            foreach (var pillar in new[] { new Vector3(-4.8f, 0, -4.8f), new Vector3(4.8f, 0, -4.8f), new Vector3(-4.8f, 0, 3.2f), new Vector3(4.8f, 0, 3.2f) })
+            {
+                var wx = pillar.X / PixelRoom.UnitMeters + 16.0f;
+                var wy = pillar.Z / PixelRoom.UnitMeters + 16.0f;
+                var gx = Mathf.FloorToInt(wx / 64.0f);
+                var gy = Mathf.FloorToInt(wy / 64.0f);
+                extraProps.Add(new PixelRoomProp("coffin_stone_closed_sw", gx, gy, wx - gx * 64.0f - 32.0f, wy - gy * 64.0f - 32.0f));
+            }
+        }
+
+        var layout = PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
+        _pixelRoom = new PixelRoom { Name = "PixelRoom" };
+        AddChild(_pixelRoom);
+        if (!_pixelRoom.Build(layout, new Vector2(16.0f, 16.0f)))
+        {
+            GD.PushError("RoomGenerator: sala 2D nao montada; usando a geometria 3D.");
+            _pixelRoom.QueueFree();
+            _pixelRoom = null;
+            GenerateMapGeometry();
             return;
         }
 
-        BuildCompactLinearMap();
+        if (GetParent().GetNodeOrNull<IsoCamera>("IsoCamera") is { } camera)
+            _pixelRoom.ConfigureCamera(camera);
+        AddTorchLights();
     }
 
     private void BuildCompactLinearMap()
@@ -878,7 +951,8 @@ public partial class RoomGenerator : Node3D
         const int maxLights = 8;
         const float minSpacing = 4.5f;
         var placed = new List<Vector3>();
-        var torchScene = ResourceLoader.Load<PackedScene>(WallTorchPath);
+        // Modo 2D: só a luz (para o jogador e os inimigos); as arandelas já estão na arte.
+        var torchScene = GameMode.IsPixelArt ? null : ResourceLoader.Load<PackedScene>(WallTorchPath);
         var candidates = new List<Vector2I>(_walkableCells);
         // Ordem pseudoaleatoria estavel para espalhar as tochas pela sala inteira.
         candidates.Sort((a, b) => (unchecked(a.X * 73856093 ^ a.Y * 19349663) & int.MaxValue).CompareTo(unchecked(b.X * 73856093 ^ b.Y * 19349663) & int.MaxValue));

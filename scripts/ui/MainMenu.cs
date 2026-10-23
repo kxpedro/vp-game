@@ -206,11 +206,23 @@ public partial class MainMenu : Control
 	private void BuildMainPage()
 	{
 		_main = CreatePage(MainColumnWidth);
-		_playButton = AddPageButton(_main, Localization.Text("menu.play"), () => ShowPage(_slots, PreferredSlotFocus()), ButtonVariant.Primary);
+		// Dois jogos no mesmo projeto (GameMode): cada um com as próprias cenas e os próprios saves.
+		_playButton = AddPageButton(_main, Localization.Text("menu.play_3d"), () => OpenSlotsForMode(GameMode.Kind.ThreeD), ButtonVariant.Primary);
+		AddPageButton(_main, Localization.Text("menu.play_pixel"), () => OpenSlotsForMode(GameMode.Kind.PixelArt), ButtonVariant.Primary);
 		_optionsButton = AddPageButton(_main, Localization.Text("menu.options"), () => ShowPage(_options, _optionsPanel?.PreferredFocus));
 		_creditsButton = AddPageButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits, _creditsScroll));
 		_main.AddChild(UiComponents.Separator());
 		AddPageButton(_main, Localization.Text("menu.quit"), () => GetTree().Quit());
+	}
+
+	private void OpenSlotsForMode(GameMode.Kind mode)
+	{
+		// Grava o que estiver pendente antes de trocar de modo: os saves de cada modo ficam em arquivos próprios.
+		SaveGameManager.Instance?.FlushPendingSave();
+		GameMode.Current = mode;
+		foreach (var row in _slotRows)
+			UpdateSlotRow(row);
+		ShowPage(_slots, PreferredSlotFocus());
 	}
 
 	// ---------- Slots ----------
@@ -584,7 +596,7 @@ public partial class MainMenu : Control
 
 	private void LoadSlot(int slot)
 	{
-		SaveGameManager.Instance.StartSlot(slot); RunState.FailRun(); GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
+		SaveGameManager.Instance.StartSlot(slot); RunState.FailRun(); GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
 	}
 
 	// ---------- Idioma ----------

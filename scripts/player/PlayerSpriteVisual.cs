@@ -30,8 +30,9 @@ public partial class PlayerSpriteVisual : Node
     private const float ScaleStep = 1.1f;
     private const float MinScale = 0.5f;
     private const float MaxScale = 3.0f;
-    // 1,4x escolhido pelo Pedro com a camera em 70%.
-    private static float _spriteScale = 1.4f;
+    // Modo 2D: 1x deixa o pixel do sprite igual ao pixel do cenário (PixelRoom.PixelMeters). No teste com a câmera 3D
+    // em 70% o Pedro tinha escolhido 1,4x.
+    private static float _spriteScale = 1.0f;
 
     private enum Mode { Loop, OneShot, Dead }
 

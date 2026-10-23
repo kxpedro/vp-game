@@ -63,9 +63,12 @@ public partial class PlayerAnimator : Node
     {
         _player = GetParent<CharacterBody3D>();
         _combat = _player.GetNodeOrNull<PlayerCombat>("PlayerCombat");
-        // TESTE: sprite 2D do Virgil (PlayerSpriteVisual.cs), alternavel com F3 em debug.
-        _spriteVisual = new PlayerSpriteVisual { Name = "PlayerSpriteVisual" };
-        _player.CallDeferred(Node.MethodName.AddChild, _spriteVisual);
+        // Modo 2D: Virgil em sprite pixel art (PlayerSpriteVisual.cs, F3 alterna em debug). O modo 3D fica só com o modelo.
+        if (GameMode.IsPixelArt)
+        {
+            _spriteVisual = new PlayerSpriteVisual { Name = "PlayerSpriteVisual" };
+            _player.CallDeferred(Node.MethodName.AddChild, _spriteVisual);
+        }
         var modelRoot = GetNodeOrNull<Node>(ModelRootPath);
         _animationPlayer = FindAnimationPlayer(modelRoot ?? _player);
 

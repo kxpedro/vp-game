@@ -179,7 +179,7 @@ public partial class HUD
 		SaveGameManager.RequestAutosave();
 		UiModalStack.Clear();
 		UiModalStack.ApplyPause(false);
-		GetTree().ChangeSceneToFile("res://scenes/game/CrowsNest.tscn");
+		GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
 	}
 
 	// A run já terminou: sem confirmação (§8.11).
