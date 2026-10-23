@@ -26,13 +26,23 @@ def smin(a, b, k):
     h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1)
     return b * (1 - h) + a * h - k * h * (1 - h)
 
-def sd_skirt(p, y0, y1, r0, r1, sx, open0, open1, th, back=0.0):
-    """Casca cônica (aba do casaco), aberta na frente (+z). open em radianos (meia abertura)."""
-    y = p[:, 1]; t = np.clip((y - y1) / (y0 - y1), 0, 1)   # 0 embaixo, 1 em cima
+def sd_skirt(p, y0, y1, r0, r1, sx, open0, open1, th, back=0.0, sz=1.0, solid=False,
+             drag=0.0, flap=0.0, ph=0.0, lift=0.0):
+    """Casca cônica (aba do casaco), aberta na frente (+z). open em radianos (meia abertura).
+    drag: barra puxada para trás (curva, mais forte embaixo); flap/ph: ondulação da barra;
+    lift: barra de trás levantada pelo vento da corrida."""
+    y = p[:, 1]
+    if lift:
+        a0 = np.arctan2(p[:, 0] / sx, p[:, 2] - back - drag)
+        y1 = y1 + lift * np.maximum(0.0, -np.cos(a0)) ** 1.5
+    t = np.clip((y - y1) / (y0 - y1), 0, 1)   # 0 embaixo, 1 em cima
     r = r1 + (r0 - r1) * t
-    x = p[:, 0] / sx; z = p[:, 2] - back * (1 - t)
+    k = (1 - t) ** 1.7
+    x = p[:, 0] / sx; z = (p[:, 2] - back * (1 - t) - drag * k) / sz
+    if flap:
+        r = r + flap * k * np.sin(3.0 * np.arctan2(x, z) + ph)
     rad = np.sqrt(x * x + z * z)
-    d = np.abs(rad - r) - th
+    d = (rad - r - th) if solid else (np.abs(rad - r) - th)
     d = np.maximum(d, np.maximum(y - y0, y1 - y))
     ang = np.abs(np.arctan2(x, z))                         # 0 = frente
     op = open1 + (open0 - open1) * t

@@ -10,22 +10,25 @@ def camera(el_deg, az_deg):
     return f, r, u
 
 AZ = float(__import__("os").environ.get("AZ", "-30"))
-def render(el=35, az=None, px=0.0185, ss=4, W=64, H=104, with_sword=True, center=(0.0, 0.0)):
+EL = float(__import__("os").environ.get("EL", "35"))
+BASE = 0.30   # metros de tela abaixo da origem (pés) até a borda de baixo
+def render(el=None, az=None, px=0.0185, ss=4, W=80, H=112, with_sword=True, center=(0.0, 0.0)):
     az = AZ if az is None else az
+    el = EL if el is None else el
     f, r, u = camera(el, az)
     w, h = W * ss, H * ss; s = px / ss
     xs = (np.arange(w) + .5 - w / 2) * s + center[0]
-    ys = (h - (np.arange(h) + .5)) * s - 0.12 + center[1]        # base do canvas um pouco abaixo dos pés
+    ys = (h - (np.arange(h) + .5)) * s - BASE + center[1]        # base do canvas um pouco abaixo dos pés
     X, Y = np.meshgrid(xs, ys)
     target = np.array([0, 0.0, 0])
     o = target[None] + X.reshape(-1, 1) * r + Y.reshape(-1, 1) * u - f * 3.0
     t = np.zeros(len(o)); hit = np.zeros(len(o), bool); alive = np.ones(len(o), bool)
-    for it in range(160):
+    for it in range(240):
         idx = np.where(alive)[0]
         if len(idx) == 0: break
         pts = o[idx] + f * t[idx, None]
         d = V.scene(pts, with_sword)
-        t[idx] += d * 0.9
+        t[idx] += d * 0.75   # passo menor: a barra deformada do casaco na corrida não é SDF exata
         hh = d < 0.0012; hit[idx[hh]] = True; alive[idx[hh]] = False
         alive[idx[t[idx] > 6.0]] = False
     P = o + f * t[:, None]
