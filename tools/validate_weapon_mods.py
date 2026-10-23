@@ -28,6 +28,9 @@ KNOWN_TYPES = {
     "Stagger.Multiplier",
     "SpecialRadius.Multiplier",
     "SpecialCooldown.Reduction",
+    "Ammo.Flat",
+    "Reload.Reduction",
+    "Pierce.Flat",
 }
 KNOWN_FIELDS = {"value", "value2"}
 SNAKE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")

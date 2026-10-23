@@ -32,14 +32,16 @@ public sealed record WeaponModDefinition(string Id, string WeaponId, WeaponModEf
         return total;
     }
 
-    /// <summary>Descricao no idioma atual, com {0}/{1} = percentuais dos efeitos na ordem do JSON (valor tunado, ex.: "15%").</summary>
+    /// <summary>Descricao no idioma atual, com {0}/{1} = valores dos efeitos na ordem do JSON (valor tunado): percentual ("15%"), ou inteiro nos tipos *.Flat ("4").</summary>
     public string Description
     {
         get
         {
             var args = new object[Math.Max(Effects.Length, 2)];
             for (var i = 0; i < args.Length; i++)
-                args[i] = i < Effects.Length ? $"{Mathf.RoundToInt(GetValue(Effects[i]) * 100.0f)}%" : "";
+                args[i] = i >= Effects.Length ? ""
+                    : Effects[i].Type.EndsWith(".Flat") ? $"{Mathf.RoundToInt(GetValue(Effects[i]))}"
+                    : $"{Mathf.RoundToInt(GetValue(Effects[i]) * 100.0f)}%";
             return Localization.TextFormat(DescKey, args);
         }
     }

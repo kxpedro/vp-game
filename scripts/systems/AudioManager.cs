@@ -89,6 +89,14 @@ public partial class AudioManager : Node
                 "res://audio/effects/combat/flesh/Armor Impact 2.wav"
             },
             "dodge" => new[] { "res://audio/effects/combat/Dodge Air.wav" },
+            // Revolver Duplo: efeitos gerados por tools/generate_revolver_sfx.py (CC0, ver CC0_SOURCES.md).
+            "gun_fire" => new[]
+            {
+                "res://audio/effects/combat/Revolver Shot 1.wav",
+                "res://audio/effects/combat/Revolver Shot 2.wav"
+            },
+            "gun_heavy" => new[] { "res://audio/effects/combat/Revolver Shot Heavy.wav" },
+            "gun_reload" => new[] { "res://audio/effects/combat/Revolver Reload.wav" },
             // Avisos de ataque inimigo: reaproveitam efeitos existentes variando pitch/volume (ver PlayOneShot).
             "enemy_windup" => new[] { "res://audio/effects/combat/Greatsword Sweep 2.wav" },
             "enemy_windup_heavy" => new[] { "res://audio/effects/combat/Sword Swing Heavy 1.wav" },
@@ -114,6 +122,8 @@ public partial class AudioManager : Node
             "boss_teleport" => (0.5f, 0.0f),
             "boss_impact" => (0.7f, 0.0f),
             "boss_phase" => (0.6f, 2.0f),
+            "gun_fire" => (1.0f, -5.0f),
+            "gun_reload" => (1.0f, -3.0f),
             _ => (1.0f, 0.0f)
         };
         PlayOneShot(paths[(int)GD.RandRange(0, paths.Length - 1)], effectName, pitch, volume);

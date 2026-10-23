@@ -37,6 +37,42 @@
         { "type": "SpecialRadius.Multiplier", "field": "value", "value": 0.20 },
         { "type": "SpecialCooldown.Reduction", "field": "value2", "value": 0.20 }
       ]
+    },
+    {
+      "id": "revolver_cylinder",
+      "weaponId": "dual_revolvers",
+      "effects": [
+        { "type": "Ammo.Flat", "field": "value", "value": 4 }
+      ]
+    },
+    {
+      "id": "revolver_speedloader",
+      "weaponId": "dual_revolvers",
+      "effects": [
+        { "type": "Reload.Reduction", "field": "value", "value": 0.35 }
+      ]
+    },
+    {
+      "id": "revolver_hollow",
+      "weaponId": "dual_revolvers",
+      "effects": [
+        { "type": "BasicQuickDamage.Multiplier", "field": "value", "value": 0.15 }
+      ]
+    },
+    {
+      "id": "revolver_pierce",
+      "weaponId": "dual_revolvers",
+      "effects": [
+        { "type": "Pierce.Flat", "field": "value", "value": 1 }
+      ]
+    },
+    {
+      "id": "revolver_silver",
+      "weaponId": "dual_revolvers",
+      "effects": [
+        { "type": "SpecialRadius.Multiplier", "field": "value", "value": 0.20 },
+        { "type": "SpecialCooldown.Reduction", "field": "value2", "value": 0.25 }
+      ]
     }
   ]
 }
