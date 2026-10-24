@@ -28,9 +28,10 @@ import recolor_monsters as recolor  # noqa: E402
 # rampa: em vez do remapeamento geral, as cores do original vão por ordem de luminosidade para esta rampa da AAP-64
 #        (o violeta do Sangue Amaldiçoado cairia no azul-lavanda e a moeda no salmão pelo remapeamento geral).
 # miolo: a cor mais frequente (o fundo do quadro) vira esta cor com este alfa, escura como os painéis do HUD.
-CURSED_RAMP = ["141013", "403353", "793a80", "bc4a9b", "b9bffb", "e3e6ff"]
-# Moeda de Sangue: rampa de sangue da poça (a moeda do pacote é vermelho-alaranjada).
-BLOOD_RAMP = ["141013", "3b1725", "73172d", "b4202a", "e86a73", "f5a097"]
+# Uma cor da rampa por cor do original (5 -> 5), sem o preto do fundo do painel, para o ícone não sumir nele.
+CURSED_RAMP = ["242234", "793a80", "bc4a9b", "b9bffb", "e3e6ff"]
+# Moeda de Sangue: rampa de sangue da poça, deslocada para o claro (a moeda do pacote é vermelho-alaranjada).
+BLOOD_RAMP = ["3b1725", "b4202a", "e86a73", "f5a097", "fef3c0"]
 PANEL_FILL = ("141013", 224)
 PIECES = {
     "bar_frame.png": (2, None, None),

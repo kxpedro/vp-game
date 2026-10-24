@@ -697,7 +697,8 @@ public sealed class UiToastStack
         if (!GodotObject.IsInstanceValid(Root) || !Root.IsInsideTree()) return;
         var style = UIThemeFactory.ControlBox(UiPalette.PanelHud, reward ? UiPalette.WindowBorder : UiPalette.Border, UiMetrics.BorderThin, UiMetrics.S3, UiMetrics.S2);
         var toast = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore };
-        toast.AddThemeStyleboxOverride("panel", style);
+        if (!UiPixelKit.ApplyPanel(toast, UiMetrics.S3, UiMetrics.S2))
+            toast.AddThemeStyleboxOverride("panel", style);
         var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", UiMetrics.S2);
         if (icon != null)

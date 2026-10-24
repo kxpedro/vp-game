@@ -593,8 +593,10 @@ public static class UiPixelKit
     }
 
     // 9-slice com bordas em pixel inteiro (sem esticar o aro) e conteúdo com o padding pedido.
-    public static StyleBoxTexture NineSlice(string name, int margin, int padX, int padY)
+    // tile: repete as arestas (TileFit, número inteiro de repetições) em vez de esticar; para bordas com padrão (tracejado).
+    public static StyleBoxTexture NineSlice(string name, int margin, int padX, int padY, bool tile = false)
     {
+        var axis = tile ? StyleBoxTexture.AxisStretchMode.TileFit : StyleBoxTexture.AxisStretchMode.Stretch;
         var texture = Enabled ? Texture(name) : null;
         if (texture == null)
             return null;
@@ -605,13 +607,24 @@ public static class UiPixelKit
             TextureMarginTop = margin, TextureMarginBottom = margin,
             ContentMarginLeft = padX, ContentMarginRight = padX,
             ContentMarginTop = padY, ContentMarginBottom = padY,
-            AxisStretchHorizontal = StyleBoxTexture.AxisStretchMode.Stretch,
-            AxisStretchVertical = StyleBoxTexture.AxisStretchMode.Stretch
+            AxisStretchHorizontal = axis,
+            AxisStretchVertical = axis
         };
     }
 
     // Painel do HUD (vida, Moedas, legenda, barra do chefe): moldura dourada da cripta, miolo escuro.
-    public static StyleBox HudPanel() => NineSlice("panel_frame.png", PanelFrameMargin, UiMetrics.PadPanelX, UiMetrics.PadPanelY);
+    public static StyleBox HudPanel() => NineSlice("panel_frame.png", PanelFrameMargin, UiMetrics.PadPanelX, UiMetrics.PadPanelY, tile: true);
+
+    // Moldura do painel do HUD num painel avulso (avisos, cartão do Sangue Amaldiçoado), com filtro sem borrar.
+    // false fora do 2D ou sem a peça: quem chama aplica o StyleBox desenhado.
+    public static bool ApplyPanel(Control panel, int padX, int padY)
+    {
+        if (NineSlice("panel_frame.png", PanelFrameMargin, padX, padY, tile: true) is not { } box)
+            return false;
+        panel.AddThemeStyleboxOverride("panel", box);
+        panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+        return true;
+    }
 
     // Ícone em pixel art no lugar de um glifo desenhado; null se não houver peça (ou fora do 2D).
     public static TextureRect Icon(string name, int size)

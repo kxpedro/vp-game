@@ -178,28 +178,16 @@ public partial class HUD
 			GrowHorizontal = Control.GrowDirection.End,
 			GrowVertical = Control.GrowDirection.Begin
 		};
-		popup.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.CursedBlood, UiMetrics.BorderWindow, UiMetrics.S4, UiMetrics.S2));
+		if (!UiPixelKit.ApplyPanel(popup, UiMetrics.S4, UiMetrics.S2))
+			popup.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.CursedBlood, UiMetrics.BorderWindow, UiMetrics.S4, UiMetrics.S2));
 		parent.AddChild(popup);
 
 		var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
 		row.AddThemeConstantOverride("separation", UiMetrics.S2);
 		popup.AddChild(row);
 
-		// Losango violeta (a gota é das Moedas): forma própria além da cor.
-		var glyph = new Control
-		{
-			CustomMinimumSize = new Vector2(24, 24),
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
-		};
-		var diamond = new[] { new Vector2(12, 1), new Vector2(22, 12), new Vector2(12, 23), new Vector2(2, 12) };
-		var outline = new[] { diamond[0], diamond[1], diamond[2], diamond[3], diamond[0] };
-		glyph.Draw += () =>
-		{
-			glyph.DrawColoredPolygon(diamond, UiPalette.CursedBlood);
-			glyph.DrawPolyline(outline, UiPalette.TextOutline, 1);
-			glyph.DrawLine(new Vector2(12, 5), new Vector2(12, 19), UiPalette.TextOutline, 1);
-		};
+		// Losango violeta (a gota é das Moedas): forma própria além da cor; no 2D, a gema em pixel art.
+		var glyph = UiComponents.CursedBloodGlyph(24);
 		row.AddChild(glyph);
 
 		var column = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
