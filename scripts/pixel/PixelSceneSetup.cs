@@ -25,6 +25,15 @@ public partial class PixelSceneSetup : Node3D
     private const float BenchReachZ = 0.8f;
     private const float KitTitleHeight = 3.5f;
 
+    // Caixões dos personagens futuros na sala da direita do hub (centros em 1700 x 860/992/1124 do kit): peças do
+    // kit desenhadas e com colisão pelo PixelRoom; o CharacterPlaceholder fica só com título e aviso.
+    private static readonly PixelRoomProp[] CharacterCoffins =
+    {
+        new("coffin_stone_closed_sw", 26, 13, 4.0f, -4.0f),
+        new("coffin_stone_closed_sw", 26, 15, 4.0f, 0.0f),
+        new("coffin_stone_closed_sw", 26, 17, 4.0f, 4.0f)
+    };
+
     [Export] public RoomKind Kind { get; set; } = RoomKind.RunRoom;
 
     private PixelRoom _room;
@@ -54,6 +63,8 @@ public partial class PixelSceneSetup : Node3D
             _ => "camara_intervalo.txt"
         };
         var layout = PixelRoomComposer.LoadLayout(RoomsRoot + file);
+        if (Kind == RoomKind.Hub && layout != null)
+            layout.Props.AddRange(CharacterCoffins);
         _room = new PixelRoom { Name = "PixelRoom" };
         AddChild(_room);
         // O centro de cada sala fixa é a origem da cena (onde fica a fonte no hub e na sala de bênção).
@@ -191,7 +202,7 @@ public partial class PixelSceneSetup : Node3D
     }
 
     // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada
-    // (peça do layout, posta por PlaceKitInteractives) e Odalric na da esquerda, personagens futuros na da direita, boneco no salão central, caixão do Virgil embaixo.
+    // (peça do layout, posta por PlaceKitInteractives) e Odalric na da esquerda, personagens futuros (CharacterCoffins) na da direita, boneco no salão central, caixão do Virgil embaixo.
     // Posições em unidades do kit (64 = 1 tile).
     private void PlaceHub(Node scene)
     {
@@ -201,9 +212,8 @@ public partial class PixelSceneSetup : Node3D
         if (scene.GetNodeOrNull<RunStartGate>("StartRunPortal") is { } gate)
             gate.ConfigurePixel(_room, 15, 3, "ne");
 
-        var spots = new[] { _room.KitToWorld(1700.0f, 860.0f), _room.KitToWorld(1700.0f, 992.0f), _room.KitToWorld(1700.0f, 1124.0f) };
-        for (var i = 0; i < spots.Length; i++)
-            AddChild(new CharacterPlaceholder { Name = $"CharacterPlaceholder{i + 1}", Position = spots[i] });
+        for (var i = 0; i < CharacterCoffins.Length; i++)
+            AddChild(new CharacterPlaceholder { Name = $"CharacterPlaceholder{i + 1}", Position = PropCenter(CharacterCoffins[i]), KitSprite = true });
         AddChild(new DialogueNpc { Name = "NpcOdalric", SpeakerId = "odalric", Position = _room.KitToWorld(330.0f, 1160.0f), RotationDegrees = new Vector3(0.0f, -60.0f, 0.0f) });
         CreateTrainingDummy(_room.KitToWorld(780.0f, 1200.0f));
     }
