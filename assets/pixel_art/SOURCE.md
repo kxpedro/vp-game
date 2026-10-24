@@ -1,6 +1,7 @@
 # Pixel art própria
 
-Arte 2D/pixel art feita para o Vampire's Prey (autoria própria, sem material de terceiros).
+Arte 2D/pixel art feita para o Vampire's Prey (autoria própria, sem material de terceiros), exceto `hud/` e
+`monsters/`, que são pacotes de terceiros remapeados para a paleta (origem no `SOURCE.md` de cada pasta).
 Paleta: [AAP-64](https://lospec.com/palette-list/aap-64), de Adigun A. Polack (paletas não são protegidas;
 nenhum pixel de terceiros é usado).
 

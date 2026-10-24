@@ -224,7 +224,9 @@ public sealed class UiResourceBar
     private float _current, _max = 1, _barrier, _barrierMax, _chip, _borderFlash, _pulse = 1;
     private bool _furyReady, _furyActive;
     private Tween _chipTween, _flashTween, _pulseTween;
-    private StyleBoxFlat _trackStyle;
+    private StyleBox _trackStyle;
+    // Borda interna do trilho: 1 px no StyleBox desenhado; a moldura em pixel art do 2D (UiPixelKit) é mais grossa.
+    private int _trackInset = 1;
 
     public float Current => _current;
     public float Maximum => _max;
@@ -314,9 +316,9 @@ public sealed class UiResourceBar
     internal void Draw()
     {
         var rect = new Rect2(Vector2.Zero, Bar.Size);
-        _trackStyle ??= Kind == ResourceBarKind.Boss ? MakeTrack(UiPalette.PanelHud, UiPalette.WindowBorder) : MakeTrack(UiPalette.PanelInset, UiPalette.Border);
+        _trackStyle ??= MakeTrackStyle();
         Bar.DrawStyleBox(_trackStyle, rect);
-        var inner = rect.Grow(-1);
+        var inner = rect.Grow(-_trackInset);
         if (inner.Size.X <= 0 || inner.Size.Y <= 0) return;
         var total = Kind == ResourceBarKind.Health ? Mathf.Max(_max + _barrierMax, 1.0f) : Mathf.Max(_max, 1.0f);
         if (Kind != ResourceBarKind.Fury && _chip > _current)
@@ -352,6 +354,20 @@ public sealed class UiResourceBar
 
     private static Rect2 Segment(Rect2 inner, float ratio) =>
         new Rect2(inner.Position, new Vector2(inner.Size.X * Mathf.Clamp(ratio, 0, 1), inner.Size.Y));
+
+    // 2D: moldura em pixel art (fúria no trilho fino, vida e chefe na moldura com aro); 3D ou peça ausente: StyleBox desenhado.
+    private StyleBox MakeTrackStyle()
+    {
+        var thin = Kind == ResourceBarKind.Fury;
+        var margin = thin ? UiPixelKit.ThinTrackMargin : UiPixelKit.BarFrameMargin;
+        if (UiPixelKit.NineSlice(thin ? "bar_track_thin.png" : "bar_frame.png", margin, 0, 0) is { } pixel)
+        {
+            _trackInset = margin;
+            return pixel;
+        }
+        _trackInset = 1;
+        return Kind == ResourceBarKind.Boss ? MakeTrack(UiPalette.PanelHud, UiPalette.WindowBorder) : MakeTrack(UiPalette.PanelInset, UiPalette.Border);
+    }
 
     private static StyleBoxFlat MakeTrack(Color background, Color border)
     {
@@ -1180,6 +1196,9 @@ public static class UiComponents
     {
         var bar = new UiResourceBar { Kind = kind };
         var height = kind switch { ResourceBarKind.Fury => 10, ResourceBarKind.Boss => 18, _ => 22 };
+        // A moldura em pixel art do 2D come 6 px de cada lado: vida e chefe ganham altura para o miolo continuar legível.
+        if (UiPixelKit.Enabled && kind != ResourceBarKind.Fury)
+            height = 26;
         if (width <= 0 && kind != ResourceBarKind.Boss) width = 360;
         bar.Bar = new Control
         {
@@ -1859,9 +1878,11 @@ public static class UiComponents
         return root;
     }
 
-    // Moeda de Sangue: gota desenhada (Life + realce LifeHighlight), sem asset.
+    // Moeda de Sangue: no 2D, a moeda em pixel art (UiPixelKit); senão, gota desenhada (Life + realce LifeHighlight).
     public static Control CoinGlyph(int size = 24)
     {
+        if (UiPixelKit.Icon("coin_blood.png", size) is { } pixelCoin)
+            return pixelCoin;
         var node = new Control { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         var points = new Vector2[15];
         var outline = new Vector2[16];
@@ -1892,6 +1913,9 @@ public static class UiComponents
     // das Moedas de Sangue (forma própria além da cor). Mesmo glifo do aviso de recompensa (HUD.Notifications).
     public static Control CursedBloodGlyph(int size = 24)
     {
+        // No 2D, a gema violeta em pixel art (UiPixelKit).
+        if (UiPixelKit.Icon("gem_cursed.png", size) is { } pixelGem)
+            return pixelGem;
         var node = new Control { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         var scale = size / 24.0f;
         var diamond = new[] { new Vector2(12, 1) * scale, new Vector2(22, 12) * scale, new Vector2(12, 23) * scale, new Vector2(2, 12) * scale };

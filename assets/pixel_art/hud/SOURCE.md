@@ -1,0 +1,18 @@
+# HUD em pixel art (modo 2D)
+
+Peças de terceiros recortadas e remapeadas para a paleta AAP-64 do jogo por
+`tools/pixel_art/hud/build_hud_kit.py` (recortes originais em `tools/pixel_art/hud/source/`). Para regerar:
+
+    py tools/pixel_art/hud/build_hud_kit.py
+
+Usadas só no modo 2D (`UiPixelKit`, em `scripts/ui/UIThemeFactory.cs`); no 3D o HUD continua com os StyleBox desenhados.
+
+| Arquivo | Uso | Origem | Licença |
+|---|---|---|---|
+| `panel_frame.png` (64x64, 9-slice com borda 12) | painéis do HUD (vida, Moedas, legenda, chefe) | Retro Inventory, por ElvGames (`Inventory.png`, moldura grande) | uso comercial permitido, com crédito à ElvGames; não pode revender o pacote |
+| `bar_frame.png` (76x22, 9-slice com borda 6) | moldura das barras de vida e do chefe | Pixel UI pack 3 (`All.png`, moldura arredondada) | **origem e licença a confirmar** (o pacote baixado não traz licença) |
+| `bar_track_thin.png` (64x10, 9-slice com borda 2) | trilho da barra de Fúria | Pixel UI pack 3 (`All.png`, barra vazia) | **origem e licença a confirmar** |
+| `coin_blood.png` (32x32) | glifo das Moedas de Sangue | Free - Raven Fantasy Icons, por Clockwork Raven Studios (`32x32.png`, moeda vermelha) | pacote gratuito do autor; conferir os termos na página da loja |
+| `gem_cursed.png` (32x32) | glifo do Sangue Amaldiçoado | Free - Raven Fantasy Icons, por Clockwork Raven Studios (`32x32.png`, gema violeta) | idem |
+
+As cores foram trocadas (AAP-64, de Adigun A. Polack); o desenho é dos autores acima.

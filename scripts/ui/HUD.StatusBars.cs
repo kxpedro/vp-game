@@ -111,6 +111,11 @@ public partial class HUD
 		BuildDialogueOverlay(root);
 		// Indicador do HUD: Moedas de Sangue da RUN (RunState.RunBloodCoins) na run; Sangue Amaldiçoado permanente no hub.
 		RefreshResourceIndicator();
+		// 2D: molduras e barras em pixel art (UiPixelKit) sem borrar (o filtro padrão do projeto é linear).
+		if (UiPixelKit.Enabled)
+			foreach (var panel in new Control[] { _bottomLeftHud, _bossHealthPanel, _roomFrame, _barkPanel })
+				if (panel != null)
+					panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 	}
 
 	// §8.1: painel inferior esquerdo (24, −24), altura automática: só a vida; a fúria entra quando liberada.
