@@ -7,7 +7,7 @@ e o chão em `assets/pixel_art/tiles/dungeon_floor/`.
 |---|---|
 | `iso.py` | mini renderizador isométrico (mundo: 1 tile = 64 unidades; tela: `sx = x - y`, `sy = (x + y)/2 - z`) com z-buffer e luz por rampa de cor da AAP-64 |
 | `materials.py` | texturas e objetos herdados dos concepts (pedra, madeira, sarcófago, velas, sangue...) |
-| `walls.py` | paredes modulares de 1 tile; a textura é periódica a cada 64 unidades, então peças vizinhas não mostram emenda |
+| `walls.py` | paredes modulares de 1 tile; a textura é periódica a cada 64 unidades, então peças vizinhas não mostram emenda. Também a grade do portão (`portcullis`), exportada em 8 quadros para a animação de abrir |
 | `props.py` | caixões, velas, arandelas, tapete, ossos e entulho em coordenadas locais do tile |
 | `export_kit.py` | renderiza todas as peças em `assets/pixel_art/crypt/` + `manifest.json` + `heights/` (altura de cada pixel, usada pelo jogo) |
 | `build_room.py` | monta uma sala a partir de um layout em texto, usando só os PNGs exportados, e aplica a luz das velas (prévia; o jogo monta a mesma sala em `scripts/pixel/PixelRoomComposer.cs`) |

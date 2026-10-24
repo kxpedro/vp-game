@@ -30,6 +30,8 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
 - `props/`: caixões (`coffin_virgil`, `coffin_stone_closed/broken`, `coffin_wood_closed/open/broken`, cada um em
   `_sw` e `_se`), velas (`candles_small/medium/large_a/b`, `candle_tall`), arandelas (`sconce_ne/nw`),
   tapete (`carpet_sw/se`), `bones`, `rubble_a/b`.
+- `props/portcullis_<ne|nw>_0..7`: grade de ferro do vão do arco (`wall_<lado>_arch`), da fechada (0) à aberta (7).
+  Não entra em layout: o portão do início da run (`RunStartGate.cs`) a desenha por cima do hub e troca o quadro ao abrir.
 - Toda peça é um PNG 224x208 com o vértice de cima do tile em (112, 116) e o centro do tile em (112, 148).
   No TileSet do Godot (tile_size 128x64): `texture_origin = (0, 44)`.
 - `manifest.json`: tipo de cada peça e a posição das luzes (velas e arandelas) em pixels do PNG, para pôr
@@ -40,3 +42,13 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
 
 Sprite do Virgil (idle de 8 quadros, 3/4 sudoeste, com e sem arma), gerado por `tools/pixel_art/virgil/`.
 Detalhes em `characters/virgil/SOURCE.md`.
+
+## effects/blood_pool
+
+Poça de sangue dos inimigos, desenhadas por código em
+`tools/pixel_art/blood_pool/generate_blood_pool.py` (numpy + Pillow, paleta AAP-64). Para regerar:
+
+    py tools/pixel_art/blood_pool/generate_blood_pool.py
+
+- `blood_pool_sheet.png`: 3 variantes (linhas) x 12 quadros de 64x32, já na projeção 2:1 da tela. Quadros 0-7 = a
+  poça escorrendo; 8-11 = brilho em loop. O jogo (`BloodPool.cs`) a deita no chão girada para a câmera.

@@ -181,7 +181,7 @@ As poças usam uma malha irregular de baixo brilho, com uma camada interna sutil
 - a trilha de roubo de vida entra na árvore antes de receber `GlobalPosition`, evitando `!is_inside_tree()`;
 - artefatos não vêm mais de bosses: são vendidos na Loja da Câmara de Hemomancia (ver [Economia e recompensas](#economia-e-recompensas)).
 
-Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue composta, abandona o movimento de espera sem disputar a transformação principal e percorre uma espiral até o jogador. Partículas em coordenadas globais formam o rastro e um pulso de condensação conclui a absorção antes da oferta obrigatória.
+Cada inimigo comum que morre deixa uma poça de sangue em pixel art (`BloodPool`, folha gerada por `tools/pixel_art/blood_pool/`), que escorre do corpo e fica no chão com um brilho em loop. Ao pegar a recompensa da sala (a da porta escolhida; sem ela, o primeiro item pego), o Virgil suga todo o sangue: as poças secam enquanto um filete contínuo de sangue sobe de cada uma e escorre em espiral até ele, com respingos na ponta e um pulso de condensação. Se a recompensa é uma Bênção, isso é o "Sanguis Purgatus" antes da oferta obrigatória; nas outras, a sucção é mais curta e não pausa o jogo. Sala de boss não tem poças.
 
 `bathory_immortal_beauty` converte dano em Ferida Recuperável após 2 segundos sem novo golpe e restaura durante 5 segundos. Pela escala atual, recupera 20%/40%/70%/110%/140% em Common/Uncommon/Rare/Epic/Legendary; Epic e Legendary ainda são pontos explícitos de rebalanceamento.
 
@@ -236,7 +236,7 @@ Valores vêm de `CompendiumTuning` (chaves `economy.*` e `reward.*`); os número
 
 ### Moedas de Sangue × Sangue Amaldiçoado
 
-- **Moedas de Sangue** (`RunState.RunBloodCoins`): só na run, nunca no save. Pagas por inimigos (`RunManager.QueueEnemyDefeat` → `AddBloodCoins`), pelo bônus de sala limpa (`economy.coins.room_clear_bonus.*`, 12/14/16/0), por boss (`economy.coins.boss.*`, 100/130/160/0) e por portas de Moedas. Gastas na Loja (`RunState.TrySpendRunBloodCoins`). Zeram em `StartRun`, `FailRun` e em `CompleteBoss` do mapa final; não zeram entre mapas.
+- **Moedas de Sangue** (`RunState.RunBloodCoins`): só na run, nunca no save. Pagas por inimigos (`RunManager.QueueEnemyDefeat` → `AddBloodCoins`), por boss (`economy.coins.boss.*`, 100/130/160/0) e por portas de Moedas. Gastas na Loja (`RunState.TrySpendRunBloodCoins`). Zeram em `StartRun`, `FailRun` e em `CompleteBoss` do mapa final; não zeram entre mapas.
 - **Sangue Amaldiçoado** (`CharacterSheet.CursedBlood`): permanente, serializado no slot. Pago pelo boss (`economy.cursed_blood.boss.*`, 40/60/80/120) e por inimigo Lendário comum (`economy.cursed_blood.legendary.*`, 0/6/8/8, com chance `economy.cursed_blood.legendary_drop_chance`, padrão 1,0). Gasto só na Fonte de Sangue, para comprar skills (`CharacterSheet.SpendCursedBlood`). Sobrevive à morte da run.
 
 ### Fruta do Diabo

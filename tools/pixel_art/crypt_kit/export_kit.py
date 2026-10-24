@@ -3,6 +3,7 @@
 O vértice de cima do tile fica no pixel (112, 116) e o centro do tile em (112, 148), em todas as peças.
 No TileSet do Godot (tile_size 128x64) isso equivale a texture_origin = (0, 44).
 Gera também manifest.json com o tipo de cada peça e as luzes (velas, arandelas) em pixels do PNG,
+(as peças com tela própria levam "canvas" e "tile_top_vertex"; as animadas, "frames" = quadros <peça>_1..N-1)
 e heights/<peça>.png: altura (z do mundo) de cada pixel, x100 em 16 bits (R = byte alto, G = byte baixo),
 usada pelo modo 2D do jogo para escrever a profundidade de cada pixel (PixelRoomComposer.cs).
 
@@ -17,10 +18,15 @@ import walls as W
 import props as Pr
 
 CW, CH, TX, TY = 224, 208, 112, 116
+GATE_FRAMES, GATE_LIFT = 8, 53.0   # quadros da grade e quanto ela sobe até sair do vão (topo do arco = 52)
 AMBIENT = -.6          # luz base "assada" (sem velas); a luz das velas fica para o jogo
 
-def render(draw, X0=0, Y0=0):
-    cv = Canvas(CW, CH, TX - (X0 - Y0), TY - (X0 + Y0) / 2)
+# Peças maiores que o tile padrão: tela própria (largura, altura, vértice de cima do tile x, y), gravada no manifest.
+BENCH_CANVAS = (224, 208, 84, 116)
+
+def render(draw, X0=0, Y0=0, canvas=None):
+    cw, ch, tx, ty = canvas or (CW, CH, TX, TY)
+    cv = Canvas(cw, ch, tx - (X0 - Y0), ty - (X0 + Y0) / 2)
     lights = []
     draw(cv, lights)
     img = cv.render([], ambient=AMBIENT, bg=None)
@@ -60,13 +66,31 @@ def pieces():
     P["props/bones"] = ("decal", lambda cv, L: Pr.bones(cv, L))
     P["props/rubble_a"] = ("prop", lambda cv, L: Pr.rubble(cv, 7, L))
     P["props/rubble_b"] = ("prop", lambda cv, L: Pr.rubble(cv, 8, L))
+    # Grade do portão do início da run (vão do wall_<lado>_arch), em quadros da fechada (0) à aberta.
+    # Não entra em layout: o jogo a desenha por cima da sala e troca o quadro ao abrir (RunStartGate.cs).
+    for side in ("ne", "nw"):
+        for k in range(GATE_FRAMES):
+            P[f"props/portcullis_{side}_{k}"] = ("overlay", lambda cv, L, s=side, k=k: W.portcullis(cv, s, GATE_LIFT * k / (GATE_FRAMES - 1)))
+    # Fonte de sangue animada: o quadro 0 entra no layout como peça comum (com "frames" no manifest) e os quadros
+    # 1..N-1 (tipo "frame") são trocados pelo jogo por cima da sala (PixelRoomComposer + PixelRoom).
+    P["props/blood_fountain"] = ("prop", lambda cv, L: Pr.blood_fountain(cv, L, 0.0))
+    for k in range(1, Pr.FOUNTAIN_FRAMES):
+        P[f"props/blood_fountain_{k}"] = ("frame", lambda cv, L, k=k: Pr.blood_fountain(cv, L, k / Pr.FOUNTAIN_FRAMES))
+    # Bebedouro de sangue da sala da primeira herança (mesma ideia: quadro 0 no layout, quadros 1..N-1 trocados).
+    P["props/blood_basin"] = ("prop", lambda cv, L: Pr.blood_basin(cv, L, 0.0))
+    for k in range(1, Pr.FOUNTAIN_FRAMES):
+        P[f"props/blood_basin_{k}"] = ("frame", lambda cv, L, k=k: Pr.blood_basin(cv, L, k / Pr.FOUNTAIN_FRAMES))
+    P["props/weapon_bench"] = ("prop", lambda cv, L: Pr.weapon_bench(cv, L), BENCH_CANVAS)
     return P
+
+FRAMES = {"props/blood_fountain": Pr.FOUNTAIN_FRAMES, "props/blood_basin": Pr.FOUNTAIN_FRAMES}
 
 def main(out):
     man = {"canvas": [CW, CH], "tile_top_vertex": [TX, TY], "tile_center": [TX, TY + 32], "tile_size": [128, 64],
            "godot_texture_origin": [0, TY + 32 - CH // 2], "palette": "AAP-64", "baked_ambient": AMBIENT, "pieces": {}}
-    for name, (kind, fn) in pieces().items():
-        img, L, height = render(fn)
+    for name, (kind, fn, *canvas) in pieces().items():
+        canvas = canvas[0] if canvas else None
+        img, L, height = render(fn, canvas=canvas)
         path = os.path.join(out, name + ".png")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         img.save(path)
@@ -74,6 +98,11 @@ def main(out):
         os.makedirs(os.path.dirname(hpath), exist_ok=True)
         height.save(hpath)
         man["pieces"][name] = {"kind": kind, "lights": L}
+        if canvas:
+            man["pieces"][name]["canvas"] = list(canvas[:2])
+            man["pieces"][name]["tile_top_vertex"] = list(canvas[2:])
+        if name in FRAMES:
+            man["pieces"][name]["frames"] = FRAMES[name]
         print(name, len(L))
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(man, f, indent=1, ensure_ascii=False)

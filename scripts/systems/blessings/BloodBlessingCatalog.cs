@@ -43,9 +43,10 @@ public static class BloodBlessingCatalog
 
     public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count) => RollChoices(rng, count, out _);
 
-    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false, bool markDiscovered = true)
+    /// <param name="excludedFamilies">Linhagens fora do sorteio (segunda porta de Bênção do mesmo conjunto). Sem outra linhagem elegível, devolve vazio.</param>
+    public static List<BloodBlessingOffer> RollOffers(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false, bool markDiscovered = true, ICollection<string> excludedFamilies = null)
     {
-        var definitions = RollChoices(rng, count, out selectedFamily, guaranteeBasicAttack);
+        var definitions = RollChoices(rng, count, out selectedFamily, guaranteeBasicAttack, excludedFamilies);
         var offers = new List<BloodBlessingOffer>();
         foreach (var definition in definitions)
             offers.Add(RollOffer(rng, definition, markDiscovered));
@@ -153,7 +154,7 @@ public static class BloodBlessingCatalog
         return false;
     }
 
-    public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false)
+    public static List<BloodBlessingDefinition> RollChoices(RandomNumberGenerator rng, int count, out string selectedFamily, bool guaranteeBasicAttack = false, ICollection<string> excludedFamilies = null)
     {
         EnsureLoaded();
         selectedFamily = "";
@@ -161,6 +162,7 @@ public static class BloodBlessingCatalog
         var fallbackFamilies = new List<string>();
         foreach (var family in Families)
         {
+            if (IsExcludedFamily(family.DisplayName, excludedFamilies)) continue;
             var available = 0;
             var hasBasicAttack = false;
             foreach (var definition in Definitions)
@@ -199,6 +201,14 @@ public static class BloodBlessingCatalog
             pool.Remove(selected);
         }
         return choices;
+    }
+
+    private static bool IsExcludedFamily(string family, ICollection<string> excludedFamilies)
+    {
+        if (excludedFamilies == null) return false;
+        foreach (var entry in excludedFamilies)
+            if (family.Equals(entry, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
     }
 
     private static bool HasTag(BloodBlessingDefinition definition, string tag)

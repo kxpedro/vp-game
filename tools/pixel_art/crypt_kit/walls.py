@@ -2,7 +2,7 @@
 A textura é periódica a cada 64 unidades ao longo da parede, então peças lado a lado não mostram emenda."""
 import numpy as np
 from iso import FID
-from materials import FACE_BASE, dressed, shadow_tex, BONES, BONES_C
+from materials import FACE_BASE, dressed, shadow_tex, iron, BONES, BONES_C
 
 COOL, WARM, MOSS = FID["cool"], FID["warm"], FID["moss"]
 P = 64                  # período ao longo da parede = 1 tile
@@ -152,3 +152,30 @@ def corner(cv, which, X0=0, Y0=0):
     elif which == "s": cv.box(X0 + P, X0 + P + T, Y0 + P, Y0 + P + T, 0, FH, wall_tex(0, -.3))
     elif which == "e_low": cv.box(X0 + P, X0 + P + T, Y0 - T, Y0, 0, FH, wall_tex(0, -.3))
     elif which == "w_tall": cv.box(X0 - T, X0, Y0 + P, Y0 + P + T, 0, WH, wall_tex(0))
+
+def gate_iron(face, wx, wy, wz, a, b, B):
+    """ferro escuro da grade: frente quase preta e um fio de brilho na lateral, para destacar da pedra"""
+    v = {"top": 3.6, "py": 1.4, "px": 3.0}[face]
+    return np.full(wx.shape, FID["iron"]), v + (iron(face, wx, wy, wz, a, b, B)[1] - {"top": 3.5, "py": 3.0, "px": 2.0}[face]) * .6
+
+def portcullis(cv, side, lift=0.0, X0=0, Y0=0, half=20, post=32, bar=2.5, pitch=6.5, rail=12.0):
+    """grade de ferro no vão do arco (wall_arch), logo atrás da face da parede: barras verticais e travessas.
+    lift = quanto a grade já subiu (0 = fechada); o que passa do topo do vão fica escondido na parede"""
+    c = P / 2
+    t0, t1 = -6.0, -3.0
+    def top(a): return post + np.sqrt(max(half * half - a * a, 0))
+    n = int((2 * half) // pitch)
+    first = c - (n - 1) * pitch / 2
+    for k in range(n):
+        p0 = first + k * pitch - bar / 2
+        for pp in np.arange(p0, p0 + bar, .5):
+            h = top(pp + .25 - c)
+            if h <= lift: continue
+            _box(cv, side, pp, pp + .5, lift, h, gate_iron, t0, t1, X0, Y0)
+    # travessas a cada `rail`, a partir de 5 unidades acima da base da grade
+    z = lift + 5
+    while z < post + half:
+        for pp in np.arange(c - half, c + half, .5):
+            if z + 1.5 <= top(pp + .25 - c):
+                _box(cv, side, pp, pp + .5, z, z + 1.5, gate_iron, t0 - .5, t1 + .5, X0, Y0)
+        z += rail

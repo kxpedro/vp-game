@@ -46,7 +46,6 @@ public static partial class DevParameterRegistry
         P("economy.coins.rarity.legendary", "Multiplicador de Moedas: Lendário", GEconomy, 8.0, 0, 100, 0.5, false);
         RegisterPerMap("economy.coins.map_factor.{m}", "Fator de Moedas do mapa", GEconomy, new[] { 1.0, 0.6, 0.5, 0.5 }, 0, 10, 0.1, false);
         P("economy.coins.blessing_fallback", "Moedas no lugar de Bênção sem opções", GEconomy, 75, 0, 2000, 5, true);
-        RegisterPerMap("economy.coins.room_clear_bonus.{m}", "Bônus de sala limpa (Moedas)", GEconomy, new double[] { 12, 14, 16, 0 }, 0, 500, 1, true);
         RegisterPerMap("economy.coins.room_reward_pack.{m}", "Moedas da porta de Moedas", GEconomy, new double[] { 150, 130, 110 }, 0, 5000, 10, true, DevApplyMode.NextRoom);
         P("economy.ledger.max_bonus", "Teto do bônus de dano por Moedas (Ledger)", GEconomy, 1.0, 0, 20, 0.1, false);
         P("economy.shop.power_multiplier", "Multiplicador de poder dos artefatos", GEconomy, 1.75, 0, 10, 0.05, false, DevApplyMode.Reapply);
@@ -69,15 +68,15 @@ public static partial class DevParameterRegistry
     private static void RegisterRewardsLegacy()
     {
         RegisterPerMap("reward.blessing.max_sets_without_blessing.{m}", "Máx. de conjuntos seguidos sem Bênção", GRewards, new double[] { 0, 0, 0 }, 0, 10, 1, true, DevApplyMode.NextRoom);
-        RegisterPerMap("reward.doors.two_chance.base.{m}", "Chance base de duas portas", GRewards, new[] { 0.30, 0.35, 0.40 }, 0, 1, 0.05, false, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
+        RegisterPerMap("reward.doors.two_chance.base.{m}", "Chance base de duas portas", GRewards, new[] { 0.70, 0.75, 0.80 }, 0, 1, 0.05, false, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
         P("reward.doors.two_chance.step", "Chance de duas portas: incremento", GRewards, 0.05, 0, 1, 0.01, false, DevApplyMode.NextRoom);
         P("reward.doors.two_chance.step_every", "Chance de duas portas: a cada N salas", GRewards, 2, 1, 20, 1, true, DevApplyMode.NextRoom);
-        P("reward.doors.two_chance.cap", "Chance de duas portas: teto", GRewards, 0.55, 0, 1, 0.05, false, DevApplyMode.NextRoom);
+        P("reward.doors.two_chance.cap", "Chance de duas portas: teto", GRewards, 0.90, 0, 1, 0.05, false, DevApplyMode.NextRoom);
         P("reward.door_weight.ramp_from_fraction", "Peso das portas: rampa a partir da fração", GRewards, 0.5, 0, 1, 0.05, false, DevApplyMode.NextRoom);
         P("reward.door_weight.ramp_shift", "Peso das portas: deslocamento da rampa", GRewards, 2, 0, 50, 1, true, DevApplyMode.NextRoom);
-        RegisterPerMap("reward.door_weight.blessing.{m}", "Peso da porta de Bênção", GRewards, new double[] { 72, 68, 64 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
-        RegisterPerMap("reward.door_weight.fruit.{m}", "Peso da porta de Fruta", GRewards, new double[] { 6, 8, 10 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
-        RegisterPerMap("reward.door_weight.coins.{m}", "Peso da porta de Moedas", GRewards, new double[] { 22, 24, 26 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
+        RegisterPerMap("reward.door_weight.blessing.{m}", "Peso da porta de Bênção", GRewards, new double[] { 70, 66, 62 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
+        RegisterPerMap("reward.door_weight.fruit.{m}", "Peso da porta de Fruta", GRewards, new double[] { 8, 10, 12 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
+        RegisterPerMap("reward.door_weight.coins.{m}", "Peso da porta de Moedas", GRewards, new double[] { 18, 20, 22 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
         P("reward.door.close_seconds", "Tempo de fechamento da porta (s)", GRewards, 0.3, 0, 5, 0.05, false);
         P("reward.door.two_door_offset_cells", "Afastamento das duas portas (células)", GRewards, 1.0, 0, 5, 0.1, false, DevApplyMode.NewObjects);
         P("reward.door.two_door_frame_scale", "Escala do batente (duas portas)", GRewards, 0.6, 0.1, 2, 0.05, false, DevApplyMode.NewObjects);

@@ -458,6 +458,303 @@
   "props/rubble_b": {
    "kind": "prop",
    "lights": []
+  },
+  "props/portcullis_ne_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_7": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_7": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/blood_fountain": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ],
+   "frames": 8
+  },
+  "props/blood_fountain_1": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_2": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_3": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_4": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_5": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_6": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_fountain_7": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 88,
+     "power": 0.8,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/blood_basin": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ],
+   "frames": 8
+  },
+  "props/blood_basin_1": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_2": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_3": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_4": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_5": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_6": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_7": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/weapon_bench": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 138,
+     "y": 21,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 100,
+     "y": 34,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 63,
+     "y": 55,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 26,
+     "y": 76,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 162,
+     "y": 79,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 161,
+     "y": 85,
+     "power": 0.9,
+     "radius": 34.0
+    },
+    {
+     "x": 80,
+     "y": 138,
+     "power": 0.9,
+     "radius": 34.0
+    }
+   ],
+   "canvas": [
+    224,
+    208
+   ],
+   "tile_top_vertex": [
+    84,
+    116
+   ]
   }
  }
 }

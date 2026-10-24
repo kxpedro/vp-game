@@ -45,6 +45,9 @@ public partial class RoomGenerator : Node3D
     private bool _exitHasDoors;
     private PixelRoom _pixelRoom;
 
+    /// <summary>Modo 2D: parede de saída com os arcos das portas (null no 3D ou sem saída na parede).</summary>
+    public PixelDoorWall PixelExitWall { get; private set; }
+
     private StandardMaterial3D _floorMaterial;
     private StandardMaterial3D _wallMaterial;
     private StandardMaterial3D _markerMaterial;
@@ -71,6 +74,7 @@ public partial class RoomGenerator : Node3D
             GeneratePixelRoom();
         else
             GenerateMapGeometry();
+        SetupExitGate();
         GeneratePointsOfInterest();
         BuildEnemySpawnCells();
         GenerateEnemies();
@@ -203,9 +207,17 @@ public partial class RoomGenerator : Node3D
         var layout = PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
         _pixelRoom = new PixelRoom { Name = "PixelRoom" };
         AddChild(_pixelRoom);
+        // Arcos da saída: dois quando a sala vai ter conjunto de portas (o caso mais comum); se o sorteio der uma porta
+        // só, o RunManager redesenha a parede com um arco (ScenePortal.BuildRewardDoors -> PixelDoorWall.SetDoorCount).
+        if (exitTile is { } doorTile && PixelDoorWall.SideForOutward(_exitWallDirection) is { } doorSide)
+        {
+            PixelExitWall = new PixelDoorWall(_pixelRoom, layout, doorTile, doorSide);
+            PixelExitWall.SetDoorCount(_exitHasDoors ? 2 : 1);
+        }
         if (!_pixelRoom.Build(layout, new Vector2(16.0f, 16.0f)))
         {
             GD.PushError("RoomGenerator: sala 2D nao montada; usando a geometria 3D.");
+            PixelExitWall = null;
             _pixelRoom.QueueFree();
             _pixelRoom = null;
             GenerateMapGeometry();
@@ -237,6 +249,13 @@ public partial class RoomGenerator : Node3D
         PlaceExitOnFarWall(rooms[3], _entranceCell);
     }
 
+    // Portão do hub na saída da parede (ScenePortal.SetupExitGate): no 2D nos arcos da sala do kit.
+    private void SetupExitGate()
+    {
+        if (HasExitOnWall && GetParent().GetNodeOrNull<Node3D>("ExitPortal") is { } portal)
+            ScenePortal.SetupExitGate(portal, PixelExitWall);
+    }
+
     // Escolhe a parede de borda mais distante da entrada (a oposta à ligação com a sala anterior) e põe a saída no meio dela.
     // Só vale parede com 3 células caminháveis e parede sólida atrás (sem corredor de ligação), para caber duas portas (±1 célula).
     private void PlaceExitOnFarWall(Vector2I room, Vector2I entrance)
@@ -247,6 +266,9 @@ public partial class RoomGenerator : Node3D
         for (var strictness = 0; strictness <= 2 && !HasExitOnWall; strictness++)
         foreach (var outward in new[] { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right })
         {
+            // 2D: só as paredes do fundo (ne/nw) têm arco e grade no kit.
+            if (GameMode.IsPixelArt && PixelDoorWall.SideForOutward(outward) == null)
+                continue;
             var middle = room + outward * halfCells;
             var along = new Vector2I(Mathf.Abs(outward.Y), Mathf.Abs(outward.X));
             var fits = true;
@@ -291,11 +313,13 @@ public partial class RoomGenerator : Node3D
     private void BuildBossMap()
     {
         _entranceCell = new Vector2I(0, 8);
-        _exitCell = new Vector2I(0, -8);
         _rewardCell = new Vector2I(0, -5);
         _focusCell = Vector2I.Zero;
 
         AddMainRoom(new Vector2I(0, 0), 21, 21);
+        // Saída no meio da parede norte (sala de 21x21), com o portão como as outras salas.
+        _exitCell = new Vector2I(0, -10);
+        _exitWallDirection = Vector2I.Up;
     }
 
     private void GenerateMapGeometry()
@@ -336,9 +360,9 @@ public partial class RoomGenerator : Node3D
             }
         }
 
-        // Com conjunto de portas, o visual antigo de saída (gate) não aparece: a saída são as portas na parede.
+        // Saída na parede: o visual antigo de saída (gate) não aparece, a saída é o portão (ScenePortal.SetupExitGate).
         var gateScene = ResourceLoader.Load<PackedScene>(DungeonGatePath);
-        if (gateScene == null || _exitHasDoors)
+        if (gateScene == null || _exitHasDoors || HasExitOnWall)
             return;
 
         var gate = gateScene.Instantiate<Node3D>();
@@ -366,10 +390,10 @@ public partial class RoomGenerator : Node3D
     private void GeneratePointsOfInterest()
     {
         CreatePointOfInterest("Entrance", CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
-        if (RunState.IsBossRoom)
+        // Saída na parede (portão) não tem marcador no piso: o portão é a saída.
+        if (!HasExitOnWall && RunState.IsBossRoom)
             CreatePointOfInterest("FinalGate", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
-        else if (!_exitHasDoors)
-            // Com conjunto de portas não há marcador "Saída" no piso: as portas da parede são a saída.
+        else if (!HasExitOnWall && !_exitHasDoors)
             CreatePointOfInterest("Exit", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
         if (!RunState.IsBossRoom)

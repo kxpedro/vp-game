@@ -355,10 +355,7 @@ Os nomes de chave abaixo seguem o padrão `CompendiumTuning` do projeto (`grupo.
 | `economy.coins.map_factor.1` | 0.6 | |
 | `economy.coins.map_factor.2` | 0.5 | |
 | `economy.coins.map_factor.3` | 0.5 | reserva |
-| `economy.coins.room_clear_bonus.0` | 12 | somado ao fechar sala comum |
-| `economy.coins.room_clear_bonus.1` | 14 | |
-| `economy.coins.room_clear_bonus.2` | 16 | |
-| `economy.coins.room_clear_bonus.3` | 0 | |
+| ~~`economy.coins.room_clear_bonus.*`~~ | — | removido (2026-10): a sala limpa não solta mais o saco de Moedas, só a recompensa da porta |
 | `economy.coins.boss.0` | 100 | valor fixo, ignora a raridade Lendário do boss |
 | `economy.coins.boss.1` | 130 | |
 | `economy.coins.boss.2` | 160 | |
