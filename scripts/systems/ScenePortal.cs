@@ -480,8 +480,7 @@ public partial class ScenePortal : Area3D
                 CopyDoorFrame(template, root, frameScale);
                 root.AddChild(CreateFrameGate(root));
             }
-            // Rótulo do medalhão para fora do conjunto: a porta da esquerda o põe à esquerda, a da direita à direita.
-            AddRewardIcon(root, set.Doors[i], lateral < 0.0f ? -1 : 1);
+            AddRewardIcon(root, set.Doors[i]);
             doors.Add(CreateDoorArea(templatePortal, root, set.Doors[i], targetScenePath, action, startEnabled));
         }
 
@@ -540,11 +539,11 @@ public partial class ScenePortal : Area3D
 
     // Medalhão da porta: por tipo em DoorRewardIcon (na Bênção, o ícone da família sorteada), docs/design/portas-recompensas.md, secao 8.
     // Centro a 3,5 m: o lintel do modelo vai até ~2,87 m; o disco visível tem raio ~0,54 m, então a borda inferior fica ~3,0 m (acima do lintel).
-    private static void AddRewardIcon(Node3D root, RoomRewardDoor door, int labelSide)
+    private static void AddRewardIcon(Node3D root, RoomRewardDoor door)
     {
         var icon = new Node3D { Name = "RewardIcon", Position = new Vector3(0.0f, 3.5f, 0.0f) };
         root.AddChild(icon);
-        DoorRewardIcon.PopulateDoor(icon, door, labelSide);
+        DoorRewardIcon.PopulateDoor(icon, door);
     }
 
     private static string RewardDoorPromptText(RoomRewardDoor door)

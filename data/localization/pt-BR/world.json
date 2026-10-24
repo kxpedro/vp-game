@@ -65,7 +65,6 @@
   "reward.pickup.prompt": "Pegar: {0}",
   "reward.door.fruit.short": "Fruta",
   "reward.door.prompt": "Atravessar: {0}",
-  "reward.door.badge": "Recompensa: {0}",
   "reward.door.anvil.short": "Bigorna",
   "reward.door.anvil.hint": "Bigorna: escolha uma modificação para a arma."
 }

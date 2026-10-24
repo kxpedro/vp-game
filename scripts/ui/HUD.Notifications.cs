@@ -5,20 +5,18 @@ using System.Linq;
 
 public partial class HUD
 {
-	// Guia §3.9/§3.10/§8.5: alerta de wave, toasts empilhados, "+N" de kill, log só em debug e banner de sala limpa.
+	// Guia §3.9/§3.10/§8.5: toasts empilhados, "+N" de kill e log só em debug. O alerta de wave e o banner de sala limpa
+	// saíram da HUD (limpeza de 2026-10): a sala limpa aparece só no título e no log.
 	private const int GameLogMemoryEntries = 20;
 	private UiToastStack _toastStack;
 	private UiEventLog _eventLog;
-	private Tween _roomClearTween;
 	private string _lastToastText;
 	private ulong _lastToastTicks;
 	private bool _portalOpenAnnounced;
 	private int _lastDefeatedEnemies;
 	private int _lastTotalEnemies;
-	private Label _roomClearTitle;
-	private Label _roomClearSubtitle;
 
-	// Contrato hud-ingame T1/T2: BuildLayout (StatusBars) chama este método; T2 constrói aqui log, toasts e banner.
+	// Contrato hud-ingame T1/T2: BuildLayout (StatusBars) chama este método; T2 constrói aqui log e toasts.
 	// Idempotente: pode ser chamado mais de uma vez sem duplicar nós.
 	private void BuildNotificationsLayout(Control root)
 	{
@@ -34,8 +32,6 @@ public partial class HUD
 		_toastStack = UiComponents.ToastStack(root);
 		// Notificações de combate congelam com o jogo pausado (contagem da wave não corre sob a pausa).
 		_toastStack.Root.ProcessMode = ProcessModeEnum.Pausable;
-
-		BuildRoomClearBannerPanel(root);
 	}
 
 	public void AppendGameLog(string message)
@@ -113,7 +109,7 @@ public partial class HUD
 		OnBloodCoinsChanged(totalAmount);
 	}
 
-	// Sangue Amaldiçoado (recurso PERMANENTE do hub, não as Moedas da run): aviso próprio logo abaixo do painel de Moedas,
+	// Sangue Amaldiçoado (recurso PERMANENTE do hub, não as Moedas da run): aviso próprio logo acima do painel de Moedas,
 	// em violeta com losango e linha de total, para nunca ser confundido com o "+N" dourado das Moedas.
 	// Chamado via CallGroup("hud", "NotifyCursedBloodRewarded", amount, total). Não renomear sem procurar a string em scripts/.
 	private const float CursedBloodHold = 2.6f;
@@ -141,13 +137,15 @@ public partial class HUD
 
 		_cursedBloodRewardLabel.Text = Localization.TextFormat("hud.cursed_blood.reward", amount);
 		_cursedBloodTotalLabel.Text = Localization.TextFormat("hud.cursed_blood.total", total);
-		// Abaixo da moldura de Moedas (mesmo canto, mesma margem); o painel cresce para a direita e para baixo.
-		var frameHeight = Mathf.Max(_resourceFrame.Size.Y, _resourceFrame.GetCombinedMinimumSize().Y);
-		var top = _resourceFrame.OffsetTop + frameHeight + UiMetrics.S2;
-		_cursedBloodPopup.OffsetLeft = _resourceFrame.OffsetLeft;
-		_cursedBloodPopup.OffsetRight = _resourceFrame.OffsetLeft;
-		_cursedBloodPopup.OffsetTop = top;
-		_cursedBloodPopup.OffsetBottom = top;
+		// Logo acima da moldura de Moedas (canto inferior esquerdo), alinhado à esquerda dela; cresce para a direita e para cima.
+		var parent = _cursedBloodPopup.GetParent() as Control;
+		var frameRect = _resourceFrame.GetGlobalRect();
+		var origin = frameRect.Position - (parent?.GetGlobalRect().Position ?? Vector2.Zero);
+		var bottom = origin.Y - UiMetrics.S2;
+		_cursedBloodPopup.OffsetLeft = origin.X;
+		_cursedBloodPopup.OffsetRight = origin.X;
+		_cursedBloodPopup.OffsetTop = bottom;
+		_cursedBloodPopup.OffsetBottom = bottom;
 
 		_cursedBloodTween?.Kill();
 		_cursedBloodPopup.Visible = true;
@@ -166,7 +164,8 @@ public partial class HUD
 
 	private void BuildCursedBloodPopup()
 	{
-		var parent = _resourceFrame.GetParent() as Control;
+		// Irmão do canto inferior esquerdo (o contêiner dele reposicionaria o aviso).
+		var parent = _bottomLeftHud?.GetParent() as Control;
 		if (parent == null)
 			return;
 
@@ -177,7 +176,7 @@ public partial class HUD
 			ProcessMode = ProcessModeEnum.Pausable,
 			Visible = false,
 			GrowHorizontal = Control.GrowDirection.End,
-			GrowVertical = Control.GrowDirection.End
+			GrowVertical = Control.GrowDirection.Begin
 		};
 		popup.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.CursedBlood, UiMetrics.BorderWindow, UiMetrics.S4, UiMetrics.S2));
 		parent.AddChild(popup);
@@ -249,16 +248,6 @@ public partial class HUD
 		ShowNotificationToast(Localization.Text("hud.toast.portal_open"), false);
 	}
 
-	// Canal (a): faixa de perigo com contagem regressiva; não é substituída por kills nem por toasts.
-	// O log da wave já é escrito por quem chama (RoomGenerator).
-	public void NotifyWaveIncoming(int enemyCount, float seconds)
-	{
-		var body = enemyCount == 1
-			? Localization.Text("hud.toast.wave_body_one")
-			: Localization.TextFormat("hud.toast.wave_body_other", enemyCount);
-		_toastStack?.ShowCombatAlert(Localization.Text("hud.toast.wave_title"), body, Mathf.Max(0.0f, seconds));
-	}
-
 	public void BindBoss(Node bossNode, string displayName)
 	{
 		var health = bossNode?.GetNodeOrNull<Health>("Health");
@@ -297,87 +286,6 @@ public partial class HUD
 		AppendGameLog($"Artefato obtido: {displayName}.");
 		ShowNotificationToast(Localization.TextFormat("hud.toast.artifact", displayName), true);
 		RefreshCharacterSheet();
-	}
-
-	// Banner: PanelHud com borda 2 WindowBorder, 560 × auto, âncora 0.18; título Banner 34 Gold + linha secundária.
-	private void BuildRoomClearBannerPanel(Control root)
-	{
-		var banner = new PanelContainer
-		{
-			Name = "RoomClearBanner",
-			// Slot do alerta de wave (y 132); ao aparecer, esconde o alerta e desce a pilha de toasts para y 240.
-			AnchorLeft = 0.5f,
-			AnchorTop = 0.0f,
-			AnchorRight = 0.5f,
-			AnchorBottom = 0.0f,
-			OffsetLeft = -280.0f,
-			OffsetTop = 132.0f,
-			OffsetRight = 280.0f,
-			OffsetBottom = 132.0f,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.End,
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			ProcessMode = ProcessModeEnum.Pausable,
-			Visible = false,
-			Modulate = new Color(1, 1, 1, 0)
-		};
-		banner.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.WindowBorder, UiMetrics.BorderWindow, UiMetrics.S5, UiMetrics.S3));
-		root.AddChild(banner);
-
-		var column = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
-		column.AddThemeConstantOverride("separation", UiMetrics.S1);
-		banner.AddChild(column);
-
-		_roomClearTitle = new Label
-		{
-			Name = "RoomClearLabel",
-			Text = Localization.Text("hud.room_clear"),
-			ThemeTypeVariation = UiVariation.BannerLabel,
-			Uppercase = true,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		column.AddChild(_roomClearTitle);
-		_roomClearSubtitle = new Label
-		{
-			// O portal só abre depois da recompensa (NotifyPortalOpened); aqui não se afirma que ele abriu.
-			Name = "RoomClearSubtitle",
-			Text = Localization.Text("hud.banner.choose_reward"),
-			ThemeTypeVariation = UiVariation.SecondaryLabel,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		column.AddChild(_roomClearSubtitle);
-		_roomClearBanner = banner;
-	}
-
-	private void ShowRoomClearBanner()
-	{
-		var banner = _roomClearBanner;
-		if (banner == null || !IsInstanceValid(banner) || !banner.IsInsideTree())
-			return;
-
-		_roomClearTween?.Kill();
-		_toastStack?.SetBannerSlot(true);
-		banner.Visible = true;
-		// Pivô no centro: a escala cresce a partir do meio, não do canto.
-		var size = new Vector2(Mathf.Max(banner.Size.X, 560.0f), Mathf.Max(banner.Size.Y, banner.GetCombinedMinimumSize().Y));
-		banner.PivotOffset = size * 0.5f;
-		banner.Modulate = new Color(1, 1, 1, 0);
-		banner.Scale = new Vector2(0.94f, 0.94f);
-
-		var tween = banner.CreateTween();
-		_roomClearTween = tween;
-		tween.TweenProperty(banner, "modulate:a", 1.0f, UiMotion.BannerIn);
-		tween.Parallel().TweenProperty(banner, "scale", Vector2.One, UiMotion.BannerIn).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Back);
-		tween.TweenInterval(UiMotion.BannerHold);
-		tween.TweenProperty(banner, "modulate:a", 0.0f, UiMotion.BannerOut);
-		tween.TweenCallback(Callable.From(() =>
-		{
-			if (IsInstanceValid(banner))
-				banner.Visible = false;
-			_toastStack?.SetBannerSlot(false);
-		}));
 	}
 
 	// Nome mantido por compatibilidade (BlessingOffer e o preview "toast" chamam): agora é um toast de recompensa (canal b).

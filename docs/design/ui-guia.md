@@ -524,6 +524,8 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 - **Bugs junto:** `BlessingRarityColor` duplicado → `UiPalette.Rarity` (as cópias em `HUD.BlessingOffer.cs:384` e `IntermissionChamber.cs:257` passam a delegar; removidas em 3c T3/T5); cursor visível no controle (§5.5); foco não restaurado (API §5.2); `IsGameplayInputBlocked` sem altar/absorção (§5.2).
 - **Previews:** `gallery` (todos os componentes e estados) e `confirm` foram previstos mas **não existem** em `UiPreview.cs`; os componentes são conferidos pelas telas reais (Anexo A).
 
+> **Limpeza da HUD (2026-10), vale sobre o texto abaixo:** saíram o nome do mapa no título da sala (fica só "Sala x/y · n/m", "Sala limpa"...), o banner "Sala limpa / Escolha sua recompensa", o alerta "Próxima onda" (`NotifyWaveIncoming` removido), o rótulo "Recompensa: …" ao lado dos medalhões das portas e dos itens no chão e os nomes flutuantes da Fonte, da Bancada, do Altar e da Loja (o prompt de interação continua). O contador de Moedas/Sangue Amaldiçoado fica no canto inferior esquerdo, ao lado do painel de vida (`BottomLeftHud`), e o aviso de Sangue Amaldiçoado sai logo acima dele. A barra de bênçãos virou uma coluna na borda esquerda, centrada na altura. Previews `room_clear` e `wave_warning` removidos.
+
 ### 8.1 HUD — painel do jogador (Aud §1) — **P1**
 
 - **Tarefa:** hud-ingame T1 (`HUD.StatusBars.cs`).
@@ -542,7 +544,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 
 - **Tarefa:** hud-ingame T1 (layout, divisor, texto pós-limpeza em `StatusBars.cs:523`) + T2 (`SyncRoomInformation`, `Notifications.cs:69`).
 - **Muda:** `PanelHud` ±280 × 16..64 sem divisor sobreposto; nome do mapa `Section 22` `Gold` + "Sala 1/6 · 5/20" `Secondary`; ao limpar, a parte secundária vira "Sala limpa" e, quando o portal abre de fato (depois da recompensa, via `NotifyPortalOpened`), vira "Portal aberto" (o nome continua). Sala de chefe: o título some e a barra do chefe ocupa o lugar. Na Câmara de Hemomancia: "Câmara de Hemomancia" via `_roomLabel` (sem vida) — substitui o `_statusLabel` da Câmara (ver §8.19).
-- **Previews:** `hud_combat`, `room_clear`.
+- **Previews:** `hud_combat`.
 
 ### 8.4 HUD — barra do chefe (Aud §4) — **P1**
 
@@ -561,7 +563,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 - **Portal:** limpar a sala → secundário do título "Sala limpa" + banner; a recompensa é escolhida → `RunManager.UnlockExitAfterReward()` abre o portal e chama `CallGroup("hud", "NotifyPortalOpened")` → secundário "Portal aberto" + toast info "O portal foi aberto" (idempotente). No chefe, isso só acontece depois de pegar o artefato.
 - **Muda:** §3.9 e §3.10; o banner anima com `PivotOffset` no centro (hoje escala a partir do canto). Mantém as assinaturas `AppendGameLog`, `NotifyEnemyDefeated`, `NotifyWaveIncoming`, `NotifyRoomCleared`, `NotifySkillMessage`, `NotifyArtifactCollected`, `NotifyBloodCoinsRewarded`, `SyncBloodCoins`, `SyncEnemyProgress`; novo via `CallGroup`: `NotifyPortalOpened` (hud-ingame T8).
 - **Bugs junto:** banner sem pivô; `await` do banner sem `IsInstanceValid`.
-- **Previews:** `toast` (3 recompensas em fila + "+N"), `wave_alert`, `room_clear`, `event_log`.
+- **Previews:** `toast` (3 recompensas em fila + "+N"), `event_log`.
 
 ### 8.6 HUD — barra de bênçãos (Aud §6) — **P0** (controle) / P1 (visual)
 
@@ -742,12 +744,12 @@ F:/GODOT/App/Godot.exe --path . --resolution 1600x900 -- --ui-batch --ui-shots=C
 - `--ui-langs=a,b,c` limita os idiomas (padrão `pt-BR,en,es`); `--ui-screens=a,b` limita as telas (padrão: todas).
 - Cada captura espera cerca de 0,8 s depois de a tela abrir; uma tela que não abre em 6 s é ignorada com aviso. Ao fim, o processo encerra sozinho.
 
-Apelidos: `skill_detail` = `skill_popup`, `wave_alert` = `wave_warning`. Toast, aviso de wave, banner de sala limpa, flash de dano e número de dano se repetem para aparecerem em qualquer quadro da captura. `event_log` só aparece em build de debug.
+Apelidos: `skill_detail` = `skill_popup`. Toast, flash de dano e número de dano se repetem para aparecerem em qualquer quadro da captura. `event_log` só aparece em build de debug.
 
 | Nome | Cena | Seção |
 |---|---|---|
 | `menu_main`, `menu_slots`, `menu_confirm_delete`, `menu_options`, `menu_options_audio`, `menu_options_game`, `menu_credits` | `MainMenu` | 8.9 |
-| `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `wave_warning`, `room_clear`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
+| `hud_combat`, `critical_health`, `damage_flash`, `damage_number`, `boss_bar`, `toast`, `blessing_bar`, `event_log` | `TestArena` | 8.1–8.7 |
 | `pause`, `options`, `options_audio`, `options_game`, `options_video_end`, `options_confirm`, `pause_confirm_abandon`, `pause_confirm_menu`, `game_over`, `compendium` | `TestArena` | 8.10–8.12 |
 | `dev_panel`, `dev_panel_actions` | `TestArena` | Painel de desenvolvedor F1 (`HUD.DevPanel.cs`, só debug): lista de parâmetros do `DevParameterRegistry` e aba "Ações de teste" |
 | `character_sheet`, `blessing_offer`, `blessing_offer_replace` | `TestArena` | 8.13, 8.17 |

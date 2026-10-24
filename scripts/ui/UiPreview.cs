@@ -26,7 +26,7 @@ using System.Collections.Generic;
 ///               character_sheet, blessing_offer, blessing_offer_replace, anvil_offer (3 cartas), anvil_offer_single (1 carta),
 ///               pause, options (= options_video), options_audio, options_game, options_video_end (Vídeo rolado até o fim), options_confirm ("Manter estas configurações?", só a janela),
 ///               tuning, dev_panel, dev_panel_actions, dev_console (console de dev com help e list boons orlok), pause_confirm_abandon, pause_confirm_menu,
-///               compendium, game_over, room_clear, toast, wave_warning, boss_bar,
+///               compendium, game_over, toast, boss_bar,
 ///               dialogue_bark (legenda de Virgil, repetida a cada 3 s)
 ///   (pause e pause_confirm_* iniciam uma run volátil se não houver, para mostrar "Desistir da run")
 ///   CrowsNest:  blood_fountain, skill_popup, weapon_bench, hub, hub_cast (enquadra os 3 sarcófagos de personagens)
@@ -46,8 +46,8 @@ using System.Collections.Generic;
 ///   --ui-shots=PASTA         onde gravar os PNGs (tela[_aba]_idioma.png); padrão user://ui_shots
 ///   --ui-langs=a,b,c         idiomas (padrão pt-BR,en,es)
 ///   --ui-screens=a,b         só estas telas (nomes da lista acima; padrão todas)
-/// Apelidos: skill_detail = skill_popup, wave_alert = wave_warning.
-/// Toast, aviso de wave, banner de sala limpa, flash de dano (0,5 s) e número de dano (1 s) se repetem
+/// Apelidos: skill_detail = skill_popup.
+/// Toast, flash de dano (0,5 s) e número de dano (1 s) se repetem
 /// para aparecerem em qualquer quadro da captura. event_log só aparece em build de debug.
 /// Dados fictícios: chefe com 60% de vida, causa de game over e Loja com estoque fixo. Nada é salvo.
 /// </summary>
@@ -95,8 +95,8 @@ public partial class UiPreview : Node
 		("character_sheet", "Attributes", SceneArena), ("character_sheet", "Blessings", SceneArena),
 		("character_sheet", "Artifacts", SceneArena), ("character_sheet", "Skills", SceneArena),
 		("blessing_offer", null, SceneArena),
-		("blessing_offer_replace", null, SceneArena), ("anvil_offer", null, SceneArena), ("anvil_offer_single", null, SceneArena), ("toast", null, SceneArena), ("wave_warning", null, SceneArena),
-		("room_clear", null, SceneArena), ("boss_bar", null, SceneArena),
+		("blessing_offer_replace", null, SceneArena), ("anvil_offer", null, SceneArena), ("anvil_offer_single", null, SceneArena), ("toast", null, SceneArena),
+		("boss_bar", null, SceneArena),
 		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
 		("weapon_bench", null, SceneNest), ("hub", null, SceneNest), ("hub_cast", null, SceneNest),
 		("dialogue", null, SceneNest), ("dialogue_choice", null, SceneNest), ("hub_npc", null, SceneNest),
@@ -283,8 +283,6 @@ public partial class UiPreview : Node
 		_repeatInterval = _screen switch
 		{
 			"toast" => 1.0f,
-			"wave_warning" => 1.0f,
-			"room_clear" => 2.2f,
 			"damage_flash" => 0.5f,
 			"damage_number" => 1.0f,
 			"dialogue_bark" or "dialogue_bark_long" => 3.0f,
@@ -353,7 +351,6 @@ public partial class UiPreview : Node
 	private static string NormalizeScreen(string screen) => screen switch
 	{
 		"skill_detail" => "skill_popup",
-		"wave_alert" => "wave_warning",
 		"options_video" => "options",
 		"menu_options_video" => "menu_options",
 		_ => screen
