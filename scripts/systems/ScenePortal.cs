@@ -18,14 +18,13 @@ public partial class ScenePortal : Area3D
     public const float WallClearance = 0.05f;
     // Queda das barras ao fechar (barra com 2,25 m de altura, docs/design/portas-recompensas.md, 7.2).
     private const float DoorBarDrop = 2.3f;
-    // Portão (PortcullisGate "Gate" irmão deste nó, igual ao do hub): a grade sobe quando o jogador chega a GateOpenRadius
-    // da porta liberada, e entrar no vão (até GatePassDepth da face da parede) atravessa a porta, sem precisar de botão.
-    // Liberada e sem ninguém perto, a grade fica um quadro acima do chão (GateAjar), para mostrar que dá para passar.
+    // Portão (PortcullisGate "Gate" irmão deste nó, igual ao do hub): fechado enquanto a porta está travada (itens da sala
+    // no chão); liberada, a grade sobe quando o jogador chega a GateOpenRadius, e entrar no vão (até GatePassDepth da face
+    // da parede) é a escolha da porta. Sem prompt nem botão: o medalhão já diz o que a porta dá.
     public const string GateName = "Gate";
     private const string ExtraGateName = "GateExtra";
     private const float GateOpenRadius = 2.8f;
     private const float GatePassDepth = 0.75f;
-    private const float GateAjar = 1.0f / (PortcullisGate.PixelFrames - 1);
     private const float GateOpenSeconds = 0.8f;
     private static readonly StringName PlayerGroup = "player";
 
@@ -91,9 +90,13 @@ public partial class ScenePortal : Area3D
         if (!_isEnabled || _isLeaving)
             return;
 
-        // Com portão: entrar no vão com a grade aberta atravessa. O botão de interagir continua valendo de perto.
-        var walkedIn = Gate is { OpenAmount: >= 0.95f } && PlayerInDoorway();
-        if (!walkedIn && (!_isPlayerInside || !InteractPrompt.ConsumeInteract(this)))
+        // Com portão: entrar no vão com a grade aberta atravessa. Sem portão: interagir de perto, como antes.
+        if (Gate != null)
+        {
+            if (Gate.OpenAmount < 0.95f || !PlayerInDoorway())
+                return;
+        }
+        else if (!_isPlayerInside || !InteractPrompt.ConsumeInteract(this))
             return;
         if (string.IsNullOrWhiteSpace(TargetScenePath))
             return;
@@ -119,7 +122,7 @@ public partial class ScenePortal : Area3D
         }
     }
 
-    // Grade: aberta ao escolher, fechada com a porta travada, aberta com o jogador perto e entreaberta no resto.
+    // Grade: aberta ao escolher ou com o jogador perto da porta liberada; fechada no resto.
     private void UpdateGate()
     {
         var gate = Gate;
@@ -128,10 +131,8 @@ public partial class ScenePortal : Area3D
         float target;
         if (_isChosen || _isLeaving)
             target = 1.0f;
-        else if (!_isEnabled)
-            target = 0.0f;
         else
-            target = PlayerNearGate() ? 1.0f : GateAjar;
+            target = _isEnabled && PlayerNearGate() ? 1.0f : 0.0f;
         gate.MoveTo(target, GateOpenSeconds);
     }
 
@@ -250,7 +251,8 @@ public partial class ScenePortal : Area3D
 
         var showLocked = !_isEnabled && _fruitLockHint;
         InteractPrompt.SetText(_promptLabel, showLocked ? Localization.Text("reward.door.fruit.locked") : ResolvePromptText());
-        _promptLabel.Visible = (_isEnabled || showLocked) && _isPlayerInside;
+        // Porta com portão não tem prompt: atravessar é entrar nela.
+        _promptLabel.Visible = (_isEnabled || showLocked) && _isPlayerInside && Gate == null;
     }
 
     // Entrar numa porta de recompensa: grava a escolha (paga ao limpar a sala seguinte), fecha as outras

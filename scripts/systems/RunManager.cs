@@ -182,14 +182,13 @@ public partial class RunManager : Node3D
             // Sangue Amaldicoado e moedas do boss ja foram pagos em FlushDefeatBatch (QueueEnemyDefeat).
             // Sem altar de artefato: fruta garantida (exceto no mapa final, que encerra a run) e saida liberada direto.
             SpawnBossFruit(mapIndex);
-            SpawnRoomPickups(pending, 0, mapIndex);
+            SpawnRoomPickups(pending);
         }
         else
         {
             // As portas nascem travadas: abrem quando o chao da sala estiver limpo (SpawnRoomPickups / UnlockExitAfterReward).
             BuildRewardDoors(mapIndex);
-            var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", EconomyDefaults.RoomClearBonus[mapIndex]);
-            SpawnRoomPickups(pending, clearBonus, mapIndex);
+            SpawnRoomPickups(pending);
         }
     }
 
@@ -209,16 +208,13 @@ public partial class RunManager : Node3D
             door.SetBarsMaterial(_lockedPortalMaterial);
     }
 
-    // Monta os itens do chao desta sala: o bonus de sala limpa (Moedas, valor do mapa) e a recompensa da porta escolhida
-    // na sala anterior (pending, se houver). Cada item conta em _roomPickupsLeft; as portas so abrem com a contagem em zero.
+    // Monta o item do chao desta sala: a recompensa da porta escolhida na sala anterior (pending, se houver; sem o antigo
+    // saco de Moedas de sala limpa). Cada item conta em _roomPickupsLeft; as portas so abrem com a contagem em zero.
     // Sem nenhum item, a saida abre na hora, como antes. Boss: so o pending (em geral nenhum).
-    private void SpawnRoomPickups(RoomRewardDoor pending, int clearBonus, int mapIndex)
+    private void SpawnRoomPickups(RoomRewardDoor pending)
     {
-        var slot = 0;
-        if (clearBonus > 0)
-            SpawnRoomPickup(new RoomRewardDoor(RoomRewardType.Coins, mapIndex, clearBonus), false, RewardPickupPosition(slot++));
         if (pending != null)
-            SpawnRoomPickup(pending, true, RewardPickupPosition(slot));
+            SpawnRoomPickup(pending, true, RewardPickupPosition());
 
         if (_roomPickupsLeft > 0)
             ShowRewardDoorsLockHint();
@@ -317,18 +313,11 @@ public partial class RunManager : Node3D
     }
 
     // Ponto de recompensa da sala (RoomGenerator.GetArtifactSpawnPosition), ao nível do chão, como a fruta do boss.
-    // Itens extras (slot > 0) andam 0,9 m em X, dentro da área caminhável.
-    private Vector3 RewardPickupPosition(int slot)
+    private Vector3 RewardPickupPosition()
     {
         var position = _roomGenerator != null
             ? _roomGenerator.GetArtifactSpawnPosition()
             : (_exitPortal?.Position ?? Vector3.Zero);
-        if (slot > 0)
-        {
-            position += Vector3.Right * (slot * 0.9f);
-            if (_roomGenerator != null)
-                position = _roomGenerator.ClampToWalkableArea(position, 2);
-        }
         position.Y = 0.15f;
         return position;
     }

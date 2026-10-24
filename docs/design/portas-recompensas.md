@@ -269,9 +269,9 @@ As portas só ficam disponíveis depois que a recompensa da sala atual foi resol
 Toda saída de sala (portas de recompensa, saída única da sala N, saída do boss, sala da primeira Bênção e Câmara) usa o
 mesmo portão do início da run no hub: uma grade de ferro que sobe (`PortcullisGate`, 8 quadros no 2D).
 
-- **Travada** (itens no chão, sala em combate): grade fechada.
-- **Liberada:** a grade sobe um quadro (entreaberta). Com o jogador a até 2,8 m dela, sobe inteira; ao se afastar, volta a entreabrir.
-- **Atravessar:** com a grade aberta, entrar no vão (até 0,75 m da face da parede) escolhe a porta, sem botão. Interagir de perto continua valendo.
+- **Travada** (sala em combate ou recompensa da sala ainda no chão): grade fechada, mesmo com o jogador perto.
+- **Liberada:** a grade continua fechada e sobe inteira quando o jogador chega a até 2,8 m dela; ao se afastar, desce de novo.
+- **Atravessar:** com a grade aberta, entrar no vão (até 0,75 m da face da parede) é a escolha da porta. Não há prompt nem botão de interagir; o medalhão mostra o que a porta dá.
 - **Porta não escolhida:** a grade desce (0,3 s, 7.2).
 - **3D:** a grade fica entre as colunas da moldura (as barras fixas e o disco do chão saíram), e o gate antigo (`gate.glb`) não aparece mais.
 - **2D:** cada porta fica num arco da parede do kit (borda `arch`), com a grade do kit por cima. Uma porta usa o tile do meio da parede de saída; duas usam os tiles vizinhos (o do meio fica liso). A sala nasce com dois arcos quando vai ter conjunto de portas; se o sorteio der uma, a parede é redesenhada em segundo plano (`PixelDoorWall`, `PixelRoom.RecomposeAsync`). No 2D a saída fica sempre numa parede do fundo (ne/nw), as únicas com arco e grade no kit.
@@ -317,7 +317,7 @@ Custo assumido: se o jogador morrer na sala que a porta levou, a recompensa pend
 Limpar sala k
   -> paga a recompensa pendente (PendingRoomReward, se houver)
        Bênção: OpenBloodBlessingOffer; Fruta: DevilsFruit.Spawn; Moedas: AddBloodCoins(pack)
-  -> bônus de sala limpa (AddBloodCoins, room_clear_bonus) [sempre]
+  -> (o bônus de sala limpa em Moedas foi removido: a sala só solta a recompensa da porta)
   -> sorteia CP_k (se k < N), guarda em RunState
   -> ao coletar a fruta (se houver) ou concluir a Bênção, abre as portas da CP_k
 Jogador interage com a porta

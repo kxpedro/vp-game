@@ -27,7 +27,6 @@ Colunas: chave | padrão | tipo | arquivo:linha | editor no Compêndio.
 | economy.coins.rarity.magic / rare / legendary / normal | 2 / 4 / 8 / 1 | float | EnemyBasic.cs:1385-1388 | Não |
 | economy.coins.map_factor.{m} | 1.0, 0.6, 0.5, 0.5 | float | EnemyBasic.cs:1390 | Não |
 | economy.coins.blessing_fallback | 75 | int | HUD.BlessingOffer.cs:335 | Não |
-| economy.coins.room_clear_bonus.{m} | 12,14,16,0 | int | RunManager.cs:189 (~208) | Não |
 | economy.coins.room_reward_pack.{m} | 150,130,110 | int | RoomRewardCatalog.cs:73 | Não |
 | economy.ledger.max_bonus | 1.0 | float | PlayerCombat.cs:274,596 | Não |
 | economy.shop.power_multiplier | 1.75 | float | ArtifactCatalog.cs:43 | Não |
