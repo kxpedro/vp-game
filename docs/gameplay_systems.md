@@ -181,7 +181,7 @@ As poças usam uma malha irregular de baixo brilho, com uma camada interna sutil
 - a trilha de roubo de vida entra na árvore antes de receber `GlobalPosition`, evitando `!is_inside_tree()`;
 - artefatos não vêm mais de bosses: são vendidos na Loja da Câmara de Hemomancia (ver [Economia e recompensas](#economia-e-recompensas)).
 
-Ao concluir uma sala, cada essência de Sanguis Purgatis usa uma gota de sangue composta, abandona o movimento de espera sem disputar a transformação principal e percorre uma espiral até o jogador. Partículas em coordenadas globais formam o rastro e um pulso de condensação conclui a absorção antes da oferta obrigatória.
+Cada inimigo comum que morre deixa uma poça de sangue em pixel art (`BloodPool`, folha gerada por `tools/pixel_art/blood_pool/`), que escorre do corpo e fica no chão com um brilho em loop. Ao pegar a recompensa da sala (a da porta escolhida; sem ela, o primeiro item pego), o Virgil suga todo o sangue: as poças secam e soltam gotas que percorrem uma espiral até ele, com rastro de partículas e um pulso de condensação. Se a recompensa é uma Bênção, isso é o "Sanguis Purgatus" antes da oferta obrigatória; nas outras, a sucção é mais curta e não pausa o jogo. Sala de boss não tem poças.
 
 `bathory_immortal_beauty` converte dano em Ferida Recuperável após 2 segundos sem novo golpe e restaura durante 5 segundos. Pela escala atual, recupera 20%/40%/70%/110%/140% em Common/Uncommon/Rare/Epic/Legendary; Epic e Legendary ainda são pontos explícitos de rebalanceamento.
 

@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 public partial class HUD
 {
@@ -34,19 +35,6 @@ public partial class HUD
 		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
 		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
 		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
-		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
-		var essences = new List<Node3D>();
-		var startingPositions = new List<Vector3>();
-		var spiralPhases = new List<float>();
-		foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
-		{
-			if (node is not Node3D essence)
-				continue;
-			essences.Add(essence);
-			startingPositions.Add(essence.GlobalPosition);
-			spiralPhases.Add((float)GD.RandRange(0.0, Mathf.Tau));
-			AttachSanguisTrail(essence);
-		}
 		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
 		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.4f);
 		screenTween.TweenInterval(2.55f);
@@ -56,20 +44,76 @@ public partial class HUD
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 2.35f);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.0f, 0.55f);
 
-		const float absorptionDuration = 3.45f;
+		await SuckRoomBlood(3.45f);
+		if (!IsInstanceValid(this) || !IsInsideTree()) return;
+		_bloodAbsorptionOverlay.Visible = false;
+		_blessingAbsorptionRunning = false;
+		// Morreu durante a absorção: a oferta não abre por cima do game over.
+		if (_isGameOver) return;
+		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bênção de Sangue.");
+		BuildBloodBlessingChoices();
+	}
+
+	// Recompensa da sala que não é Bênção (RunManager): só a sucção do sangue, sem título, sem pausar o jogo.
+	public async void AbsorbRoomBlood()
+	{
+		if (_blessingAbsorptionRunning || _roomBloodSuctionRunning) return;
+		_roomBloodSuctionRunning = true;
+		await SuckRoomBlood(1.8f);
+		if (!IsInstanceValid(this)) return;
+		_roomBloodSuctionRunning = false;
+	}
+
+	private bool _roomBloodSuctionRunning;
+
+	// O Virgil suga o sangue da sala: cada poça (BloodPool) seca e solta gotas que espiralam até ele.
+	private async Task SuckRoomBlood(float duration)
+	{
+		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
+		var scene = GetTree().CurrentScene;
+		var pools = new List<BloodPool>();
+		foreach (var node in GetTree().GetNodesInGroup(BloodPool.Group))
+			if (node is BloodPool pool && !pool.IsQueuedForDeletion())
+				pools.Add(pool);
+		var droplets = new List<Node3D>();
+		var startingPositions = new List<Vector3>();
+		var spiralPhases = new List<float>();
+		var delays = new List<float>();
+		const int dropletsPerPool = 3;
+		for (var i = 0; i < pools.Count && scene != null; i++)
+		{
+			var pool = pools[i];
+			pool.RemoveFromGroup(BloodPool.Group);
+			pool.Drain(duration * 0.55f);
+			for (var k = 0; k < dropletsPerPool; k++)
+			{
+				var droplet = BloodPool.CreateDroplet();
+				scene.AddChild(droplet);
+				var angle = (float)GD.RandRange(0.0, Mathf.Tau);
+				var radius = (float)GD.RandRange(0.0, BloodPool.Radius);
+				var start = pool.GlobalPosition + new Vector3(Mathf.Cos(angle) * radius, 0.12f, Mathf.Sin(angle) * radius);
+				droplet.GlobalPosition = start;
+				AttachSanguisTrail(droplet);
+				droplets.Add(droplet);
+				startingPositions.Add(start);
+				spiralPhases.Add((float)GD.RandRange(0.0, Mathf.Tau));
+				delays.Add(Mathf.Min(i * 0.024f, 0.42f) + k * duration * 0.05f);
+			}
+		}
+
 		var elapsed = 0.0f;
-		while (elapsed < absorptionDuration && player != null && IsInstanceValid(player))
+		while (elapsed < duration && player != null && IsInstanceValid(player))
 		{
 			var delta = Mathf.Max((float)GetProcessDeltaTime(), 0.001f);
 			var destination = player.GlobalPosition + Vector3.Up * 0.95f;
-			for (var i = 0; i < essences.Count; i++)
+			for (var i = 0; i < droplets.Count; i++)
 			{
-				var essence = essences[i];
-				if (!IsInstanceValid(essence))
+				var droplet = droplets[i];
+				if (!IsInstanceValid(droplet))
 					continue;
 
-				var delay = Mathf.Min(i * 0.024f, 0.42f);
-				var progress = Mathf.Clamp((elapsed - delay) / Mathf.Max(absorptionDuration - delay, 0.1f), 0.0f, 1.0f);
+				var delay = delays[i];
+				var progress = Mathf.Clamp((elapsed - delay) / Mathf.Max(duration - delay, 0.1f), 0.0f, 1.0f);
 				var eased = progress * progress * (3.0f - 2.0f * progress);
 				var start = startingPositions[i];
 				var planar = destination - start;
@@ -82,27 +126,28 @@ public partial class HUD
 					* (1.0f - progress * 0.28f);
 				var angle = spiralPhases[i] + progress * Mathf.Tau * 2.25f;
 				var spiralOffset = tangent * Mathf.Cos(angle) * spiralRadius
-					+ Vector3.Up * Mathf.Sin(angle) * spiralRadius * 0.48f;
-				essence.GlobalPosition = start.Lerp(destination, eased) + spiralOffset;
-				essence.Scale = Vector3.One * Mathf.Lerp(1.0f, 0.055f, Mathf.Pow(progress, 1.65f));
+					+ Vector3.Up * Mathf.Abs(Mathf.Sin(angle)) * spiralRadius * 0.48f;
+				droplet.GlobalPosition = start.Lerp(destination, eased) + spiralOffset;
+				droplet.Visible = progress > 0.0f;
+				droplet.Scale = Vector3.One * Mathf.Lerp(1.0f, 0.2f, Mathf.Pow(progress, 1.65f));
 			}
 			elapsed += delta;
 			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 			if (!IsInstanceValid(this) || !IsInsideTree()) return;
 		}
-		if (player != null && IsInstanceValid(player))
+		if (player != null && IsInstanceValid(player) && droplets.Count > 0)
 			SpawnSanguisArrivalPulse(player.GlobalPosition + Vector3.Up * 0.92f);
+		foreach (var droplet in droplets)
+			if (IsInstanceValid(droplet))
+				droplet.Visible = false;
 		await ToSignal(GetTree().CreateTimer(0.42f, true), SceneTreeTimer.SignalName.Timeout);
 		if (!IsInstanceValid(this) || !IsInsideTree()) return;
-		foreach (var essence in essences)
-			if (IsInstanceValid(essence))
-				essence.QueueFree();
-		_bloodAbsorptionOverlay.Visible = false;
-		_blessingAbsorptionRunning = false;
-		// Morreu durante a absorção: a oferta não abre por cima do game over.
-		if (_isGameOver) return;
-		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bênção de Sangue.");
-		BuildBloodBlessingChoices();
+		foreach (var droplet in droplets)
+			if (IsInstanceValid(droplet))
+				droplet.QueueFree();
+		foreach (var pool in pools)
+			if (IsInstanceValid(pool))
+				pool.QueueFree();
 	}
 
 	private static void AttachSanguisTrail(Node3D essence)

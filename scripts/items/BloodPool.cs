@@ -1,0 +1,186 @@
+using Godot;
+
+/// <summary>
+/// Poça de sangue que escorre do corpo do inimigo morto (pixel art, tools/pixel_art/blood_pool/). Fica deitada no chão,
+/// girada para a câmera e esticada em profundidade, de modo que cada pixel da folha vire um pixel da arte na tela.
+/// Ao limpar a sala, o HUD a suga (Drain) e manda gotas voando até o Virgil (HUD.BlessingOffer, grupo "blood_pools").
+/// </summary>
+public partial class BloodPool : Node3D
+{
+    public const string Group = "blood_pools";
+    private const string SheetPath = "res://assets/pixel_art/effects/blood_pool/blood_pool_sheet.png";
+    private const string DropletPath = "res://assets/pixel_art/effects/blood_pool/blood_droplet.png";
+    private const int Columns = 12;
+    private const int Variants = 3;
+    private const int SpreadFrames = 8;
+    private const int ShimmerFrames = 4;
+    private const float SpreadFps = 13.0f;
+    private const float ShimmerFps = 3.0f;
+    // Rente ao chão, acima do quadrilátero da sala 2D e da sombra do Virgil (0,03 m fica por cima, transparente).
+    private const float GroundHeight = 0.022f;
+    // Raio aproximado da poça pronta no chão (m), para espalhar as gotas que saem dela.
+    public const float Radius = 0.38f;
+
+    private enum State { Waiting, Spreading, Idle, Draining, Drained }
+
+    private static Texture2D _sheet;
+    private static Texture2D _droplet;
+
+    private Sprite3D _sprite;
+    private State _state = State.Waiting;
+    private int _variant;
+    private float _timer;
+    private float _drainDuration = 1.0f;
+    private int _drainFromFrame;
+
+    public bool IsDrained => _state == State.Drained;
+
+    // delay: espera o corpo cair antes de o sangue começar a escorrer.
+    public static BloodPool Spawn(Node parent, Vector3 position, float delay)
+    {
+        if (parent == null || LoadSheet() == null)
+            return null;
+        var pool = new BloodPool
+        {
+            Name = "BloodPool",
+            Position = new Vector3(position.X, GroundHeight, position.Z),
+            _timer = -delay,
+        };
+        parent.AddChild(pool);
+        return pool;
+    }
+
+    public override void _Ready()
+    {
+        AddToGroup(Group);
+        _variant = (int)(GD.Randi() % Variants);
+        var camera = GetViewport()?.GetCamera3D();
+        var yaw = camera?.GlobalRotation.Y ?? Mathf.DegToRad(IsoCamera.DefaultYawDegrees);
+        var pitch = camera != null ? -camera.GlobalRotation.X : Mathf.DegToRad(PixelRoom.CameraPitchDegrees);
+        // A folha já está na projeção 2:1 da tela: estica no chão o que a inclinação da câmera achata.
+        var stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
+        Rotation = new Vector3(0.0f, yaw, 0.0f);
+        Scale = new Vector3(1.0f, 1.0f, stretch);
+        _sprite = new Sprite3D
+        {
+            Name = "Sprite",
+            Texture = _sheet,
+            Hframes = Columns,
+            Vframes = Variants,
+            Frame = _variant * Columns,
+            FlipH = GD.Randf() < 0.5f,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+            // No 2D a luz já está na arte; no 3D a poça recebe a luz da sala.
+            Shaded = !GameMode.IsPixelArt,
+            DoubleSided = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f),
+            Visible = false,
+        };
+        AddChild(_sprite);
+    }
+
+    public override void _Process(double delta)
+    {
+        _timer += (float)delta;
+        switch (_state)
+        {
+            case State.Waiting:
+                if (_timer < 0.0f)
+                    return;
+                _state = State.Spreading;
+                _sprite.Visible = true;
+                SetFrame(0);
+                break;
+            case State.Spreading:
+            {
+                var frame = (int)(_timer * SpreadFps);
+                if (frame >= SpreadFrames)
+                {
+                    _state = State.Idle;
+                    _timer = (float)GD.RandRange(0.0, ShimmerFrames / ShimmerFps);
+                    frame = SpreadFrames - 1;
+                }
+                SetFrame(frame);
+                break;
+            }
+            case State.Idle:
+                SetFrame(SpreadFrames + (int)(_timer * ShimmerFps) % ShimmerFrames);
+                break;
+            case State.Draining:
+            {
+                var progress = Mathf.Clamp(_timer / _drainDuration, 0.0f, 1.0f);
+                var frame = Mathf.RoundToInt(Mathf.Lerp(_drainFromFrame, -1.0f, progress));
+                if (frame < 0)
+                {
+                    _state = State.Drained;
+                    _sprite.Visible = false;
+                    return;
+                }
+                SetFrame(frame);
+                break;
+            }
+        }
+    }
+
+    // Seca a poça de trás para frente (quadros do espalhar ao contrário). Roda mesmo com a árvore pausada.
+    public void Drain(float duration)
+    {
+        if (_state is State.Draining or State.Drained)
+            return;
+        ProcessMode = ProcessModeEnum.Always;
+        _drainFromFrame = _state switch
+        {
+            State.Waiting => -1,
+            State.Spreading => Mathf.Min((int)(_timer * SpreadFps), SpreadFrames - 1),
+            _ => SpreadFrames - 1,
+        };
+        _drainDuration = Mathf.Max(duration, 0.05f);
+        _timer = 0.0f;
+        _state = State.Draining;
+    }
+
+    // Gota em billboard (2 quadros) que voa da poça até o Virgil durante a sucção.
+    public static Node3D CreateDroplet()
+    {
+        _droplet ??= LoadTexture(DropletPath);
+        var root = new Node3D { Name = "BloodDroplet", ProcessMode = ProcessModeEnum.Always };
+        if (_droplet == null)
+            return root;
+        var sprite = new Sprite3D
+        {
+            Name = "Sprite",
+            Texture = _droplet,
+            Hframes = 2,
+            Frame = (int)(GD.Randi() % 2),
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+            Shaded = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        root.AddChild(sprite);
+        return root;
+    }
+
+    private void SetFrame(int column)
+    {
+        if (_sprite != null)
+            _sprite.Frame = _variant * Columns + Mathf.Clamp(column, 0, Columns - 1);
+    }
+
+    private static Texture2D LoadSheet()
+    {
+        _sheet ??= LoadTexture(SheetPath);
+        return _sheet;
+    }
+
+    private static Texture2D LoadTexture(string path)
+    {
+        var image = PixelRoomComposer.LoadImage(path);
+        return image == null ? null : ImageTexture.CreateFromImage(image);
+    }
+}
