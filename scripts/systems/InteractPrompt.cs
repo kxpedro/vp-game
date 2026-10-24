@@ -31,6 +31,8 @@ public static class InteractPrompt
     private static readonly StringName HudGroup = "hud";
     private static readonly StringName PlayerGroup = "player";
     private static readonly List<Label3D> Titles = new();
+    // Títulos ocultos de vez (limpeza da HUD): UpdateTitleVisibility não os reacende por proximidade.
+    private const string HiddenTitleMeta = "title_hidden";
 
     // Prefixos legados ("E - ...", "Interagir — ...") que viram o glifo do dispositivo.
     private static readonly string[] LegacyPrefixes =
@@ -139,6 +141,11 @@ public static class InteractPrompt
             }
             if (!title.IsInsideTree())
                 continue;
+            if (title.HasMeta(HiddenTitleMeta))
+            {
+                title.Visible = false;
+                continue;
+            }
             if (!resolved)
             {
                 resolved = true;
@@ -260,6 +267,15 @@ public static class InteractPrompt
         if (parent == null || parent == area.Owner || parent == area.GetTree()?.CurrentScene)
             return null;
         return StyleTitlesAndAnchor(parent, prompt);
+    }
+
+    /// <summary>Esconde o título de vez (nome flutuante de objeto), mesmo com o jogador perto. O prompt continua.</summary>
+    public static void HideTitle(Label3D title)
+    {
+        if (title == null || !GodotObject.IsInstanceValid(title))
+            return;
+        title.SetMeta(HiddenTitleMeta, true);
+        title.Visible = false;
     }
 
     /// <summary>Visual do prompt: TextPrimary 36, contorno, billboard, tamanho constante, por cima da geometria.</summary>

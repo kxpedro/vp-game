@@ -696,6 +696,7 @@ public partial class IntermissionChamber : Node3D
         // Nome flutuante oculto (limpeza da HUD); o prompt diz o que é ao se aproximar.
         _shopTitle = new Label3D { Name = "Title", Text = Localization.Text("chamber.shop.title"), Visible = false, Position = new Vector3(0.0f, 2.75f, 0.0f) };
         stand.AddChild(_shopTitle);
+        InteractPrompt.HideTitle(_shopTitle);
         _shopPrompt = new Label3D { Name = "Prompt", Visible = false, Position = new Vector3(0.0f, 3.3f, 0.0f) };
         stand.AddChild(_shopPrompt);
 

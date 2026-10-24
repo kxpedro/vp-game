@@ -338,7 +338,7 @@ public partial class HUD : CanvasLayer
 				label.Text = text;
 		foreach (var path in HiddenSceneTitles(sceneName))
 			if (scene.GetNodeOrNull<Label3D>(path) is Label3D title)
-				title.Visible = false;
+				InteractPrompt.HideTitle(title);
 	}
 
 	private static (string Path, string Text)[] SceneLabelTexts(string sceneName) => sceneName switch
