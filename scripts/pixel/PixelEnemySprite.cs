@@ -22,6 +22,23 @@ public partial class PixelEnemySprite : Node3D
         ["mushroom"] = Clips("idle", "walk"),
         // O olho voador só tem o voo: serve de idle e de movimento.
         ["flying_eye"] = Clips("flight", "flight"),
+        // Guardiã Invisível (boss do mapa 1): o pacote só tem a flutuação parada, que serve para tudo; golpe, dano e
+        // morte vêm dos efeitos (BossController.InvisibleWoman.cs, Flash e o esmaecer de DetachAndDie).
+        ["mage_guardian"] = new[]
+        {
+            new Clip("Idle", "idle", 10.0f, true),
+            new Clip("Walk", "idle", 14.0f, true),
+            new Clip("Attack", "idle", 18.0f, false),
+            new Clip("HitReact", "idle", 18.0f, false),
+            new Clip("Death", "idle", 10.0f, false),
+        },
+    };
+
+    // Quadro quadrado de cada folha (padrão: 150 px do Monsters Creatures Fantasy). Os pés ficam em y≈FrameSize-49
+    // nas folhas de 150 e em y≈58 nas de 64: nos dois casos 26 px abaixo do centro.
+    private static readonly Dictionary<string, int> FrameSizes = new()
+    {
+        ["mage_guardian"] = 64,
     };
 
     private static readonly Dictionary<string, Texture2D> TextureCache = new();
@@ -72,7 +89,7 @@ public partial class PixelEnemySprite : Node3D
             var texture = LoadSheet(monster, clip.File);
             if (texture == null)
                 return null;
-            library.AddAnimation(clip.Name, BuildAnimation(texture, clip));
+            library.AddAnimation(clip.Name, BuildAnimation(texture, clip, FrameSizes.TryGetValue(monster, out var size) ? size : FrameSize));
         }
         visual._player = new AnimationPlayer { Name = "AnimationPlayer" };
         visual._player.AddAnimationLibrary("", library);
@@ -94,9 +111,9 @@ public partial class PixelEnemySprite : Node3D
     }
 
     // Trilhas da animação: textura e número de quadros no início, depois o quadro a cada passo.
-    private static Animation BuildAnimation(Texture2D texture, Clip clip)
+    private static Animation BuildAnimation(Texture2D texture, Clip clip, int frameSize)
     {
-        var frames = Mathf.Max(texture.GetWidth() / FrameSize, 1);
+        var frames = Mathf.Max(texture.GetWidth() / frameSize, 1);
         var step = 1.0f / clip.Fps;
         var animation = new Animation
         {
