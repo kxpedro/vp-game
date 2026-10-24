@@ -3,9 +3,9 @@
 [ext_resource type="Script" uid="uid://lecee82k6bwk" path="res://scripts/camera/IsoCamera.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3"]
-[ext_resource type="Script" uid="uid://cgslhnum1ob2l" path="res://scripts/systems/ScenePortal.cs" id="4"]
 [ext_resource type="Script" uid="uid://cl0dn6digvuif" path="res://scripts/systems/BloodFountain.cs" id="5"]
 [ext_resource type="Script" path="res://scripts/systems/WeaponBench.cs" id="7"]
+[ext_resource type="Script" path="res://scripts/systems/RunStartGate.cs" id="run_gate"]
 [ext_resource type="Script" path="res://scripts/systems/CrowsNestCrypt.cs" id="8"]
 
 [sub_resource type="StandardMaterial3D" id="BloodMaterial"]
@@ -46,22 +46,6 @@ size = Vector3(1.8, 0.55, 0.18)
 
 [sub_resource type="BoxShape3D" id="InteractionBox"]
 size = Vector3(2.8, 2, 2.4)
-
-[sub_resource type="StandardMaterial3D" id="PortalMaterial"]
-transparency = 1
-albedo_color = Color(0.85, 0.02, 0.04, 0.75)
-emission_enabled = true
-emission = Color(1, 0, 0, 1)
-emission_energy_multiplier = 2.2
-
-[sub_resource type="CylinderMesh" id="PortalMesh"]
-top_radius = 1.2
-bottom_radius = 1.2
-height = 0.12
-radial_segments = 48
-
-[sub_resource type="CylinderShape3D" id="PortalAreaShape"]
-radius = 1.35
 
 [sub_resource type="CylinderMesh" id="PillarMesh"]
 top_radius = 0.45
@@ -201,21 +185,12 @@ material_override = SubResource("StoneDetailMaterial")
 mesh = SubResource("CoffinBaseMesh")
 
 [node name="StartRunPortal" type="Node3D" parent="."]
+script = ExtResource("run_gate")
+rotation = Vector3(0, 0.785398, 0)
+OpeningWidth = 2.4
+OpeningHeight = 2.8
+BlockWidth = 3.0
 position = Vector3(0, 0.12, -12.3)
-
-[node name="Disc" type="MeshInstance3D" parent="StartRunPortal"]
-material_override = SubResource("PortalMaterial")
-mesh = SubResource("PortalMesh")
-
-[node name="PortalArea" type="Area3D" parent="StartRunPortal"]
-script = ExtResource("4")
-TargetScenePath = "res://scenes/game/RunStartBlessingRoom.tscn"
-PromptText = "portal.start_run"
-PortalAction = 1
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StartRunPortal/PortalArea"]
-position = Vector3(0, 1, 0)
-shape = SubResource("PortalAreaShape")
 
 [node name="PortalLabel" type="Label3D" parent="StartRunPortal"]
 pixel_size = 0.0085

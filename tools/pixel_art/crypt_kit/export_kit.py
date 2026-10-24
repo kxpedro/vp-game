@@ -17,6 +17,7 @@ import walls as W
 import props as Pr
 
 CW, CH, TX, TY = 224, 208, 112, 116
+GATE_FRAMES, GATE_LIFT = 8, 53.0   # quadros da grade e quanto ela sobe até sair do vão (topo do arco = 52)
 AMBIENT = -.6          # luz base "assada" (sem velas); a luz das velas fica para o jogo
 
 def render(draw, X0=0, Y0=0):
@@ -60,6 +61,11 @@ def pieces():
     P["props/bones"] = ("decal", lambda cv, L: Pr.bones(cv, L))
     P["props/rubble_a"] = ("prop", lambda cv, L: Pr.rubble(cv, 7, L))
     P["props/rubble_b"] = ("prop", lambda cv, L: Pr.rubble(cv, 8, L))
+    # Grade do portão do início da run (vão do wall_<lado>_arch), em quadros da fechada (0) à aberta.
+    # Não entra em layout: o jogo a desenha por cima da sala e troca o quadro ao abrir (RunStartGate.cs).
+    for side in ("ne", "nw"):
+        for k in range(GATE_FRAMES):
+            P[f"props/portcullis_{side}_{k}"] = ("overlay", lambda cv, L, s=side, k=k: W.portcullis(cv, s, GATE_LIFT * k / (GATE_FRAMES - 1)))
     return P
 
 def main(out):

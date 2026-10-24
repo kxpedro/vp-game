@@ -206,6 +206,7 @@
   "hud.toast.wave_body_other": "{0} inimigos",
   "hud.toast.wave_title": "Próxima onda",
   "hud.weapon": "Arma: {0}",
+  "loading.run": "Carregando",
   "menu.back": "Voltar",
   "menu.choose_slot": "Escolha um slot",
   "menu.credits": "Créditos",

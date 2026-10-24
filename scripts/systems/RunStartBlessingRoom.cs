@@ -24,6 +24,7 @@ public partial class RunStartBlessingRoom : Node3D
         _fountainArea.BodyEntered += OnFountainBodyEntered;
         _fountainArea.BodyExited += OnFountainBodyExited;
         _exitPortal.SetPortalEnabled(false);
+        PlaceExitOnNorthWall();
         // Prompt da fonte com o mesmo visual e glifo dos demais interativos (InteractPrompt), no idioma atual.
         InteractPrompt.StylePrompt(_fountainPrompt);
         InteractPrompt.StyleTitlesAndAnchor(GetNode("BloodFountain"), _fountainPrompt);
@@ -65,6 +66,16 @@ public partial class RunStartBlessingRoom : Node3D
             hud.OpenMandatoryBloodBlessingOffer();
     }
 
+    // A saída fica na parede norte (NorthWall) virada para dentro (+Z) desde o início, travada até a bênção; as portas
+    // de recompensa nascem dela no mesmo lugar. No 2D o PixelSceneSetup já moveu a NorthWall para a borda da sala do
+    // kit (o arco do layout fica atrás da porta).
+    private void PlaceExitOnNorthWall()
+    {
+        var wall = GetNode<Node3D>("NorthWall");
+        var thickness = (wall.GetNode<CollisionShape3D>("Collision").Shape as BoxShape3D)?.Size.Z ?? 0.45f;
+        ScenePortal.PlaceOnWall(_exitPortalRoot, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
+    }
+
     public void UnlockExitAfterReward()
     {
         if (_blessingClaimed)
@@ -74,15 +85,8 @@ public partial class RunStartBlessingRoom : Node3D
         _fountainPrompt.Visible = false;
 
         // Entrada do mapa 1 (origem 0): sorteia o conjunto de portas (docs/design/portas-recompensas.md, 7.3).
-        // Reabrir a cena não rola de novo: o conjunto fica guardado na run.
-        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
-        // Com conjunto, as portas vão para a parede norte (NorthWall, sala de 20x20) virada para dentro (+Z).
-        if (set != null)
-        {
-            var wall = GetNode<Node3D>("NorthWall");
-            var thickness = (wall.GetNode<CollisionShape3D>("Collision").Shape as BoxShape3D)?.Size.Z ?? 0.45f;
-            ScenePortal.PlaceOnWall(_exitPortalRoot, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
-        }
+        // Reabrir a cena não rola de novo: o conjunto fica guardado na run. Aqui é sempre uma porta só.
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0, singleDoor: true);
         var doors = set == null
             ? null
             : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);

@@ -191,7 +191,7 @@ public static class RunState
     /// (origem 0 = entrada do mapa, na Sala Inicial ou na Camara), em ordem crescente de origem.
     /// Devolve null se a origem nao tem CP (boss, mapa sem salas comuns).
     /// </summary>
-    public static RoomRewardSet GetOrRollRoomRewardSet(int mapIndex, int originRoom)
+    public static RoomRewardSet GetOrRollRoomRewardSet(int mapIndex, int originRoom, bool singleDoor = false)
     {
         var existing = GetRoomRewardSet(mapIndex, originRoom);
         if (existing != null)
@@ -201,7 +201,7 @@ public static class RunState
         if (Godot.OS.IsDebugBuild() && DevForceDoors)
             return DevRollForcedSet(mapIndex, originRoom);
 
-        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom(), CanOfferAnvilDoor());
+        var set = RoomRewardCatalog.Roll(mapIndex, originRoom, _setsWithoutBlessing, _fruitDoorsChosen, RewardRandom(), CanOfferAnvilDoor(), singleDoor);
         if (set == null)
             return null;
 

@@ -458,6 +458,70 @@
   "props/rubble_b": {
    "kind": "prop",
    "lights": []
+  },
+  "props/portcullis_ne_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_ne_7": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_nw_7": {
+   "kind": "overlay",
+   "lights": []
   }
  }
 }

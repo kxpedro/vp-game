@@ -30,6 +30,8 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
 - `props/`: caixões (`coffin_virgil`, `coffin_stone_closed/broken`, `coffin_wood_closed/open/broken`, cada um em
   `_sw` e `_se`), velas (`candles_small/medium/large_a/b`, `candle_tall`), arandelas (`sconce_ne/nw`),
   tapete (`carpet_sw/se`), `bones`, `rubble_a/b`.
+- `props/portcullis_<ne|nw>_0..7`: grade de ferro do vão do arco (`wall_<lado>_arch`), da fechada (0) à aberta (7).
+  Não entra em layout: o portão do início da run (`RunStartGate.cs`) a desenha por cima do hub e troca o quadro ao abrir.
 - Toda peça é um PNG 224x208 com o vértice de cima do tile em (112, 116) e o centro do tile em (112, 148).
   No TileSet do Godot (tile_size 128x64): `texture_origin = (0, 44)`.
 - `manifest.json`: tipo de cada peça e a posição das luzes (velas e arandelas) em pixels do PNG, para pôr
