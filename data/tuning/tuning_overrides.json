@@ -4,10 +4,23 @@
     "economy.anvil.run_cap": 10,
     "economy.coins.boss.0": 4390,
     "enemy.projectile.speed": 11.5,
+    "game.dash_distance": 80,
+    "game.run": 70,
+    "game.walk": 135,
     "reward.door_weight.anvil.0": 100,
     "reward.door_weight.anvil.1": 100,
     "reward.door_weight.anvil.2": 100,
+    "weapon.longsword.basic_1.range": 0.75,
+    "weapon.longsword.basic_1.width": 1.5,
+    "weapon.longsword.basic_2.range": 0.75,
+    "weapon.longsword.basic_2.width": 1.5,
     "weapon.longsword.basic_attack_speed": 0.5,
+    "weapon.longsword.quick.hit_delay": 0.1,
+    "weapon.longsword.quick.knockback": 5,
+    "weapon.longsword.quick.range": 2.5,
+    "weapon.longsword.quick.recovery": 0.2,
+    "weapon.longsword.quick.stagger": 0.3,
+    "weapon.longsword.quick.width": 2,
     "weapon.longsword.special.range": 1.35
   }
 }
