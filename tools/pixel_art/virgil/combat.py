@@ -112,11 +112,11 @@ def thrust(t):
     back = keys([(0, 0.4), (0.38, 1.0), (0.58, 0.0), (1.0, 0.0)], t)
     dy = stance(-0.10 - 0.25 * k, 0.30 + 0.10 * k, 0.15 + 0.55 * k, 0.40 + 0.35 * k, spread=0.04)
     # duas mãos no cabo: recua junto ao quadril e empurra a lâmina reta para a frente
-    hand = lerp([-0.16, 1.10, -0.14 - 0.14 * back], [0.0, 1.22, 0.58], k)
+    hand = lerp([-0.24, 1.10, 0.10 - 0.06 * back], [0.0, 1.22, 0.58], k)   # recuo ao lado do quadril, na frente do corpo
     sw = sdir(keys([(0, -8), (0.58, 0), (1, 0)], t), keys([(0, 6), (0.38, 4), (0.58, -4), (1, -6)], t))
     arm("R", hand, out=0.06, down=0.05 * (1 - k))
     arm("L", hand - sw * 0.10 + [0.01, 0, 0], out=0.07, down=0.05 * (1 - k))
-    pose(dy - 0.06 * k, yaw=keys([(0, -28), (0.38, -34), (0.58, -8), (1.0, -10)], t), lean=0.04 + 0.26 * k,
+    pose(dy - 0.06 * k, yaw=keys([(0, -16), (0.38, -20), (0.58, -6), (1.0, -8)], t), lean=0.04 + 0.26 * k,
          sword=sw,
          coat=dict(coat_drag=0.12 * k, coat_flap=0.02, coat_ph=t * 5, coat_lift=0.10 * k))
 
