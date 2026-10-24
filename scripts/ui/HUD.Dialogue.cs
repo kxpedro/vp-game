@@ -166,7 +166,9 @@ public partial class HUD
 			OffsetTop = -UiMetrics.SafeMargin, OffsetBottom = -UiMetrics.SafeMargin,
 			GrowVertical = Control.GrowDirection.Begin
 		};
-		_dialogueBox.AddThemeStyleboxOverride("panel", UIThemeFactory.WindowBox());
+		_dialogueBox.AddThemeStyleboxOverride("panel", UiPixelKit.WindowFrame() ?? UIThemeFactory.WindowBox());
+		if (UiPixelKit.Enabled)
+			_dialogueBox.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 		_dialogueOverlay.AddChild(_dialogueBox);
 
 		// Botao plano de caixa inteira: recebe o foco (ui_accept) e o clique; fica por baixo do conteudo.

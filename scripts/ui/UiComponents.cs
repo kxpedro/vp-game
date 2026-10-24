@@ -129,6 +129,7 @@ public sealed class ChoiceCardData
     public string PreviewBbcode;     // altar: "atual → próximo"
     public string Warning;           // ex.: "Substitui: X" (sempre inline)
     public string ActionText;        // vazio = card só leitura (o próprio card recebe foco)
+    public bool WholeCardAction;     // sem botão ao lado: o clique no card (ou Enter com ele focado) escolhe
     public string CostText;
     public Color? CostColor;         // padrão TextSecondary; altar usa Warn
     public bool Disabled;
@@ -154,6 +155,16 @@ public sealed class UiChoiceCard
     {
         if (!GodotObject.IsInstanceValid(Root)) return;
         var active = (Focused || Hovered) && !Data.Disabled;
+        FocusBar.Color = active ? UiPalette.Gold : Colors.Transparent;
+        // 2D: moldura em pixel art tingida pela raridade (clareada no foco/hover), barra Gold logo após o contorno.
+        var tint = Flashing ? UiPalette.GoldBright : Data.Disabled ? UiPalette.Border : active ? Accent.Lightened(0.25f) : Accent;
+        if (UiPixelKit.Frame(tint, active ? UiPalette.PanelRaised : UiPalette.Panel, UiMetrics.PadPanelX, UiMetrics.PadPanelY) is { } pixel)
+        {
+            pixel.ContentMarginLeft = UiPixelKit.FrameBorder;
+            Root.AddThemeStyleboxOverride("panel", pixel);
+            Root.QueueRedraw();
+            return;
+        }
         var style = new StyleBoxFlat
         {
             BgColor = active ? UiPalette.PanelRaised : UiPalette.Panel,
@@ -164,7 +175,6 @@ public sealed class UiChoiceCard
         style.SetBorderWidthAll(Data.Disabled ? UiMetrics.BorderThin : active || Flashing ? UiMetrics.BorderCardFocus : UiMetrics.BorderCard);
         style.SetCornerRadiusAll(UiMetrics.RadiusCard);
         Root.AddThemeStyleboxOverride("panel", style);
-        FocusBar.Color = active ? UiPalette.Gold : Colors.Transparent;
         Root.QueueRedraw();
     }
 
@@ -188,10 +198,20 @@ public sealed class UiChoiceCard
             Root.DrawStyleBox(_stirpsLine, rect.Grow(-inset));
         }
         if (Focused && !Data.Disabled)
-            Root.DrawStyleBox(_focusRing ??= UIThemeFactory.FocusRing(), rect);
+        {
+            // O anel muda com o modo (3D/2D), que pode trocar na mesma sessão.
+            if (_focusRing == null || _focusRingPixel != UiPixelKit.Enabled)
+            {
+                _focusRing = UIThemeFactory.FocusRing();
+                _focusRingPixel = UiPixelKit.Enabled;
+            }
+            Root.DrawStyleBox(_focusRing, rect);
+        }
     }
 
-    private static StyleBoxFlat _stirpsLine, _focusRing;
+    private static StyleBoxFlat _stirpsLine;
+    private static StyleBox _focusRing;
+    private static bool _focusRingPixel;
 
     // Escolhe: flash Gold na borda e chama o handler (sem atrasar o fluxo da tela).
     public void Choose()
@@ -847,7 +867,10 @@ public static class UiComponents
         };
         window.Root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         window.Panel = new PanelContainer { ThemeTypeVariation = UiVariation.WindowPanel };
-        window.Panel.AddThemeStyleboxOverride("panel", UIThemeFactory.WindowBox());
+        window.Panel.AddThemeStyleboxOverride("panel", UiPixelKit.WindowFrame() ?? UIThemeFactory.WindowBox());
+        // 2D: molduras sem borrar (o filtro padrão do projeto é linear); os filhos herdam.
+        if (UiPixelKit.Enabled)
+            window.Panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
         PlaceWindowPanel(window.Panel, size);
         window.Root.AddChild(window.Panel);
 
@@ -913,9 +936,13 @@ public static class UiComponents
         var window = Window(parent, "ConfirmDialog", WindowSize.Small, title);
         confirm.Window = window;
         // Painel 100% opaco: o texto da tela de baixo (menu de pausa etc.) não pode vazar pelo corpo do modal.
-        var opaqueBox = UIThemeFactory.WindowBox();
-        opaqueBox.BgColor = new Color(UiPalette.Panel, 1.0f);
-        window.Panel.AddThemeStyleboxOverride("panel", opaqueBox);
+        // (a moldura em pixel art do 2D já tem o miolo opaco)
+        if (!UiPixelKit.Enabled)
+        {
+            var opaqueBox = UIThemeFactory.WindowBox();
+            opaqueBox.BgColor = new Color(UiPalette.Panel, 1.0f);
+            window.Panel.AddThemeStyleboxOverride("panel", opaqueBox);
+        }
         if (stacked) window.Root.Color = new Color(UiPalette.Scrim, StackedConfirmScrimAlpha);
         window.Title.ThemeTypeVariation = UiVariation.SectionGoldLabel;
         window.Body.AddChild(new Label
@@ -1013,6 +1040,7 @@ public static class UiComponents
         var card = new UiChoiceCard { Data = data, OnChoose = onChoose };
         card.Accent = data.Accent ?? (string.IsNullOrEmpty(data.RarityId) ? UiPalette.Border : UiPalette.Rarity(data.RarityId));
         var readOnly = string.IsNullOrEmpty(data.ActionText) || onChoose == null;
+        var wholeCard = data.WholeCardAction && !readOnly;
         card.Root = new PanelContainer
         {
             CustomMinimumSize = new Vector2(Mathf.Max(0, data.Width), 132),
@@ -1041,7 +1069,7 @@ public static class UiComponents
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
-        iconFrame.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, 6, 6));
+        iconFrame.AddThemeStyleboxOverride("panel", (StyleBox)UiPixelKit.Frame(UiPalette.Border, UiPalette.PanelInset, 6, 6) ?? UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, 6, 6));
         iconFrame.AddChild(IconOrMonogram(data.Icon, data.IconText ?? data.Title, UiMetrics.IconXL));
         row.AddChild(iconFrame);
 
@@ -1081,7 +1109,26 @@ public static class UiComponents
         if (!string.IsNullOrEmpty(data.Warning))
             textColumn.AddChild(new Label { Text = data.Warning, ThemeTypeVariation = UiVariation.WarnLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = Control.MouseFilterEnum.Ignore });
 
-        if (!readOnly)
+        if (wholeCard)
+        {
+            // Sem botão visível: um Button invisível cobre o card só para foco de teclado/controle (Enter escolhe) e
+            // ignora o mouse, que segue no próprio card (hover e clique abaixo).
+            card.ActionButton = new Button
+            {
+                Text = "", Flat = true, Disabled = data.Disabled,
+                FocusMode = Control.FocusModeEnum.All,
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            };
+            foreach (var state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled", "focus" })
+                card.ActionButton.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+            card.ActionButton.FocusNeighborLeft = new NodePath(".");
+            card.ActionButton.FocusNeighborRight = new NodePath(".");
+            card.ActionButton.Pressed += card.Choose;
+            card.Root.AddChild(card.ActionButton);
+            card.ActionButton.FocusEntered += () => { card.Focused = true; card.Refresh(); };
+            card.ActionButton.FocusExited += () => { card.Focused = false; card.Refresh(); };
+        }
+        else if (!readOnly)
         {
             var actionColumn = new VBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore };
             actionColumn.AddThemeConstantOverride("separation", UiMetrics.S1);
@@ -1819,7 +1866,8 @@ public static class UiComponents
             BgColor = background,
             ContentMarginLeft = 6, ContentMarginRight = 6, ContentMarginTop = 2, ContentMarginBottom = 2
         };
-        style.SetCornerRadiusAll(UiMetrics.RadiusBadge);
+        // 2D: selo de canto reto (pixel art).
+        style.SetCornerRadiusAll(UiPixelKit.Enabled ? 0 : UiMetrics.RadiusBadge);
         badge.AddThemeStyleboxOverride("panel", style);
         var label = new Label { Text = text ?? "", ThemeTypeVariation = UiVariation.BadgeLabel, Uppercase = true, MouseFilter = Control.MouseFilterEnum.Ignore };
         label.AddThemeColorOverride("font_color", textColor);
@@ -1952,7 +2000,8 @@ public static class UiComponents
     // ---------- Estados de nó de skill (§2.1) ----------
 
     // Fundo/borda por estado. Planejado: alpha 0.55 sem borda; somar DashedOutline. Conflito: somar StrikeOverlay.
-    public static StyleBoxFlat SkillNodeStyle(SkillNodeState state)
+    // hover: fundo PanelRaised (exceto Planned). No 2D, moldura em pixel art tingida pela cor da borda.
+    public static StyleBox SkillNodeStyle(SkillNodeState state, bool hover = false)
     {
         var (background, border, width) = state switch
         {
@@ -1963,6 +2012,10 @@ public static class UiComponents
             SkillNodeState.Locked or SkillNodeState.Conflict => (UiPalette.PanelInset, UiPalette.Border, 1),
             _ => (new Color(UiPalette.Panel, 0.55f), Colors.Transparent, 0)
         };
+        if (hover && state != SkillNodeState.Planned)
+            background = UiPalette.PanelRaised;
+        if (UiPixelKit.Frame(border, background, UiMetrics.S2, UiMetrics.S1) is { } pixel)
+            return pixel;
         return UIThemeFactory.ControlBox(background, border, width, UiMetrics.S2, UiMetrics.S1);
     }
 
