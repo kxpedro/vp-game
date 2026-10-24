@@ -190,6 +190,8 @@
   "hud.fury": "Fúria",
   "hud.fury.tooltip_active": "Fúria Bestial ativa: consome {0:0.#} pontos por segundo e explode ao chegar a zero",
   "hud.fury.tooltip_ready": "Fúria Bestial: pressione F (R1/RB) quando a barra estiver cheia",
+  "hud.ammo": "Balas {0}/{1}",
+  "hud.ammo.reloading": "Recarregando...",
   "hud.game_over": "GAME OVER",
   "hud.room.boss": "Chefe",
   "hud.room.cleared": "Sala limpa",

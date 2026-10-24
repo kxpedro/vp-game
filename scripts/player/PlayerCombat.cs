@@ -5,10 +5,14 @@ public partial class PlayerCombat : Node
 {
 	[Signal]
 	public delegate void FuryChangedEventHandler(float currentFury, float maxFury, bool isActive);
+	[Signal]
+	public delegate void AmmoChangedEventHandler(int currentAmmo, int maxAmmo, bool isReloading);
 
 	[Export] public NodePath AttackAreaPath { get; set; } = new("../AttackArea");
 	[Export] public NodePath AttackShapePath { get; set; } = new("../AttackArea/CollisionShape3D");
 	public const float DefaultFuryDrainPerSecond = 10.0f;
+	// "Alcance" passado a OnSpecialAttack pelo tiro especial: poca de sangue com raio ~1,65 no ponto do impacto.
+	private const float RangedSpecialPoolRange = 3.0f;
 	[Export] public float ComboResetTime { get; set; } = 1.0f;
 	[Export] public float QuickAttackInputBufferSeconds { get; set; } = 0.32f;
 	[Export] public float MaxFury { get; set; } = 100.0f;
@@ -34,6 +38,13 @@ public partial class PlayerCombat : Node
 		_ => 1.0f
 	};
 	public string EquippedSpecialName => EquippedWeapon.SpecialAttack.Name;
+	// Municao da arma equipada (so armas com MagazineSize > 0, ex.: Revolver Duplo).
+	public bool UsesAmmo => MaxAmmo > 0;
+	public int MaxAmmo => EquippedWeapon.TunedMagazineSize > 0
+		? Mathf.Max(EquippedWeapon.TunedMagazineSize + Mathf.RoundToInt(RunState.GetWeaponModTotal("Ammo.Flat")), 1)
+		: 0;
+	public int CurrentAmmo => _ammo;
+	public bool IsReloading => _reloadTimer > 0.0f;
 
 	private Area3D _attackArea;
 	private CollisionShape3D _attackShape;
@@ -60,9 +71,14 @@ public partial class PlayerCombat : Node
 	private Node3D _attackPreview;
 	private CanvasLayer _furyVisualLayer;
 	private ColorRect _furyVisualOverlay;
+	private int _ammo;
+	private float _reloadTimer;
+	private string _ammoWeaponId = "";
+	private int _lastEmittedMaxAmmo = -1;
 
 	private WeaponDefinition EquippedWeapon => WeaponLoadout.EquippedWeapon;
 	private WeaponAttackDefinition[] BasicCombo => EquippedWeapon.BasicCombo;
+	private bool IsComboFinisher => EquippedWeapon.HasComboFinisher && _lightComboIndex == BasicCombo.Length - 1;
 
 	public override void _Ready()
 	{
@@ -79,6 +95,7 @@ public partial class PlayerCombat : Node
 		_skills = player.GetNodeOrNull<PlayerSkillController>("PlayerSkillController");
 		CreateFuryVisualOverlay();
 		EmitSignal(SignalName.FuryChanged, CurrentFury, MaxFury, IsFuryActive);
+		RefreshAmmoForEquippedWeapon();
 	}
 
 	public override void _Process(double delta)
@@ -93,6 +110,7 @@ public partial class PlayerCombat : Node
 			_attackPhaseElapsed += elapsed;
 		RefreshFuryLockState();
 		TickBestialFury(elapsed);
+		TickAmmo(elapsed);
 		if (_controller?.IsStaggered == true)
 			return;
 		if (GetTree().GetFirstNodeInGroup("hud") is HUD hud && hud.IsGameplayInputBlocked())
@@ -102,6 +120,9 @@ public partial class PlayerCombat : Node
 			_quickAttackInputBufferTimer = CompendiumTuning.GetFloat("combat.quick.buffer", QuickAttackInputBufferSeconds);
 			BeginBasicAttack();
 		}
+		else if (EquippedWeapon.AutoFire && !_isAttacking && Input.IsActionPressed("attack_light") && !IsPointerAttackBlocked()
+			&& (_controller == null || (!_controller.IsDodging && !_controller.CanDashAttack)))
+			BeginBasicAttack();
 		if (Input.IsActionJustPressed("attack_special"))
 			RequestSpecialAttack();
 		else if (_specialInputBufferTimer > 0.0f && CanBeginSpecialAttack())
@@ -141,6 +162,9 @@ public partial class PlayerCombat : Node
 			_lightInputBufferTimer = Mathf.Max(_currentControl.InputBufferSeconds, 0.01f);
 			return;
 		}
+
+		if (UsesAmmo && !TryConsumeAmmo())
+			return;
 
 		BeginAttack(GetTunedAttack(BasicCombo[_lightComboIndex], $"weapon.{EquippedWeapon.Id}.basic_{_lightComboIndex + 1}", PlayerAttackType.Basic), PlayerAttackType.Basic);
 	}
@@ -229,14 +253,17 @@ public partial class PlayerCombat : Node
 		ConfigureAttackArea(attack);
 		var hitDelay = GetAttackDelay(attack.HitDelay, attackType);
 		var recoveryDelay = GetAttackDelay(attack.Recovery, attackType);
-		if (attackType == PlayerAttackType.Special)
+		var isRangedShot = EquippedWeapon.IsRanged && attack.Shape == WeaponAttackShape.Line;
+		if (attackType == PlayerAttackType.Special && !isRangedShot)
 			_animator?.PlayHeavyAttack(hitDelay, recoveryDelay);
 		else
-			_animator?.PlayLightAttack(_lightComboIndex, hitDelay, recoveryDelay, attack.Shape, _lightComboIndex == BasicCombo.Length - 1);
-		SpawnAttackPreview(attack, hitDelay, attackType == PlayerAttackType.Special || _lightComboIndex == BasicCombo.Length - 1);
-		var heavySwing = attackType == PlayerAttackType.Special
-			|| (attackType == PlayerAttackType.Basic && _lightComboIndex == BasicCombo.Length - 1);
-		var swingEffect = attackType == PlayerAttackType.Special
+			_animator?.PlayLightAttack(_lightComboIndex, hitDelay, recoveryDelay, attack.Shape, IsComboFinisher);
+		// O disparo basico e rapido demais para preview; a Bala de Prata mostra a linha do tiro na preparacao.
+		if (!(isRangedShot && attackType == PlayerAttackType.Basic))
+			SpawnAttackPreview(attack, hitDelay, attackType == PlayerAttackType.Special || IsComboFinisher);
+		var swingEffect = isRangedShot
+			? attackType == PlayerAttackType.Special ? "gun_heavy" : "gun_fire"
+			: attackType == PlayerAttackType.Special
 			? "attack_special"
 			: _lightComboIndex switch
 			{
@@ -259,7 +286,8 @@ public partial class PlayerCombat : Node
 			FaceAttackDirection();
 		}
 
-		if (attack.Shape == WeaponAttackShape.Line)
+		// Tiro: o rastro de bala e desenhado depois do dano, com o comprimento ate o alvo ou a parede.
+		if (attack.Shape == WeaponAttackShape.Line && !isRangedShot)
 		{
 			_controller?.PerformAttackLunge(_attackDirection, EquippedWeapon.TunedLineAttackLungeDistance);
 			SpawnThrustIndicator(attack, attackType);
@@ -270,7 +298,7 @@ public partial class PlayerCombat : Node
 			if (attackType == PlayerAttackType.Special)
 				GetTree().CallGroup("audio_manager", "PlayEffect", "special_ground");
 		}
-		else SpawnAttackSlash(attack, attackType, attackType == PlayerAttackType.Special);
+		else if (!isRangedShot) SpawnAttackSlash(attack, attackType, attackType == PlayerAttackType.Special);
 		// Teto do Livro-Caixa: +100% de dano (economy.ledger.max_bonus).
 		var currencyDamage = Mathf.Min(RunState.GetEffectTotal("DamagePerCurrencyHeld.Multiplier") * RunState.RunBloodCoins, CompendiumTuning.GetFloat("economy.ledger.max_bonus", 1.0f));
 		var roomDamage = RunState.GetEffectTotal("DamageUntilRoomClear.Multiplier");
@@ -282,17 +310,29 @@ public partial class PlayerCombat : Node
 		var hit = attack.Shape == WeaponAttackShape.Radial
 			? DealCircularDamage(attackDamage, attack, attackType)
 			: DealDamage(attackDamage, attack.Knockback, attack, attackType);
+		if (isRangedShot)
+			SpawnBulletTracer(hit.Reach, attackType);
 		if (hit.TargetsHit > 0)
 		{
-			var hitEffect = attackType == PlayerAttackType.Special
+			var hitEffect = isRangedShot
+				? "hit_pierce"
+				: attackType == PlayerAttackType.Special
 				? "hit_slam"
-				: _lightComboIndex == BasicCombo.Length - 1 ? "hit_pierce" : "hit_slash";
+				: IsComboFinisher ? "hit_pierce" : "hit_slash";
 			GetTree().CallGroup("audio_manager", "PlayEffect", hitEffect);
 		}
 		CombatFeedback.Instance?.PlayPlayerHitWeighted(hit.TargetsHit, hit.IsCritical,
-			attackType == PlayerAttackType.Special ? 1.5f : _lightComboIndex == BasicCombo.Length - 1 ? 1.0f : 0.0f);
+			attackType == PlayerAttackType.Special ? 1.5f : IsComboFinisher ? 1.0f : 0.0f);
 		if (attackType == PlayerAttackType.Special)
-			_blessings?.OnSpecialAttack(GetParent<Node3D>().GlobalPosition, attack.Range, attack.Shape);
+		{
+			// Tiro: a poca de sangue nasce no primeiro alvo (ou no fim do tiro), com raio pequeno; corpo a corpo: em Virgil.
+			if (isRangedShot)
+				_blessings?.OnSpecialAttack(hit.ImpactPosition, RangedSpecialPoolRange, attack.Shape);
+			else
+				_blessings?.OnSpecialAttack(GetParent<Node3D>().GlobalPosition, attack.Range, attack.Shape);
+			if (EquippedWeapon.SpecialReloadsMagazine && UsesAmmo)
+				RefillAmmo();
+		}
 
 		SetAttackPhase(PlayerAttackPhase.Recovery, recoveryDelay);
 		await Wait(recoveryDelay);
@@ -345,7 +385,7 @@ public partial class PlayerCombat : Node
 		var quickHitDelay = Mathf.Max(attack.HitDelay, 0.04f);
 		var recoveryDelay = Mathf.Max(attack.Recovery, 0.01f);
 		_animator?.PlayDashAttack(quickHitDelay, recoveryDelay);
-		GetTree().CallGroup("audio_manager", "PlayEffect", "attack_quick");
+		GetTree().CallGroup("audio_manager", "PlayEffect", EquippedWeapon.IsRanged ? "gun_fire" : "attack_quick");
 		SetAttackPhase(PlayerAttackPhase.Startup, quickHitDelay);
 		await Wait(quickHitDelay);
 		if (!IsCurrentAttack(attackGeneration)) return;
@@ -456,6 +496,9 @@ public partial class PlayerCombat : Node
 		var criticalMultiplier = CompendiumTuning.GetFloat("combat.crit.base_multiplier", 1.5f) + RunState.GetEffectTotal("CriticalDamage.Multiplier") + RunState.ContextCriticalDamage;
 		var nonCriticalMultiplier = 1.0f + RunState.GetEffectTotal("NonCriticalDamage.Multiplier");
 		var targetsHit = 0;
+		var isRangedShot = EquippedWeapon.IsRanged && attack.Shape == WeaponAttackShape.Line;
+		var wallDistance = isRangedShot ? GetShotWallDistance(attack.Range + edgeForgiveness) : float.PositiveInfinity;
+		var candidates = new System.Collections.Generic.List<(Node3D Node, float Forward)>();
 
 		foreach (var node in GetTree().GetNodesInGroup("enemies"))
 		{
@@ -486,6 +529,33 @@ public partial class PlayerCombat : Node
 					continue;
 			}
 
+			var forwardAlong = toEnemy.Dot(_attackDirection);
+			// Tiro nao atravessa parede: descarta alvos depois do primeiro obstaculo na linha.
+			if (isRangedShot && forwardAlong - targetRadius > wallDistance)
+				continue;
+			// Com limite de alvos, um inimigo morrendo nao pode "segurar" a bala.
+			if (attack.MaxTargets > 0 && enemyNode.GetNodeOrNull<Health>("Health") is { IsDead: true })
+				continue;
+			candidates.Add((enemyNode, forwardAlong));
+		}
+
+		// MaxTargets > 0: so os N mais proximos ao longo do golpe (o disparo para no primeiro inimigo).
+		if (attack.MaxTargets > 0)
+		{
+			candidates.Sort((a, b) => a.Forward.CompareTo(b.Forward));
+			if (candidates.Count > attack.MaxTargets)
+				candidates.RemoveRange(attack.MaxTargets, candidates.Count - attack.MaxTargets);
+		}
+
+		var reach = Mathf.Min(attack.Range + edgeForgiveness, wallDistance);
+		if (attack.MaxTargets > 0 && candidates.Count >= attack.MaxTargets)
+			reach = Mathf.Clamp(candidates[^1].Forward, 0.3f, reach);
+		var impactPosition = candidates.Count > 0
+			? candidates[0].Node.GlobalPosition
+			: player.GlobalPosition + _attackDirection * reach;
+
+		foreach (var (enemyNode, _) in candidates)
+		{
 			var targetHealth = enemyNode.GetNodeOrNull<Health>("Health");
 			if (targetHealth == null) continue;
 
@@ -519,7 +589,7 @@ public partial class PlayerCombat : Node
 				enemy.ApplyKnockback(enemyNode.GlobalPosition - player.GlobalPosition, GetAttackKnockback(knockback, attackType, enemy), finalDamage * EquippedWeapon.TunedWallImpactDamageMultiplier);
 		}
 
-		return new HitResult(targetsHit, isCritical);
+		return new HitResult(targetsHit, isCritical, reach, impactPosition);
 	}
 
 	private HitResult DealCircularDamage(float damage, WeaponAttackDefinition attack, PlayerAttackType attackType)
@@ -625,7 +695,8 @@ public partial class PlayerCombat : Node
 		return Mathf.Max((baseDelay * EquippedWeapon.TunedAttackDelayMultiplier) / GetCurrentAttackSpeedMultiplier(), 0.01f);
 	}
 
-	private readonly record struct HitResult(int TargetsHit, bool IsCritical);
+	// Reach/ImpactPosition: so os golpes em Linha preenchem (comprimento do tiro e ponto do primeiro acerto ou do fim).
+	private readonly record struct HitResult(int TargetsHit, bool IsCritical, float Reach = 0.0f, Vector3 ImpactPosition = default);
 
 	private float GetAttackKnockback(float knockback, PlayerAttackType attackType, EnemyBasic enemy)
 	{
@@ -636,7 +707,7 @@ public partial class PlayerCombat : Node
 		if (attackType != PlayerAttackType.Basic || enemy == null || enemy.Name.ToString().Contains("Boss"))
 			return knockback;
 		var archetypeMultiplier = enemy.Archetype == EnemyArchetype.Tank ? CompendiumTuning.GetFloat("combat.knockback.tank_mult", 0.5f) : 1.0f;
-		var comboMultiplier = _lightComboIndex == BasicCombo.Length - 1 ? CompendiumTuning.GetFloat("combat.knockback.finisher_mult", 1.2f) : 1.0f;
+		var comboMultiplier = IsComboFinisher ? CompendiumTuning.GetFloat("combat.knockback.finisher_mult", 1.2f) : 1.0f;
 		return knockback * EquippedWeapon.TunedBasicAttackKnockbackMultiplier * archetypeMultiplier * comboMultiplier;
 	}
 
@@ -1234,8 +1305,179 @@ void fragment() {
 			CompendiumTuning.GetFloat($"{keyPrefix}.width", attack.Width),
 			attack.SlashTilt,
 			attack.Shape,
-			CompendiumTuning.GetFloat($"{keyPrefix}.stagger", attack.StaggerDuration) * RunState.GetWeaponModMultiplier("Stagger.Multiplier")
+			CompendiumTuning.GetFloat($"{keyPrefix}.stagger", attack.StaggerDuration) * RunState.GetWeaponModMultiplier("Stagger.Multiplier"),
+			attack.Control,
+			GetTunedMaxTargets(attack, keyPrefix, attackType)
 		);
+	}
+
+	// Limite de alvos do golpe (0 = todos). Bala Perfurante (Pierce.Flat) soma alvos ao disparo basico.
+	private static int GetTunedMaxTargets(WeaponAttackDefinition attack, string keyPrefix, PlayerAttackType attackType)
+	{
+		var maxTargets = Mathf.Max(Mathf.RoundToInt(CompendiumTuning.GetFloat($"{keyPrefix}.max_targets", attack.MaxTargets)), 0);
+		if (maxTargets > 0 && attackType == PlayerAttackType.Basic)
+			maxTargets += Mathf.Max(Mathf.RoundToInt(RunState.GetWeaponModTotal("Pierce.Flat")), 0);
+		return maxTargets;
+	}
+
+	// --- Municao (armas com MagazineSize > 0) ---
+
+	private void RefreshAmmoForEquippedWeapon()
+	{
+		_ammoWeaponId = EquippedWeapon.Id;
+		_reloadTimer = 0.0f;
+		_ammo = MaxAmmo;
+		EmitAmmoChanged();
+	}
+
+	private void TickAmmo(float delta)
+	{
+		if (_ammoWeaponId != EquippedWeapon.Id)
+		{
+			RefreshAmmoForEquippedWeapon();
+			return;
+		}
+		if (!UsesAmmo)
+			return;
+
+		var maxAmmo = MaxAmmo;
+		if (maxAmmo != _lastEmittedMaxAmmo)
+		{
+			// Tambor Largo pego no meio da run: as balas novas ja chegam carregadas.
+			if (_lastEmittedMaxAmmo > 0 && maxAmmo > _lastEmittedMaxAmmo && !IsReloading)
+				_ammo += maxAmmo - _lastEmittedMaxAmmo;
+			_ammo = Mathf.Min(_ammo, maxAmmo);
+			EmitAmmoChanged();
+		}
+
+		if (_reloadTimer <= 0.0f)
+			return;
+		_reloadTimer -= delta;
+		if (_reloadTimer <= 0.0f)
+		{
+			GetTree().CallGroup("audio_manager", "PlayEffect", "gun_reload");
+			RefillAmmo();
+		}
+	}
+
+	private bool TryConsumeAmmo()
+	{
+		if (IsReloading)
+			return false;
+		if (_ammo <= 0)
+		{
+			StartReload();
+			return false;
+		}
+
+		_ammo--;
+		if (_ammo <= 0)
+			StartReload();
+		else
+			EmitAmmoChanged();
+		return true;
+	}
+
+	private void StartReload()
+	{
+		if (IsReloading)
+			return;
+		var reduction = Mathf.Clamp(RunState.GetWeaponModTotal("Reload.Reduction"), 0.0f, 0.9f);
+		_reloadTimer = Mathf.Max(EquippedWeapon.TunedReloadSeconds * (1.0f - reduction), 0.05f);
+		EmitAmmoChanged();
+	}
+
+	private void RefillAmmo()
+	{
+		_reloadTimer = 0.0f;
+		_ammo = MaxAmmo;
+		EmitAmmoChanged();
+	}
+
+	private void EmitAmmoChanged()
+	{
+		_lastEmittedMaxAmmo = MaxAmmo;
+		EmitSignal(SignalName.AmmoChanged, _ammo, _lastEmittedMaxAmmo, IsReloading);
+	}
+
+	// Distancia ate a primeira parede/obstaculo na direcao do tiro (inimigos nao bloqueiam; o limite de alvos cuida deles).
+	private float GetShotWallDistance(float maxDistance)
+	{
+		var player = GetParent<PlayerController>();
+		var from = player.GlobalPosition + Vector3.Up * 0.65f;
+		var to = from + _attackDirection * maxDistance;
+		var exclude = new Godot.Collections.Array<Rid> { player.GetRid() };
+		var space = player.GetWorld3D().DirectSpaceState;
+		for (var attempt = 0; attempt < 8; attempt++)
+		{
+			var query = PhysicsRayQueryParameters3D.Create(from, to);
+			query.CollideWithAreas = false;
+			query.CollideWithBodies = true;
+			query.Exclude = exclude;
+			var collision = space.IntersectRay(query);
+			if (collision.Count == 0)
+				return maxDistance;
+			if (collision["collider"].AsGodotObject() is EnemyBasic enemy)
+			{
+				exclude.Add(enemy.GetRid());
+				continue;
+			}
+			var point = collision["position"].AsVector3();
+			return Mathf.Clamp(((point - from) with { Y = 0.0f }).Length(), 0.0f, maxDistance);
+		}
+		return maxDistance;
+	}
+
+	// Rastro de bala em espaco de mundo, saindo da mao do disparo (alterna a cada tiro do combo).
+	private async void SpawnBulletTracer(float reach, PlayerAttackType attackType)
+	{
+		var player = GetParent<Node3D>();
+		var world = player.GetParent<Node>();
+		if (world == null || reach <= 0.05f)
+			return;
+
+		var isSpecial = attackType == PlayerAttackType.Special;
+		var side = new Vector3(-_attackDirection.Z, 0.0f, _attackDirection.X) * (_lightComboIndex % 2 == 0 ? 0.22f : -0.22f);
+		var muzzle = player.GlobalPosition + Vector3.Up * 1.0f + _attackDirection * 0.55f + (isSpecial ? Vector3.Zero : side);
+		var length = Mathf.Max(reach - 0.55f, 0.1f);
+		var material = new StandardMaterial3D
+		{
+			AlbedoColor = isSpecial ? new Color(0.85f, 0.95f, 1.0f, 0.95f) : new Color(1.0f, 0.92f, 0.65f, 0.90f),
+			EmissionEnabled = true,
+			Emission = isSpecial ? new Color(0.65f, 0.85f, 1.0f) : new Color(1.0f, 0.80f, 0.40f),
+			EmissionEnergyMultiplier = isSpecial ? 3.2f : 2.4f,
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
+		};
+		var thickness = isSpecial ? 0.16f : 0.05f;
+		var tracer = new MeshInstance3D
+		{
+			Name = "BulletTracer",
+			Mesh = new BoxMesh { Size = new Vector3(thickness, thickness, length) },
+			MaterialOverride = material,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+		};
+		world.AddChild(tracer);
+		tracer.GlobalPosition = muzzle + _attackDirection * (length * 0.5f);
+		tracer.LookAt(tracer.GlobalPosition + _attackDirection, Vector3.Up);
+
+		var flash = new MeshInstance3D
+		{
+			Name = "MuzzleFlash",
+			Mesh = new SphereMesh { Radius = isSpecial ? 0.22f : 0.12f, Height = isSpecial ? 0.44f : 0.24f },
+			MaterialOverride = material,
+			CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
+		};
+		world.AddChild(flash);
+		flash.GlobalPosition = muzzle;
+
+		var tween = tracer.CreateTween();
+		tween.SetParallel(true);
+		tween.TweenProperty(material, "albedo_color:a", 0.0f, isSpecial ? 0.18f : 0.09f);
+		tween.TweenProperty(flash, "scale", Vector3.One * 0.2f, 0.07f);
+		await ToSignal(tween, Tween.SignalName.Finished);
+		if (IsInstanceValid(tracer)) tracer.QueueFree();
+		if (IsInstanceValid(flash)) flash.QueueFree();
 	}
 
 	private float GetTunedMaxFury()

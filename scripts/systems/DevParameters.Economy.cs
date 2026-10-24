@@ -70,6 +70,12 @@ public static partial class DevParameterRegistry
         P("weapon.mod.longsword_weight.value2", "Contrapeso de Aço: atordoamento", GAnvil, 0.40, 0, 3, 0.05, false);
         P("weapon.mod.longsword_whirl.value", "Impacto Ampliado: raio do especial", GAnvil, 0.20, 0, 2, 0.01, false);
         P("weapon.mod.longsword_whirl.value2", "Impacto Ampliado: redução de recarga", GAnvil, 0.20, 0, 0.9, 0.01, false);
+        P("weapon.mod.revolver_cylinder.value", "Tambor Largo: balas extras", GAnvil, 4, 0, 24, 1, false);
+        P("weapon.mod.revolver_speedloader.value", "Carregador Rápido: redução da recarga", GAnvil, 0.35, 0, 0.9, 0.01, false);
+        P("weapon.mod.revolver_hollow.value", "Ponta Oca: dano básico/rápido", GAnvil, 0.15, 0, 2, 0.01, false);
+        P("weapon.mod.revolver_pierce.value", "Bala Perfurante: inimigos extras atravessados", GAnvil, 1, 0, 10, 1, false);
+        P("weapon.mod.revolver_silver.value", "Prata Pura: alcance da Bala de Prata", GAnvil, 0.20, 0, 2, 0.01, false);
+        P("weapon.mod.revolver_silver.value2", "Prata Pura: redução de recarga", GAnvil, 0.25, 0, 0.9, 0.01, false);
     }
 
     private static void RegisterRewardsExtra()
