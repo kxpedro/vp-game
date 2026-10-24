@@ -189,7 +189,8 @@ public partial class HUD : CanvasLayer
 		ProcessBloodFountainInput((float)delta);
 		if (_roomFrame != null && _roomLabel != null)
 		{
-			var showRoomFrame = _roomFrameAlwaysVisible || !string.IsNullOrEmpty(_roomLabel.Text);
+			// Nas salas de combate o título da sala saiu da tela (limpeza da HUD); só a Câmara usa a moldura para o status dela.
+			var showRoomFrame = _roomFrameAlwaysVisible;
 			_roomFrame.Visible = showRoomFrame;
 		}
 		if (_combatHudLayer != null)
