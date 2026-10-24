@@ -20,6 +20,13 @@ public partial class BloodPool : Node3D
     private const float GroundHeight = 0.022f;
     // Raio aproximado da poça pronta no chão (m), para espalhar as gotas que saem dela.
     public const float Radius = 0.38f;
+    // Poças que nascem perto demais são empurradas para longe até esta distância entre centros (m).
+    private const float MinSeparation = 0.5f;
+    // Cada poça nova fica um degrau acima da anterior: a mais nova sempre cobre a de baixo, sem as duas brigarem
+    // pelo mesmo plano (z-fighting). O ciclo volta ao chão a cada LayerCount poças.
+    private const float LayerStep = 0.0025f;
+    private const int LayerCount = 24;
+    private static int _nextLayer;
 
     private enum State { Waiting, Spreading, Idle, Draining, Drained }
 
@@ -40,10 +47,12 @@ public partial class BloodPool : Node3D
     {
         if (parent == null || LoadSheet() == null)
             return null;
+        var height = GroundHeight + (_nextLayer++ % LayerCount) * LayerStep;
+        var planar = SeparateFromOtherPools(parent.GetTree(), new Vector3(position.X, 0.0f, position.Z));
         var pool = new BloodPool
         {
             Name = "BloodPool",
-            Position = new Vector3(position.X, GroundHeight, position.Z),
+            Position = new Vector3(planar.X, height, planar.Z),
             _timer = -delay,
         };
         parent.AddChild(pool);
@@ -123,6 +132,30 @@ public partial class BloodPool : Node3D
                 break;
             }
         }
+    }
+
+    // Empurra o centro para longe das poças já no chão, para duas não ocuparem o mesmo lugar.
+    private static Vector3 SeparateFromOtherPools(SceneTree tree, Vector3 position)
+    {
+        if (tree == null)
+            return position;
+        for (var pass = 0; pass < 2; pass++)
+        {
+            foreach (var node in tree.GetNodesInGroup(Group))
+            {
+                if (node is not BloodPool other || other.IsQueuedForDeletion())
+                    continue;
+                var offset = position - new Vector3(other.GlobalPosition.X, 0.0f, other.GlobalPosition.Z);
+                var distance = offset.Length();
+                if (distance >= MinSeparation)
+                    continue;
+                var direction = distance > 0.01f
+                    ? offset / distance
+                    : Vector3.Right.Rotated(Vector3.Up, (float)GD.RandRange(0.0, Mathf.Tau));
+                position += direction * (MinSeparation - distance);
+            }
+        }
+        return position;
     }
 
     // Seca a poça de trás para frente (quadros do espalhar ao contrário). Roda mesmo com a árvore pausada.
