@@ -85,8 +85,8 @@ public partial class RunStartBlessingRoom : Node3D
         _fountainPrompt.Visible = false;
 
         // Entrada do mapa 1 (origem 0): sorteia o conjunto de portas (docs/design/portas-recompensas.md, 7.3).
-        // Reabrir a cena não rola de novo: o conjunto fica guardado na run.
-        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
+        // Reabrir a cena não rola de novo: o conjunto fica guardado na run. Aqui é sempre uma porta só.
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0, singleDoor: true);
         var doors = set == null
             ? null
             : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);

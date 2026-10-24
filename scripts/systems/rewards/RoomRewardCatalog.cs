@@ -111,13 +111,14 @@ public static class RoomRewardCatalog
     /// <param name="setsWithoutBlessing">CPs seguidas sem Bencao antes desta (pity, secao 3.3).</param>
     /// <param name="fruitDoorsChosen">Frutas de porta ja escolhidas na run (teto, secao 5.3).</param>
     /// <param name="anvilAvailable">Bigorna elegivel (RunState.CanOfferAnvilDoor: arma com modificacao livre e teto nao atingido); false = peso 0.</param>
-    public static RoomRewardSet Roll(int mapIndex, int originRoom, int setsWithoutBlessing, int fruitDoorsChosen, RandomNumberGenerator rng, bool anvilAvailable = false)
+    /// <param name="singleDoor">Sempre uma porta (sala da primeira Bencao). A chance de duas portas nao e sorteada.</param>
+    public static RoomRewardSet Roll(int mapIndex, int originRoom, int setsWithoutBlessing, int fruitDoorsChosen, RandomNumberGenerator rng, bool anvilAvailable = false, bool singleDoor = false)
     {
         if (rng == null || !HasRoomRewardSet(mapIndex, originRoom))
             return null;
 
         var totalRooms = CampaignCatalog.All[mapIndex].CommonRoomCount;
-        var doorCount = rng.Randf() < TwoDoorChance(mapIndex, originRoom) ? 2 : 1;
+        var doorCount = !singleDoor && rng.Randf() < TwoDoorChance(mapIndex, originRoom) ? 2 : 1;
         var fruitCapReached = fruitDoorsChosen >= FruitDoorRunCap;
         var types = new List<RoomRewardType>(doorCount);
 

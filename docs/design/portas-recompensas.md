@@ -292,7 +292,7 @@ Custo assumido: se o jogador morrer na sala que a porta levou, a recompensa pend
 
 | Caso | Regra |
 |---|---|
-| Sala Inicial (mapa 1) | CP_0 é sorteada na saída da sala inicial, após a Bênção fixa da fonte. Não conta como recompensa da sala inicial. |
+| Sala Inicial (mapa 1) | CP_0 é sorteada na saída da sala inicial, após a Bênção fixa da fonte. Não conta como recompensa da sala inicial. Sempre uma porta só (sem chance de duas portas). |
 | Câmara (mapas 2 e 3) | CP_0 é sorteada ao chegar à Câmara após o boss, e a porta é escolhida na saída. A Câmara continua com Fonte, Altar e Loja, sem mudança. |
 | Boss | Sem CP, sem ícone. Recompensa fixa (Sangue Amaldiçoado e fruta), paga na morte do boss. Porta única para a Câmara ou o Ninho. |
 | Morte ou "Desistir da run" | `RunState.FailRun` zera `PendingRoomReward`, o contador de pity e o de frutas. |
