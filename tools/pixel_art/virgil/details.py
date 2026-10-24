@@ -14,7 +14,7 @@ def projector(el=None, az=None, px=0.0185, W=80, H=112, center=(0.0, 0.0)):
 def paint(img, M, D, with_sword=True, face=True, **kw):
     pr, f = projector(**kw)
     from render import AZ
-    front = abs(((AZ + 180) % 360) - 180) < 100
+    front = abs(((AZ - np.degrees(V.ANIM.get("yaw", 0.0)) + 180) % 360) - 180) < 100
     def put(p, col, need=None):
         x, y = pr(V.to_world(p)) if len(p) == 3 else p
         if 0 <= x < img.shape[1] and 0 <= y < img.shape[0] and (need is None or M[y, x] in need):

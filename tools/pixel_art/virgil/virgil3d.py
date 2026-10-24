@@ -24,7 +24,7 @@ def set_pose(up=0.0, head_up=0.0, breath=0.0, sway=0.0, arm_lag=0.0):
     for s in ("R", "L"):
         J["el" + s][1] += up * 0.85; J["wr" + s][1] += arm_lag; J["ha" + s][1] += arm_lag
     ANIM.update(up=up, breath=breath, sway=sway, dy=0.0, lean=0.0, sword_dir=None, coat_back=0.0, coat_sz=1.0, solid=False,
-                coat_open=0.80, coat_drag=0.0, coat_flap=0.0, coat_ph=0.0, coat_lift=0.0)
+                coat_open=0.80, coat_drag=0.0, coat_flap=0.0, coat_ph=0.0, coat_lift=0.0, yaw=0.0)
 import os
 _az = np.radians(float(os.environ.get('AZ', '-30')))
 _el = np.radians(float(os.environ.get('EL', '35')))
@@ -72,15 +72,28 @@ def set_run(ph, lean=0.16):
                 # casaco solto: aberto na frente para as pernas passarem, barra arrastada para trás e ondulando
                 coat_back=-0.08, coat_sz=1.0, solid=False, coat_open=1.30,
                 coat_drag=0.17 + 0.03 * np.sin(2 * ph), coat_flap=0.03, coat_ph=2 * ph,
-                coat_lift=0.12 + 0.04 * np.sin(2 * ph + 0.8))
+                coat_lift=0.12 + 0.04 * np.sin(2 * ph + 0.8), yaw=0.0)
     return dy
+
+def _rot_y(p, a):
+    """Gira em torno do eixo vertical; a > 0 leva +z (frente) para +x (esquerda do Virgil)."""
+    c, s = np.cos(a), np.sin(a); p = np.array(p, float)
+    x, z = p[..., 0].copy(), p[..., 2].copy()
+    p[..., 0] = x * c + z * s; p[..., 2] = -x * s + z * c
+    return p
 
 def to_world(q):
     q = np.array(q, float); dy = ANIM["dy"]; lean = ANIM["lean"]
-    return np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0)])
+    w = np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0) + ANIM.get("fwd", 0.0)])
+    return _rot_y(w, ANIM.get("yaw", 0.0)) if ANIM.get("yaw", 0.0) else w
 
 def scene(p, with_sword=True, want_mat=False):
     pw = p
+    if ANIM.get("yaw", 0.0):
+        pw = _rot_y(pw, -ANIM["yaw"])   # corpo inteiro girado (giro do ataque rápido, torção dos golpes)
+    if ANIM.get("fwd", 0.0):
+        pw = pw.copy(); pw[:, 2] -= ANIM["fwd"]   # corpo inteiro deslocado para a frente (passo do golpe)
+    p = pw
     if ANIM["dy"] or ANIM["lean"]:
         p = pw.copy(); p[:, 1] -= ANIM["dy"]; p[:, 2] -= ANIM["lean"] * (p[:, 1] - 1.0)
     parts = []
@@ -164,7 +177,7 @@ def scene(p, with_sword=True, want_mat=False):
         ha = J["haR"]; tip = SWORD_TIP + (ha - J0["haR"]) * 0.4
         if ANIM['sword_dir'] is not None: tip = ha + ANIM['sword_dir'] * 0.98
         b = norm(tip - ha)
-        u, v, w = frame(b, np.cross(b, CAM_DIR))
+        u, v, w = frame(b, np.cross(b, _rot_y(CAM_DIR, -ANIM.get("yaw", 0.0))))
         L = np.linalg.norm(tip - ha)
         g = ha + b * 0.07
         add(sd_box_oriented(p, g + b * (L - 0.07) / 2, (u, v, w), (0.006, 0.026, (L - 0.07) / 2), 0.002), BLADE)

@@ -156,7 +156,7 @@ public partial class PlayerAnimator : Node
             : isFinisher
                 ? new AttackAnimProfile(0.50f, 0.65f, 0.25f, 0.050f)
                 : new AttackAnimProfile(0.45f, 0.55f, 0.30f, 0.030f);
-        _spriteVisual?.PlayLightAttack(comboIndex, hitDelay + recovery, attackShape);
+        _spriteVisual?.PlayLightAttack(comboIndex, hitDelay, recovery, attackShape);
         PlaySegmentedOneShot(animation, hitDelay, recovery, profile);
     }
 
@@ -169,20 +169,20 @@ public partial class PlayerAnimator : Node
     // Especial: preparacao longa e hold marcante no impacto.
     public void PlayHeavyAttack(float hitDelay, float recovery)
     {
-        _spriteVisual?.PlayHeavyAttack(hitDelay + recovery);
+        _spriteVisual?.PlayHeavyAttack(hitDelay, recovery);
         PlaySegmentedOneShot(_heavyAttackAnimation, hitDelay, recovery, new AttackAnimProfile(0.50f, 0.70f, 0.20f, 0.070f));
     }
 
     public void PlayDashAttack(float combatDuration)
     {
-        _spriteVisual?.PlayHeavyAttack(combatDuration);
+        _spriteVisual?.PlayDashAttack(0.0f, combatDuration);
         PlaySyncedOneShot(_heavyAttackAnimation, combatDuration);
     }
 
     // Rapido da esquiva: sem preparacao, estalo direto.
     public void PlayDashAttack(float hitDelay, float recovery)
     {
-        _spriteVisual?.PlayHeavyAttack(hitDelay + recovery);
+        _spriteVisual?.PlayDashAttack(hitDelay, recovery);
         PlaySegmentedOneShot(_heavyAttackAnimation, hitDelay, recovery, new AttackAnimProfile(0.42f, 0.30f, 0.45f, 0.025f));
     }
 

@@ -20,3 +20,11 @@ Folha do jogo (8 direções x idle + corrida), câmera de 30° do modo 2D:
       py sheet.py <dir> 0                   # sem espada
 
 Cada célula tem 80x112; a folha junta as direções em linhas e idle (0-7) + corrida (8-15) em colunas.
+
+Golpes (combo de 3, giro do ataque rápido e dash), câmera de 30°:
+
+      py combat.py <dir> [slash slash_reverse thrust spin dash]   # -> out/combat_<dir>_<anim>_<n>.png
+      py combat_sheet.py                                          # monta virgil_combat.png (precisa das 8 direções)
+
+Células de 160x128 (a espada estendida passa dos 80 px), pés 40 px abaixo do centro como na outra folha.
+Colunas: corte (6), corte de volta (6), estocada (6), giro (8), dash (5). `virgil3d.ANIM["yaw"]` gira o corpo inteiro.
