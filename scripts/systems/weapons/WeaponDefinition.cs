@@ -1,3 +1,5 @@
+using Godot;
+
 public enum PlayerAttackType
 {
     Basic,
@@ -55,7 +57,9 @@ public sealed record WeaponAttackDefinition(
     float SlashTilt,
     WeaponAttackShape Shape = WeaponAttackShape.Arc,
     float StaggerDuration = 0.24f,
-    AttackControlProfile Control = null
+    AttackControlProfile Control = null,
+    // 0 = acerta todos os alvos na área; N = só os N mais próximos na direção do golpe (tiro do revólver).
+    int MaxTargets = 0
 )
 {
     public string Name => Localization.Has(NameKey) ? Localization.Text(NameKey) : NameKey ?? "";
@@ -84,7 +88,17 @@ public sealed record WeaponDefinition(
     float AttackDelayMultiplier = 1.0f,
     float RangeMultiplier = 1.3f,
     // false = arma placeholder (WeaponCatalog.Placeholder): sem moveset próprio, só aparece como "Em breve".
-    bool IsImplemented = true
+    bool IsImplemented = true,
+    // Arma de tiro: golpes em Linha viram disparo instantâneo (sem avanço, rastro de bala, param na parede).
+    bool IsRanged = false,
+    // Munição: 0 = sem munição. Com tambor vazio a recarga é automática; o especial pode recarregar o tambor.
+    int MagazineSize = 0,
+    float ReloadSeconds = 0.0f,
+    bool SpecialReloadsMagazine = false,
+    // false = o último golpe do combo não é finalizador (sem empurrão/visual de finalizador; ex.: disparos alternados).
+    bool HasComboFinisher = true,
+    // true = segurar o ataque básico repete o golpe.
+    bool AutoFire = false
 )
 {
     // Valores efetivos: chaves weapon.<id>.<campo> do CompendiumTuning (padrao = valor do catalogo).
@@ -104,6 +118,8 @@ public sealed record WeaponDefinition(
     public float TunedDamageMultiplier => Tuned("damage_mult", DamageMultiplier);
     public float TunedAttackDelayMultiplier => Tuned("attack_delay_mult", AttackDelayMultiplier);
     public float TunedRangeMultiplier => Tuned("range_mult", RangeMultiplier);
+    public int TunedMagazineSize => Mathf.Max(Mathf.RoundToInt(Tuned("magazine", MagazineSize)), 0);
+    public float TunedReloadSeconds => Mathf.Max(Tuned("reload_time", ReloadSeconds), 0.05f);
     public string DisplayName => Localization.Text($"weapon.{Id}.name");
     public string Description => Localization.Text($"weapon.{Id}.desc");
 }
