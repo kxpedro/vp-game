@@ -466,11 +466,26 @@ public partial class RoomGenerator : Node3D
     /// </summary>
     public EnemyBasic DevSpawnEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype)
     {
-        if (!OS.IsDebugBuild() || EnemyScene == null)
+        if (!OS.IsDebugBuild())
+            return null;
+        return SpawnActiveEnemy(position, rarity, archetype, "Dev");
+    }
+
+    /// <summary>
+    /// Lacaio do boss (BossMinionSummoner via RunManager.SpawnBossMinions): inimigo comum ja ativo, sem marcar o Diario.
+    /// </summary>
+    public EnemyBasic SpawnBossMinion(Vector3 position)
+    {
+        return SpawnActiveEnemy(position, EnemyRarity.Normal, null, "BossMinion");
+    }
+
+    private EnemyBasic SpawnActiveEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype, string namePrefix)
+    {
+        if (EnemyScene == null)
             return null;
         var resolvedArchetype = archetype ?? RollEnemyArchetype();
         var enemy = EnemyScene.Instantiate<EnemyBasic>();
-        enemy.Name = $"Dev_{resolvedArchetype}_{rarity}";
+        enemy.Name = $"{namePrefix}_{resolvedArchetype}_{rarity}";
         enemy.Position = position;
         AddChild(enemy, true);
         enemy.ConfigureVariant(rarity, resolvedArchetype);

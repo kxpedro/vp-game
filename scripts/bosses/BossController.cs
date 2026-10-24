@@ -31,8 +31,6 @@ public partial class BossController : Node
     private Health _health;
     private float _moveTimer;
     private float _phaseBreakRemaining;
-    // Vida no ultimo HealthChanged: a diferenca vira Furia Bestial para o jogador (sala de boss nao tem abates).
-    private float _lastHealth;
     private int _moveIndex;
     private int _circlesInMove;
     private bool _actionInProgress;
@@ -51,12 +49,15 @@ public partial class BossController : Node
         _rng.Randomize();
         AddToGroup("boss_controller");
         _health.SetMaxHealth(Mathf.Max(definition.EstimatedMaxHealth, G("boss.hp.min", 1000.0f)), true);
-        _lastHealth = _health.CurrentHealth;
         _health.HealthChanged += OnHealthChanged;
         _enemy.EnableBossMoves();
         // O boss ja esta na sala, parado, esperando o jogador chegar perto (BossController.Encounter.cs).
         EnterDormant();
         _moveTimer = G("boss.first_move_delay", 1.1f);
+        // Lacaios: no separado (BossMinionSummoner.cs), para a sala de boss ter abates que carregam a Furia Bestial.
+        var summoner = new BossMinionSummoner { Name = "BossMinionSummoner" };
+        AddChild(summoner);
+        summoner.Configure(enemy, this);
     }
 
     public override void _ExitTree()
@@ -612,12 +613,10 @@ public partial class BossController : Node
 
     private void OnHealthChanged(float current, float maximum)
     {
-        GrantFuryForDamage(current, maximum);
         var ratio = maximum > 0 ? current / maximum : 0;
         var phase = ratio <= G("boss.phase3_threshold", 0.33f) ? 3 : ratio <= G("boss.phase2_threshold", 0.66f) ? 2 : 1;
         if (phase == CurrentPhase) return;
         CurrentPhase = phase;
-        if (!_health.IsDead) PlayerCombatNode()?.AddFury(G("boss.fury.phase_bonus", 50.0f));
         _enemy.MoveSpeed *= G("boss.phase_speed_multiplier", 1.12f);
         _moveTimer = Mathf.Min(_moveTimer, G("boss.phase_move_delay", 0.45f));
         // Log de debug (literal).
@@ -627,18 +626,6 @@ public partial class BossController : Node
         CancelCurrentMove();
         PhaseTransitionCue();
     }
-
-    // Furia Bestial por dano no boss: boss.fury.per_percent_hp a cada 1% da vida maxima perdida (cura nao conta).
-    // AddFury ignora o ganho com a Furia ativa ou bloqueada e aplica o multiplicador de Bloodcraft.
-    private void GrantFuryForDamage(float current, float maximum)
-    {
-        var lost = _lastHealth - current;
-        _lastHealth = current;
-        if (lost <= 0.0f || maximum <= 0.0f) return;
-        PlayerCombatNode()?.AddFury(lost / maximum * 100.0f * G("boss.fury.per_percent_hp", 5.0f));
-    }
-
-    private PlayerCombat PlayerCombatNode() => GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
 
     // Cancela o golpe em andamento: telegraphs somem sem impacto e as areas de ameaca sao limpas.
     private void CancelCurrentMove()
