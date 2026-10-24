@@ -160,6 +160,7 @@ public partial class RunManager : Node3D
             return;
         _roomRewardsPaid = true;
         IsRoomCleared = true;
+        RunStats.NotifyRoomCleared();
         if (RunState.IsBossRoom)
         {
             GetTree().CallGroup("audio_manager", "StopBossMusic");

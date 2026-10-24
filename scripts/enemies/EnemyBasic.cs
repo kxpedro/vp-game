@@ -116,6 +116,9 @@ public partial class EnemyBasic : CharacterBody3D
     private float _bleedingTimer;
     private float _bleedingTickTimer;
     private float _bleedingDamagePerSecond;
+    // Tipo de efeito (bencao) que aplicou o sangramento / o encanto: credita o dano nas estatisticas da run (RunStats).
+    private string _bleedingSourceEffect = "";
+    private string _charmSourceEffect = "";
     private float _charmTimer;
     private float _charmAttackTimer;
     private bool _permanentCharm;
@@ -748,14 +751,17 @@ public partial class EnemyBasic : CharacterBody3D
             ApplyBleeding(
                 RunState.GetEffectParameter("PestilenceAlsoBleeds", "duration", 4),
                 RunState.GetEffectParameter("PestilenceAlsoBleeds", "damagePerSecond", 5),
-                Mathf.RoundToInt(RunState.GetEffectParameter("PestilenceAlsoBleeds", "maxStacks", 3)));
+                Mathf.RoundToInt(RunState.GetEffectParameter("PestilenceAlsoBleeds", "maxStacks", 3)),
+                "PestilenceAlsoBleeds");
         UpdateStatusIcons();
     }
 
-    public void ApplyBleeding(float seconds, float damagePerSecond, int maxStacks)
+    public void ApplyBleeding(float seconds, float damagePerSecond, int maxStacks, string sourceEffect = "")
     {
         _bleedingStacks = Mathf.Min(_bleedingStacks + 1, Mathf.Max(maxStacks, 1));
         _bleedingTimer = Mathf.Max(_bleedingTimer, seconds);
+        if (damagePerSecond >= _bleedingDamagePerSecond && !string.IsNullOrEmpty(sourceEffect))
+            _bleedingSourceEffect = sourceEffect;
         _bleedingDamagePerSecond = Mathf.Max(_bleedingDamagePerSecond, damagePerSecond);
         if (!IsPestilent && RunState.GetEffectTotal("BleedingAlsoPestilence.Flat") > 0)
         {
@@ -765,7 +771,7 @@ public partial class EnemyBasic : CharacterBody3D
         UpdateStatusIcons();
     }
 
-    public void ApplyCharm(float seconds, bool permanent)
+    public void ApplyCharm(float seconds, bool permanent, string sourceEffect = "")
     {
         var charmImmune = Name.ToString().Contains("Boss") || Rarity == EnemyRarity.Legendary;
         if (charmImmune)
@@ -778,6 +784,8 @@ public partial class EnemyBasic : CharacterBody3D
 
         _permanentCharm |= permanent;
         _charmTimer = Mathf.Max(_charmTimer, seconds);
+        if (!string.IsNullOrEmpty(sourceEffect))
+            _charmSourceEffect = sourceEffect;
         AddToGroup("charmed_enemies");
         EnsureCharmLink();
         UpdateStatusIcons();
@@ -817,12 +825,14 @@ public partial class EnemyBasic : CharacterBody3D
             if (_bleedingTickTimer <= 0)
             {
                 _bleedingTickTimer = G("enemy.status.bleeding_tick_seconds", 1.0f);
+                RunStats.Attribute(_bleedingSourceEffect);
                 _health.ApplyDamage(_bleedingDamagePerSecond * _bleedingStacks);
             }
             if (_bleedingTimer <= 0)
             {
                 _bleedingStacks = 0;
                 _bleedingDamagePerSecond = 0.0f;
+                _bleedingSourceEffect = "";
             }
         }
 
@@ -850,11 +860,12 @@ public partial class EnemyBasic : CharacterBody3D
         _charmAttackTimer = Mathf.Max(AttackCooldown, 0.5f);
         var damage = AttackDamage * (1.0f + RunState.GetEffectTotal("CharmedEnemyDamage.Multiplier"));
         if (target.Rarity != EnemyRarity.Normal) damage *= 1.0f + RunState.GetEffectTotal("CharmedDamageVsElite.Multiplier");
+        RunStats.Attribute(_charmSourceEffect);
         target.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage);
         var linkDamage = damage * RunState.GetEffectTotal("CharmDamageLink.Multiplier");
         if (linkDamage > 0)
             foreach (var node in GetTree().GetNodesInGroup("enemies"))
-                if (node is EnemyBasic linked && linked != this && linked != target && linked.GlobalPosition.DistanceTo(target.GlobalPosition) <= 4) { linked.GetNodeOrNull<Health>("Health")?.ApplyDamage(linkDamage); break; }
+                if (node is EnemyBasic linked && linked != this && linked != target && linked.GlobalPosition.DistanceTo(target.GlobalPosition) <= 4) { RunStats.Attribute("CharmDamageLink"); linked.GetNodeOrNull<Health>("Health")?.ApplyDamage(linkDamage); break; }
         _player?.GetNodeOrNull<Health>("Health")?.Heal(damage * RunState.GetEffectTotal("HealFromCharmedDamage.Multiplier"));
     }
 
@@ -1329,6 +1340,7 @@ public partial class EnemyBasic : CharacterBody3D
         GetTree().CallGroup("run_manager", "QueueEnemyDefeat", bloodCoins, cursedBlood, GlobalPosition);
         GetTree().CallGroup("player_skills", "OnEnemyDefeated");
         RunState.NotifyEnemyKilled();
+        RunStats.NotifyEnemyKilled(Rarity != EnemyRarity.Normal);
 
         var combat = GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<PlayerCombat>("PlayerCombat");
         combat?.AddFury(FuryOnDeath);
