@@ -151,6 +151,8 @@ public static partial class DevParameterRegistry
         P("boss.phase_speed_multiplier", "Multiplicador de velocidade a cada fase", G, 1.12, 0.5, 3, 0.02, false);
         P("boss.phase_move_delay", "Atraso do golpe após trocar de fase (máx. s)", G, 0.45, 0, 10, 0.05, false);
         P("boss.phase_break_seconds", "Pausa na transição de fase (s, invulnerável)", G, 0.5, 0, 5, 0.05, false);
+        P("boss.fury.per_percent_hp", "Fúria do jogador por 1% da vida do boss perdida", G, 5, 0, 100, 0.5, false, DevApplyMode.Live, "5 = barra cheia (100) a cada 20% da vida do boss.");
+        P("boss.fury.phase_bonus", "Fúria do jogador a cada troca de fase do boss", G, 50, 0, 200, 5, false);
         P("boss.warning.single_circle", "Aviso mínimo: círculo isolado (s)", G, 0.5, 0.05, 5, 0.05, false);
         P("boss.warning.sequence_first", "Aviso mínimo: 1º círculo de sequência (s)", G, 0.6, 0.05, 5, 0.05, false);
         P("boss.warning.line", "Aviso mínimo: carga/linha (s)", G, 0.6, 0.05, 5, 0.05, false);
