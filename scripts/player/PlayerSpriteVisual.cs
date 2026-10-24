@@ -82,7 +82,6 @@ public partial class PlayerSpriteVisual : Node
     private int _previewIndex;
     private readonly Dictionary<string, Texture2D> _previewDirTextures = new();
     private float _previewBasePixelSize = PixelSize;
-    private Label _scaleLabel;
 
     public override void _Ready()
     {
@@ -129,18 +128,7 @@ public partial class PlayerSpriteVisual : Node
         _player.AddChild(_previewSprite);
         _blobShadow = BuildBlobShadow();
         _player.AddChild(_blobShadow);
-        if (OS.IsDebugBuild())
-        {
-            var layer = new CanvasLayer { Name = "SpriteScaleLayer", Layer = 50 };
-            _scaleLabel = new Label
-            {
-                Name = "SpriteScaleLabel",
-                Position = new Vector2(16.0f, 112.0f),
-                Modulate = new Color(1.0f, 1.0f, 1.0f, 0.85f),
-            };
-            layer.AddChild(_scaleLabel);
-            AddChild(layer);
-        }
+        // A escala atual só vai para o log (PageUp/PageDown); o rótulo na tela saiu na limpeza da HUD.
         ApplyScale();
         ApplyEnabled();
         PlayLoop();
@@ -300,8 +288,6 @@ public partial class PlayerSpriteVisual : Node
         ApplyEnabled();
         UpdateDirection();
         UpdatePreviewDirection();
-        if (_scaleLabel != null)
-            _scaleLabel.Text = Enabled ? ScaleText() : "";
 
         if (_mode == Mode.OneShot)
         {

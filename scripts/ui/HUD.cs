@@ -75,7 +75,7 @@ public partial class HUD : CanvasLayer
 		_legacyAudioPauseSource = IsLegacyAudioPauseRequested;
 		UiModalStack.RegisterPauseSource(_legacyPauseSource, _legacyAudioPauseSource);
 		CallDeferred(nameof(BindRuntimeNodes));
-		Callable.From(LocalizeSceneLabels).CallDeferred();
+		Callable.From(HideSceneTitles).CallDeferred();
 		if (Localization.Instance != null)
 			Localization.Instance.LanguageChanged += OnLanguageChanged;
 	}
@@ -241,7 +241,7 @@ public partial class HUD : CanvasLayer
 	{
 		if (!IsInsideTree())
 			return;
-		LocalizeSceneLabels();
+		HideSceneTitles();
 		RefreshRoomProgressText();
 		if (_bossResourceBar != null && _bossHealthPanel != null && _bossHealthPanel.Visible && RunState.IsRunActive)
 		{
@@ -326,34 +326,22 @@ public partial class HUD : CanvasLayer
 			_hudRoot.MoveChild(created, index);
 	}
 
-	// Rótulos 3D fixos das cenas, escritos aqui porque as cenas não têm script próprio para eles. Os nomes flutuantes dos
-	// objetos (Fonte, Bancada, Altar) ficam ocultos: o prompt de interação já diz o que é ao se aproximar.
-	private void LocalizeSceneLabels()
+	// Rótulos 3D fixos das cenas (nomes flutuantes de Fonte, Bancada, Altar e portal do hub): ficam ocultos, porque o
+	// prompt de interação já diz o que é ao se aproximar (limpeza da HUD).
+	private void HideSceneTitles()
 	{
 		var scene = GetTree().CurrentScene;
 		if (scene == null)
 			return;
 		var sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.SceneFilePath ?? "");
-		foreach (var (path, text) in SceneLabelTexts(sceneName))
-			if (scene.GetNodeOrNull<Label3D>(path) is Label3D label)
-				label.Text = text;
 		foreach (var path in HiddenSceneTitles(sceneName))
 			if (scene.GetNodeOrNull<Label3D>(path) is Label3D title)
 				InteractPrompt.HideTitle(title);
 	}
 
-	private static (string Path, string Text)[] SceneLabelTexts(string sceneName) => sceneName switch
-	{
-		"CrowsNest" => new[]
-		{
-			("StartRunPortal/PortalLabel", Localization.Text("scene.crows_nest.start_portal"))
-		},
-		_ => Array.Empty<(string, string)>()
-	};
-
 	private static string[] HiddenSceneTitles(string sceneName) => sceneName switch
 	{
-		"CrowsNest" => new[] { "BloodFountain/BloodFountainLabel", "WeaponBench/WeaponBenchLabel" },
+		"CrowsNest" => new[] { "BloodFountain/BloodFountainLabel", "WeaponBench/WeaponBenchLabel", "StartRunPortal/PortalLabel" },
 		"RunStartBlessingRoom" => new[] { "BloodFountain/Title" },
 		"IntermissionChamber" => new[] { "BloodFountain/Title", "SacrificeAltar/Title" },
 		_ => Array.Empty<string>()
