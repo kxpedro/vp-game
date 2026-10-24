@@ -365,6 +365,9 @@ public static class UIThemeFactory
         theme.SetColor("font_color", "ProgressBar", UiPalette.TextPrimary);
         theme.SetStylebox("separator", "HSeparator", new StyleBoxLine { Color = new Color(UiPalette.GoldDim, 0.6f), Thickness = 1 });
         theme.SetStylebox("separator", "VSeparator", new StyleBoxLine { Color = new Color(UiPalette.GoldDim, 0.6f), Thickness = 1, Vertical = true });
+        // 2D: molduras em pixel art no lugar dos StyleBox desenhados.
+        if (UiPixelKit.Enabled)
+            UiPixelKit.ApplyTheme(theme);
         return theme;
     }
 
@@ -428,7 +431,9 @@ public static class UIThemeFactory
     }
 
     // Anel de foco (§3): fundo transparente, borda 2 Focus, expand 3, sombra FocusGlow 6.
-    public static StyleBoxFlat FocusRing()
+    public static StyleBox FocusRing() => (StyleBox)UiPixelKit.Ring(UiPalette.Focus) ?? FlatFocusRing();
+
+    private static StyleBoxFlat FlatFocusRing()
     {
         var box = new StyleBoxFlat
         {
@@ -573,6 +578,11 @@ public static class UiPixelKit
     public const int BarFrameMargin = 6;
     public const int ThinTrackMargin = 2;
     private const int PanelFrameMargin = 12;
+    // Janela: a moldura do painel em 3x (borda 9-slice 18).
+    private const int WindowFrameMargin = 18;
+    // frame.png (moldura arredondada neutra, tingida pelo PixelFrameBox): borda 9-slice 8, contorno visível 6.
+    private const int FrameMargin = 8;
+    public const int FrameBorder = 6;
 
     private static readonly System.Collections.Generic.Dictionary<string, Texture2D> Cache = new();
 
@@ -624,6 +634,90 @@ public static class UiPixelKit
         panel.AddThemeStyleboxOverride("panel", box);
         panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
         return true;
+    }
+
+    // Moldura de janela modal (UiComponents.Window, diálogo): painel dourado da cripta em 3x, miolo opaco.
+    public static StyleBox WindowFrame() => NineSlice("window_frame.png", WindowFrameMargin, UiMetrics.PadWindowX, UiMetrics.PadWindowY, tile: true);
+
+    // Moldura arredondada tingida (botão, card, nó de skill, painel interno) com fundo chapado. O conteúdo fica a pelo
+    // menos FrameBorder + S1 da borda, para o texto não encostar no contorno; null fora do 2D ou sem a peça.
+    public static PixelFrameBox Frame(Color tint, Color background, int padX, int padY)
+    {
+        var texture = Enabled ? Texture("frame.png") : null;
+        if (texture == null)
+            return null;
+        var minPad = FrameBorder + UiMetrics.S1;
+        return new PixelFrameBox
+        {
+            Frame = texture,
+            Margin = FrameMargin,
+            BackgroundInset = FrameBorder,
+            Tint = tint,
+            Background = background,
+            ContentMarginLeft = Mathf.Max(padX, minPad), ContentMarginRight = Mathf.Max(padX, minPad),
+            ContentMarginTop = Mathf.Max(padY, minPad), ContentMarginBottom = Mathf.Max(padY, minPad)
+        };
+    }
+
+    // Anel de foco: só a moldura, por fora do controle.
+    public static PixelFrameBox Ring(Color tint)
+    {
+        var ring = Frame(tint, Colors.Transparent, 0, 0);
+        if (ring != null)
+            ring.Expand = UiMetrics.FocusExpand + 1;
+        return ring;
+    }
+
+    // Tema do 2D: troca os StyleBox desenhados de botões, abas, linhas selecionáveis, painéis e campos pelas molduras em
+    // pixel art. Chamado no fim de UIThemeFactory.Create (os demais itens do tema seguem iguais nos dois modos).
+    public static void ApplyTheme(Theme theme)
+    {
+        if (Frame(Colors.White, Colors.Transparent, 0, 0) == null)
+            return;
+        var padX = UiMetrics.PadPanelX;
+        var padY = UiMetrics.S2;
+        var raisedPressed = UiPalette.PanelRaised.Darkened(0.2f);
+        foreach (var type in new[] { "Button", "OptionButton", "MenuButton" })
+        {
+            theme.SetStylebox("normal", type, Frame(new Color(UiPalette.GoldDim, 0.85f), UiPalette.Panel, padX, padY));
+            theme.SetStylebox("hover", type, Frame(UiPalette.Gold, UiPalette.PanelRaised, padX, padY));
+            theme.SetStylebox("pressed", type, Frame(UiPalette.GoldBright, raisedPressed, padX, padY));
+            theme.SetStylebox("hover_pressed", type, Frame(UiPalette.GoldBright, raisedPressed, padX, padY));
+            theme.SetStylebox("disabled", type, Frame(new Color(UiPalette.Border, 0.6f), UiPalette.PanelInset, padX, padY));
+            theme.SetStylebox("focus", type, Ring(UiPalette.Focus));
+        }
+        theme.SetStylebox("normal", UiVariation.PrimaryButton, Frame(UiPalette.Gold, UiPalette.Panel, padX, padY));
+        theme.SetStylebox("normal", UiVariation.DestructiveButton, Frame(new Color(UiPalette.Danger, 0.6f), UiPalette.Panel, padX, padY));
+        theme.SetStylebox("hover", UiVariation.DestructiveButton, Frame(UiPalette.Danger, UiPalette.DangerBg, padX, padY));
+        theme.SetStylebox("hover_pressed", UiVariation.DestructiveButton, Frame(UiPalette.Danger, UiPalette.DangerBg, padX, padY));
+        theme.SetStylebox("pressed", UiVariation.DestructiveButton, Frame(UiPalette.Danger, UiPalette.DangerBg.Darkened(0.2f), padX, padY));
+
+        // Aba ativa e linha selecionada: moldura Gold (no lugar da barra inferior).
+        var tabActive = Frame(UiPalette.Gold, UiPalette.PanelRaised, UiMetrics.S4, UiMetrics.S2);
+        theme.SetStylebox("pressed", UiVariation.TabButton, tabActive);
+        theme.SetStylebox("hover_pressed", UiVariation.TabButton, tabActive);
+        var selected = Frame(UiPalette.Gold, UiPalette.PanelRaised, padX, padY);
+        theme.SetStylebox("pressed", UiVariation.SelectButton, selected);
+        theme.SetStylebox("hover_pressed", UiVariation.SelectButton, selected);
+        var checkHover = Frame(UiPalette.GoldDim, UiPalette.PanelRaised, UiMetrics.S2, UiMetrics.S1);
+        theme.SetStylebox("hover", "CheckButton", checkHover);
+        theme.SetStylebox("hover_pressed", "CheckButton", checkHover);
+
+        var panel = Frame(UiPalette.Border, UiPalette.Panel, UiMetrics.PadPanelX, UiMetrics.PadPanelY);
+        theme.SetStylebox("panel", "PanelContainer", panel);
+        theme.SetStylebox("panel", "Panel", panel);
+        theme.SetStylebox("panel", "TabContainer", panel);
+        theme.SetStylebox("panel", UiVariation.WindowPanel, WindowFrame());
+        theme.SetStylebox("panel", UiVariation.InsetPanel, Frame(UiPalette.Border, UiPalette.PanelInset, UiMetrics.S2, UiMetrics.S2));
+        theme.SetStylebox("panel", UiVariation.RaisedPanel, Frame(UiPalette.Border, UiPalette.PanelRaised, UiMetrics.PadPanelX, UiMetrics.PadPanelY));
+        var popup = Frame(UiPalette.Border, UiPalette.PanelRaised, UiMetrics.S1, UiMetrics.S1);
+        theme.SetStylebox("panel", "PopupMenu", popup);
+        theme.SetStylebox("panel", "PopupPanel", popup);
+        theme.SetStylebox("panel", "TooltipPanel", Frame(UiPalette.Border, UiPalette.PanelRaised, UiMetrics.S3, UiMetrics.S2));
+        theme.SetStylebox("normal", "LineEdit", Frame(UiPalette.Border, UiPalette.PanelInset, UiMetrics.S2, UiMetrics.S1));
+        theme.SetStylebox("read_only", "LineEdit", Frame(new Color(UiPalette.Border, 0.36f), UiPalette.PanelInset, UiMetrics.S2, UiMetrics.S1));
+        foreach (var (name, type) in new[] { ("focus", "CheckButton"), ("focus", "CheckBox"), ("focus", "LineEdit"), ("focus", "HSlider"), ("focus", "ScrollContainer"), ("tab_focus", "TabBar"), ("tab_focus", "TabContainer") })
+            theme.SetStylebox(name, type, Ring(UiPalette.Focus));
     }
 
     // Ícone em pixel art no lugar de um glifo desenhado; null se não houver peça (ou fora do 2D).

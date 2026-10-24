@@ -573,6 +573,8 @@ public partial class HUD
 				? Localization.TextFormat("offer.blessing.replaces", replaced.DisplayName, replaced.Level)
 				: null,
 			ActionText = Localization.Text("ui.common.choose"),
+			// Sem botão "Escolher" ao lado: o clique na linha escolhe.
+			WholeCardAction = true,
 			Width = BlessingCardWidth
 		};
 	}

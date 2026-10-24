@@ -235,16 +235,19 @@ public partial class HUD
 			Size = new Vector2(width, height),
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		panel.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, 0, 0, UiMetrics.RadiusCard));
+		panel.AddThemeStyleboxOverride("panel", (StyleBox)UiPixelKit.Frame(UiPalette.Border, UiPalette.PanelInset, 0, 0) ?? UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, 0, 0, UiMetrics.RadiusCard));
 		_skillTreeCanvas.AddChild(panel);
 
 		// §8.14: cabeçalho Bestialis em DecorCrimson com texto TextPrimary; Humanitas em Gold.
 		var bestialis = tree == SkillTree.Bestialis;
-		var headerStyle = bestialis
-			? UIThemeFactory.ControlBox(UiPalette.DecorCrimson, UiPalette.DecorCrimson, UiMetrics.BorderThin, UiMetrics.S3, UiMetrics.S1, UiMetrics.RadiusCard)
-			: UIThemeFactory.ControlBox(UiPalette.PanelRaised, UiPalette.Gold, UiMetrics.BorderThin, UiMetrics.S3, UiMetrics.S1, UiMetrics.RadiusCard);
-		if (!bestialis)
-			headerStyle.BorderWidthBottom = 3;
+		var headerStyle = (StyleBox)(bestialis
+			? UiPixelKit.Frame(UiPalette.LifeHighlight, UiPalette.DecorCrimson, UiMetrics.S3, UiMetrics.S1)
+			: UiPixelKit.Frame(UiPalette.Gold, UiPalette.PanelRaised, UiMetrics.S3, UiMetrics.S1))
+			?? (bestialis
+				? UIThemeFactory.ControlBox(UiPalette.DecorCrimson, UiPalette.DecorCrimson, UiMetrics.BorderThin, UiMetrics.S3, UiMetrics.S1, UiMetrics.RadiusCard)
+				: UIThemeFactory.ControlBox(UiPalette.PanelRaised, UiPalette.Gold, UiMetrics.BorderThin, UiMetrics.S3, UiMetrics.S1, UiMetrics.RadiusCard));
+		if (!bestialis && headerStyle is StyleBoxFlat flatHeader)
+			flatHeader.BorderWidthBottom = 3;
 		var header = new PanelContainer
 		{
 			Name = $"{tree}TreeHeader",
@@ -626,9 +629,7 @@ public partial class HUD
 		var maxRank = GetSkillMaxRank(definition);
 
 		var normal = UiComponents.SkillNodeStyle(state);
-		var hover = (StyleBoxFlat)normal.Duplicate();
-		if (state != SkillNodeState.Planned)
-			hover.BgColor = UiPalette.PanelRaised;
+		var hover = UiComponents.SkillNodeStyle(state, hover: true);
 		view.Button.AddThemeStyleboxOverride("normal", normal);
 		view.Button.AddThemeStyleboxOverride("disabled", normal);
 		view.Button.AddThemeStyleboxOverride("hover", hover);

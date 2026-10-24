@@ -23,22 +23,30 @@ TARGET = ROOT / "assets" / "pixel_art" / "hud"
 sys.path.insert(0, str(ROOT / "tools" / "pixel_art" / "monsters"))
 import recolor_monsters as recolor  # noqa: E402
 
-# Peça -> (escala na tela, rampa, miolo). Os quadros (9-slice) usam 2x para a borda ficar com a espessura das molduras
-# do HUD; os ícones de recurso usam 1x (32 px, reduzidos pelo TextureRect para o tamanho do glifo).
+# Peça de saída -> (recorte de origem, escala na tela, rampa, miolo). Os quadros (9-slice) usam 2x para a borda ficar
+# com a espessura das molduras do HUD (a janela usa 3x); os ícones de recurso usam 1x (32 px, reduzidos pelo TextureRect
+# para o tamanho do glifo).
 # rampa: em vez do remapeamento geral, as cores do original vão por ordem de luminosidade para esta rampa da AAP-64
 #        (o violeta do Sangue Amaldiçoado cairia no azul-lavanda e a moeda no salmão pelo remapeamento geral).
-# miolo: a cor mais frequente (o fundo do quadro) vira esta cor com este alfa, escura como os painéis do HUD.
+# miolo: a cor mais frequente (o fundo do quadro) vira esta cor com este alfa, escura como os painéis do HUD;
+#        CLEAR = transparente (o fundo é desenhado pelo PixelFrameBox).
 # Uma cor da rampa por cor do original (5 -> 5), sem o preto do fundo do painel, para o ícone não sumir nele.
 CURSED_RAMP = ["242234", "793a80", "bc4a9b", "b9bffb", "e3e6ff"]
 # Moeda de Sangue: rampa de sangue da poça, deslocada para o claro (a moeda do pacote é vermelho-alaranjada).
 BLOOD_RAMP = ["3b1725", "b4202a", "e86a73", "f5a097", "fef3c0"]
+# Moldura neutra (contorno escuro + dois tons claros): o PixelFrameBox tinge com a cor da raridade ou do estado.
+LIGHT_RAMP = ["141013", "b3b9d1", "ffffff"]
 PANEL_FILL = ("141013", 224)
+WINDOW_FILL = ("141013", 255)
+CLEAR = ("141013", 0)
 PIECES = {
-    "bar_frame.png": (2, None, None),
-    "bar_track_thin.png": (2, None, None),
-    "panel_frame.png": (2, None, PANEL_FILL),
-    "coin_blood.png": (1, BLOOD_RAMP, None),
-    "gem_cursed.png": (1, CURSED_RAMP, None),
+    "bar_frame.png": ("bar_frame.png", 2, None, None),
+    "bar_track_thin.png": ("bar_track_thin.png", 2, None, None),
+    "panel_frame.png": ("panel_frame.png", 2, None, PANEL_FILL),
+    "window_frame.png": ("panel_frame.png", 3, None, WINDOW_FILL),
+    "frame.png": ("frame.png", 2, LIGHT_RAMP, CLEAR),
+    "coin_blood.png": ("coin_blood.png", 1, BLOOD_RAMP, None),
+    "gem_cursed.png": ("gem_cursed.png", 1, CURSED_RAMP, None),
 }
 
 
@@ -54,13 +62,16 @@ def ramp_mapping(colors, ramp):
     return {c: tuple(recolor.hex_to_rgb(ramp[round(i * (len(ramp) - 1) / last)])) for i, c in enumerate(ordered)}
 
 
-def fill_center(image, fill):
+def fill_center(image, fill, extra=()):
+    """A cor mais frequente (o miolo) e as cores em `extra` viram `fill` (cor, alfa)."""
     arr = np.array(image)
     flat = arr.reshape(-1, 4)
     visible = flat[:, 3] > 0
     values, counts = np.unique(flat[visible][:, :3], axis=0, return_counts=True)
     target = values[np.argmax(counts)]
     mask = visible & np.all(flat[:, :3] == target, axis=1)
+    for color in extra:
+        mask |= visible & np.all(flat[:, :3] == recolor.hex_to_rgb(color), axis=1)
     flat[mask, :3] = recolor.hex_to_rgb(fill[0])
     flat[mask, 3] = fill[1]
     return Image.fromarray(arr, "RGBA")
@@ -74,12 +85,16 @@ def main():
     allowed = {tuple(recolor.hex_to_rgb(h)) for h in recolor.AAP64}
     TARGET.mkdir(parents=True, exist_ok=True)
     rows = []
-    for name, (scale, ramp, fill) in PIECES.items():
-        src = Image.open(SOURCE / name).convert("RGBA")
-        colors = colors_of(src)
+    for name, (source, scale, ramp, fill) in PIECES.items():
+        src = Image.open(SOURCE / source).convert("RGBA")
+        base = src
+        if fill == CLEAR:
+            # Miolo e sombra interna saem antes do remapeamento (não entram na rampa).
+            base = fill_center(src, CLEAR, extra=("382f35",))
+        colors = colors_of(base)
         mapping = ramp_mapping(colors, ramp) if ramp else recolor.build_mapping(colors)
-        dst = recolor.recolor(src, mapping)
-        if fill:
+        dst = recolor.recolor(base, mapping)
+        if fill and fill != CLEAR:
             dst = fill_center(dst, fill)
         assert set(colors_of(dst)) <= allowed, name
         if scale != 1:
