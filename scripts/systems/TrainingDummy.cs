@@ -18,14 +18,27 @@ public partial class TrainingDummy : EnemyBasic
         Name = "TrainingDummy";
         _trainingHealth = GetNode<Health>("Health");
         _trainingHealth.HealthChanged += OnTrainingHealthChanged;
+        _trainingHealth.Damaged += OnTrainingDamaged;
         SetOverheadHealthVisible(true);
     }
 
     public override void _ExitTree()
     {
         if (_trainingHealth != null)
+        {
             _trainingHealth.HealthChanged -= OnTrainingHealthChanged;
+            _trainingHealth.Damaged -= OnTrainingDamaged;
+        }
         base._ExitTree();
+    }
+
+    // Modo 2D: o sprite do boneco (TrainingDummySprite) balança para longe do jogador.
+    private void OnTrainingDamaged(float amount)
+    {
+        if (amount <= 0.0f || GetNodeOrNull<TrainingDummySprite>("PixelVisual") is not { } sprite)
+            return;
+        var attacker = GetTree().GetFirstNodeInGroup("player") as Node3D;
+        sprite.Hit(attacker?.GlobalPosition ?? GlobalPosition - Vector3.Right);
     }
 
     private void OnTrainingHealthChanged(float current, float maximum)
