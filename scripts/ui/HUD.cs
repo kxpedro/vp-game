@@ -17,7 +17,6 @@ public partial class HUD : CanvasLayer
 	private Label _enemyProgressLabel;
 	private Label _roomLabel;
 	private Control _bossHealthPanel;
-	private Control _roomClearBanner;
 	private Control _characterSheetOverlay;
 	private Control _bloodFountainOverlay;
 	private Control _skillTreeCanvas;
@@ -29,7 +28,7 @@ public partial class HUD : CanvasLayer
 	private int _focusedBlessingChoice;
 	private ColorRect _bloodAbsorptionOverlay;
 	private Label _bloodAbsorptionLabel;
-	private HBoxContainer _blessingHudList;
+	private VBoxContainer _blessingHudList;
 	private Control _pauseOverlay;
 	private Control _compendiumOverlay;
 	private Label _compendiumStatusLabel;
@@ -76,7 +75,7 @@ public partial class HUD : CanvasLayer
 		_legacyAudioPauseSource = IsLegacyAudioPauseRequested;
 		UiModalStack.RegisterPauseSource(_legacyPauseSource, _legacyAudioPauseSource);
 		CallDeferred(nameof(BindRuntimeNodes));
-		Callable.From(LocalizeSceneLabels).CallDeferred();
+		Callable.From(HideSceneTitles).CallDeferred();
 		if (Localization.Instance != null)
 			Localization.Instance.LanguageChanged += OnLanguageChanged;
 	}
@@ -190,7 +189,8 @@ public partial class HUD : CanvasLayer
 		ProcessBloodFountainInput((float)delta);
 		if (_roomFrame != null && _roomLabel != null)
 		{
-			var showRoomFrame = _roomFrameAlwaysVisible || !string.IsNullOrEmpty(_roomLabel.Text);
+			// Nas salas de combate o título da sala saiu da tela (limpeza da HUD); só a Câmara usa a moldura para o status dela.
+			var showRoomFrame = _roomFrameAlwaysVisible;
 			_roomFrame.Visible = showRoomFrame;
 		}
 		if (_combatHudLayer != null)
@@ -241,7 +241,7 @@ public partial class HUD : CanvasLayer
 	{
 		if (!IsInsideTree())
 			return;
-		LocalizeSceneLabels();
+		HideSceneTitles();
 		RefreshRoomProgressText();
 		if (_bossResourceBar != null && _bossHealthPanel != null && _bossHealthPanel.Visible && RunState.IsRunActive)
 		{
@@ -257,10 +257,6 @@ public partial class HUD : CanvasLayer
 		RefreshResourceIndicator();
 		if (_furyResourceBar != null && _furyResourceBar.Bar != null)
 			_furyResourceBar.Bar.TooltipText = Localization.Text("hud.fury.tooltip_ready");
-		if (_roomClearTitle != null)
-			_roomClearTitle.Text = Localization.Text("hud.room_clear");
-		if (_roomClearSubtitle != null)
-			_roomClearSubtitle.Text = Localization.Text("hud.banner.choose_reward");
 		if (_weaponLabel != null)
 			_weaponLabel.Text = Localization.TextFormat("hud.weapon", WeaponLoadout.EquippedWeapon.DisplayName);
 		_furyResourceBar?.SetFuryBadgeText(Localization.Text("hud.fury"));
@@ -330,36 +326,25 @@ public partial class HUD : CanvasLayer
 			_hudRoot.MoveChild(created, index);
 	}
 
-	// Rótulos 3D fixos das cenas (títulos de objetos), escritos aqui porque as cenas não têm script próprio para eles.
-	private void LocalizeSceneLabels()
+	// Rótulos 3D fixos das cenas (nomes flutuantes de Fonte, Bancada, Altar e portal do hub): ficam ocultos, porque o
+	// prompt de interação já diz o que é ao se aproximar (limpeza da HUD).
+	private void HideSceneTitles()
 	{
 		var scene = GetTree().CurrentScene;
 		if (scene == null)
 			return;
 		var sceneName = System.IO.Path.GetFileNameWithoutExtension(scene.SceneFilePath ?? "");
-		foreach (var (path, text) in SceneLabelTexts(sceneName))
-			if (scene.GetNodeOrNull<Label3D>(path) is Label3D label)
-				label.Text = text;
+		foreach (var path in HiddenSceneTitles(sceneName))
+			if (scene.GetNodeOrNull<Label3D>(path) is Label3D title)
+				InteractPrompt.HideTitle(title);
 	}
 
-	private static (string Path, string Text)[] SceneLabelTexts(string sceneName) => sceneName switch
+	private static string[] HiddenSceneTitles(string sceneName) => sceneName switch
 	{
-		"CrowsNest" => new[]
-		{
-			("BloodFountain/BloodFountainLabel", Localization.Text("fountain.title")),
-			("WeaponBench/WeaponBenchLabel", Localization.Text("bench.title")),
-			("StartRunPortal/PortalLabel", Localization.Text("scene.crows_nest.start_portal"))
-		},
-		"RunStartBlessingRoom" => new[]
-		{
-			("BloodFountain/Title", Localization.Text("scene.start_room.fountain"))
-		},
-		"IntermissionChamber" => new[]
-		{
-			("BloodFountain/Title", Localization.Text("chamber.fountain.title")),
-			("SacrificeAltar/Title", Localization.Text("altar.title"))
-		},
-		_ => Array.Empty<(string, string)>()
+		"CrowsNest" => new[] { "BloodFountain/BloodFountainLabel", "WeaponBench/WeaponBenchLabel", "StartRunPortal/PortalLabel" },
+		"RunStartBlessingRoom" => new[] { "BloodFountain/Title" },
+		"IntermissionChamber" => new[] { "BloodFountain/Title", "SacrificeAltar/Title" },
+		_ => Array.Empty<string>()
 	};
 
 	// Pré-visualização (debug, ver UiPreview.cs): abre a tela pedida com dados fictícios. False = nome desconhecido.
@@ -442,14 +427,8 @@ public partial class HUD : CanvasLayer
 				_selectedCompendiumTab = ResolvePreviewCompendiumTab(tab);
 				OpenCompendium();
 				return true;
-			case "room_clear":
-				ShowRoomClearBanner();
-				return true;
 			case "toast":
 				PreviewToasts();
-				return true;
-			case "wave_warning":
-				NotifyWaveIncoming(5, 3.0f);
 				return true;
 			case "boss_bar":
 				BindPreviewBoss(dataParent);

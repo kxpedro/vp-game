@@ -2,41 +2,28 @@ using Godot;
 using System;
 
 // Medalhão de recompensa (portas de sala e item no chão; docs/design/portas-recompensas.md, seção 8). Provisório, sem arte nova.
-// Estilo: disco escuro com aro dourado brilhante, emblema no centro (~0,7 m) e, ao lado, faixa escura com "Recompensa: <nome>".
+// Estilo: disco escuro com aro dourado brilhante e emblema no centro (~0,7 m). Sem rótulo de texto: o prompt de
+// interação (ao se aproximar) diz o que é a recompensa.
 // Emblema por tipo (forma e luminância primeiro, cor só reforça):
 //   Bênção de Sangue: ícone da família sorteada (ou losango dourado claro, se faltar arte);
 //   Fruta do Diabo: esfera vermelho-escuro com haste (emissiva, para não sumir no disco escuro);
 //   Moedas de Sangue: pilha de três discos bronze;
 //   Bigorna: silhueta de bigorna em aço claro (base larga, cintura, tampo e chifre).
-// Tudo fica de frente para a câmera (billboard), inclusive a faixa, para o rótulo ler igual de qualquer ponto da sala.
+// Tudo fica de frente para a câmera (billboard), para ler igual de qualquer ponto da sala.
 // Quem chama: ScenePortal.AddRewardIcon (porta, medalhão a 3,5 m do piso, acima do lintel) e RewardPickup (item no chão).
 public static class DoorRewardIcon
 {
     // Medalhão: lado do quadro de 1,2 m. O aro fica a 90% do raio (~1,08 m de diâmetro); o resto é o brilho externo.
     public const float MedallionSize = 1.2f;
     private const int MedallionTextureSize = 128;
-    // Raio visível do disco: a faixa do rótulo começa logo depois dele.
-    private const float VisibleRadius = MedallionSize * 0.5f * 0.9f;
-
     // Emblema de Bênção (ícone da família ou losango): lado de 0,7 m, dentro do fundo escuro do disco.
     private const float EmblemSize = 0.70f;
     private const int DiamondTextureSize = 64;
     // Emblemas em geometria (Fruta e Moedas): o desenho original tinha ~0,36 m; a escala leva para ~0,7 m.
     private const float GeometryEmblemScale = 1.7f;
     private const float GeometryEmblemOffsetY = -0.06f;
-    // Emblemas e faixa ficam um pouco à frente do disco (+Z local, lado da sala), para não brigar no mesmo plano.
+    // O emblema fica um pouco à frente do disco (+Z local, lado da sala), para não brigar no mesmo plano.
     private const float EmblemDepth = 0.03f;
-    private const float BandDepth = 0.01f;
-    private const float LabelDepth = 0.02f;
-
-    // Faixa do rótulo: altura fixa, largura pelo texto (+ margem em cada lado).
-    private const float BandGap = 0.05f;
-    private const float BandPadding = 0.12f;
-    private const float BandHeight = 0.26f;
-
-    private const float LabelPixelSize = 0.0040f;
-    private const int LabelFontSize = 36;
-    private const int LabelOutline = 10;
 
     private const string BlessingHex = "E2B94A";
     private const string FruitHex = "8E0F1A";
@@ -49,20 +36,16 @@ public static class DoorRewardIcon
     private const string RingDarkHex = "B8862E";
     private const string RingHex = "F3D27A";
     private const string GlowHex = "F0C860";
-    private const string BandHex = "120A07";
 
     // Texturas geradas por código, uma vez (medalhão e losango de fallback).
     private static ImageTexture _medallionTexture;
     private static ImageTexture _diamondTexture;
 
-    /// <summary>
-    /// Medalhão da porta (ScenePortal.AddRewardIcon). <paramref name="labelSide"/>: -1 põe o rótulo à esquerda, 1 à direita.
-    /// Com duas portas, cada uma leva o rótulo para o lado de fora do conjunto, para as faixas não se encontrarem.
-    /// </summary>
-    public static void PopulateDoor(Node3D icon, RoomRewardDoor door, int labelSide = 1) => Build(icon, door, labelSide);
+    /// <summary>Medalhão da porta (ScenePortal.AddRewardIcon).</summary>
+    public static void PopulateDoor(Node3D icon, RoomRewardDoor door) => Build(icon, door);
 
-    /// <summary>Medalhão do item no chão (RewardPickup): o mesmo desenho da porta, com o rótulo à direita.</summary>
-    public static void PopulatePickup(Node3D icon, RoomRewardDoor door) => Build(icon, door, 1);
+    /// <summary>Medalhão do item no chão (RewardPickup): o mesmo desenho da porta.</summary>
+    public static void PopulatePickup(Node3D icon, RoomRewardDoor door) => Build(icon, door);
 
     /// <summary>Rótulo curto localizado do tipo (reward.door.*.short). Bênção mostra a família; Moedas, o valor.</summary>
     public static string ShortLabel(RoomRewardDoor door)
@@ -76,7 +59,7 @@ public static class DoorRewardIcon
         };
     }
 
-    private static void Build(Node3D icon, RoomRewardDoor door, int labelSide)
+    private static void Build(Node3D icon, RoomRewardDoor door)
     {
         if (icon == null || door == null)
             return;
@@ -100,8 +83,6 @@ public static class DoorRewardIcon
                 AddCoins(GeometryShape(emblem));
                 break;
         }
-
-        AddLabel(icon, door, labelSide);
     }
 
     // Subnó com a escala e o deslocamento dos emblemas em geometria (Fruta e Moedas), para caber no disco.
@@ -273,84 +254,6 @@ public static class DoorRewardIcon
                 Position = new Vector3(0.0f, y, 0.0f)
             });
         }
-    }
-
-    // Faixa escura ao lado do disco + rótulo "Recompensa: <nome>". A largura acompanha o texto e muda ao trocar de idioma.
-    private static void AddLabel(Node3D icon, RoomRewardDoor door, int labelSide)
-    {
-        var side = labelSide < 0 ? -1.0f : 1.0f;
-        var bandMesh = new QuadMesh();
-        var band = new MeshInstance3D { Name = "RewardBand", Mesh = bandMesh, MaterialOverride = BandMaterial() };
-        var label = new Label3D
-        {
-            Name = "RewardLabel",
-            PixelSize = LabelPixelSize,
-            FontSize = LabelFontSize,
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            Modulate = UiPalette.TextPrimary,
-            OutlineSize = LabelOutline,
-            OutlineModulate = UiPalette.TextOutline,
-            // Legível por cima do lintel e da moldura, como os demais rótulos 3D.
-            NoDepthTest = true,
-            RenderPriority = 2,
-            OutlineRenderPriority = 1
-        };
-        icon.AddChild(band);
-        icon.AddChild(label);
-
-        void Layout(string text)
-        {
-            label.Text = text;
-            var width = TextWidth(text) + 2.0f * BandPadding;
-            bandMesh.Size = new Vector2(width, BandHeight);
-            var x = side * (VisibleRadius + BandGap + width * 0.5f);
-            band.Position = new Vector3(x, 0.0f, BandDepth);
-            label.Position = new Vector3(x, 0.0f, LabelDepth);
-        }
-
-        Layout(BadgeText(door));
-
-        // O texto segue o idioma enquanto a porta existe; a assinatura sai quando o rótulo sai da árvore.
-        var localization = Localization.Instance;
-        if (localization == null)
-            return;
-
-        Localization.LanguageChangedEventHandler onLanguageChanged = _ =>
-        {
-            if (GodotObject.IsInstanceValid(label))
-                Layout(BadgeText(door));
-        };
-        localization.LanguageChanged += onLanguageChanged;
-        label.TreeExiting += () =>
-        {
-            if (Localization.Instance != null)
-                Localization.Instance.LanguageChanged -= onLanguageChanged;
-        };
-    }
-
-    private static string BadgeText(RoomRewardDoor door) => Localization.TextFormat("reward.door.badge", ShortLabel(door));
-
-    // Largura do texto em metros, medida na fonte de fallback (a que o Label3D usa sem fonte própria).
-    // Sem fonte, estimativa por caractere. O contorno soma uma margem.
-    private static float TextWidth(string text)
-    {
-        var font = ThemeDB.FallbackFont;
-        var pixels = font != null
-            ? font.GetStringSize(text, HorizontalAlignment.Left, -1, LabelFontSize).X
-            : text.Length * LabelFontSize * 0.55f;
-        return (pixels + LabelOutline) * LabelPixelSize;
-    }
-
-    private static StandardMaterial3D BandMaterial()
-    {
-        return new StandardMaterial3D
-        {
-            AlbedoColor = new Color(Color.FromHtml("#" + BandHex), 0.84f),
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
-            NoDepthTest = true
-        };
     }
 
     private static ImageTexture MedallionTexture() => _medallionTexture ??= Generate(MedallionTextureSize, MedallionPixel);
