@@ -205,9 +205,10 @@ public static class RunState
         if (set == null)
             return null;
 
-        // Porta de Bencao: as 3 opcoes sao sorteadas agora e ficam no conjunto (a oferta usa essas, com reamostragem).
+        // Portas de Bencao: as 3 opcoes de cada uma sao sorteadas agora e ficam no conjunto (a oferta usa essas, com reamostragem).
+        // Duas portas de Bencao no mesmo conjunto tem linhagens diferentes.
         if (set.HasBlessing)
-            set = RoomRewardCatalog.WithBlessingPlan(set, RoomRewardCatalog.PlanBlessings(RewardRandom(), BloodBlessings.Count == 0));
+            set = RoomRewardCatalog.PlanBlessingsForSet(set, RewardRandom(), BloodBlessings.Count == 0);
 
         RoomRewardSets[(mapIndex, originRoom)] = set;
         _setsWithoutBlessing = set.HasBlessing ? 0 : _setsWithoutBlessing + 1;
@@ -256,7 +257,7 @@ public static class RunState
     }
 
     /// <summary>
-    /// Opcoes pre-sorteadas da porta de Bencao da saida (mapIndex, originRoom), ou null se o conjunto nao tem porta de
+    /// Opcoes pre-sorteadas da (primeira) porta de Bencao da saida (mapIndex, originRoom), ou null se o conjunto nao tem porta de
     /// Bencao (ou ainda nao foi sorteado). Leitura para o prompt da porta e o ícone.
     /// </summary>
     public static RoomBlessingPlan GetRoomBlessingPlan(int mapIndex, int originRoom)
@@ -501,7 +502,7 @@ public static class RunState
         if (set == null)
             return null;
         if (set.HasBlessing)
-            set = RoomRewardCatalog.WithBlessingPlan(set, RoomRewardCatalog.PlanBlessings(RewardRandom(), BloodBlessings.Count == 0));
+            set = RoomRewardCatalog.PlanBlessingsForSet(set, RewardRandom(), BloodBlessings.Count == 0);
         foreach (var door in set.Doors)
             DevForcedDoors.Add(door);
         RoomRewardSets[(mapIndex, originRoom)] = set;

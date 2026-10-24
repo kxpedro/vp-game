@@ -60,7 +60,7 @@ public static partial class DevParameterRegistry
 
     private static void RegisterAnvilTuning()
     {
-        RegisterPerMap("reward.door_weight.anvil.{m}", "Peso da porta de Bigorna", GAnvil, new double[] { 8, 10, 12 }, 0, 100, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
+        RegisterPerMap("reward.door_weight.anvil.{m}", "Peso da porta de Bigorna", GAnvil, new double[] { 4, 4, 4 }, 0, 100, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
         P("economy.anvil.run_cap", "Teto de Bigornas escolhidas por run", GAnvil, 3, 0, 10, 1, true, DevApplyMode.NextRoom, "O painel Forçar portas ignora este teto (e não o conta).");
         P("weapon.mod.offer_choices", "Cartas por oferta de Bigorna", GAnvil, 3, 1, 5, 1, true);
         P("weapon.mod.longsword_reach.value", "Lâmina Alongada: alcance", GAnvil, 0.15, 0, 1, 0.01, false);
