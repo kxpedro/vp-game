@@ -52,3 +52,15 @@ Poça de sangue dos inimigos, desenhadas por código em
 
 - `blood_pool_sheet.png`: 3 variantes (linhas) x 12 quadros de 64x32, já na projeção 2:1 da tela. Quadros 0-7 = a
   poça escorrendo; 8-11 = brilho em loop. O jogo (`BloodPool.cs`) a deita no chão girada para a câmera.
+
+## effects/ritual_circle
+
+Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no modo 2D, desenhado por código em
+`tools/pixel_art/ritual_circle/generate_ritual_circle.py` (numpy + Pillow, paleta AAP-64). Para regerar (o `--gif`
+é opcional e grava uma prévia ampliada):
+
+    py tools/pixel_art/ritual_circle/generate_ritual_circle.py [--gif previa.gif]
+
+- `ritual_circle_sheet.png`: 1 linha x 24 quadros de 72x40, já na projeção 2:1 da tela. Quadros 0-9 = acender (o anel
+  é traçado e o pentagrama desenhado ponta a ponta); 10-15 = pulsar em loop até a wave chegar; 16-23 = estouro quando o
+  monstro surge. O jogo (`SpawnRitualCircle.cs`, chamado pelo `RoomGenerator`) o deita no chão girado para a câmera.
