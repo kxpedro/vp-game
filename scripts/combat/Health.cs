@@ -65,6 +65,10 @@ public partial class Health : Node
 
     public void ApplyDamage(float amount, bool isCritical = false, string sourceName = "")
     {
+        // Estatisticas da run: a origem marcada por quem chamou (RunStats.Attribute/SetHitBonus) vale so para este golpe.
+        var countsForStats = GetParent() is EnemyBasic statsTarget && !statsTarget.IsCharmed;
+        if (countsForStats)
+            RunStats.TakeAttribution();
         if (GetTree()?.Paused == true || IsDead || IsInvincible || amount <= 0.0f)
             return;
         if (DevGodMode && OS.IsDebugBuild() && GetParent()?.IsInGroup("player") == true)
@@ -116,9 +120,16 @@ public partial class Health : Node
             return;
         }
 
+        var applied = Mathf.Min(amount, CurrentHealth);
         CurrentHealth = Mathf.Max(CurrentHealth - amount, 0.0f);
         blessingRuntime?.OnPlayerDamaged(amount);
-        if (GetParent()?.IsInGroup("player") == true) RunState.NotifyPlayerDamaged();
+        if (GetParent()?.IsInGroup("player") == true)
+        {
+            RunState.NotifyPlayerDamaged();
+            RunStats.RecordDamageTaken(applied);
+        }
+        else if (countsForStats)
+            RunStats.RecordEnemyDamage(applied, isCritical);
         EmitSignal(SignalName.Damaged, amount);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
 
@@ -135,7 +146,11 @@ public partial class Health : Node
         CurrentHealth = Mathf.Min(CurrentHealth + amount, MaxHealth);
         var actual = CurrentHealth - previous;
         var overheal = Mathf.Max(amount - actual, 0.0f);
-        if (GetParent()?.IsInGroup("player") == true) RunState.NotifyPlayerHealed();
+        if (GetParent()?.IsInGroup("player") == true)
+        {
+            RunState.NotifyPlayerHealed();
+            RunStats.RecordHealing(actual);
+        }
         GetParent()?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.OnHealed(amount, actual, overheal);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }

@@ -604,8 +604,9 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 ### 8.11 Game over (Aud §11) — **P1**
 
 - **Tarefa:** hud-menus T2.
-- **Componentes:** `Window(Small)` larga 640, `DisplayLabel` (`Display 54`, `GoldBright`, sombra `DecorCrimson`), `MenuButton`.
-- **Muda:** causa e "Último golpe: N" em duas linhas `Body` (autowrap 560); resumo de 3–4 linhas `Secondary` com dados já disponíveis em `RunState` (mapa/sala alcançados, bênçãos, moedas) — se algum dado não existir, omitir a linha (sem criar estado novo); botões [Voltar ao Ninho] (foco, `Primary`) e [Menu principal] (`Secondary`; a run já terminou, sem confirmação). HUD de combate escondido. `UiModalStack.Clear()` e push no topo.
+- **Componentes:** `Window(Small)` alargada para 760, `DisplayLabel` (`Display 54`, `GoldBright`, sombra `DecorCrimson`), `InsetPanel` com `GridContainer` de 4 colunas, `BlessingIcon`, `MenuButton`.
+- **Muda:** sem subtítulo. Causa em `Body` e "Último golpe: N" + mapa/sala alcançados em `Secondary` (autowrap 560); grade de estatísticas em duas colunas de pares rótulo `Secondary` / valor `Body` em `Gold` (dano causado, maior golpe, dano recebido, vida recuperada, inimigos e elites abatidos, críticos, salas vencidas, bênçãos, artefatos, Moedas de Sangue, tempo da run), lidas de `RunStats` e `RunState` antes do `FailRun`; "Bênçãos mais letais": até 3 bênçãos com ícone, nome na cor da raridade e "N de dano · P%" (a primeira com ícone 48, as outras 32; bloco omitido se nenhuma bênção causou dano). Um único botão [Renascer] (`Primary`, foco) que encerra a run e volta ao Ninho do Corvo. HUD de combate escondido. `UiModalStack.Clear()` e push no topo.
+- **Dano por bênção (`RunStats`):** estimativa. Dano direto de bênção (nuvem, explosões, sangramento, encantados, ratos) conta inteiro; no golpe do jogador conta a parte bônus de `BloodBlessingRuntime.ModifyOutgoingDamage`, repartida entre as bênçãos pelo quanto cada uma soma no tipo de efeito (`RunState.GetBlessingShares`). Multiplicadores de crítico, elite e chefe ficam de fora.
 - **Previews:** `game_over`.
 
 ### 8.12 Dicionário / compêndio (Aud §12) — **P1**

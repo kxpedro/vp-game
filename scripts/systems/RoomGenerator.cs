@@ -510,7 +510,7 @@ public partial class RoomGenerator : Node3D
         var wave = _pendingEnemyWaves.GetRange(_nextWaveEnemyIndex, Mathf.Min(EnemiesPerWave, _pendingEnemyWaves.Count - _nextWaveEnemyIndex));
         _nextWaveEnemyIndex += wave.Count;
         var markers = new List<Node3D>();
-        foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position));
+        foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
         GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
         await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
 
@@ -525,7 +525,13 @@ public partial class RoomGenerator : Node3D
             }
         }
 
-        foreach (var marker in markers) if (IsInstanceValid(marker)) marker.QueueFree();
+        foreach (var marker in markers)
+        {
+            if (!IsInstanceValid(marker)) continue;
+            // O círculo de ritual (2D) estoura quando o monstro surge e se libera sozinho.
+            if (marker is SpawnRitualCircle circle) circle.Burst();
+            else marker.QueueFree();
+        }
         var spawnedEnemies = new List<EnemyBasic>();
         foreach (var spawn in wave)
         {
@@ -555,8 +561,13 @@ public partial class RoomGenerator : Node3D
         GetTree().CallGroup("run_manager", "NotifyWaveSpawned", wave.Count, _pendingEnemyWaves.Count);
     }
 
-    private Node3D CreateSpawnMarker(Vector3 position)
+    private Node3D CreateSpawnMarker(Vector3 position, float leadTime)
     {
+        if (GameMode.IsPixelArt)
+        {
+            var circle = SpawnRitualCircle.Spawn(this, position, leadTime);
+            if (circle != null) return circle;
+        }
         var marker = new MeshInstance3D
         {
             Position = position + Vector3.Up * 0.04f,
