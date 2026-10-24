@@ -15,6 +15,20 @@ public partial class PlayerSpriteVisual : Node
     private const int CellHeight = 112;
     private const int IdleFrames = 8;
     private const int RunFrames = 8;
+    // Folha de combate (tools/pixel_art/virgil/combat.py): celula maior, porque a espada estendida passa dos 80 px.
+    // Mesma ordem de linhas; colunas = golpes em sequencia (CombatAnims). Pes tambem 40 px abaixo do centro.
+    private const string CombatSheetFile = "virgil_combat.png";
+    private const int CombatCellWidth = 160;
+    private const int CombatCellHeight = 128;
+    // Nome, quadros e quadro do impacto (o que cai no instante do dano; -1 = sem golpe, toca linear).
+    private static readonly (string Name, int Frames, int Impact)[] CombatAnims =
+    {
+        ("slash", 6, 3), ("slash_reverse", 6, 3), ("thrust", 6, 3), ("spin", 8, 2), ("dash", 5, -1),
+    };
+    // Rastro do dash (estilo Hades): copias do quadro atual deixadas para tras, sumindo.
+    private const float GhostInterval = 0.035f;
+    private const float GhostLifetime = 0.22f;
+    private static readonly Color GhostColor = new(0.75f, 0.12f, 0.2f, 0.55f);
     public const float PixelSize = 0.033f;
     // A folha do Virgil e renderizada a 0,0185 m por pixel (render.py, px): com esse PixelSize ele fica com a altura
     // real (~1,8 m) sem perder resolucao; com o pixel do cenario (0,033) ficava com ~3,2 m.
@@ -55,6 +69,12 @@ public partial class PlayerSpriteVisual : Node
     private Mode _mode = Mode.Loop;
     private string _oneShotBase = "";
     private float _oneShotTimer;
+    private float _oneShotElapsed;
+    private float _oneShotHitDelay;
+    private float _oneShotRecovery;
+    private int _oneShotImpact;
+    private float _ghostTimer;
+    private float _ghostTimeLeft;
     private bool _isMoving;
     private bool _isRunning;
     private float _movementSpeed;
@@ -286,11 +306,13 @@ public partial class PlayerSpriteVisual : Node
         if (_mode == Mode.OneShot)
         {
             _oneShotTimer -= (float)delta;
+            _oneShotElapsed += (float)delta;
             if (_oneShotTimer <= 0.0f)
                 _mode = Mode.Loop;
             else
-                SwapDirection(_oneShotBase);
+                StepOneShot();
         }
+        TickGhosts((float)delta);
 
         if (_mode == Mode.Loop)
             PlayLoop();
@@ -303,17 +325,44 @@ public partial class PlayerSpriteVisual : Node
         _movementSpeed = Mathf.Max(movementSpeed, 0.0f);
     }
 
-    public void PlayLightAttack(int comboIndex, float duration, WeaponAttackShape shape)
+    // Combo da espada: corte, corte de volta e estocada (o terceiro golpe e em linha).
+    public void PlayLightAttack(int comboIndex, float duration, WeaponAttackShape shape) => PlayLightAttack(comboIndex, 0.0f, duration, shape);
+
+    public void PlayLightAttack(int comboIndex, float hitDelay, float recovery, WeaponAttackShape shape)
     {
+        if (IsRangedWeapon())
+            return;
         var animation = shape == WeaponAttackShape.Line ? "thrust" : comboIndex % 2 == 0 ? "slash" : "slash_reverse";
-        PlayOneShot(animation, duration);
+        PlayOneShot(animation, hitDelay, recovery);
     }
 
-    public void PlayHeavyAttack(float duration) => PlayOneShot("slash", duration);
+    // Especial (Q): ainda sem animacao propria, usa o corte.
+    public void PlayHeavyAttack(float duration) => PlayHeavyAttack(0.0f, duration);
 
-    public void PlayDodge(float duration) => PlayOneShot("dodge", duration);
+    public void PlayHeavyAttack(float hitDelay, float recovery)
+    {
+        if (!IsRangedWeapon())
+            PlayOneShot("slash", hitDelay, recovery);
+    }
 
-    public void PlayHitReaction(float duration) => PlayOneShot("hit", Mathf.Max(duration, 0.15f));
+    // Ataque rapido (saindo da esquiva): giro com a espada estendida, dano em area.
+    public void PlayDashAttack(float hitDelay, float recovery)
+    {
+        if (!IsRangedWeapon())
+            PlayOneShot("spin", hitDelay, recovery);
+    }
+
+    public void PlayDodge(float duration)
+    {
+        PlayOneShot("dash", 0.0f, duration);
+        _ghostTimeLeft = Mathf.Max(duration, 0.05f);
+        _ghostTimer = 0.0f;
+    }
+
+    public void PlayHitReaction(float duration) => PlayOneShot("hit", 0.0f, Mathf.Max(duration, 0.15f));
+
+    // Os golpes da folha sao de espada; com arma de fogo o sprite segue no idle/corrida.
+    private bool IsRangedWeapon() => WeaponLoadout.EquippedWeapon?.IsRanged == true;
 
     public void CancelOneShot()
     {
@@ -359,39 +408,100 @@ public partial class PlayerSpriteVisual : Node
         Play("walk_" + _direction, Mathf.Clamp(_movementSpeed / reference, 0.6f, 2.2f));
     }
 
-    private void PlayOneShot(string baseName, float duration)
+    // Quadros conduzidos a mao: ate o quadro do impacto em hitDelay (instante do dano), o resto em recovery.
+    private void PlayOneShot(string baseName, float hitDelay, float recovery)
     {
         if (_sprite == null || _mode == Mode.Dead)
             return;
 
         UpdateDirection();
-        var name = baseName + "_" + (baseName == "hit" ? "s" : _direction);
-        if (!_sprite.SpriteFrames.HasAnimation(name))
+        if (!_sprite.SpriteFrames.HasAnimation(OneShotName(baseName)))
             return;
 
-        duration = Mathf.Max(duration, 0.05f);
-        var frameCount = _sprite.SpriteFrames.GetFrameCount(name);
-        var naturalLength = frameCount / (float)_sprite.SpriteFrames.GetAnimationSpeed(name);
         _mode = Mode.OneShot;
         _oneShotBase = baseName;
-        _oneShotTimer = duration;
-        _sprite.Play(name);
-        _sprite.Frame = 0;
-        _sprite.SpeedScale = naturalLength / duration;
+        _oneShotImpact = -1;
+        foreach (var anim in CombatAnims)
+        {
+            if (anim.Name == baseName)
+                _oneShotImpact = anim.Impact;
+        }
+        if (hitDelay <= 0.0f)
+            _oneShotImpact = -1;
+        _oneShotHitDelay = Mathf.Max(hitDelay, 0.0f);
+        _oneShotRecovery = Mathf.Max(recovery, 0.05f);
+        _oneShotTimer = _oneShotHitDelay + _oneShotRecovery;
+        _oneShotElapsed = 0.0f;
+        StepOneShot();
     }
 
-    // Golpe virou de direcao no meio (mira): troca a linha mantendo o quadro.
-    private void SwapDirection(string baseName)
+    private string OneShotName(string baseName) => baseName + "_" + (baseName == "hit" ? "s" : _direction);
+
+    // Mira mudou no meio do golpe: troca de linha mantendo o quadro.
+    private void StepOneShot()
     {
-        if (baseName == "hit")
+        var name = OneShotName(_oneShotBase);
+        if (!_sprite.SpriteFrames.HasAnimation(name))
             return;
-        var name = baseName + "_" + _direction;
-        if (_sprite.Animation == name || !_sprite.SpriteFrames.HasAnimation(name))
+        var count = _sprite.SpriteFrames.GetFrameCount(name);
+        int frame;
+        if (_oneShotImpact > 0 && _oneShotImpact < count)
+        {
+            frame = _oneShotElapsed < _oneShotHitDelay
+                ? Mathf.FloorToInt(_oneShotElapsed / Mathf.Max(_oneShotHitDelay, 0.001f) * _oneShotImpact)
+                : _oneShotImpact + Mathf.FloorToInt((_oneShotElapsed - _oneShotHitDelay) / _oneShotRecovery * (count - _oneShotImpact));
+        }
+        else
+        {
+            frame = Mathf.FloorToInt(_oneShotElapsed / Mathf.Max(_oneShotHitDelay + _oneShotRecovery, 0.001f) * count);
+        }
+        frame = Mathf.Clamp(frame, 0, count - 1);
+        if (_sprite.Animation != name)
+            _sprite.Animation = name;
+        if (_sprite.IsPlaying())
+            _sprite.Pause();
+        _sprite.SpeedScale = 1.0f;
+        if (_sprite.Frame != frame)
+            _sprite.Frame = frame;
+    }
+
+    private void TickGhosts(float delta)
+    {
+        if (_ghostTimeLeft <= 0.0f)
             return;
-        var frame = _sprite.Frame;
-        var progress = _sprite.FrameProgress;
-        _sprite.Play(name);
-        _sprite.SetFrameAndProgress(frame, progress);
+        _ghostTimeLeft -= delta;
+        _ghostTimer -= delta;
+        if (_ghostTimer > 0.0f || !_sprite.Visible)
+            return;
+        _ghostTimer = GhostInterval;
+        SpawnGhost();
+    }
+
+    private void SpawnGhost()
+    {
+        var texture = _sprite.SpriteFrames.GetFrameTexture(_sprite.Animation, _sprite.Frame);
+        if (texture == null || !IsInstanceValid(_player) || !_player.IsInsideTree())
+            return;
+        var ghost = new Sprite3D
+        {
+            Name = "DashGhost",
+            Texture = texture,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+            Shaded = false,
+            DoubleSided = true,
+            PixelSize = _sprite.PixelSize,
+            Offset = _sprite.Offset,
+            Modulate = GhostColor,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            TopLevel = true,
+        };
+        _player.GetParent().AddChild(ghost);
+        ghost.GlobalPosition = _sprite.GlobalPosition;
+        var tween = ghost.CreateTween();
+        tween.TweenProperty(ghost, "modulate:a", 0.0f, GhostLifetime);
+        tween.TweenCallback(Callable.From(ghost.QueueFree));
     }
 
     private void Play(string name, float speed)
@@ -463,7 +573,7 @@ public partial class PlayerSpriteVisual : Node
         if (sheet == null)
             return null;
 
-        // Golpes, dano e morte ainda nao tem quadros: sem a animacao, PlayOneShot mantem o idle/corrida.
+        // Dano e morte ainda nao tem quadros: sem a animacao, PlayOneShot mantem o idle/corrida.
         var frames = new SpriteFrames();
         frames.RemoveAnimation("default");
         for (var row = 0; row < Directions.Length; row++)
@@ -471,12 +581,26 @@ public partial class PlayerSpriteVisual : Node
             var dir = Directions[row];
             AddAnimation(frames, "idle_" + dir, sheet, row, 0, IdleFrames, IdleFps, true);
             AddAnimation(frames, "walk_" + dir, sheet, row, IdleFrames, RunFrames, WalkFps, true);
-            AddAnimation(frames, "dodge_" + dir, sheet, row, IdleFrames, RunFrames, WalkFps * 2.0f, false);
+        }
+
+        // Sem a folha de combate os golpes nao tocam (PlayOneShot mantem o idle/corrida).
+        var combat = LoadSheet(CombatSheetFile);
+        if (combat == null)
+            GD.PushWarning("PlayerSpriteVisual: folha de combate nao encontrada: " + CombatSheetFile);
+        for (var row = 0; combat != null && row < Directions.Length; row++)
+        {
+            var column = 0;
+            foreach (var anim in CombatAnims)
+            {
+                AddAnimation(frames, anim.Name + "_" + Directions[row], combat, row, column, anim.Frames, 12.0f, false, CombatCellWidth, CombatCellHeight);
+                column += anim.Frames;
+            }
         }
         return frames;
     }
 
-    private static void AddAnimation(SpriteFrames frames, string name, Texture2D sheet, int row, int first, int count, float fps, bool loop)
+    private static void AddAnimation(SpriteFrames frames, string name, Texture2D sheet, int row, int first, int count, float fps, bool loop,
+        int cellWidth = CellWidth, int cellHeight = CellHeight)
     {
         if (sheet == null)
             return;
@@ -488,7 +612,7 @@ public partial class PlayerSpriteVisual : Node
             var atlas = new AtlasTexture
             {
                 Atlas = sheet,
-                Region = new Rect2((first + i) * CellWidth, row * CellHeight, CellWidth, CellHeight)
+                Region = new Rect2((first + i) * cellWidth, row * cellHeight, cellWidth, cellHeight)
             };
             frames.AddFrame(name, atlas);
         }
