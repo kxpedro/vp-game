@@ -25,13 +25,13 @@ public partial class PixelSceneSetup : Node3D
     private const float BenchReachZ = 0.8f;
     private const float KitTitleHeight = 3.5f;
 
-    // Caixões dos personagens futuros na sala da direita do hub (centros em 1700 x 860/992/1124 do kit): peças do
+    // Caixões dos personagens futuros na sala da direita do hub (centros em 2212 x 860/992/1124 do kit): peças do
     // kit desenhadas e com colisão pelo PixelRoom; o CharacterPlaceholder fica só com título e aviso.
     private static readonly PixelRoomProp[] CharacterCoffins =
     {
-        new("coffin_stone_closed_sw", 26, 13, 4.0f, -4.0f),
-        new("coffin_stone_closed_sw", 26, 15, 4.0f, 0.0f),
-        new("coffin_stone_closed_sw", 26, 17, 4.0f, 4.0f)
+        new("coffin_stone_closed_sw", 34, 13, 4.0f, -4.0f),
+        new("coffin_stone_closed_sw", 34, 15, 4.0f, 0.0f),
+        new("coffin_stone_closed_sw", 34, 17, 4.0f, 4.0f)
     };
 
     [Export] public RoomKind Kind { get; set; } = RoomKind.RunRoom;
@@ -68,7 +68,7 @@ public partial class PixelSceneSetup : Node3D
         _room = new PixelRoom { Name = "PixelRoom" };
         AddChild(_room);
         // O centro de cada sala fixa é a origem da cena (onde fica a fonte no hub e na sala de bênção).
-        if (layout == null || !_room.Build(layout, Kind == RoomKind.Hub ? (Vector2?)new Vector2(992.0f, 992.0f) : null))
+        if (layout == null || !_room.Build(layout, Kind == RoomKind.Hub ? (Vector2?)new Vector2(1504.0f, 992.0f) : null))
         {
             GD.PushError($"PixelSceneSetup: sala 2D nao montada ({Kind}).");
             return;
@@ -201,24 +201,26 @@ public partial class PixelSceneSetup : Node3D
             visual.Visible = false;
     }
 
-    // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada
-    // (peça do layout, posta por PlaceKitInteractives) e Odalric na da esquerda, personagens futuros (CharacterCoffins) na da direita, boneco no salão central, caixão do Virgil embaixo.
+    // Hub do kit (hub_completo.txt, 39x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada
+    // (peça do layout, posta por PlaceKitInteractives) e Odalric na da esquerda, sala de treino com o boneco atrás da
+    // bancada (pelo arco da ala da esquerda), personagens futuros (CharacterCoffins) na da direita, caixão do Virgil embaixo.
     // Posições em unidades do kit (64 = 1 tile).
     private void PlaceHub(Node scene)
     {
         if (scene.GetNodeOrNull<Node3D>("Player") is { } player)
-            player.Position = _room.KitToWorld(992.0f, 1610.0f, 0.2f);
-        // Portão do início da run no arco do fundo da sala de cima (edge "arch ne 15 3" do hub_completo.txt).
+            player.Position = _room.KitToWorld(1504.0f, 1610.0f, 0.2f);
+        // Portão do início da run no arco do fundo da sala de cima (edge "arch ne 23 3" do hub_completo.txt).
         if (scene.GetNodeOrNull<RunStartGate>("StartRunPortal") is { } gate)
-            gate.ConfigurePixel(_room, 15, 3, "ne");
+            gate.ConfigurePixel(_room, 23, 3, "ne");
 
         for (var i = 0; i < CharacterCoffins.Length; i++)
             AddChild(new CharacterPlaceholder { Name = $"CharacterPlaceholder{i + 1}", Position = PropCenter(CharacterCoffins[i]), KitSprite = true });
-        AddChild(new DialogueNpc { Name = "NpcOdalric", SpeakerId = "odalric", Position = _room.KitToWorld(330.0f, 1160.0f), RotationDegrees = new Vector3(0.0f, -60.0f, 0.0f) });
-        CreateTrainingDummy(_room.KitToWorld(780.0f, 1200.0f));
+        AddChild(new DialogueNpc { Name = "NpcOdalric", SpeakerId = "odalric", Position = _room.KitToWorld(842.0f, 1160.0f), RotationDegrees = new Vector3(0.0f, -60.0f, 0.0f) });
+        // Sala de treino: tiles 3..7 x 11..19 do layout.
+        CreateTrainingDummy(_room.KitToWorld(352.0f, 992.0f));
     }
 
-    // Mesmo boneco de treino do hub 3D (CrowsNestCrypt.CreateTrainingHall).
+    // Mesmo boneco de treino do hub 3D (CrowsNestCrypt.CreateTrainingHall), com o sprite da cripta no lugar do cilindro.
     private void CreateTrainingDummy(Vector3 center)
     {
         var dummy = new TrainingDummy { Position = center };
@@ -228,13 +230,7 @@ public partial class PixelSceneSetup : Node3D
             Position = new Vector3(0.0f, 0.8f, 0.0f),
             Shape = new CapsuleShape3D { Radius = 0.52f, Height = 1.65f }
         });
-        dummy.AddChild(new MeshInstance3D
-        {
-            Name = "Visual",
-            Position = new Vector3(0.0f, 0.82f, 0.0f),
-            Mesh = new CylinderMesh { TopRadius = 0.48f, BottomRadius = 0.58f, Height = 1.65f, RadialSegments = 20 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.48f, 0.32f, 0.16f), Roughness = 0.96f }
-        });
+        dummy.AddChild(new TrainingDummySprite { Name = "PixelVisual" });
         dummy.AddChild(new Health { Name = "Health", MaxHealth = 250000.0f });
         AddChild(dummy);
     }
