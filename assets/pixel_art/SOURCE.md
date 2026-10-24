@@ -45,11 +45,10 @@ Detalhes em `characters/virgil/SOURCE.md`.
 
 ## effects/blood_pool
 
-Poça de sangue dos inimigos e a gota da sucção, desenhadas por código em
+Poça de sangue dos inimigos, desenhadas por código em
 `tools/pixel_art/blood_pool/generate_blood_pool.py` (numpy + Pillow, paleta AAP-64). Para regerar:
 
     py tools/pixel_art/blood_pool/generate_blood_pool.py
 
 - `blood_pool_sheet.png`: 3 variantes (linhas) x 12 quadros de 64x32, já na projeção 2:1 da tela. Quadros 0-7 = a
   poça escorrendo; 8-11 = brilho em loop. O jogo (`BloodPool.cs`) a deita no chão girada para a câmera.
-- `blood_droplet.png`: 2 quadros de 8x10, a gota que voa até o Virgil.

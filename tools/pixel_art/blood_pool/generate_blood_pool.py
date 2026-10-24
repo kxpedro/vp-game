@@ -6,7 +6,6 @@ profundidade (BloodPool.cs), então cada pixel daqui vira um pixel da arte na te
 Saída (pasta passada como argumento, padrão assets/pixel_art/effects/blood_pool):
 - blood_pool_sheet.png: 3 linhas (variantes) x 12 colunas de 64x32. Colunas 0-7 = a poça se espalhando a partir
   do corpo; 8-11 = brilho em loop da poça pronta. Para secar/sugar, o jogo toca 7..0 de trás para frente.
-- blood_droplet.png: 2 quadros de 8x10, a gota que voa até o Virgil quando ele suga o sangue.
 
     py tools/pixel_art/blood_pool/generate_blood_pool.py
 
@@ -135,40 +134,6 @@ def render(lobes, splats, t, shimmer=None):
     return img
 
 
-def droplet():
-    # 2 quadros 8x10: gota alongada (voando) e mais redonda.
-    shapes = [
-        ["...##...",
-         "...##...",
-         "..#oo#..",
-         "..#oo#..",
-         ".#osoo#.",
-         ".#ssoo#.",
-         ".#oooo#.",
-         "..#oo#..",
-         "...##...",
-         "........"],
-        ["........",
-         "...##...",
-         "..#oo#..",
-         ".#osoo#.",
-         ".#ssoo#.",
-         ".#oooo#.",
-         ".#oooo#.",
-         "..#oo#..",
-         "...##...",
-         "........"],
-    ]
-    sheet = np.zeros((10, 16, 4), np.uint8)
-    colors = {"#": RIM, "o": SHINE, "s": SPEC}
-    for i, rows in enumerate(shapes):
-        for y, row in enumerate(rows):
-            for x, ch in enumerate(row):
-                if ch in colors:
-                    sheet[y, i * 8 + x] = colors[ch]
-    return sheet
-
-
 def main():
     root = Path(__file__).resolve().parents[3]
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "assets/pixel_art/effects/blood_pool"
@@ -184,7 +149,6 @@ def main():
             c = SPREAD_FRAMES + s
             sheet[v * CELL_H:(v + 1) * CELL_H, c * CELL_W:(c + 1) * CELL_W] = render(lobes, splats, 1.0, s)
     Image.fromarray(sheet, "RGBA").save(out / "blood_pool_sheet.png")
-    Image.fromarray(droplet(), "RGBA").save(out / "blood_droplet.png")
     print("ok:", out)
 
 

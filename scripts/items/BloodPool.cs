@@ -3,13 +3,12 @@ using Godot;
 /// <summary>
 /// Poça de sangue que escorre do corpo do inimigo morto (pixel art, tools/pixel_art/blood_pool/). Fica deitada no chão,
 /// girada para a câmera e esticada em profundidade, de modo que cada pixel da folha vire um pixel da arte na tela.
-/// Ao limpar a sala, o HUD a suga (Drain) e manda gotas voando até o Virgil (HUD.BlessingOffer, grupo "blood_pools").
+/// Ao limpar a sala, o HUD a suga (Drain) e um filete de sangue escorre dela até o Virgil (HUD.BlessingOffer, grupo "blood_pools").
 /// </summary>
 public partial class BloodPool : Node3D
 {
     public const string Group = "blood_pools";
     private const string SheetPath = "res://assets/pixel_art/effects/blood_pool/blood_pool_sheet.png";
-    private const string DropletPath = "res://assets/pixel_art/effects/blood_pool/blood_droplet.png";
     private const int Columns = 12;
     private const int Variants = 3;
     private const int SpreadFrames = 8;
@@ -18,9 +17,7 @@ public partial class BloodPool : Node3D
     private const float ShimmerFps = 3.0f;
     // Rente ao chão, acima do quadrilátero da sala 2D e da sombra do Virgil (0,03 m fica por cima, transparente).
     private const float GroundHeight = 0.022f;
-    // Raio aproximado da poça pronta no chão (m), para espalhar as gotas que saem dela.
-    public const float Radius = 0.38f;
-    // Poças que nascem perto demais são empurradas para longe até esta distância entre centros (m).
+        // Poças que nascem perto demais são empurradas para longe até esta distância entre centros (m).
     private const float MinSeparation = 0.5f;
     // Cada poça nova fica um degrau acima da anterior: a mais nova sempre cobre a de baixo, sem as duas brigarem
     // pelo mesmo plano (z-fighting). O ciclo volta ao chão a cada LayerCount poças.
@@ -31,7 +28,6 @@ public partial class BloodPool : Node3D
     private enum State { Waiting, Spreading, Idle, Draining, Drained }
 
     private static Texture2D _sheet;
-    private static Texture2D _droplet;
 
     private Sprite3D _sprite;
     private State _state = State.Waiting;
@@ -173,30 +169,6 @@ public partial class BloodPool : Node3D
         _drainDuration = Mathf.Max(duration, 0.05f);
         _timer = 0.0f;
         _state = State.Draining;
-    }
-
-    // Gota em billboard (2 quadros) que voa da poça até o Virgil durante a sucção.
-    public static Node3D CreateDroplet()
-    {
-        _droplet ??= LoadTexture(DropletPath);
-        var root = new Node3D { Name = "BloodDroplet", ProcessMode = ProcessModeEnum.Always };
-        if (_droplet == null)
-            return root;
-        var sprite = new Sprite3D
-        {
-            Name = "Sprite",
-            Texture = _droplet,
-            Hframes = 2,
-            Frame = (int)(GD.Randi() % 2),
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            PixelSize = PlayerSpriteVisual.PixelSize,
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
-            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            Shaded = false,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-        };
-        root.AddChild(sprite);
-        return root;
     }
 
     private void SetFrame(int column)
