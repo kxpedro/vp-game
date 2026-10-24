@@ -43,6 +43,9 @@ public partial class RunManager : Node3D
     private readonly List<ScenePortal> _rewardDoors = new();
     // Itens do chão da sala ainda não pegos (bônus de sala limpa + recompensa da porta). Portas e saída só abrem em zero.
     private int _roomPickupsLeft;
+    // A sala tem a recompensa da porta escolhida antes: o sangue é sugado ao pegá-la; sem ela, no primeiro item pego.
+    private bool _roomHasPendingReward;
+    private bool _roomBloodAbsorbed;
     // DEBUG: inimigos criados pelo console (DevSpawnEnemies) somados ao total da sala, que só limpa depois deles.
     private int _devExtraEnemies;
     private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
@@ -215,9 +218,12 @@ public partial class RunManager : Node3D
     {
         if (pending != null)
             SpawnRoomPickup(pending, true, RewardPickupPosition());
+        _roomHasPendingReward = pending != null && _roomPickupsLeft > 0;
 
         if (_roomPickupsLeft > 0)
             ShowRewardDoorsLockHint();
+        else
+            AbsorbRoomBlood();
         UnlockExitAfterReward();
     }
 
@@ -250,6 +256,14 @@ public partial class RunManager : Node3D
         if (isPendingReward)
             RunState.ConsumePendingRoomReward();
         _roomPickupsLeft = Mathf.Max(_roomPickupsLeft - 1, 0);
+        // A Bênção suga o sangue na própria absorção (HUD.OpenBloodBlessingOffer); as outras recompensas, aqui.
+        if (isPendingReward || !_roomHasPendingReward)
+        {
+            if (door.Type == RoomRewardType.Blessing)
+                _roomBloodAbsorbed = true;
+            else
+                AbsorbRoomBlood();
+        }
 
         switch (door.Type)
         {
@@ -269,6 +283,15 @@ public partial class RunManager : Node3D
                 UnlockExitAfterRewardDeferred();
                 break;
         }
+    }
+
+    // O Virgil suga as poças de sangue da sala (BloodPool, HUD.AbsorbRoomBlood), uma vez por sala.
+    private void AbsorbRoomBlood()
+    {
+        if (_roomBloodAbsorbed)
+            return;
+        _roomBloodAbsorbed = true;
+        GetTree().CallGroup("hud", "AbsorbRoomBlood");
     }
 
     // Bigorna: com modificacao livre, abre a oferta (obrigatoria; o HUD chama UnlockExitAfterReward ao fechar, como a Bencao).

@@ -20,6 +20,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 
 - `assets/pixel_art/`: arte 2D feita para o jogo (autoria própria), na paleta [AAP-64](https://lospec.com/palette-list/aap-64), de Adigun A. Polack. Detalhes em `assets/pixel_art/SOURCE.md`.
 - `assets/pixel_art/characters/virgil/`: sprite do Virgil (idle, 8 quadros), autoria própria, gerado por `tools/pixel_art/virgil/`. Detalhes no `SOURCE.md` da pasta.
+- `assets/pixel_art/effects/blood_pool/`: poça de sangue dos inimigos, autoria própria, geradas por `tools/pixel_art/blood_pool/`.
 
 ## Interface
 

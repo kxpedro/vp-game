@@ -1,4 +1,5 @@
 using Godot;
+using System.Linq;
 
 // Modo 2D: primeiro nó das cenas de scenes/pixel. Liga o modo 2D (vale também ao abrir a cena direto no editor),
 // troca o ambiente para cores exatas e, nas salas fixas, monta a sala do kit e põe os interativos no lugar.
@@ -14,6 +15,15 @@ public partial class PixelSceneSetup : Node3D
     }
 
     private const string RoomsRoot = "res://assets/pixel_art/crypt/rooms/";
+    // Fonte, bebedouro e bancada do kit (props blood_fountain, blood_basin e weapon_bench): raio da interação (o
+    // obstáculo está em PixelRoomComposer.BlockerSizes) e altura dos títulos, acima do topo das peças (fonte 74,
+    // bebedouro 50 e bancada 67 de z do kit).
+    private const float FountainReach = 4.0f;
+    private const float BasinReach = 2.1f;
+    private const float BasinTitleHeight = 2.6f;
+    private const float BenchReachX = 1.25f;
+    private const float BenchReachZ = 0.8f;
+    private const float KitTitleHeight = 3.5f;
 
     [Export] public RoomKind Kind { get; set; } = RoomKind.RunRoom;
 
@@ -57,6 +67,7 @@ public partial class PixelSceneSetup : Node3D
         if (scene.GetNodeOrNull<IsoCamera>("IsoCamera") is { } camera)
             _room.ConfigureCamera(camera);
 
+        PlaceKitInteractives(scene, layout);
         if (Kind == RoomKind.Hub)
         {
             PlaceHub(scene);
@@ -75,6 +86,71 @@ public partial class PixelSceneSetup : Node3D
                 break;
             }
         }
+    }
+
+    // A fonte de sangue e a bancada de armas são peças do layout (desenhadas e com colisão no PixelRoom): o nó 3D da
+    // cena vai para o lugar da peça, perde a malha e as luzes, a área de interação passa a envolver o obstáculo e os
+    // títulos sobem acima da peça. Roda antes do _Ready dos interativos e dos scripts das salas.
+    private void PlaceKitInteractives(Node scene, PixelRoomLayout layout)
+    {
+        // A sala da primeira herança usa o bebedouro no lugar da fonte; o nó da cena continua sendo o BloodFountain.
+        var basin = FindProp(layout, "blood_basin");
+        if ((basin ?? FindProp(layout, "blood_fountain")) is { } fountainProp && scene.GetNodeOrNull<Node3D>("BloodFountain") is { } fountain)
+        {
+            fountain.Position = PropCenter(fountainProp);
+            HideMeshes(fountain);
+            ReplaceAreaShape(fountain, new CylinderShape3D { Radius = basin != null ? BasinReach : FountainReach, Height = 3.0f });
+            RaiseTitles(fountain, basin != null ? BasinTitleHeight : KitTitleHeight);
+        }
+
+        if (FindProp(layout, "weapon_bench") is { } benchProp && scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
+        {
+            var (offset, half) = PixelRoomComposer.BlockerOf(benchProp.Name);
+            bench.Position = PropCenter(benchProp, offset);
+            bench.Rotation = Vector3.Zero;
+            HideMeshes(bench);
+            var size = new Vector3((half.X * PixelRoom.UnitMeters + BenchReachX) * 2.0f, 2.0f, (half.Y * PixelRoom.UnitMeters + BenchReachZ) * 2.0f);
+            ReplaceAreaShape(bench, new BoxShape3D { Size = size });
+            RaiseTitles(bench, KitTitleHeight);
+        }
+    }
+
+    private static PixelRoomProp FindProp(PixelRoomLayout layout, string name) => layout.Props.FirstOrDefault(p => p.Name == name);
+
+    private Vector3 PropCenter(PixelRoomProp prop, Vector2 offset = default)
+    {
+        return _room.KitToWorld(prop.Gx * 64.0f + prop.Dx + 32.0f + offset.X, prop.Gy * 64.0f + prop.Dy + 32.0f + offset.Y);
+    }
+
+    private static void HideMeshes(Node3D node)
+    {
+        if (node is MeshInstance3D mesh)
+            mesh.Mesh = null;
+        foreach (var child in node.GetChildren())
+        {
+            if (child is MeshInstance3D childMesh)
+                childMesh.Visible = false;
+            else if (child is Light3D light)
+                light.Visible = false;
+        }
+    }
+
+    private static void ReplaceAreaShape(Node3D node, Shape3D shape)
+    {
+        foreach (var area in node.GetChildren().OfType<Area3D>())
+        {
+            foreach (var collision in area.GetChildren().OfType<CollisionShape3D>())
+            {
+                collision.Shape = shape;
+                collision.Position = new Vector3(0.0f, 1.0f, 0.0f);
+            }
+        }
+    }
+
+    private static void RaiseTitles(Node3D node, float height)
+    {
+        foreach (var label in node.GetChildren().OfType<Label3D>())
+            label.Position = new Vector3(label.Position.X, Mathf.Max(label.Position.Y, height), label.Position.Z);
     }
 
     // Salas fixas (bênção e câmara): as paredes 3D da cena somem e vão para a borda da sala do kit, porque as portas
@@ -114,15 +190,13 @@ public partial class PixelSceneSetup : Node3D
             visual.Visible = false;
     }
 
-    // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada e
-    // Odalric na da esquerda, personagens futuros na da direita, boneco no salão central, caixão do Virgil embaixo.
+    // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada
+    // (peça do layout, posta por PlaceKitInteractives) e Odalric na da esquerda, personagens futuros na da direita, boneco no salão central, caixão do Virgil embaixo.
     // Posições em unidades do kit (64 = 1 tile).
     private void PlaceHub(Node scene)
     {
         if (scene.GetNodeOrNull<Node3D>("Player") is { } player)
             player.Position = _room.KitToWorld(992.0f, 1610.0f, 0.2f);
-        if (scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
-            bench.Position = _room.KitToWorld(330.0f, 900.0f, 0.45f);
         // Portão do início da run no arco do fundo da sala de cima (edge "arch ne 15 3" do hub_completo.txt).
         if (scene.GetNodeOrNull<RunStartGate>("StartRunPortal") is { } gate)
             gate.ConfigurePixel(_room, 15, 3, "ne");
