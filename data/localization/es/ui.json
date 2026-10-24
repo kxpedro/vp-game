@@ -204,6 +204,7 @@
   "hud.toast.wave_body_other": "{0} enemigos",
   "hud.toast.wave_title": "Próxima oleada",
   "hud.weapon": "Arma: {0}",
+  "loading.run": "Cargando",
   "menu.back": "Volver",
   "menu.choose_slot": "Elige una ranura",
   "menu.credits": "Créditos",

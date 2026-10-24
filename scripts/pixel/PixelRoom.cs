@@ -134,6 +134,67 @@ public partial class PixelRoom : Node3D
         });
     }
 
+    /// <summary>
+    /// Peça do kit desenhada por cima da sala (fora do layout), alinhada ao tile (gx, gy) como o composer alinha as
+    /// peças: mesmo chão, mesma profundidade por pixel (o jogador passa na frente e atrás dela) e pixels
+    /// transparentes descartados. Troque o quadro com <see cref="SetOverlayPiece"/>. Usada pela grade do portão
+    /// (RunStartGate). A luz das velas não é recalculada: a peça sai com a luz base do kit.
+    /// </summary>
+    public MeshInstance3D AddOverlay(string name, string piece, int gx, int gy)
+    {
+        var color = PixelRoomComposer.LoadImage(PixelRoomComposer.KitRoot + piece + ".png");
+        if (color == null)
+            return null;
+
+        var width = color.GetWidth();
+        var height = color.GetHeight();
+        // Pixel (px, py) da peça -> tela do kit (sx = wx - wy, sy = (wx + wy) / 2) com o vértice de cima do tile em
+        // (112, 116), igual ao Blit do composer; a tela vira ponto do chão como no CreateBackdrop.
+        Vector3 Ground(float px, float py)
+        {
+            var sx = gx * 64.0f - gy * 64.0f - PixelRoomComposer.TileTopX + px;
+            var sy = (gx + gy) * 32.0f - PixelRoomComposer.TileTopY + py;
+            return KitToWorld(sy + sx * 0.5f, sy - sx * 0.5f, -0.02f);
+        }
+
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = new[] { Ground(0, 0), Ground(width, 0), Ground(width, height), Ground(0, height) };
+        arrays[(int)Mesh.ArrayType.TexUV] = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+        arrays[(int)Mesh.ArrayType.Index] = new[] { 0, 1, 2, 0, 2, 3 };
+        var mesh = new ArrayMesh();
+        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+
+        var material = new ShaderMaterial { Shader = new Shader { Code = OverlayShader } };
+        material.SetShaderParameter("ray_per_unit", HeightMeters / Mathf.Sin(Mathf.DegToRad(CameraPitchDegrees)));
+        material.SetShaderParameter("height_scale", PixelRoomComposer.HeightScale);
+        var overlay = new MeshInstance3D
+        {
+            Name = name,
+            Mesh = mesh,
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            ExtraCullMargin = 50.0f
+        };
+        AddChild(overlay);
+        SetOverlayPiece(overlay, piece, color);
+        return overlay;
+    }
+
+    /// <summary>Troca a imagem (e a altura) de uma peça criada por <see cref="AddOverlay"/>; a peça nova tem o mesmo tamanho.</summary>
+    public static void SetOverlayPiece(MeshInstance3D overlay, string piece, Image color = null)
+    {
+        if (overlay?.MaterialOverride is not ShaderMaterial material)
+            return;
+        color ??= PixelRoomComposer.LoadImage(PixelRoomComposer.KitRoot + piece + ".png");
+        if (color == null)
+            return;
+        var height = PixelRoomComposer.LoadImage(PixelRoomComposer.KitRoot + "heights/" + piece + ".png");
+        material.SetShaderParameter("color_tex", ImageTexture.CreateFromImage(color));
+        if (height != null)
+            material.SetShaderParameter("height_tex", ImageTexture.CreateFromImage(height));
+    }
+
     private void CreateCollision()
     {
         var body = new StaticBody3D { Name = "PixelRoomCollision" };
@@ -200,6 +261,37 @@ void fragment() {
     vec4 clip = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(p, 1.0));
     DEPTH = clip.z / clip.w;
     ALBEDO = texture(color_tex, UV).rgb;
+}
+";
+
+    // Igual ao BackdropShader, com os pixels transparentes da peça descartados.
+    private const string OverlayShader = @"
+shader_type spatial;
+render_mode unshaded, cull_disabled, shadows_disabled;
+
+uniform sampler2D color_tex : source_color, filter_nearest;
+uniform sampler2D height_tex : filter_nearest;
+uniform float ray_per_unit;
+uniform float height_scale;
+
+varying vec3 world_pos;
+
+void vertex() {
+    world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+    vec4 c = texture(color_tex, UV);
+    if (c.a < 0.5) {
+        discard;
+    }
+    vec4 h = texture(height_tex, UV);
+    float z = (round(h.r * 255.0) * 256.0 + round(h.g * 255.0)) / height_scale;
+    vec3 toward_camera = normalize(INV_VIEW_MATRIX[2].xyz);
+    vec3 p = world_pos + toward_camera * (z * ray_per_unit);
+    vec4 clip = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(p, 1.0));
+    DEPTH = clip.z / clip.w;
+    ALBEDO = c.rgb;
 }
 ";
 }

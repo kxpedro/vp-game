@@ -143,6 +143,10 @@ public static class PixelRoomComposer
         public List<(float X, float Y, float Power, float Radius)> Lights = new();
     }
 
+    // Vértice de cima do tile dentro de cada peça do kit (manifest.json, tile_top_vertex).
+    public static int TileTopX => EnsureManifest() ? _topX : 112;
+    public static int TileTopY => EnsureManifest() ? _topY : 116;
+
     private static JsonDocument _manifest;
     private static int _canvasW = 224, _canvasH = 208, _topX = 112, _topY = 116;
     private static float _bakedAmbient = -0.6f;

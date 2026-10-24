@@ -94,7 +94,7 @@ public partial class PixelSceneSetup : Node3D
             visual.Visible = false;
     }
 
-    // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portal na sala de cima, bancada e
+    // Hub do kit (layouts/hub_completo.txt, 31x31 tiles): fonte no centro (origem), portão da run na sala de cima, bancada e
     // Odalric na da esquerda, personagens futuros na da direita, boneco no salão central, caixão do Virgil embaixo.
     // Posições em unidades do kit (64 = 1 tile).
     private void PlaceHub(Node scene)
@@ -103,8 +103,9 @@ public partial class PixelSceneSetup : Node3D
             player.Position = _room.KitToWorld(992.0f, 1610.0f, 0.2f);
         if (scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
             bench.Position = _room.KitToWorld(330.0f, 900.0f, 0.45f);
-        if (scene.GetNodeOrNull<Node3D>("StartRunPortal") is { } portal)
-            portal.Position = _room.KitToWorld(992.0f, 320.0f, 0.12f);
+        // Portão do início da run no arco do fundo da sala de cima (edge "arch ne 15 3" do hub_completo.txt).
+        if (scene.GetNodeOrNull<RunStartGate>("StartRunPortal") is { } gate)
+            gate.ConfigurePixel(_room, 15, 3, "ne");
 
         var spots = new[] { _room.KitToWorld(1700.0f, 860.0f), _room.KitToWorld(1700.0f, 992.0f), _room.KitToWorld(1700.0f, 1124.0f) };
         for (var i = 0; i < spots.Length; i++)
