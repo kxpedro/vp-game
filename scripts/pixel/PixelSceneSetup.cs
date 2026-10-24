@@ -19,6 +19,12 @@ public partial class PixelSceneSetup : Node3D
 
     private PixelRoom _room;
 
+    /// <summary>Salas fixas da run (bênção e câmara): parede do arco de saída do layout, onde ficam as portas.</summary>
+    public PixelDoorWall ExitWall { get; private set; }
+
+    /// <summary>Parede de saída da sala 2D da cena (nó PixelSetup); null no 3D.</summary>
+    public static PixelDoorWall ExitWallOf(Node scene) => scene?.GetNodeOrNull<PixelSceneSetup>("PixelSetup")?.ExitWall;
+
     public override void _EnterTree()
     {
         GameMode.Current = GameMode.Kind.PixelArt;
@@ -52,9 +58,23 @@ public partial class PixelSceneSetup : Node3D
             _room.ConfigureCamera(camera);
 
         if (Kind == RoomKind.Hub)
+        {
             PlaceHub(scene);
-        else
-            AlignShellWalls(scene);
+            return;
+        }
+
+        AlignShellWalls(scene);
+        // O arco de saída do layout (borda "arch" do fundo) é o centro da parede das portas; com duas portas a sala é
+        // redesenhada com os arcos dos lados (PixelDoorWall).
+        foreach (var edge in layout.Edges)
+        {
+            if (edge.Value == "arch" && edge.Key.Side is "ne" or "nw")
+            {
+                ExitWall = new PixelDoorWall(_room, layout, new Vector2I(edge.Key.X, edge.Key.Y), edge.Key.Side);
+                ExitWall.SetDoorCount(1);
+                break;
+            }
+        }
     }
 
     // Salas fixas (bênção e câmara): as paredes 3D da cena somem e vão para a borda da sala do kit, porque as portas

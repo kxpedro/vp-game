@@ -264,6 +264,19 @@ As portas só ficam disponíveis depois que a recompensa da sala atual foi resol
 - **Moedas:** depois do "+N" (é imediato).
 - **Fruta:** depois que a Fruta for coletada (proposta, [VALIDAR]). Se a porta abrisse antes, o jogador poderia cruzar a porta e perder a fruta, que fica na sala que já não está mais ativa. A fruta é gerada em célula caminhável com margem (`ClampToWalkableArea`), então não há risco de trava.
 
+### 6.6 Visual: o portão do hub em todas as portas
+
+Toda saída de sala (portas de recompensa, saída única da sala N, saída do boss, sala da primeira Bênção e Câmara) usa o
+mesmo portão do início da run no hub: uma grade de ferro que sobe (`PortcullisGate`, 8 quadros no 2D).
+
+- **Travada** (itens no chão, sala em combate): grade fechada.
+- **Liberada:** a grade sobe um quadro (entreaberta). Com o jogador a até 2,8 m dela, sobe inteira; ao se afastar, volta a entreabrir.
+- **Atravessar:** com a grade aberta, entrar no vão (até 0,75 m da face da parede) escolhe a porta, sem botão. Interagir de perto continua valendo.
+- **Porta não escolhida:** a grade desce (0,3 s, 7.2).
+- **3D:** a grade fica entre as colunas da moldura (as barras fixas e o disco do chão saíram), e o gate antigo (`gate.glb`) não aparece mais.
+- **2D:** cada porta fica num arco da parede do kit (borda `arch`), com a grade do kit por cima. Uma porta usa o tile do meio da parede de saída; duas usam os tiles vizinhos (o do meio fica liso). A sala nasce com dois arcos quando vai ter conjunto de portas; se o sorteio der uma, a parede é redesenhada em segundo plano (`PixelDoorWall`, `PixelRoom.RecomposeAsync`). No 2D a saída fica sempre numa parede do fundo (ne/nw), as únicas com arco e grade no kit.
+- A sala do boss também passou a ter a saída no meio da parede norte, com o portão.
+
 ---
 
 ## 7. Regras de escolha e entrega

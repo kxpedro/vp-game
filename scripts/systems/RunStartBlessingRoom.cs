@@ -74,6 +74,7 @@ public partial class RunStartBlessingRoom : Node3D
         var wall = GetNode<Node3D>("NorthWall");
         var thickness = (wall.GetNode<CollisionShape3D>("Collision").Shape as BoxShape3D)?.Size.Z ?? 0.45f;
         ScenePortal.PlaceOnWall(_exitPortalRoot, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
+        ScenePortal.SetupExitGate(_exitPortalRoot, PixelSceneSetup.ExitWallOf(this));
     }
 
     public void UnlockExitAfterReward()
@@ -89,7 +90,7 @@ public partial class RunStartBlessingRoom : Node3D
         var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0, singleDoor: true);
         var doors = set == null
             ? null
-            : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true);
+            : ScenePortal.BuildRewardDoors(_exitPortalRoot, set, RoomScenePath, ScenePortal.RunPortalAction.None, true, PixelSceneSetup.ExitWallOf(this));
         if (doors is { Count: > 0 })
         {
             foreach (var door in doors)

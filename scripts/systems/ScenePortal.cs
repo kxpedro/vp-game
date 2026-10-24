@@ -18,6 +18,16 @@ public partial class ScenePortal : Area3D
     public const float WallClearance = 0.05f;
     // Queda das barras ao fechar (barra com 2,25 m de altura, docs/design/portas-recompensas.md, 7.2).
     private const float DoorBarDrop = 2.3f;
+    // Portão (PortcullisGate "Gate" irmão deste nó, igual ao do hub): a grade sobe quando o jogador chega a GateOpenRadius
+    // da porta liberada, e entrar no vão (até GatePassDepth da face da parede) atravessa a porta, sem precisar de botão.
+    // Liberada e sem ninguém perto, a grade fica um quadro acima do chão (GateAjar), para mostrar que dá para passar.
+    public const string GateName = "Gate";
+    private const string ExtraGateName = "GateExtra";
+    private const float GateOpenRadius = 2.8f;
+    private const float GatePassDepth = 0.75f;
+    private const float GateAjar = 1.0f / (PortcullisGate.PixelFrames - 1);
+    private const float GateOpenSeconds = 0.8f;
+    private static readonly StringName PlayerGroup = "player";
 
     [Export(PropertyHint.File, "*.tscn")] public string TargetScenePath { get; set; } = "";
     // Texto do prompt ou chave de data/localization/<idioma>/*.json (resolvida na exibição e na troca de idioma).
@@ -34,6 +44,9 @@ public partial class ScenePortal : Area3D
     private bool _isPlayerInside;
     private bool _isEnabled;
     private bool _isChosen;
+    private bool _isLeaving;
+    private PortcullisGate _gate;
+    private Node3D _player;
     // Aviso ao aproximar de uma porta travada pela fruta da sala (reward.door.fruit.locked).
     private bool _fruitLockHint;
     private Label3D _promptLabel;
@@ -74,10 +87,15 @@ public partial class ScenePortal : Area3D
 
     public override void _Process(double delta)
     {
-        if (!_isEnabled || !_isPlayerInside)
+        UpdateGate();
+        if (!_isEnabled || _isLeaving)
             return;
 
-        if (!InteractPrompt.ConsumeInteract(this) || string.IsNullOrWhiteSpace(TargetScenePath))
+        // Com portão: entrar no vão com a grade aberta atravessa. O botão de interagir continua valendo de perto.
+        var walkedIn = Gate is { OpenAmount: >= 0.95f } && PlayerInDoorway();
+        if (!walkedIn && (!_isPlayerInside || !InteractPrompt.ConsumeInteract(this)))
+            return;
+        if (string.IsNullOrWhiteSpace(TargetScenePath))
             return;
 
         if (RewardDoor != null)
@@ -86,8 +104,60 @@ public partial class ScenePortal : Area3D
             return;
         }
 
+        _isLeaving = true;
         ApplyPortalAction();
         GetTree().ChangeSceneToFile(GameMode.Scene(TargetScenePath));
+    }
+
+    private PortcullisGate Gate
+    {
+        get
+        {
+            if (_gate == null || !IsInstanceValid(_gate))
+                _gate = GetParent()?.GetNodeOrNull<PortcullisGate>(GateName);
+            return _gate;
+        }
+    }
+
+    // Grade: aberta ao escolher, fechada com a porta travada, aberta com o jogador perto e entreaberta no resto.
+    private void UpdateGate()
+    {
+        var gate = Gate;
+        if (gate == null)
+            return;
+        float target;
+        if (_isChosen || _isLeaving)
+            target = 1.0f;
+        else if (!_isEnabled)
+            target = 0.0f;
+        else
+            target = PlayerNearGate() ? 1.0f : GateAjar;
+        gate.MoveTo(target, GateOpenSeconds);
+    }
+
+    // Posição do jogador na base da porta (origem na face da parede, +Z para dentro da sala, +X ao longo da parede).
+    private bool TryPlayerLocal(out Vector3 local)
+    {
+        local = Vector3.Zero;
+        if (_player == null || !IsInstanceValid(_player) || !_player.IsInsideTree())
+            _player = GetTree().GetFirstNodeInGroup(PlayerGroup) as Node3D;
+        if (_player == null || GetParent() is not Node3D root)
+            return false;
+        local = root.GlobalTransform.Orthonormalized().AffineInverse() * _player.GlobalPosition;
+        return true;
+    }
+
+    private bool PlayerNearGate()
+    {
+        return TryPlayerLocal(out var local) && local.Z > -0.5f && new Vector2(local.X, local.Z).Length() < GateOpenRadius;
+    }
+
+    private bool PlayerInDoorway()
+    {
+        var gate = Gate;
+        return gate != null && TryPlayerLocal(out var local)
+            && local.Z > -1.0f && local.Z < GatePassDepth
+            && Mathf.Abs(local.X) < gate.OpeningWidth * 0.5f + 0.2f;
     }
 
     public void ConfigureDestination(string targetScenePath, string promptText, RunPortalAction portalAction)
@@ -135,6 +205,7 @@ public partial class ScenePortal : Area3D
     public void CloseDoor(float seconds)
     {
         SetPortalEnabled(false);
+        Gate?.MoveTo(0.0f, seconds / Mathf.Max(Gate.OpenAmount, 0.15f));
         var bars = BarsOf(GetParent() as Node3D);
         if (bars.Count == 0)
             return;
@@ -266,14 +337,105 @@ public partial class ScenePortal : Area3D
     }
 
     /// <summary>
+    /// Troca as barras fixas do portal modelo pelo portão do hub (PortcullisGate), que a ScenePortal "PortalArea" abre
+    /// quando o jogador chega perto da saída liberada. Chamar depois de pôr o modelo na parede (PlaceOnWall).
+    /// No 3D a grade fica entre as colunas da moldura. No 2D (<paramref name="pixelWall"/>) o modelo vai para o arco da
+    /// parede da sala do kit, a moldura 3D some e cada arco ganha a grade do kit; com dois arcos (sala que vai ter duas
+    /// portas), o segundo fica com uma grade fechada até as portas nascerem (BuildRewardDoors).
+    /// </summary>
+    public static void SetupExitGate(Node3D template, PixelDoorWall pixelWall)
+    {
+        if (template == null || template.GetNodeOrNull<PortcullisGate>(GateName) != null)
+            return;
+
+        if (pixelWall == null)
+        {
+            RemoveFixedBars(template);
+            template.AddChild(CreateFrameGate(template));
+            return;
+        }
+
+        var count = Mathf.Max(pixelWall.DoorCount, 1);
+        template.Transform = pixelWall.DoorTransform(0, count);
+        foreach (var child in template.GetChildren())
+        {
+            if (child is MeshInstance3D mesh)
+                mesh.Visible = false;
+        }
+        template.AddChild(CreatePixelGate(pixelWall, 0, count, GateName));
+        if (count > 1)
+        {
+            // A grade extra é filha do modelo, mas desenha no seu próprio arco (a posição da peça vem do tile).
+            template.AddChild(CreatePixelGate(pixelWall, 1, count, ExtraGateName));
+        }
+    }
+
+    // Grade 3D entre as colunas da moldura (Pillar*, já na escala da porta) e sob o lintel.
+    private static PortcullisGate CreateFrameGate(Node3D frame)
+    {
+        var pillarX = 1.15f;
+        var pillarWidth = 0.34f;
+        var top = 2.53f;
+        foreach (var child in frame.GetChildren())
+        {
+            if (child is not MeshInstance3D piece || piece.Mesh is not BoxMesh box)
+                continue;
+            var name = piece.Name.ToString();
+            if (name.StartsWith("Pillar", StringComparison.Ordinal))
+            {
+                pillarX = Mathf.Abs(piece.Position.X);
+                pillarWidth = box.Size.X;
+            }
+            else if (name == "Lintel")
+                top = piece.Position.Y - box.Size.Y * 0.5f;
+        }
+        return new PortcullisGate
+        {
+            Name = GateName,
+            OpeningWidth = Mathf.Max(pillarX * 2.0f - pillarWidth, 0.6f),
+            OpeningHeight = Mathf.Max(top, 1.0f)
+        };
+    }
+
+    private static PortcullisGate CreatePixelGate(PixelDoorWall wall, int index, int count, string name)
+    {
+        var tile = wall.DoorTile(index, count);
+        var gate = new PortcullisGate
+        {
+            Name = name,
+            // Vão do arco do kit (walls.py, wall_arch): 40 unidades.
+            OpeningWidth = 40.0f * PixelRoom.UnitMeters
+        };
+        gate.ConfigurePixel(wall.Room, tile.X, tile.Y, wall.Side);
+        return gate;
+    }
+
+    // As barras fixas antigas (Bar*) e o disco do chão saem: quem fecha a passagem agora é a grade.
+    private static void RemoveFixedBars(Node3D frame)
+    {
+        foreach (var child in frame.GetChildren())
+        {
+            if (child is MeshInstance3D mesh && IsFixedBarOrDisc(mesh.Name.ToString()))
+            {
+                frame.RemoveChild(mesh);
+                mesh.QueueFree();
+            }
+        }
+    }
+
+    private static bool IsFixedBarOrDisc(string name) => name == "Disc" || name.StartsWith("Bar", StringComparison.Ordinal);
+
+    /// <summary>
     /// Monta as portas de recompensa de uma saída a partir do portal modelo (docs/design/portas-recompensas.md, 6.3).
     /// Uma porta fica no centro do modelo; duas ficam a ±1 célula ao longo da base do modelo (+X = direita de quem olha
     /// a porta de frente, ver WallBasis), com a moldura em 60% da largura. Quem chama põe o modelo na parede com PlaceOnWall.
     /// Cada porta vira a raiz "RewardDoor_i" (com a moldura copiada, um ícone provisório e o ScenePortal "PortalArea").
     /// O modelo fica escondido. Devolve as portas na ordem de <see cref="RoomRewardSet.Doors"/> (0 = esquerda).
     /// <paramref name="startEnabled"/> = false deixa as portas travadas até a recompensa ser resolvida.
+    /// Cada porta tem o portão do hub (PortcullisGate "Gate"). No 2D (<paramref name="pixelWall"/>) as portas vão para os
+    /// arcos da parede da sala do kit (a sala é redesenhada se o número de arcos mudar), sem a moldura 3D.
     /// </summary>
-    public static List<ScenePortal> BuildRewardDoors(Node3D template, RoomRewardSet set, string targetScenePath, RunPortalAction action, bool startEnabled)
+    public static List<ScenePortal> BuildRewardDoors(Node3D template, RoomRewardSet set, string targetScenePath, RunPortalAction action, bool startEnabled, PixelDoorWall pixelWall = null)
     {
         var doors = new List<ScenePortal>();
         var parent = template?.GetParent();
@@ -285,6 +447,16 @@ public partial class ScenePortal : Area3D
         var twoDoors = set.TwoDoors;
         var offset = CompendiumTuning.GetFloat("reward.door.two_door_offset_cells", 1.0f) * DoorCellSize;
         var frameScale = twoDoors ? CompendiumTuning.GetFloat("reward.door.two_door_frame_scale", 0.6f) : 1.0f;
+        pixelWall?.SetDoorCount(set.Doors.Count);
+        // As grades do modelo dão lugar às das portas (no 2D elas ocupam os mesmos arcos).
+        foreach (var name in new[] { GateName, ExtraGateName })
+        {
+            if (template.GetNodeOrNull<Node>(name) is { } oldGate)
+            {
+                template.RemoveChild(oldGate);
+                oldGate.QueueFree();
+            }
+        }
 
         for (var i = 0; i < set.Doors.Count; i++)
         {
@@ -292,10 +464,20 @@ public partial class ScenePortal : Area3D
             var root = new Node3D
             {
                 Name = $"RewardDoor_{i}",
-                Transform = new Transform3D(basis, template.Position + basis.X * lateral)
+                Transform = pixelWall != null
+                    ? pixelWall.DoorTransform(i, set.Doors.Count)
+                    : new Transform3D(basis, template.Position + basis.X * lateral)
             };
             parent.AddChild(root);
-            CopyDoorFrame(template, root, frameScale);
+            if (pixelWall != null)
+            {
+                root.AddChild(CreatePixelGate(pixelWall, i, set.Doors.Count, GateName));
+            }
+            else
+            {
+                CopyDoorFrame(template, root, frameScale);
+                root.AddChild(CreateFrameGate(root));
+            }
             // Rótulo do medalhão para fora do conjunto: a porta da esquerda o põe à esquerda, a da direita à direita.
             AddRewardIcon(root, set.Doors[i], lateral < 0.0f ? -1 : 1);
             doors.Add(CreateDoorArea(templatePortal, root, set.Doors[i], targetScenePath, action, startEnabled));
@@ -309,13 +491,13 @@ public partial class ScenePortal : Area3D
         return doors;
     }
 
-    // Copia as peças de moldura (colunas, lintel, disco e barras). Com duas portas, as colunas e as barras
-    // ficam mais perto do centro e o lintel e o disco encolhem na largura.
+    // Copia as peças de moldura (colunas e lintel; as barras fixas e o disco viraram o portão). Com duas portas, as
+    // colunas ficam mais perto do centro e o lintel encolhe na largura.
     private static void CopyDoorFrame(Node3D template, Node3D root, float frameScale)
     {
         foreach (var child in template.GetChildren())
         {
-            if (child is not MeshInstance3D piece)
+            if (child is not MeshInstance3D piece || IsFixedBarOrDisc(piece.Name.ToString()))
                 continue;
 
             var copy = (MeshInstance3D)piece.Duplicate();

@@ -204,7 +204,7 @@ public partial class RunManager : Node3D
         if (set == null)
             return;
 
-        _rewardDoors.AddRange(ScenePortal.BuildRewardDoors(_exitPortal, set, RoomScenePath, ScenePortal.RunPortalAction.AdvanceRoom, false));
+        _rewardDoors.AddRange(ScenePortal.BuildRewardDoors(_exitPortal, set, RoomScenePath, ScenePortal.RunPortalAction.AdvanceRoom, false, _roomGenerator?.PixelExitWall));
         foreach (var door in _rewardDoors)
             door.SetBarsMaterial(_lockedPortalMaterial);
     }

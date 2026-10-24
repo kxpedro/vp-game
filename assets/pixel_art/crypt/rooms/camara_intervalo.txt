@@ -1,4 +1,5 @@
-# Câmara de Hemomancia (modo 2D): 9x9 tiles, saída em arco no meio da parede norte (tile 4,0).
+# Câmara de Hemomancia (modo 2D): 9x9 tiles, saída em arco no meio da parede norte (tile 4,0); com duas portas o
+# jogo troca esse arco pelos dos tiles 3,0 e 5,0 (PixelDoorWall), por isso não há objetos encostados neles.
 # Fonte a oeste, altar a leste, loja ao norte (posições na cena 3D; a origem é o centro da sala).
 [grid]
 .........
@@ -26,8 +27,8 @@ candles_large_a 0 0 -14 -16
 candles_large_b 8 0 16 -16
 candles_large_a 0 8 -14 18
 candles_large_b 8 8 16 18
-candles_medium_a 3 0 0 -18
-candles_medium_b 5 0 0 -18
+candles_medium_a 2 0 -8 -18
+candles_medium_b 6 0 8 -18
 sconce_ne 2 0
 sconce_ne 6 0
 sconce_nw 0 4
