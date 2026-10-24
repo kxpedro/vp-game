@@ -146,7 +146,10 @@ public partial class EnemyBasic : CharacterBody3D
     public bool HasStaggerArmor => Name.ToString().Contains("Boss")
         || (_health?.ShieldHits ?? 0) > 0
         || (Rarity is EnemyRarity.Rare or EnemyRarity.Legendary && Archetype == EnemyArchetype.Tank);
-    public bool CanAttackAfterSpawn => _spawnAttackDelayRemaining <= 0.0f;
+    // Boss dormente (esperando o jogador e o dialogo de encontro) nunca conta como pronto para atacar.
+    public bool CanAttackAfterSpawn => _spawnAttackDelayRemaining <= 0.0f && !IsBossDormant;
+    public bool IsBossDormant { get; private set; }
+    public PixelEnemySprite PixelVisual => _importedVisual as PixelEnemySprite;
 
     // Valores base por instancia (enemy.base.*): aplicados uma vez no _Ready; sem override mantem o valor atual (cena/Export).
     private void ApplyBaseDevTuning()
@@ -1274,6 +1277,13 @@ public partial class EnemyBasic : CharacterBody3D
     {
         _bossMovesEnabled = true;
         _attackCooldownRemaining = 0.0f;
+    }
+
+    // Dormente: parado, sem dano de contato e sem golpes, ate o BossController acordar o boss.
+    public void SetBossDormant(bool dormant)
+    {
+        IsBossDormant = dormant;
+        SetBossActionLocked(dormant);
     }
 
     public void SetBossActionLocked(bool locked)

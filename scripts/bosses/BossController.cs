@@ -51,6 +51,8 @@ public partial class BossController : Node
         _health.SetMaxHealth(Mathf.Max(definition.EstimatedMaxHealth, G("boss.hp.min", 1000.0f)), true);
         _health.HealthChanged += OnHealthChanged;
         _enemy.EnableBossMoves();
+        // O boss ja esta na sala, parado, esperando o jogador chegar perto (BossController.Encounter.cs).
+        EnterDormant();
         _moveTimer = G("boss.first_move_delay", 1.1f);
     }
 
@@ -62,6 +64,11 @@ public partial class BossController : Node
     public override void _Process(double delta)
     {
         if (_enemy == null || _health == null || _health.IsDead) return;
+        if (_dormant)
+        {
+            TickDormant();
+            return;
+        }
         if (_phaseBreakRemaining > 0.0f)
         {
             _phaseBreakRemaining -= (float)delta;
@@ -87,11 +94,15 @@ public partial class BossController : Node
         // Aviso de inicio de golpe: som + flash no corpo + anel no chao.
         PlayCue("boss_windup");
         _enemy.FlashWindup();
-        SpawnRing(_enemy.GlobalPosition, 0.9f, 2.6f, 0.35f, new Color(1.0f, 0.7f, 0.15f));
+        if (IsInvisibleWoman)
+            BossRuneFx.Flare(GetTree().CurrentScene, _enemy.GlobalPosition, 1.1f, BossRuneFx.Violet, _enemy.GlobalPosition.Y);
+        else
+            SpawnRing(_enemy.GlobalPosition, 0.9f, 2.6f, 0.35f, new Color(1.0f, 0.7f, 0.15f));
         // Log de debug (literal): o texto exibido ao jogador nao passa por aqui.
         GetTree().CallGroup("hud", "AppendGameLog", $"{Definition.DisplayName} prepara {move.DisplayName}.");
 
         await ExecuteMove(move);
+        RestoreVisibility();
 
         if (IsInstanceValid(_enemy) && !_health.IsDead)
             _enemy.SetBossActionLocked(false);
@@ -115,7 +126,10 @@ public partial class BossController : Node
         return selected;
     }
 
-    private Task ExecuteMove(BossMoveDefinition move) => move.Id switch
+    // A Guardia Invisivel tem golpes e efeitos proprios (BossController.InvisibleWoman.cs); os outros bosses usam os genericos.
+    private Task ExecuteMove(BossMoveDefinition move) => IsInvisibleWoman ? ExecuteInvisibleWomanMove(move) : ExecuteDefaultMove(move);
+
+    private Task ExecuteDefaultMove(BossMoveDefinition move) => move.Id switch
     {
         "claw_combo" => ExecuteClawCombo(move),
         "tail_sweep" => ExecuteRadialPulse(move, G("boss.tail_sweep.radius", 3.6f), G("boss.tail_sweep.windup", 0.62f), CompendiumTuning.GetInt("boss.tail_sweep.pulses", 1)),
@@ -308,6 +322,8 @@ public partial class BossController : Node
 
     private Node3D CreateCircleTelegraph(Vector3 center, float radius, float windup)
     {
+        if (IsInvisibleWoman)
+            return TrackTelegraph(BossRuneFx.Circle(GetTree().CurrentScene, center, radius, 0.0f, _nextCircleShape, BossRuneFx.Violet, FloorY(center)).Charge(windup));
         var telegraph = new Node3D { Name = "BossCircleTelegraph" };
         GetTree().CurrentScene.AddChild(telegraph);
         _activeTelegraphs.Add(telegraph);
@@ -346,6 +362,8 @@ public partial class BossController : Node
 
     private Node3D CreateLineTelegraph(Vector3 direction, float length, float width, float windup)
     {
+        if (IsInvisibleWoman)
+            return TrackTelegraph(BossRuneFx.Line(GetTree().CurrentScene, _enemy.GlobalPosition, direction, length, width * 0.5f, BossRuneFx.Violet, _enemy.GlobalPosition.Y).Charge(windup));
         var telegraph = new Node3D { Name = "BossChargeTelegraph" };
         GetTree().CurrentScene.AddChild(telegraph);
         _activeTelegraphs.Add(telegraph);
@@ -399,6 +417,11 @@ public partial class BossController : Node
     {
         _activeTelegraphs.Remove(telegraph);
         if (!IsInstanceValid(telegraph)) return;
+        if (telegraph is BossRuneFx runeFx)
+        {
+            runeFx.Release(impact);
+            return;
+        }
         var fill = telegraph.FindChild("TelegraphFill", true, false) as MeshInstance3D;
         if (!impact || fill?.MaterialOverride is not StandardMaterial3D material)
         {
@@ -489,6 +512,11 @@ public partial class BossController : Node
     private async Task WarnTeleport(Vector3 destination)
     {
         if (!CanContinue()) return;
+        if (IsInvisibleWoman)
+        {
+            await WarnFadeTeleport(destination);
+            return;
+        }
         PlayCue("boss_teleport");
         _enemy.FlashWindup();
         var violet = new Color(0.78f, 0.3f, 1.0f);
@@ -612,7 +640,10 @@ public partial class BossController : Node
         var wasInvincible = _health.IsInvincible;
         _health.SetInvincible(true);
         PlayCue("boss_phase");
-        SpawnRing(_enemy.GlobalPosition, 1.0f, 7.0f, PhaseBreakSeconds, new Color(1.0f, 0.85f, 0.4f));
+        if (IsInvisibleWoman)
+            BossRuneFx.Flare(GetTree().CurrentScene, _enemy.GlobalPosition, 3.2f, BossRuneFx.Violet, _enemy.GlobalPosition.Y, PhaseBreakSeconds);
+        else
+            SpawnRing(_enemy.GlobalPosition, 1.0f, 7.0f, PhaseBreakSeconds, new Color(1.0f, 0.85f, 0.4f));
         for (var flash = 0; flash < 3; flash++)
         {
             if (!IsInstanceValid(_enemy)) break;

@@ -17,7 +17,6 @@ public partial class DialogueManager : Node
     private const int MaxBarksPerRoom = 2;
     private const double BarkRoomEnterDelay = 1.2;
     private const double BarkRoomClearedDelay = 0.8;
-    private const double BossPreDelay = 0.6;
     private const double BossPostDelay = 1.6;
     private const float LowHealthRatio = 0.3f;
     private const float LowHealthRearmRatio = 0.5f;
@@ -25,7 +24,7 @@ public partial class DialogueManager : Node
     private const double RetryWindow = 10.0;
     private const double ProbeInterval = 0.5;
 
-    private enum Scheduled { BarkRoomEnter, BarkRoomCleared, BossPre, BossPost }
+    private enum Scheduled { BarkRoomEnter, BarkRoomCleared, BossPost }
 
     private sealed class Pending
     {
@@ -168,8 +167,9 @@ public partial class DialogueManager : Node
                 _barkQueue.Clear();
                 GetTree()?.CallGroup("hud", "HideDialogueBark");   // nao renomear
                 if (!RunState.IsRunActive) return;
-                if (RunState.IsBossRoom) Schedule(Scheduled.BossPre, BossPreDelay);
-                else Schedule(Scheduled.BarkRoomEnter, BarkRoomEnterDelay);
+                // Sala de boss: a conversa boss_pre abre no encontro (BossController chama TryStartBossEncounter
+                // quando o jogador chega perto do boss, que espera dormente), nao ao entrar.
+                if (!RunState.IsBossRoom) Schedule(Scheduled.BarkRoomEnter, BarkRoomEnterDelay);
                 break;
             case DialogueEvent.RoomCleared:
                 if (RunState.IsRunActive) Schedule(Scheduled.BarkRoomCleared, BarkRoomClearedDelay);
@@ -192,7 +192,6 @@ public partial class DialogueManager : Node
         {
             case Scheduled.BarkRoomEnter: TryBark(DialogueTrigger.RoomEnter); break;
             case Scheduled.BarkRoomCleared: TryBark(DialogueTrigger.RoomCleared); break;
-            case Scheduled.BossPre: RunBossConversation(item, DialogueCategory.BossPre, true); break;
             case Scheduled.BossPost: RunBossConversation(item, DialogueCategory.BossPost, false); break;
         }
     }
@@ -209,6 +208,17 @@ public partial class DialogueManager : Node
             item.Due = _clock + RetryInterval;
             _pending.Add(item);
         }
+    }
+
+    /// <summary>
+    /// Encontro com o boss: abre agora a conversa boss_pre (com fallback generico). false = nada abriu
+    /// (sem conversa elegivel ou outra janela aberta); o BossController tenta de novo ou acorda o boss assim mesmo.
+    /// </summary>
+    public bool TryStartBossEncounter()
+    {
+        if (!RunState.IsRunActive || !RunState.IsBossRoom || !CanOpenModal()) return false;
+        var definition = DialogueSelector.Select(DialogueCatalog.Where(DialogueCategory.BossPre), BuildContext(), _rng, true);
+        return definition != null && StartConversation(definition);
     }
 
     // ---------- Execucao ----------

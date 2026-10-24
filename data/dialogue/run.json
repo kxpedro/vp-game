@@ -87,7 +87,45 @@
       "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
       "lines": [
         { "text_key": "dlg.boss_pre_invisible_woman.1", "emotion": "grim" },
-        { "text_key": "dlg.boss_pre_invisible_woman.2", "speaker": "odalric" }
+        { "text_key": "dlg.boss_pre_invisible_woman.2", "speaker": "invisible_woman" },
+        { "text_key": "dlg.boss_pre_invisible_woman.3" },
+        { "text_key": "dlg.boss_pre_invisible_woman.4", "speaker": "invisible_woman" },
+        { "text_key": "dlg.boss_pre_invisible_woman.5", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_invisible_woman.6", "speaker": "invisible_woman" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_again_1",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 40,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [
+        { "type": "boss_in_room", "id": "invisible_woman" },
+        { "type": "seen", "id": "boss_pre_invisible_woman" }
+      ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_again_1.1" },
+        { "text_key": "dlg.boss_pre_invisible_woman_again_1.2", "speaker": "virgil", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_again_2",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 40,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [
+        { "type": "boss_in_room", "id": "invisible_woman" },
+        { "type": "seen", "id": "boss_pre_invisible_woman" }
+      ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_again_2.1" },
+        { "text_key": "dlg.boss_pre_invisible_woman_again_2.2", "speaker": "virgil" }
       ]
     },
     {

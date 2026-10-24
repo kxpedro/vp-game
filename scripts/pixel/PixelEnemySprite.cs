@@ -140,9 +140,53 @@ public partial class PixelEnemySprite : Node3D
         if (_sprite == null)
             return;
         _flashTween?.Kill();
-        _sprite.Modulate = color;
+        // Mantém a transparência atual (Guardiã meio invisível).
+        var alpha = _sprite.Modulate.A;
+        _sprite.Modulate = new Color(color, alpha);
         _flashTween = CreateTween();
-        _flashTween.TweenProperty(_sprite, "modulate", Colors.White, seconds);
+        _flashTween.TweenProperty(_sprite, "modulate", new Color(1.0f, 1.0f, 1.0f, alpha), seconds);
+    }
+
+    // Transparência do corpo (a Guardiã Invisível some e reaparece). O recorte de alfa só volta com o corpo opaco.
+    public void SetAlpha(float alpha)
+    {
+        if (_sprite == null)
+            return;
+        _sprite.AlphaCut = alpha < 0.99f ? SpriteBase3D.AlphaCutMode.Disabled : SpriteBase3D.AlphaCutMode.Discard;
+        _sprite.Modulate = new Color(_sprite.Modulate, alpha);
+    }
+
+    public float Alpha => _sprite?.Modulate.A ?? 1.0f;
+
+    // Cópia parada do quadro atual, tingida, que esmaece no lugar (imagem espelhada, rastro da investida).
+    // offset desloca a cópia em relação ao sprite (rastro ao longo de um caminho).
+    public void SpawnAfterimage(Color tint, float seconds, Vector3 offset = default)
+    {
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null || _sprite == null)
+            return;
+        var ghost = new Sprite3D
+        {
+            Name = "Afterimage",
+            Texture = _sprite.Texture,
+            Hframes = _sprite.Hframes,
+            Frame = _sprite.Frame,
+            FlipH = _sprite.FlipH,
+            Billboard = _sprite.Billboard,
+            TextureFilter = _sprite.TextureFilter,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+            Shaded = false,
+            DoubleSided = true,
+            PixelSize = _sprite.PixelSize,
+            Offset = _sprite.Offset,
+            Modulate = tint,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        scene.AddChild(ghost);
+        ghost.GlobalTransform = _sprite.GlobalTransform.Translated(offset);
+        var tween = ghost.CreateTween();
+        tween.TweenProperty(ghost, "modulate:a", 0.0f, Mathf.Max(seconds, 0.05f));
+        tween.TweenCallback(Callable.From(ghost.QueueFree));
     }
 
     // Morte: o sprite sai do inimigo (que é liberado na hora), toca a animação de morte no lugar e some.

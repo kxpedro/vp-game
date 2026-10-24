@@ -45,9 +45,9 @@ Placeholders (4 args fixos, iguais nos 3 idiomas): `{0}` runs iniciadas, `{1}` m
 
 **Bark:** `category: "bark"` + `trigger` (`room_enter`, `room_cleared`, `low_health`, `boss_phase`; o gancho `BossController.OnHealthChanged` notifica a cada troca de fase, sem informar qual fase), `repeatable: true`, `cooldown_visits` 6, `chance` 0,3 a 0,6, 1 linha. Limites globais do gerenciador: 1 bark a cada 18 s, no máximo 2 por sala.
 
-**Boss:** `category: "boss_pre"` ou `boss_post`, `requirements: [{ "type": "boss_in_room", "id": "<boss_id>" }]`. Ids válidos (`BossCatalog`): `invisible_woman`, `labyrinth_keeper`, `silver_dragonkin`, `armand`. `boss_post` roda 1,6 s depois da vitória (a run ainda está ativa, então `boss_in_room` vale); não há `boss_post` genérico, de propósito: repetir a derrota do mesmo boss fica em silêncio.
+**Boss:** `category: "boss_pre"` ou `boss_post`, `requirements: [{ "type": "boss_in_room", "id": "<boss_id>" }]`. Ids válidos (`BossCatalog`): `invisible_woman`, `labyrinth_keeper`, `silver_dragonkin`, `armand`. `boss_pre` abre no encontro: o boss já está na sala, dormente e invulnerável, e a conversa abre quando o jogador chega a `boss.encounter.radius` dele (`BossController.Encounter.cs` → `DialogueManager.TryStartBossEncounter`); ao fechar, o boss acorda. `boss_post` roda 1,6 s depois da vitória (a run ainda está ativa, então `boss_in_room` vale); não há `boss_post` genérico, de propósito: repetir a derrota do mesmo boss fica em silêncio.
 
-**Falante novo:** entrada em `speakers.json` (`id`, `name_key`, `kind`, `name_color`, `portraits.default` com `initial`, `color`, `accent`; variantes herdam do default) e `dlg.speaker.<id>.name` nos 3 idiomas. Retrato sem textura = placeholder. Emoções fechadas: `neutral grim amused angry sad afraid awe` (sem variante correspondente no falante, cai em `default`; hoje Odalric tem `amused`, `grim`, `sad`; Virgil tem `grim`).
+**Falante novo:** entrada em `speakers.json` (`id`, `name_key`, `kind`, `name_color`, `portraits.default` com `initial`, `color`, `accent`; variantes herdam do default) e `dlg.speaker.<id>.name` nos 3 idiomas. Retrato sem textura = placeholder. Emoções fechadas: `neutral grim amused angry sad afraid awe` (sem variante correspondente no falante, cai em `default`; hoje Odalric tem `amused`, `grim`, `sad`; Virgil tem `grim`). Bosses que falam entram como `kind: "npc"` (ex.: `invisible_woman`).
 
 **Escolha:** até 3, com `sets_flags` e `next` apontando para um ramo; só flags como efeito.
 
@@ -76,7 +76,8 @@ Seleção: classe (essencial > específica > evergreen), não vista primeiro, pr
 | `bark_room_cleared_1` | run | bark `room_cleared` | evergreen | sim, cd 6, 30% | `in_run true` |
 | `bark_low_health_1` | run | bark `low_health` (Virgil) | evergreen | sim, cd 6, 60% | `in_run true` |
 | `bark_low_health_2` | run | bark `low_health` (Odalric, "ecoando pelo sangue") | evergreen | sim, cd 6, 50% | `in_run true` e `seen first_hub_arrival` |
-| `boss_pre_invisible_woman` | run | boss_pre | specific / 50 | não | `boss_in_room invisible_woman`. Virgil + Odalric |
+| `boss_pre_invisible_woman` | run | boss_pre | specific / 50 | não | `boss_in_room invisible_woman`. Virgil + a Guardiã (6 linhas, primeiro encontro) |
+| `boss_pre_invisible_woman_again_1`, `_2` | run | boss_pre | specific / 40 | sim, cd 0 | `boss_in_room invisible_woman` e `seen boss_pre_invisible_woman`. A Guardiã + Virgil, 2 linhas |
 | `boss_pre_generic` | run | boss_pre | evergreen / 0 | sim, cd 4 | `boss_room true` (usa `{3}`) |
 | `odalric_after_second_boss` | odalric | hub | specific / 62 | não | `boss_defeated labyrinth_keeper` e `seen odalric_after_first_boss` |
 | `odalric_after_third_boss` | odalric | hub | specific / 64 | não | `boss_defeated silver_dragonkin` e `seen odalric_after_second_boss` |

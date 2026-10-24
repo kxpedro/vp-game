@@ -516,7 +516,7 @@ public partial class RunManager : Node3D
                 enemy.AddChild(controller);
                 controller.Configure(enemy, bossDefinition);
                 CodexProgress.MarkBoss(bossDefinition.Id);
-                GetTree().CallGroup("hud", "BindBoss", enemy, bossDefinition.DisplayName);
+                // A barra de vida do boss (HUD BindBoss) so aparece quando ele acorda, depois do dialogo de encontro (BossController.Wake).
             }
             else
             {

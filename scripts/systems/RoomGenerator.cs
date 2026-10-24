@@ -419,7 +419,8 @@ public partial class RoomGenerator : Node3D
 
         if (RunState.IsBossRoom)
         {
-            _pendingEnemyWaves.Add((Vector3.Zero, EnemyRarity.Legendary, EnemyArchetype.Ranged, "BloodMageBoss"));
+            // Do outro lado da arena, de frente para a entrada (sul): o jogador a ve ao entrar e caminha ate ela.
+            _pendingEnemyWaves.Add((CellToWorld(NearestWalkableCell(new Vector2I(0, -3))), EnemyRarity.Legendary, EnemyArchetype.Ranged, "BloodMageBoss"));
         }
         else
         {
@@ -506,13 +507,18 @@ public partial class RoomGenerator : Node3D
         if (_isSpawningWave || _nextWaveEnemyIndex >= _pendingEnemyWaves.Count) return;
         _isSpawningWave = true;
         AddToGroup("enemy_spawn_pending");
-        var spawnDelay = CompendiumTuning.GetFloat("room.spawn.delay", EnemySpawnDelaySeconds);
+        // Sala de boss: o boss ja esta na sala quando o jogador entra (sem circulo de spawn nem espera); ele fica
+        // dormente ate o encontro (BossController.Encounter.cs).
+        var spawnDelay = RunState.IsBossRoom ? 0.0f : CompendiumTuning.GetFloat("room.spawn.delay", EnemySpawnDelaySeconds);
         var wave = _pendingEnemyWaves.GetRange(_nextWaveEnemyIndex, Mathf.Min(EnemiesPerWave, _pendingEnemyWaves.Count - _nextWaveEnemyIndex));
         _nextWaveEnemyIndex += wave.Count;
         var markers = new List<Node3D>();
-        foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
-        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
-        await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
+        if (!RunState.IsBossRoom)
+        {
+            foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
+            GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
+            await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
+        }
 
         if (RunState.IsBossRoom)
         {
