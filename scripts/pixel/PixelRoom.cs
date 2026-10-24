@@ -25,6 +25,8 @@ public partial class PixelRoom : Node3D
     // Ponto do kit (unidades) que fica na origem da cena.
     public Vector2 CenterUnits { get; set; }
     public PixelRoomPicture Picture { get; private set; }
+    // Layout da sala montada: quem troca bordas nele (PixelDoorWall) chama RecomposeAsync para redesenhar.
+    public PixelRoomLayout Layout { get; private set; }
 
     // Quadros por segundo das peças animadas do layout (fonte de sangue).
     private const float AnimationFps = 8.0f;
@@ -33,6 +35,8 @@ public partial class PixelRoom : Node3D
     private const float AnimationDepthBias = 0.03f;
 
     private Camera3D _camera;
+    private ShaderMaterial _backdropMaterial;
+    private int _recomposeVersion;
     private readonly List<(MeshInstance3D Mesh, ImageTexture[] Colors, ImageTexture[] Heights)> _animations = new();
     private double _animationTime;
     private int _animationFrame = -1;
@@ -48,6 +52,7 @@ public partial class PixelRoom : Node3D
 
     public bool Build(PixelRoomLayout layout, Vector2? centerUnits = null)
     {
+        Layout = layout;
         Picture = PixelRoomComposer.Compose(layout);
         if (Picture == null)
             return false;
@@ -57,6 +62,47 @@ public partial class PixelRoom : Node3D
         CreateCollision();
         CreateAnimations();
         return true;
+    }
+
+    /// <summary>
+    /// Redesenha a sala a partir do <see cref="Layout"/> (já alterado) numa thread de fundo e troca a imagem quando
+    /// fica pronta. Só para mudanças de borda (arco no lugar de parede): os tiles, as colisões e o enquadramento não
+    /// mudam. Chamadas seguidas valem pela última.
+    /// </summary>
+    public void RecomposeAsync()
+    {
+        if (Layout == null || _backdropMaterial == null)
+            return;
+        var version = ++_recomposeVersion;
+        // Cópia: o layout pode mudar de novo enquanto a thread desenha.
+        var layout = new PixelRoomLayout { Ambient = Layout.Ambient, Seed = Layout.Seed };
+        foreach (var tile in Layout.Tiles)
+            layout.Tiles[tile.Key] = tile.Value;
+        foreach (var edge in Layout.Edges)
+            layout.Edges[edge.Key] = edge.Value;
+        layout.Props.AddRange(Layout.Props);
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            PixelRoomPicture picture = null;
+            try
+            {
+                picture = PixelRoomComposer.Compose(layout);
+            }
+            catch (System.Exception error)
+            {
+                GD.PushError($"PixelRoom: falha ao redesenhar a sala: {error.Message}");
+            }
+            Callable.From(() => ApplyRecomposed(picture, version)).CallDeferred();
+        });
+    }
+
+    private void ApplyRecomposed(PixelRoomPicture picture, int version)
+    {
+        if (picture == null || version != _recomposeVersion || !IsInstanceValid(this) || _backdropMaterial == null)
+            return;
+        Picture = picture;
+        _backdropMaterial.SetShaderParameter("color_tex", ImageTexture.CreateFromImage(picture.Color));
+        _backdropMaterial.SetShaderParameter("height_tex", ImageTexture.CreateFromImage(picture.Height));
     }
 
     // Câmera ortográfica travada no ângulo da arte; chamar antes do _Ready da IsoCamera.
@@ -166,6 +212,7 @@ public partial class PixelRoom : Node3D
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
 
         var material = new ShaderMaterial { Shader = new Shader { Code = BackdropShader } };
+        _backdropMaterial = material;
         material.SetShaderParameter("color_tex", ImageTexture.CreateFromImage(Picture.Color));
         material.SetShaderParameter("height_tex", ImageTexture.CreateFromImage(Picture.Height));
         // Altura guardada -> distância ao longo do raio da câmera: altura real / sen(30°).

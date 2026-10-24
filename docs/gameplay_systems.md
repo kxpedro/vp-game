@@ -236,7 +236,7 @@ Valores vêm de `CompendiumTuning` (chaves `economy.*` e `reward.*`); os número
 
 ### Moedas de Sangue × Sangue Amaldiçoado
 
-- **Moedas de Sangue** (`RunState.RunBloodCoins`): só na run, nunca no save. Pagas por inimigos (`RunManager.QueueEnemyDefeat` → `AddBloodCoins`), pelo bônus de sala limpa (`economy.coins.room_clear_bonus.*`, 12/14/16/0), por boss (`economy.coins.boss.*`, 100/130/160/0) e por portas de Moedas. Gastas na Loja (`RunState.TrySpendRunBloodCoins`). Zeram em `StartRun`, `FailRun` e em `CompleteBoss` do mapa final; não zeram entre mapas.
+- **Moedas de Sangue** (`RunState.RunBloodCoins`): só na run, nunca no save. Pagas por inimigos (`RunManager.QueueEnemyDefeat` → `AddBloodCoins`), por boss (`economy.coins.boss.*`, 100/130/160/0) e por portas de Moedas. Gastas na Loja (`RunState.TrySpendRunBloodCoins`). Zeram em `StartRun`, `FailRun` e em `CompleteBoss` do mapa final; não zeram entre mapas.
 - **Sangue Amaldiçoado** (`CharacterSheet.CursedBlood`): permanente, serializado no slot. Pago pelo boss (`economy.cursed_blood.boss.*`, 40/60/80/120) e por inimigo Lendário comum (`economy.cursed_blood.legendary.*`, 0/6/8/8, com chance `economy.cursed_blood.legendary_drop_chance`, padrão 1,0). Gasto só na Fonte de Sangue, para comprar skills (`CharacterSheet.SpendCursedBlood`). Sobrevive à morte da run.
 
 ### Fruta do Diabo
