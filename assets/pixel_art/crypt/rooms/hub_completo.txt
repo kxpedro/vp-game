@@ -1,5 +1,6 @@
 # Hub completo (planta baixa do Pedro): fonte no centro, 4 alas em cruz, caixão do Virgil na ala de baixo.
-# Feito só com peças do kit; o lugar da fonte está marcado por um anel de velas.
+# Feito só com peças do kit; a fonte de sangue (peça animada) fica no centro, dentro do anel de velas,
+# e a bancada de armas encosta na parede do fundo da ala da esquerda.
 [grid]
               ,,,
               ,,,
@@ -87,13 +88,15 @@ niche ne 12 24
 niche ne 18 3
 niche ne 18 11
 niche ne 18 24
-niche nw 3 12
+plain nw 3 12
 niche nw 11 12
 niche nw 24 12
 niche nw 3 18
 niche nw 11 18
 niche nw 24 18
 [props]
+blood_fountain 15 15
+weapon_bench 3 12
 carpet_sw 15 24
 carpet_sw 15 25
 coffin_virgil_sw 15 26 0 8
@@ -174,7 +177,6 @@ candles_medium_a 3 19 -14 18
 candles_medium_b 6 19 16 18
 sconce_nw 3 13
 sconce_nw 3 17
-coffin_stone_closed_se 3 11 40 30
 coffin_wood_open_se 3 19 40 0
 rubble_b 6 12
 bones 6 18
