@@ -25,7 +25,7 @@ public partial class PlayerSpriteVisual : Node
     {
         ("slash", 6, 3), ("slash_reverse", 6, 3), ("thrust", 6, 3), ("spin", 8, 2), ("dash", 5, -1),
     };
-    // Rastro do dash (estilo Hades): copias do quadro atual deixadas para tras, sumindo.
+    // Rastro do dash e do giro (estilo Hades): copias do quadro atual deixadas para tras, sumindo.
     private const float GhostInterval = 0.035f;
     private const float GhostLifetime = 0.22f;
     private static readonly Color GhostColor = new(0.75f, 0.12f, 0.2f, 0.55f);
@@ -348,13 +348,21 @@ public partial class PlayerSpriteVisual : Node
     // Ataque rapido (saindo da esquiva): giro com a espada estendida, dano em area.
     public void PlayDashAttack(float hitDelay, float recovery)
     {
-        if (!IsRangedWeapon())
-            PlayOneShot("spin", hitDelay, recovery);
+        if (IsRangedWeapon())
+            return;
+        PlayOneShot("spin", hitDelay, recovery);
+        // O giro deixa o mesmo vulto vermelho do dash a cada quadro da volta.
+        StartGhosts(hitDelay + recovery);
     }
 
     public void PlayDodge(float duration)
     {
         PlayOneShot("dash", 0.0f, duration);
+        StartGhosts(duration);
+    }
+
+    private void StartGhosts(float duration)
+    {
         _ghostTimeLeft = Mathf.Max(duration, 0.05f);
         _ghostTimer = 0.0f;
     }

@@ -84,13 +84,15 @@ def _rot_y(p, a):
 
 def to_world(q):
     q = np.array(q, float); dy = ANIM["dy"]; lean = ANIM["lean"]
-    w = np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0)])
+    w = np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0) + ANIM.get("fwd", 0.0)])
     return _rot_y(w, ANIM.get("yaw", 0.0)) if ANIM.get("yaw", 0.0) else w
 
 def scene(p, with_sword=True, want_mat=False):
     pw = p
     if ANIM.get("yaw", 0.0):
         pw = _rot_y(pw, -ANIM["yaw"])   # corpo inteiro girado (giro do ataque rápido, torção dos golpes)
+    if ANIM.get("fwd", 0.0):
+        pw = pw.copy(); pw[:, 2] -= ANIM["fwd"]   # corpo inteiro deslocado para a frente (passo do golpe)
     p = pw
     if ANIM["dy"] or ANIM["lean"]:
         p = pw.copy(); p[:, 1] -= ANIM["dy"]; p[:, 2] -= ANIM["lean"] * (p[:, 1] - 1.0)

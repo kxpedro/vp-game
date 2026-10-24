@@ -61,7 +61,7 @@ def arm(s, hand, out=0.06, down=0.06):
 def pose(t_dy, yaw=0.0, lean=0.0, sword=None, coat=None, up=0.0):
     V.ANIM.update(up=up, breath=0.4, sway=0.0, dy=t_dy, lean=lean, sword_dir=norm(sword) if sword is not None else None,
                   coat_back=0.0, coat_sz=1.0, solid=False, coat_open=1.10, coat_drag=0.0, coat_flap=0.0,
-                  coat_ph=0.0, coat_lift=0.0, yaw=np.radians(yaw))
+                  coat_ph=0.0, coat_lift=0.0, yaw=np.radians(yaw), fwd=0.0)
     if coat: V.ANIM.update(coat)
 
 def reset():
@@ -70,34 +70,40 @@ def reset():
 PIVOT = np.array([-0.04, 1.20, 0.05])      # centro do arco da mão nos cortes (frente do peito)
 
 def slash(t, reverse=False):
-    """Corte horizontal amplo. Ida: da direita (atrás) para a esquerda. Volta: o contrário, de revés e mais alto."""
+    """Cortes em diagonal com o corpo todo: prepara inclinando para trás e torcendo, dá um passo à frente e afunda
+    no impacto, e a torção passa do ponto no fim. Ida: de cima, à direita, para baixo, à esquerda. Volta: de revés,
+    subindo da esquerda para a direita."""
     if not reverse:
-        th = keys([(0, -125), (0.30, -140), (0.62, 40), (0.80, 95), (1.0, 85)], t)
-        ph = keys([(0, 5), (0.30, 8), (0.62, -8), (1.0, -14)], t)
-        yaw = keys([(0, -22), (0.30, -30), (0.62, 12), (0.80, 26), (1.0, 20)], t)
+        th = keys([(0, -110), (0.30, -150), (0.60, 30), (0.80, 100), (1.0, 92)], t)
+        ph = keys([(0, 25), (0.30, 38), (0.60, -12), (0.80, -28), (1.0, -24)], t)
+        yaw = keys([(0, -30), (0.30, -55), (0.60, 20), (0.80, 48), (1.0, 40)], t)
     else:
-        th = keys([(0, 85), (0.28, 100), (0.60, -40), (0.80, -105), (1.0, -95)], t)
-        ph = keys([(0, 18), (0.28, 22), (0.60, 4), (1.0, -10)], t)
-        yaw = keys([(0, 22), (0.28, 30), (0.60, -12), (0.80, -26), (1.0, -20)], t)
+        th = keys([(0, 92), (0.28, 125), (0.60, -30), (0.80, -110), (1.0, -100)], t)
+        ph = keys([(0, -24), (0.28, -30), (0.60, 10), (0.80, 32), (1.0, 26)], t)
+        yaw = keys([(0, 40), (0.28, 58), (0.60, -20), (0.80, -50), (1.0, -40)], t)
     reset()
-    lunge = keys([(0, 0.0), (0.3, 0.0), (0.62, 1.0), (1.0, 0.7)], t)
-    dy = stance(0.10 + 0.32 * lunge if not reverse else -0.25 * lunge, 0.35 + 0.25 * lunge,
-                -0.25 * lunge if not reverse else 0.10 + 0.32 * lunge, 0.30 + 0.30 * lunge, spread=0.06)
-    r = 0.36
-    hth = th * 0.82                                      # mão anda um pouco atrás da lâmina
-    hand = PIVOT + r * np.array([np.sin(np.radians(hth)), 0.0, np.cos(np.radians(hth))]) + [0, np.radians(ph) * 0.25, 0]
-    arm("R", hand, out=0.05, down=0.08)
+    # 0 = preparação (peso atrás), 1 = impacto (passo à frente, joelhos dobrados)
+    lunge = keys([(0, 0.0), (0.30, -0.25), (0.60, 1.0), (0.80, 1.0), (1.0, 0.75)], t)
+    lp = max(lunge, 0.0)
+    if not reverse:
+        dy = stance(0.05 + 0.50 * lp, 0.30 + 0.45 * lp, -0.10 - 0.40 * lp, 0.35 + 0.25 * lp, spread=0.08)
+    else:
+        dy = stance(-0.10 - 0.40 * lp, 0.35 + 0.25 * lp, 0.05 + 0.50 * lp, 0.30 + 0.45 * lp, spread=0.08)
+    r = 0.40
+    hth = th * 0.85                                      # mão anda um pouco atrás da lâmina
+    hand = PIVOT + r * np.array([np.sin(np.radians(hth)), 0.0, np.cos(np.radians(hth))]) + [0, np.radians(ph) * 0.35, 0]
+    arm("R", hand, out=0.05, down=0.06)
     # braço livre: contrapeso do golpe. Na ida começa na frente (guarda) e é puxado para trás quando a espada passa;
     # na volta começa recolhido atrás e se abre para a frente e para o lado.
     if not reverse:
-        handL = keys([(0, [0.20, 1.24, 0.30]), (0.30, [0.16, 1.30, 0.36]), (0.62, [0.36, 1.18, -0.16]),
-                      (0.80, [0.40, 1.16, -0.28]), (1.0, [0.36, 1.12, -0.22])], t)
+        handL = keys([(0, [0.20, 1.26, 0.30]), (0.30, [0.14, 1.34, 0.40]), (0.60, [0.38, 1.18, -0.20]),
+                      (0.80, [0.44, 1.18, -0.32]), (1.0, [0.38, 1.14, -0.24])], t)
     else:
-        handL = keys([(0, [0.34, 1.14, -0.20]), (0.28, [0.36, 1.12, -0.28]), (0.60, [0.22, 1.26, 0.30]),
-                      (0.80, [0.38, 1.28, 0.22]), (1.0, [0.36, 1.20, 0.12])], t)
+        handL = keys([(0, [0.36, 1.14, -0.22]), (0.28, [0.40, 1.14, -0.32]), (0.60, [0.22, 1.28, 0.32]),
+                      (0.80, [0.42, 1.30, 0.24]), (1.0, [0.38, 1.22, 0.14])], t)
     arm("L", handL, out=0.06, down=0.05)
-    pose(dy - 0.03 * lunge, yaw=yaw, lean=0.10 * lunge, sword=sdir(th, ph),
-         coat=dict(coat_drag=0.05 * lunge, coat_flap=0.02, coat_ph=t * 4, coat_lift=0.04 * lunge))
+    pose(dy - 0.10 * lp, yaw=yaw, lean=0.24 * lunge, sword=sdir(th, ph),
+         coat=dict(coat_drag=0.12 * lp, coat_flap=0.04, coat_ph=t * 5, coat_lift=0.12 * lp, coat_open=1.25, fwd=0.16 * lp))
 
 def thrust(t):
     """Estocada: puxa a espada para trás na altura do quadril e avança o corpo com a lâmina reta para a frente."""
