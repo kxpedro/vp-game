@@ -1,47 +1,67 @@
-# Câmara de Hemomancia (modo 2D): 9x9 tiles, saída em arco no meio da parede norte (tile 4,0); com duas portas o
-# jogo troca esse arco pelos dos tiles 3,0 e 5,0 (PixelDoorWall), por isso não há objetos encostados neles.
-# Fonte a oeste, altar a leste, loja ao norte (posições na cena 3D; a origem é o centro da sala).
+# Câmara de Hemomancia (modo 2D): planta em cruz de 13x13 tiles. Centro de 5x5 (tiles 4..8) com o bebedouro de
+# sangue no meio (tile 6,6, a origem da cena); braços de 3 tiles de largura: norte com o portão do mapa seguinte
+# (arco no tile 6,0), oeste com o altar do sacrifício, leste com a bancada de artefatos (encostada na parede NE do
+# braço) e sul com a entrada (o jogador nasce no tile 6,11, PixelSceneSetup.PlaceIntermission).
 [grid]
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-.........
+     ...
+     ...
+     ...
+     ...
+    .....
+.............
+.............
+.............
+    .....
+     ...
+     ...
+     ...
+     ...
 [edges]
-arch ne 4 0
-niche ne 1 0
-niche ne 7 0
-niche nw 0 2
+arch ne 6 0
+niche nw 5 2
 niche nw 0 6
+niche ne 11 5
+niche ne 2 5
 [props]
-blood_fountain 3 4 -26 0
-carpet_sw 4 1
-carpet_sw 4 5
-carpet_sw 4 6
-carpet_sw 4 7
-carpet_sw 4 8
-candles_large_a 0 0 -14 -16
-candles_large_b 8 0 16 -16
-candles_large_a 0 8 -14 18
+blood_basin 6 6
+sacrifice_altar 0 6 6 0
+artifact_counter 11 5 -12 2
+carpet_sw 6 1
+carpet_sw 6 2
+carpet_sw 6 3
+carpet_sw 6 4
+carpet_sw 6 8
+carpet_sw 6 9
+carpet_sw 6 10
+carpet_sw 6 11
+carpet_sw 6 12
+carpet_se 2 6
+carpet_se 3 6
+carpet_se 4 6
+candle_tall 5 5 20 20
+candle_tall 7 5 -20 20
+candle_tall 5 7 20 -20
+candle_tall 7 7 -20 -20
+candles_large_a 4 4 -14 -16
+candles_large_b 8 4 16 -16
+candles_large_a 4 8 -14 18
 candles_large_b 8 8 16 18
-candles_medium_a 2 0 -8 -18
-candles_medium_b 6 0 8 -18
-sconce_ne 2 0
-sconce_ne 6 0
-sconce_nw 0 4
-candle_tall 2 3 0 0
-candle_tall 2 5 0 0
-candle_tall 6 3 0 0
-candle_tall 6 5 0 0
-coffin_stone_closed_sw 0 7 -12 0
-coffin_wood_closed_sw 8 2 12 0
-coffin_stone_broken_sw 8 6 12 0
-rubble_b 1 8
-bones 7 8
+candles_medium_a 5 0 -10 -18
+candles_medium_b 7 0 10 -18
+sconce_ne 5 0
+sconce_ne 7 0
+sconce_nw 0 5
+sconce_nw 0 7
+sconce_ne 9 5 -20 0
+sconce_nw 5 10
+sconce_ne 2 5
+candles_small_a 12 7 16 16
+candles_small_b 0 7 -10 18
+coffin_stone_closed_sw 5 11 -12 0
+coffin_wood_broken_sw 7 10 12 0
+rubble_b 7 12
+bones 5 9
+rubble_a 11 7
 [settings]
 ambient -0.6
-seed 17
+seed 23

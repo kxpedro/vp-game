@@ -130,7 +130,11 @@ public static class PixelRoomComposer
         ("coffin_virgil", new Vector2(19, 36), Vector2.Zero), ("coffin_stone", new Vector2(13, 31), Vector2.Zero),
         ("coffin_wood", new Vector2(12, 29), Vector2.Zero), ("blood_fountain", new Vector2(46, 46), Vector2.Zero),
         ("blood_basin", new Vector2(14, 14), Vector2.Zero),
-        ("weapon_bench", new Vector2(30, 64), new Vector2(-2, -23))
+        ("weapon_bench", new Vector2(30, 64), new Vector2(-2, -23)),
+        // Altar do sacrifício (estela + altar; o estrado é pisável) e bancada de artefatos (armário + balcão, de x -36
+        // a 100 e y 0 a 46 do tile).
+        ("sacrifice_altar", new Vector2(22, 24), new Vector2(-5, 0)),
+        ("artifact_counter", new Vector2(68, 23), new Vector2(0, -9))
     };
 
     // Paleta AAP-64 em famílias (mesma ordem de tools/pixel_art/crypt_kit/iso.py).
