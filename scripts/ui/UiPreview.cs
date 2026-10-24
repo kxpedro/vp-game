@@ -14,6 +14,7 @@ using System.Collections.Generic;
 /// Argumentos:
 ///   --ui-preview=TELA        tela a abrir (lista abaixo)
 ///   --ui-lang=pt-BR|en|es    idioma da sessão (não grava nas configurações)
+///   --ui-mode=pixel          modo 2D (pixel art): o lote abre as cenas de scenes/pixel no lugar das de scenes/game
 ///   --ui-device=kbm|xbox|ps  último dispositivo (glifos e cursor); "keyboard"/"playstation" também valem.
 ///                            Fica travado na sessão (DeviceLocked): o GameCursor ignora mouse/teclado/controle reais.
 ///   --ui-tab=ABA             aba do Dicionário (compendium): Artifacts, Blessings, Skills, Attacks, Enemies, Weapons;
@@ -239,7 +240,7 @@ public partial class UiPreview : Node
 		Localization.Instance?.SetLanguage(job.Language);
 		// Telas de pausa deixam a árvore pausada; a cena nova precisa começar rodando.
 		GetTree().Paused = false;
-		var error = GetTree().ChangeSceneToFile(job.Scene);
+		var error = GetTree().ChangeSceneToFile(GameMode.Scene(job.Scene));
 		if (error != Error.Ok)
 		{
 			GD.PushWarning($"UiPreviewBatch: não foi possível abrir {job.Scene} ({error}).");
@@ -325,6 +326,9 @@ public partial class UiPreview : Node
 			if (value != null) _screen = NormalizeScreen(value.ToLowerInvariant());
 			value = ValueOf(argument, "--ui-lang=");
 			if (value != null) _language = value;
+			value = ValueOf(argument, "--ui-mode=");
+			if (value != null && value.ToLowerInvariant() is "pixel" or "2d")
+				GameMode.Current = GameMode.Kind.PixelArt;
 			value = ValueOf(argument, "--ui-device=");
 			if (value != null) _device = value.ToLowerInvariant();
 			value = ValueOf(argument, "--ui-tab=");
