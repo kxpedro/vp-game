@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 public partial class HUD
 {
@@ -34,19 +35,6 @@ public partial class HUD
 		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
 		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
 		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
-		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
-		var essences = new List<Node3D>();
-		var startingPositions = new List<Vector3>();
-		var spiralPhases = new List<float>();
-		foreach (var node in GetTree().GetNodesInGroup("blood_essences"))
-		{
-			if (node is not Node3D essence)
-				continue;
-			essences.Add(essence);
-			startingPositions.Add(essence.GlobalPosition);
-			spiralPhases.Add((float)GD.RandRange(0.0, Mathf.Tau));
-			AttachSanguisTrail(essence);
-		}
 		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
 		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.4f);
 		screenTween.TweenInterval(2.55f);
@@ -56,53 +44,227 @@ public partial class HUD
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 2.35f);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.0f, 0.55f);
 
-		const float absorptionDuration = 3.45f;
-		var elapsed = 0.0f;
-		while (elapsed < absorptionDuration && player != null && IsInstanceValid(player))
-		{
-			var delta = Mathf.Max((float)GetProcessDeltaTime(), 0.001f);
-			var destination = player.GlobalPosition + Vector3.Up * 0.95f;
-			for (var i = 0; i < essences.Count; i++)
-			{
-				var essence = essences[i];
-				if (!IsInstanceValid(essence))
-					continue;
-
-				var delay = Mathf.Min(i * 0.024f, 0.42f);
-				var progress = Mathf.Clamp((elapsed - delay) / Mathf.Max(absorptionDuration - delay, 0.1f), 0.0f, 1.0f);
-				var eased = progress * progress * (3.0f - 2.0f * progress);
-				var start = startingPositions[i];
-				var planar = destination - start;
-				planar.Y = 0.0f;
-				var direction = planar.LengthSquared() > 0.001f ? planar.Normalized() : Vector3.Forward;
-				var tangent = new Vector3(-direction.Z, 0.0f, direction.X);
-				var distance = start.DistanceTo(destination);
-				var spiralRadius = Mathf.Sin(progress * Mathf.Pi)
-					* Mathf.Min(distance * 0.22f, 1.35f)
-					* (1.0f - progress * 0.28f);
-				var angle = spiralPhases[i] + progress * Mathf.Tau * 2.25f;
-				var spiralOffset = tangent * Mathf.Cos(angle) * spiralRadius
-					+ Vector3.Up * Mathf.Sin(angle) * spiralRadius * 0.48f;
-				essence.GlobalPosition = start.Lerp(destination, eased) + spiralOffset;
-				essence.Scale = Vector3.One * Mathf.Lerp(1.0f, 0.055f, Mathf.Pow(progress, 1.65f));
-			}
-			elapsed += delta;
-			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-			if (!IsInstanceValid(this) || !IsInsideTree()) return;
-		}
-		if (player != null && IsInstanceValid(player))
-			SpawnSanguisArrivalPulse(player.GlobalPosition + Vector3.Up * 0.92f);
-		await ToSignal(GetTree().CreateTimer(0.42f, true), SceneTreeTimer.SignalName.Timeout);
+		await SuckRoomBlood(3.45f);
 		if (!IsInstanceValid(this) || !IsInsideTree()) return;
-		foreach (var essence in essences)
-			if (IsInstanceValid(essence))
-				essence.QueueFree();
 		_bloodAbsorptionOverlay.Visible = false;
 		_blessingAbsorptionRunning = false;
 		// Morreu durante a absorção: a oferta não abre por cima do game over.
 		if (_isGameOver) return;
 		AppendGameLog("O sangue dos inimigos foi absorvido e condensado em uma Bênção de Sangue.");
 		BuildBloodBlessingChoices();
+	}
+
+	// Recompensa da sala que não é Bênção (RunManager): só a sucção do sangue, sem título, sem pausar o jogo.
+	public async void AbsorbRoomBlood()
+	{
+		if (_blessingAbsorptionRunning || _roomBloodSuctionRunning) return;
+		_roomBloodSuctionRunning = true;
+		await SuckRoomBlood(1.8f);
+		if (!IsInstanceValid(this)) return;
+		_roomBloodSuctionRunning = false;
+	}
+
+	private bool _roomBloodSuctionRunning;
+
+	// O Virgil suga o sangue da sala: cada poça (BloodPool) seca enquanto um filete contínuo de sangue sobe dela e
+	// escorre em espiral até ele. O filete é uma fita desenhada de frente para a câmera (ImmediateMesh), refeita a cada
+	// quadro entre a cauda (ainda presa à poça) e a ponta; a ponta solta respingos (AttachSanguisTrail).
+	private async Task SuckRoomBlood(float duration)
+	{
+		var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
+		var scene = GetTree().CurrentScene;
+		var pools = new List<BloodPool>();
+		foreach (var node in GetTree().GetNodesInGroup(BloodPool.Group))
+			if (node is BloodPool pool && !pool.IsQueuedForDeletion())
+				pools.Add(pool);
+
+		var streams = new List<BloodStream>();
+		var tailLag = duration * 0.4f;
+		for (var i = 0; i < pools.Count && scene != null; i++)
+		{
+			var pool = pools[i];
+			pool.RemoveFromGroup(BloodPool.Group);
+			var delay = Mathf.Min(i * 0.024f, duration * 0.05f);
+			var head = new Node3D { Name = "BloodStreamHead", ProcessMode = ProcessModeEnum.Always };
+			scene.AddChild(head);
+			head.GlobalPosition = pool.GlobalPosition;
+			AttachSanguisTrail(head);
+			streams.Add(new BloodStream
+			{
+				Pool = pool,
+				Head = head,
+				Start = pool.GlobalPosition + Vector3.Up * 0.02f,
+				Phase = (float)GD.RandRange(0.0, Mathf.Tau),
+				Delay = delay,
+				Flight = Mathf.Max(duration - delay - tailLag, 0.1f),
+				DrainStarted = false,
+			});
+		}
+
+		MeshInstance3D streamNode = null;
+		ImmediateMesh streamMesh = null;
+		if (streams.Count > 0)
+		{
+			streamMesh = new ImmediateMesh();
+			streamNode = new MeshInstance3D
+			{
+				Name = "BloodStreams",
+				Mesh = streamMesh,
+				ProcessMode = ProcessModeEnum.Always,
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				MaterialOverride = new StandardMaterial3D
+				{
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+					VertexColorUseAsAlbedo = true,
+					CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+				},
+			};
+			scene.AddChild(streamNode);
+			streamNode.GlobalTransform = Transform3D.Identity;
+		}
+
+		var elapsed = 0.0f;
+		while (elapsed < duration && player != null && IsInstanceValid(player))
+		{
+			var delta = Mathf.Max((float)GetProcessDeltaTime(), 0.001f);
+			var destination = player.GlobalPosition + Vector3.Up * 0.95f;
+			var camera = GetViewport()?.GetCamera3D();
+			var toCamera = camera != null ? camera.GlobalBasis.Z : Vector3.Back;
+			streamMesh?.ClearSurfaces();
+			var drawing = false;
+			foreach (var stream in streams)
+			{
+				var headProgress = Smooth((elapsed - stream.Delay) / stream.Flight);
+				var tailProgress = Smooth((elapsed - stream.Delay - tailLag) / stream.Flight);
+				if (!stream.DrainStarted && headProgress > 0.0f)
+				{
+					stream.DrainStarted = true;
+					if (IsInstanceValid(stream.Pool))
+						stream.Pool.Drain(tailLag + stream.Flight * 0.15f);
+				}
+				if (IsInstanceValid(stream.Head))
+					stream.Head.GlobalPosition = StreamPoint(stream, destination, headProgress);
+				if (headProgress <= 0.0f || tailProgress >= 1.0f)
+					continue;
+				if (!drawing)
+				{
+					streamMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+					drawing = true;
+				}
+				DrawBloodStream(streamMesh, stream, destination, tailProgress, headProgress, toCamera);
+			}
+			if (drawing)
+				streamMesh.SurfaceEnd();
+			elapsed += delta;
+			await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			if (!IsInstanceValid(this) || !IsInsideTree()) return;
+		}
+		streamMesh?.ClearSurfaces();
+		if (player != null && IsInstanceValid(player) && streams.Count > 0)
+			SpawnSanguisArrivalPulse(player.GlobalPosition + Vector3.Up * 0.92f);
+		foreach (var stream in streams)
+			if (IsInstanceValid(stream.Head))
+				stream.Head.Visible = false;
+		await ToSignal(GetTree().CreateTimer(0.42f, true), SceneTreeTimer.SignalName.Timeout);
+		if (!IsInstanceValid(this) || !IsInsideTree()) return;
+		if (streamNode != null && IsInstanceValid(streamNode))
+			streamNode.QueueFree();
+		foreach (var stream in streams)
+		{
+			if (IsInstanceValid(stream.Head))
+				stream.Head.QueueFree();
+			if (IsInstanceValid(stream.Pool))
+				stream.Pool.QueueFree();
+		}
+	}
+
+	private sealed class BloodStream
+	{
+		public BloodPool Pool;
+		public Node3D Head;
+		public Vector3 Start;
+		public float Phase;
+		public float Delay;
+		public float Flight;
+		public bool DrainStarted;
+	}
+
+	// Camadas do filete, de fora para dentro: borda escura, corpo e reflexo (paleta da poça, AAP-64).
+	private static readonly Color StreamRim = new("3b1725");
+	private static readonly Color StreamBody = new("b4202a");
+	private static readonly Color StreamShine = new("e86a73");
+	private const float StreamWidth = 0.11f;
+	private const int StreamSegments = 28;
+
+	private static float Smooth(float t)
+	{
+		t = Mathf.Clamp(t, 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	}
+
+	// Ponto do caminho em espiral da poça até o Virgil (progress 0 = poça, 1 = peito do Virgil). Nunca desce do chão.
+	private static Vector3 StreamPoint(BloodStream stream, Vector3 destination, float progress)
+	{
+		var start = stream.Start;
+		var planar = destination - start;
+		planar.Y = 0.0f;
+		var direction = planar.LengthSquared() > 0.001f ? planar.Normalized() : Vector3.Forward;
+		var tangent = new Vector3(-direction.Z, 0.0f, direction.X);
+		var distance = start.DistanceTo(destination);
+		var spiralRadius = Mathf.Sin(progress * Mathf.Pi) * Mathf.Min(distance * 0.2f, 1.2f) * (1.0f - progress * 0.3f);
+		var angle = stream.Phase + progress * Mathf.Tau * 1.15f;
+		var spiralOffset = tangent * Mathf.Cos(angle) * spiralRadius
+			+ Vector3.Up * Mathf.Abs(Mathf.Sin(angle)) * spiralRadius * 0.45f;
+		// Sobe da poça logo no início, como um fio puxado do chão.
+		var lift = Vector3.Up * Mathf.Sin(Mathf.Min(progress * 2.0f, 1.0f) * Mathf.Pi * 0.5f) * 0.35f * (1.0f - progress);
+		return start.Lerp(destination, progress) + spiralOffset + lift;
+	}
+
+	// Fita do filete entre tail e head, virada para a câmera, em três camadas. Mais grossa junto da poça, afina na ponta
+	// e engrossa de leve na própria ponta (a "cabeça" do líquido).
+	private static void DrawBloodStream(ImmediateMesh mesh, BloodStream stream, Vector3 destination, float tail, float head, Vector3 toCamera)
+	{
+		var points = new Vector3[StreamSegments + 1];
+		for (var k = 0; k <= StreamSegments; k++)
+			points[k] = StreamPoint(stream, destination, Mathf.Lerp(tail, head, k / (float)StreamSegments));
+		DrawStreamLayer(mesh, points, toCamera, 1.0f, 0.0f, StreamRim);
+		DrawStreamLayer(mesh, points, toCamera, 0.62f, 0.01f, StreamBody);
+		DrawStreamLayer(mesh, points, toCamera, 0.18f, 0.02f, StreamShine, 0.04f);
+	}
+
+	private static void DrawStreamLayer(ImmediateMesh mesh, Vector3[] points, Vector3 toCamera, float widthScale, float lift, Color color, float sideShift = 0.0f)
+	{
+		for (var k = 0; k < points.Length - 1; k++)
+		{
+			var a = points[k] + toCamera * lift;
+			var b = points[k + 1] + toCamera * lift;
+			var tangent = b - a;
+			if (tangent.LengthSquared() < 0.000001f)
+				continue;
+			var side = tangent.Cross(toCamera).Normalized();
+			var wa = StreamHalfWidth(k / (float)(points.Length - 1)) * widthScale;
+			var wb = StreamHalfWidth((k + 1) / (float)(points.Length - 1)) * widthScale;
+			var shift = side * sideShift * widthScale;
+			var a0 = a - side * wa + shift;
+			var a1 = a + side * wa + shift;
+			var b0 = b - side * wb + shift;
+			var b1 = b + side * wb + shift;
+			mesh.SurfaceSetColor(color);
+			mesh.SurfaceAddVertex(a0);
+			mesh.SurfaceAddVertex(a1);
+			mesh.SurfaceAddVertex(b1);
+			mesh.SurfaceAddVertex(a0);
+			mesh.SurfaceAddVertex(b1);
+			mesh.SurfaceAddVertex(b0);
+		}
+	}
+
+	// u = 0 na cauda (poça) e 1 na ponta.
+	private static float StreamHalfWidth(float u)
+	{
+		var body = Mathf.Lerp(1.0f, 0.55f, u);
+		var bulb = Mathf.Max(0.0f, (u - 0.85f) / 0.15f) * 0.35f;
+		return StreamWidth * 0.5f * (body + bulb);
 	}
 
 	private static void AttachSanguisTrail(Node3D essence)

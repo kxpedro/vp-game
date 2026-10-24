@@ -46,7 +46,6 @@ public static partial class DevParameterRegistry
         P("economy.coins.rarity.legendary", "Multiplicador de Moedas: Lendário", GEconomy, 8.0, 0, 100, 0.5, false);
         RegisterPerMap("economy.coins.map_factor.{m}", "Fator de Moedas do mapa", GEconomy, new[] { 1.0, 0.6, 0.5, 0.5 }, 0, 10, 0.1, false);
         P("economy.coins.blessing_fallback", "Moedas no lugar de Bênção sem opções", GEconomy, 75, 0, 2000, 5, true);
-        RegisterPerMap("economy.coins.room_clear_bonus.{m}", "Bônus de sala limpa (Moedas)", GEconomy, new double[] { 12, 14, 16, 0 }, 0, 500, 1, true);
         RegisterPerMap("economy.coins.room_reward_pack.{m}", "Moedas da porta de Moedas", GEconomy, new double[] { 150, 130, 110 }, 0, 5000, 10, true, DevApplyMode.NextRoom);
         P("economy.ledger.max_bonus", "Teto do bônus de dano por Moedas (Ledger)", GEconomy, 1.0, 0, 20, 0.1, false);
         P("economy.shop.power_multiplier", "Multiplicador de poder dos artefatos", GEconomy, 1.75, 0, 10, 0.05, false, DevApplyMode.Reapply);

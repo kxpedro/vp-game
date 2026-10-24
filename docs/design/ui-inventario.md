@@ -394,7 +394,7 @@ São 15 métodos, chamados em 19 pontos de `CallGroup("hud", ...)`.
 - `CallGroup("run_manager","AddBloodCoins",25)` (BlessingOffer:297).
 - `CallGroup("player","ApplyRuntimeTuning")` (BlessingOffer:405; ArtifactOffer:154; BloodFountain:270; Compendium:423, :439).
 - `CallGroup("audio_manager", "SetPaused"|"PlayEffect"|"PlayGameOverMusic")`.
-- Grupos: `player`, `run_manager`, `blood_essences`.
+- Grupos: `player`, `run_manager`, `blood_pools` (poças de sangue, `BloodPool`).
 - Nomes de nó do jogador: `Health`, `PlayerCombat`, `BloodBlessingRuntime` e `PlayerSkillController` (`StatusBars.cs:345-348`, `:437`; `BlessingOffer.cs:380-381`); `Health` também no boss (`Notifications.cs:53`).
 
 ---

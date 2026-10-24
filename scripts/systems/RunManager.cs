@@ -43,6 +43,9 @@ public partial class RunManager : Node3D
     private readonly List<ScenePortal> _rewardDoors = new();
     // Itens do chão da sala ainda não pegos (bônus de sala limpa + recompensa da porta). Portas e saída só abrem em zero.
     private int _roomPickupsLeft;
+    // A sala tem a recompensa da porta escolhida antes: o sangue é sugado ao pegá-la; sem ela, no primeiro item pego.
+    private bool _roomHasPendingReward;
+    private bool _roomBloodAbsorbed;
     // DEBUG: inimigos criados pelo console (DevSpawnEnemies) somados ao total da sala, que só limpa depois deles.
     private int _devExtraEnemies;
     private const string RoomScenePath = "res://scenes/game/TestArena.tscn";
@@ -182,14 +185,13 @@ public partial class RunManager : Node3D
             // Sangue Amaldicoado e moedas do boss ja foram pagos em FlushDefeatBatch (QueueEnemyDefeat).
             // Sem altar de artefato: fruta garantida (exceto no mapa final, que encerra a run) e saida liberada direto.
             SpawnBossFruit(mapIndex);
-            SpawnRoomPickups(pending, 0, mapIndex);
+            SpawnRoomPickups(pending);
         }
         else
         {
             // As portas nascem travadas: abrem quando o chao da sala estiver limpo (SpawnRoomPickups / UnlockExitAfterReward).
             BuildRewardDoors(mapIndex);
-            var clearBonus = CompendiumTuning.GetInt($"economy.coins.room_clear_bonus.{mapIndex}", EconomyDefaults.RoomClearBonus[mapIndex]);
-            SpawnRoomPickups(pending, clearBonus, mapIndex);
+            SpawnRoomPickups(pending);
         }
     }
 
@@ -204,24 +206,24 @@ public partial class RunManager : Node3D
         if (set == null)
             return;
 
-        _rewardDoors.AddRange(ScenePortal.BuildRewardDoors(_exitPortal, set, RoomScenePath, ScenePortal.RunPortalAction.AdvanceRoom, false));
+        _rewardDoors.AddRange(ScenePortal.BuildRewardDoors(_exitPortal, set, RoomScenePath, ScenePortal.RunPortalAction.AdvanceRoom, false, _roomGenerator?.PixelExitWall));
         foreach (var door in _rewardDoors)
             door.SetBarsMaterial(_lockedPortalMaterial);
     }
 
-    // Monta os itens do chao desta sala: o bonus de sala limpa (Moedas, valor do mapa) e a recompensa da porta escolhida
-    // na sala anterior (pending, se houver). Cada item conta em _roomPickupsLeft; as portas so abrem com a contagem em zero.
+    // Monta o item do chao desta sala: a recompensa da porta escolhida na sala anterior (pending, se houver; sem o antigo
+    // saco de Moedas de sala limpa). Cada item conta em _roomPickupsLeft; as portas so abrem com a contagem em zero.
     // Sem nenhum item, a saida abre na hora, como antes. Boss: so o pending (em geral nenhum).
-    private void SpawnRoomPickups(RoomRewardDoor pending, int clearBonus, int mapIndex)
+    private void SpawnRoomPickups(RoomRewardDoor pending)
     {
-        var slot = 0;
-        if (clearBonus > 0)
-            SpawnRoomPickup(new RoomRewardDoor(RoomRewardType.Coins, mapIndex, clearBonus), false, RewardPickupPosition(slot++));
         if (pending != null)
-            SpawnRoomPickup(pending, true, RewardPickupPosition(slot));
+            SpawnRoomPickup(pending, true, RewardPickupPosition());
+        _roomHasPendingReward = pending != null && _roomPickupsLeft > 0;
 
         if (_roomPickupsLeft > 0)
             ShowRewardDoorsLockHint();
+        else
+            AbsorbRoomBlood();
         UnlockExitAfterReward();
     }
 
@@ -254,6 +256,14 @@ public partial class RunManager : Node3D
         if (isPendingReward)
             RunState.ConsumePendingRoomReward();
         _roomPickupsLeft = Mathf.Max(_roomPickupsLeft - 1, 0);
+        // A Bênção suga o sangue na própria absorção (HUD.OpenBloodBlessingOffer); as outras recompensas, aqui.
+        if (isPendingReward || !_roomHasPendingReward)
+        {
+            if (door.Type == RoomRewardType.Blessing)
+                _roomBloodAbsorbed = true;
+            else
+                AbsorbRoomBlood();
+        }
 
         switch (door.Type)
         {
@@ -273,6 +283,15 @@ public partial class RunManager : Node3D
                 UnlockExitAfterRewardDeferred();
                 break;
         }
+    }
+
+    // O Virgil suga as poças de sangue da sala (BloodPool, HUD.AbsorbRoomBlood), uma vez por sala.
+    private void AbsorbRoomBlood()
+    {
+        if (_roomBloodAbsorbed)
+            return;
+        _roomBloodAbsorbed = true;
+        GetTree().CallGroup("hud", "AbsorbRoomBlood");
     }
 
     // Bigorna: com modificacao livre, abre a oferta (obrigatoria; o HUD chama UnlockExitAfterReward ao fechar, como a Bencao).
@@ -317,18 +336,11 @@ public partial class RunManager : Node3D
     }
 
     // Ponto de recompensa da sala (RoomGenerator.GetArtifactSpawnPosition), ao nível do chão, como a fruta do boss.
-    // Itens extras (slot > 0) andam 0,9 m em X, dentro da área caminhável.
-    private Vector3 RewardPickupPosition(int slot)
+    private Vector3 RewardPickupPosition()
     {
         var position = _roomGenerator != null
             ? _roomGenerator.GetArtifactSpawnPosition()
             : (_exitPortal?.Position ?? Vector3.Zero);
-        if (slot > 0)
-        {
-            position += Vector3.Right * (slot * 0.9f);
-            if (_roomGenerator != null)
-                position = _roomGenerator.ClampToWalkableArea(position, 2);
-        }
         position.Y = 0.15f;
         return position;
     }

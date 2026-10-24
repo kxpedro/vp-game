@@ -16,3 +16,16 @@ Cada pasta tem faixas horizontais de quadros de 150x150, olhando para a direita 
 | `flying_eye/` | `flight`, `attack`, `hit`, `death` | Flight, Attack, Take Hit, Death |
 
 As outras animações do pacote (Attack2/Attack3, Shield, projéteis) ficaram de fora por enquanto.
+
+## Paleta
+
+As folhas daqui já estão remapeadas para a paleta **AAP-64**, a mesma do kit da cripta, do Virgil, do chão e da
+poça de sangue (ver `assets/pixel_art/SOURCE.md`). Os originais do pacote ficam intocados em
+`tools/pixel_art/monsters/source/<monstro>/` (fora do Godot, pelo `.gdignore`). Para regerar depois de trocar ou
+adicionar uma folha nos originais:
+
+    py tools/pixel_art/monsters/recolor_monsters.py [--preview comparacao.png]
+
+Cada cor vira a cor da AAP-64 mais próxima (OKLab, com peso maior na luminosidade); os vermelhos saturados vão
+para a rampa de sangue e os cinzas neutros para a rampa fria da pedra. As cores berrantes da paleta (neon, ciano,
+rosa, verde-limão) ficam de fora.

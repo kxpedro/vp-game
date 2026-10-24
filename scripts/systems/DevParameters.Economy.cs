@@ -10,7 +10,6 @@ public static class EconomyDefaults
     public static readonly int[] BossCursedBlood = { 40, 60, 80, 120 };       // economy.cursed_blood.boss.{m}
     public static readonly int[] LegendaryCursedBlood = { 0, 6, 8, 8 };       // economy.cursed_blood.legendary.{m}
     public static readonly float[] CoinMapFactor = { 1.0f, 0.6f, 0.5f, 0.5f }; // economy.coins.map_factor.{m}
-    public static readonly int[] RoomClearBonus = { 12, 14, 16, 0 };          // economy.coins.room_clear_bonus.{m}
     public static readonly int[] RoomCoinPack = { 150, 130, 110 };            // economy.coins.room_reward_pack.{m}
     public const int EnemyCoinsMin = 3;                                       // economy.coins.enemy.base_min
     public const int EnemyCoinsMax = 7;                                       // economy.coins.enemy.base_max

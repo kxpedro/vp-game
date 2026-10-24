@@ -3,9 +3,8 @@ using Godot;
 // Portão do início da run, no hub (no lugar do antigo disco vermelho com "interagir"). Uma grade fecha a passagem;
 // quando o jogador chega perto ela sobe, e atravessar o vão começa a run (RunState.StartRun) com a tela de
 // carregamento (RunLoadingScreen). Frente local = +Z (lado do hub); a passagem segue para -Z.
-// No 3D a grade são barras simples sob o arco Entrance.fbx (CrowsNestCrypt) e recolhem para o alto do vão. No 2D o
-// PixelSceneSetup chama ConfigurePixel antes do _Ready: o portão vai para o arco do kit e a grade vira a peça
-// props/portcullis_<lado>_<quadro> (tools/pixel_art/crypt_kit/export_kit.py), desenhada por cima da sala.
+// A grade é um PortcullisGate (o mesmo das portas das salas): no 3D, barras sob o arco Entrance.fbx (CrowsNestCrypt);
+// no 2D o PixelSceneSetup chama ConfigurePixel antes do _Ready e a grade vira a peça do kit no arco da sala.
 public partial class RunStartGate : Node3D
 {
     [Export(PropertyHint.File, "*.tscn")] public string TargetScenePath { get; set; } = "res://scenes/game/RunStartBlessingRoom.tscn";
@@ -21,24 +20,18 @@ public partial class RunStartGate : Node3D
     [Export] public float PassDistance { get; set; } = 1.3f;
     [Export] public float TitleHeight { get; set; } = 3.3f;
 
-    private const int PixelFrames = 8;
-    private const float BarThickness = 0.07f;
-    private const float BarPitch = 0.3f;
     private static readonly StringName PlayerGroup = "player";
 
     private PixelRoom _pixelRoom;
     private Vector2I _pixelTile;
     private string _pixelSide = "ne";
-    private MeshInstance3D _pixelGrate;
-    private int _pixelFrame;
 
-    private Node3D _bars;
+    private PortcullisGate _grate;
     private CollisionShape3D _blockShape;
     private bool _playerNear;
     private bool _playerPassing;
     private bool _opening;
     private bool _starting;
-    private float _open;
 
     /// <summary>
     /// Modo 2D: põe o portão no arco do kit na borda <paramref name="side"/> ("ne" ou "nw") do tile (gx, gy), com a
@@ -47,23 +40,13 @@ public partial class RunStartGate : Node3D
     /// </summary>
     public void ConfigurePixel(PixelRoom room, int gx, int gy, string side)
     {
-        const float wallThickness = 22.0f;
+        const float wallThickness = PortcullisGate.PixelWallThickness;
         _pixelRoom = room;
         _pixelTile = new Vector2I(gx, gy);
         _pixelSide = side == "nw" ? "nw" : "ne";
         var unit = PixelRoom.UnitMeters;
-        if (_pixelSide == "ne")
-        {
-            // Parede no plano y = gy * 64, hub do lado +y (= +Z no mundo): frente local já é +Z.
-            Position = room.KitToWorld(gx * 64.0f + 32.0f, gy * 64.0f - wallThickness * 0.5f);
-            Rotation = Vector3.Zero;
-        }
-        else
-        {
-            // Parede no plano x = gx * 64, hub do lado +x: gira +Z para +X.
-            Position = room.KitToWorld(gx * 64.0f - wallThickness * 0.5f, gy * 64.0f + 32.0f);
-            Rotation = new Vector3(0.0f, Mathf.Pi * 0.5f, 0.0f);
-        }
+        // Origem no meio da espessura da parede, frente local (+Z) para o hub.
+        Transform = PortcullisGate.PixelWallTransform(room, gx, gy, _pixelSide, wallThickness * 0.5f);
 
         OpeningWidth = 40.0f * unit;
         BlockWidth = 64.0f * unit;
@@ -82,10 +65,10 @@ public partial class RunStartGate : Node3D
         pass.BodyEntered += body => { if (body.IsInGroup(PlayerGroup)) _playerPassing = true; };
         pass.BodyExited += body => { if (body.IsInGroup(PlayerGroup)) _playerPassing = false; };
 
+        _grate = new PortcullisGate { Name = "Grate", OpeningWidth = OpeningWidth, OpeningHeight = OpeningHeight };
         if (_pixelRoom != null)
-            _pixelGrate = _pixelRoom.AddOverlay("RunGateGrate", PixelPiece(0), _pixelTile.X, _pixelTile.Y);
-        else
-            CreateBars();
+            _grate.ConfigurePixel(_pixelRoom, _pixelTile.X, _pixelTile.Y, _pixelSide);
+        AddChild(_grate);
 
         // Título do portão (PortalLabel, texto localizado pelo HUD): mesmo estilo dos títulos dos interativos, acima do arco.
         if (GetNodeOrNull<Label3D>("PortalLabel") is { } title)
@@ -100,7 +83,7 @@ public partial class RunStartGate : Node3D
         if (!_opening && _playerNear)
             Open();
 
-        if (_starting || !_playerPassing || _open < 0.95f || string.IsNullOrWhiteSpace(TargetScenePath))
+        if (_starting || !_playerPassing || _grate.OpenAmount < 0.95f || string.IsNullOrWhiteSpace(TargetScenePath))
             return;
 
         _starting = true;
@@ -111,38 +94,15 @@ public partial class RunStartGate : Node3D
     private void Open()
     {
         _opening = true;
-        var tween = CreateTween();
-        tween.TweenMethod(Callable.From<float>(SetOpenAmount), 0.0f, 1.0f, OpenSeconds)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.InOut);
+        _grate.MoveTo(1.0f, OpenSeconds);
     }
 
-    private void SetOpenAmount(float amount)
+    public override void _PhysicsProcess(double delta)
     {
-        _open = amount;
         // O corpo passa quando a grade já subiu acima da cabeça.
-        if (_blockShape != null && amount >= 0.7f && !_blockShape.Disabled)
+        if (_blockShape != null && _grate != null && _grate.OpenAmount >= 0.7f && !_blockShape.Disabled)
             _blockShape.SetDeferred(CollisionShape3D.PropertyName.Disabled, true);
-
-        if (_pixelGrate != null)
-        {
-            var frame = Mathf.Clamp(Mathf.RoundToInt(amount * (PixelFrames - 1)), 0, PixelFrames - 1);
-            if (frame != _pixelFrame)
-            {
-                _pixelFrame = frame;
-                PixelRoom.SetOverlayPiece(_pixelGrate, PixelPiece(frame));
-            }
-        }
-
-        if (_bars != null)
-        {
-            // As barras pendem do alto do vão e recolhem para cima.
-            _bars.Scale = new Vector3(1.0f, Mathf.Max(1.0f - amount, 0.001f), 1.0f);
-            _bars.Visible = amount < 0.99f;
-        }
     }
-
-    private string PixelPiece(int frame) => $"props/portcullis_{_pixelSide}_{frame}";
 
     private void CreateBlocker()
     {
@@ -163,35 +123,5 @@ public partial class RunStartGate : Node3D
         area.AddChild(new CollisionShape3D { Name = "Collision", Position = position, Shape = shape });
         AddChild(area);
         return area;
-    }
-
-    // Grade 3D: barras verticais e duas travessas, penduradas no alto do vão (a origem de Bars fica no topo).
-    private void CreateBars()
-    {
-        _bars = new Node3D { Name = "Bars", Position = Vector3.Up * OpeningHeight };
-        AddChild(_bars);
-        var material = new StandardMaterial3D { AlbedoColor = new Color(0.09f, 0.085f, 0.1f), Metallic = 0.6f, Roughness = 0.55f };
-        var count = Mathf.Max(Mathf.FloorToInt(OpeningWidth / BarPitch), 2);
-        var first = -(count - 1) * BarPitch * 0.5f;
-        for (var i = 0; i < count; i++)
-        {
-            _bars.AddChild(new MeshInstance3D
-            {
-                Name = $"Bar{i}",
-                Position = new Vector3(first + i * BarPitch, -OpeningHeight * 0.5f, 0.0f),
-                Mesh = new BoxMesh { Size = new Vector3(BarThickness, OpeningHeight, BarThickness) },
-                MaterialOverride = material
-            });
-        }
-        foreach (var height in new[] { 0.35f, 0.7f })
-        {
-            _bars.AddChild(new MeshInstance3D
-            {
-                Name = $"Rail{height}",
-                Position = new Vector3(0.0f, -OpeningHeight * height, 0.0f),
-                Mesh = new BoxMesh { Size = new Vector3(OpeningWidth, BarThickness, BarThickness * 1.4f) },
-                MaterialOverride = material
-            });
-        }
     }
 }

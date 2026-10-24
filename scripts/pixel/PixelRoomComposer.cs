@@ -94,6 +94,22 @@ public sealed class PixelRoomPicture
     public List<(Vector2 A, Vector2 B, Vector2 Outward)> Walls { get; init; }
     public List<(Vector2 Center, Vector2 Half)> Blockers { get; init; }
     public Rect2 TileBounds { get; init; }
+    // Peças animadas do layout (manifest "frames"): todos os quadros já com a luz da sala, para o PixelRoom trocar.
+    public List<PixelRoomAnimation> Animations { get; init; } = new();
+}
+
+// Quadros (cor RGBA e altura) de uma peça animada, posicionada como no layout: tile, deslocamento e vértice de cima
+// do tile dentro da peça.
+public sealed class PixelRoomAnimation
+{
+    public string Name { get; init; }
+    public int Gx { get; init; }
+    public int Gy { get; init; }
+    public float Dx { get; init; }
+    public float Dy { get; init; }
+    public Vector2I TileTop { get; init; }
+    public List<Image> Colors { get; } = new();
+    public List<Image> Heights { get; } = new();
 }
 
 public static class PixelRoomComposer
@@ -106,11 +122,15 @@ public static class PixelRoomComposer
     private static readonly float[] FloorWeights = { 0.5f, 0.22f, 0.05f, 0.05f, 0.18f };
     private static readonly string[] WallEdges = { "plain", "niche", "low" };
 
-    // Meia-largura x meia-profundidade (unidades do kit; eixo "sw" = comprido em y) dos objetos que bloqueiam o passo.
+    // Meia-largura x meia-profundidade (unidades do kit; eixo "sw" = comprido em y) dos objetos que bloqueiam o passo,
+    // e o deslocamento do centro do obstáculo em relação ao centro do tile.
     // Velas, arandelas, entulho e ossos são decoração: ficam de fora e o jogador atravessa.
-    private static readonly (string Prefix, Vector2 Half)[] BlockerSizes =
+    private static readonly (string Prefix, Vector2 Half, Vector2 Offset)[] BlockerSizes =
     {
-        ("coffin_virgil", new Vector2(19, 36)), ("coffin_stone", new Vector2(13, 31)), ("coffin_wood", new Vector2(12, 29))
+        ("coffin_virgil", new Vector2(19, 36), Vector2.Zero), ("coffin_stone", new Vector2(13, 31), Vector2.Zero),
+        ("coffin_wood", new Vector2(12, 29), Vector2.Zero), ("blood_fountain", new Vector2(46, 46), Vector2.Zero),
+        ("blood_basin", new Vector2(14, 14), Vector2.Zero),
+        ("weapon_bench", new Vector2(30, 64), new Vector2(-2, -23))
     };
 
     // Paleta AAP-64 em famílias (mesma ordem de tools/pixel_art/crypt_kit/iso.py).
@@ -127,6 +147,13 @@ public static class PixelRoomComposer
         ("flame", new[] { "fa6a0a", "f9a31b", "ffd541", "fffc40", "ffffff" }),
     };
 
+    /// <summary>Deslocamento do centro e meia-extensão (unidades do kit) do obstáculo de uma peça; zero se ela não bloqueia.</summary>
+    public static (Vector2 Offset, Vector2 Half) BlockerOf(string piece)
+    {
+        var size = BlockerSizes.FirstOrDefault(b => piece.StartsWith(b.Prefix));
+        return size.Prefix == null ? (Vector2.Zero, Vector2.Zero) : (size.Offset, size.Half);
+    }
+
     private static readonly float[,] Bayer =
     {
         { 0, 8, 2, 10 }, { 12, 4, 14, 6 }, { 3, 11, 1, 9 }, { 15, 7, 13, 5 }
@@ -139,6 +166,10 @@ public static class PixelRoomComposer
         public byte[] Rgba;
         public float[] Z;
         public string Kind;
+        // Vértice de cima do tile dentro da peça (o padrão do manifest, ou o da peça com tela própria).
+        public int TopX;
+        public int TopY;
+        public int Frames = 1;
         public List<(float X, float Y, float Power, float Radius)> Lights = new();
     }
 
@@ -275,17 +306,22 @@ public static class PixelRoomComposer
         }
 
         var lights = new List<(float X, float Y, float Power, float Radius)>();
+        var animated = new List<(string Name, int Gx, int Gy, float Dx, float Dy, int X0, int Y0, float Dark)>();
         foreach (var item in items.OrderBy(i => i.Order.D).ThenBy(i => i.Order.Layer).ThenBy(i => i.Order.Gx))
         {
             var piece = LoadPiece(item.Name);
             if (piece == null) continue;
             var (sx, sy) = Scr(item.Gx, item.Gy, item.Dx, item.Dy);
-            Blit(piece, rgba, zmap, darkmap, width, height, sx - _topX, sy - _topY, Dark(item.Gx, item.Gy), true);
+            Blit(piece, rgba, zmap, darkmap, width, height, sx - piece.TopX, sy - piece.TopY, Dark(item.Gx, item.Gy), true);
             foreach (var light in piece.Lights)
-                lights.Add((sx - _topX + light.X, sy - _topY + light.Y, light.Power, light.Radius));
+                lights.Add((sx - piece.TopX + light.X, sy - piece.TopY + light.Y, light.Power, light.Radius));
+            if (piece.Frames > 1)
+                animated.Add((item.Name, item.Gx, item.Gy, item.Dx, item.Dy, sx - piece.TopX, sy - piece.TopY, Dark(item.Gx, item.Gy)));
         }
 
         Relight(rgba, darkmap, width, height, lights, layout.Ambient - _bakedAmbient);
+        var animations = animated.Select(a => ComposeFrames(a.Name, a.Gx, a.Gy, a.Dx, a.Dy, a.X0, a.Y0, a.Dark, lights, layout.Ambient - _bakedAmbient))
+            .Where(a => a != null).ToList();
 
         // Recorte com margem de 12 px e fundo opaco, como no build_room.py.
         int minX = width, minY = height, maxX = 0, maxY = 0;
@@ -329,8 +365,45 @@ public static class PixelRoomComposer
             Origin = new Vector2(ox - bx, oy - by),
             Walls = walls,
             Blockers = blockers,
-            TileBounds = new Rect2(minGx, minGy, maxGx - minGx, maxGy - minGy)
+            TileBounds = new Rect2(minGx, minGy, maxGx - minGx, maxGy - minGy),
+            Animations = animations
         };
+    }
+
+    // Cada quadro da peça animada (<nome>, <nome>_1 .. _N-1) recebe a mesma luz da sala; a peça ocupa o retângulo
+    // (x0, y0) da imagem da sala, então as luzes são transladadas para a peça.
+    private static PixelRoomAnimation ComposeFrames(string name, int gx, int gy, float dx, float dy, int x0, int y0, float dark,
+        List<(float X, float Y, float Power, float Radius)> roomLights, float ambient)
+    {
+        var first = LoadPiece(name);
+        var lights = roomLights.Select(l => (l.X - x0, l.Y - y0, l.Power, l.Radius)).ToList();
+        var animation = new PixelRoomAnimation { Name = name, Gx = gx, Gy = gy, Dx = dx, Dy = dy, TileTop = new Vector2I(first.TopX, first.TopY) };
+        for (var k = 0; k < first.Frames; k++)
+        {
+            var piece = k == 0 ? first : LoadPiece($"{name}_{k}");
+            if (piece == null || piece.Width != first.Width || piece.Height != first.Height)
+            {
+                GD.PushWarning($"PixelRoomComposer: quadro {k} da peca animada {name} ausente ou com outro tamanho.");
+                return null;
+            }
+
+            var count = piece.Width * piece.Height;
+            var rgba = new byte[count * 4];
+            var zmap = new float[count];
+            var darkmap = new float[count];
+            Blit(piece, rgba, zmap, darkmap, piece.Width, piece.Height, 0, 0, dark, true);
+            Relight(rgba, darkmap, piece.Width, piece.Height, lights, ambient);
+            var heightBytes = new byte[count * 3];
+            for (var i = 0; i < count; i++)
+            {
+                var v = (int)Math.Clamp(Math.Round(zmap[i] * HeightScale), 0, 65535);
+                heightBytes[i * 3] = (byte)(v >> 8);
+                heightBytes[i * 3 + 1] = (byte)(v & 255);
+            }
+            animation.Colors.Add(Image.CreateFromData(piece.Width, piece.Height, false, Image.Format.Rgba8, rgba));
+            animation.Heights.Add(Image.CreateFromData(piece.Width, piece.Height, false, Image.Format.Rgb8, heightBytes));
+        }
+        return animation;
     }
 
     // Paredes = bordas de tile sem vizinho ou fechadas no layout.
@@ -361,7 +434,7 @@ public static class PixelRoomComposer
             var size = BlockerSizes.FirstOrDefault(b => prop.Name.StartsWith(b.Prefix));
             if (size.Prefix == null) continue;
             var half = prop.Name.EndsWith("_se") ? new Vector2(size.Half.Y, size.Half.X) : size.Half;
-            blockers.Add((new Vector2(prop.Gx * 64 + prop.Dx + 32, prop.Gy * 64 + prop.Dy + 32), half));
+            blockers.Add((new Vector2(prop.Gx * 64 + prop.Dx + 32, prop.Gy * 64 + prop.Dy + 32) + size.Offset, half));
         }
 
         return (walls, blockers);
@@ -496,7 +569,14 @@ public static class PixelRoomComposer
             var heights = LoadImage(KitRoot + "heights/" + name + ".png");
             if (image != null)
             {
-                piece = new Piece { Width = image.GetWidth(), Height = image.GetHeight(), Rgba = image.GetData(), Kind = info.GetProperty("kind").GetString() };
+                piece = new Piece { Width = image.GetWidth(), Height = image.GetHeight(), Rgba = image.GetData(), Kind = info.GetProperty("kind").GetString(), TopX = _topX, TopY = _topY };
+                if (info.TryGetProperty("tile_top_vertex", out var top))
+                {
+                    piece.TopX = top[0].GetInt32();
+                    piece.TopY = top[1].GetInt32();
+                }
+                if (info.TryGetProperty("frames", out var frames))
+                    piece.Frames = Math.Max(frames.GetInt32(), 1);
                 if (heights != null && heights.GetWidth() == piece.Width && heights.GetHeight() == piece.Height)
                 {
                     heights.Convert(Image.Format.Rgb8);
