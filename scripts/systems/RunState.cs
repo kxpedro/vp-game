@@ -2,6 +2,8 @@ public static class RunState
 {
     private static readonly System.Collections.Generic.Dictionary<string, float> EffectTotals = new();
     private static readonly System.Collections.Generic.Dictionary<string, float> EffectParameters = new();
+    // Quanto cada bencao da run soma em cada tipo de efeito (sem o sufixo .Flat/.Multiplier); so as estatisticas leem.
+    private static readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, float>> BlessingEffectShares = new();
     public static int CurrentMapIndex { get; private set; }
     public static int CurrentRoom { get; private set; } = 1;
     public static int StoryFragmentsUnlocked { get; private set; }
@@ -91,6 +93,7 @@ public static class RunState
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
+        BlessingEffectShares.Clear();
         ResetContextEffects();
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
@@ -99,6 +102,7 @@ public static class RunState
         SetRunSeed(((ulong)Godot.GD.Randi() << 32) | Godot.GD.Randi());
         CodexProgress.MarkDiscovered(CodexCategory.Weapon, WeaponLoadout.EquippedWeaponId);
         DialogueProgress.OnRunStarted();
+        RunStats.Reset();
     }
 
     public static void AdvanceRoom()
@@ -120,6 +124,7 @@ public static class RunState
         }
 
         DialogueProgress.OnRunCompleted();
+        RunStats.Reset();
         TemporaryArtifacts.Clear();
         BloodBlessings.Clear();
         BlessingStacks.Clear();
@@ -137,6 +142,7 @@ public static class RunState
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
+        BlessingEffectShares.Clear();
         ResetContextEffects();
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
@@ -147,6 +153,7 @@ public static class RunState
     public static void FailRun()
     {
         DialogueProgress.OnRunEnded(IsRunActive, CurrentMapIndex, CurrentRoom, IsBossRoom);
+        RunStats.Reset();
         RunBloodCoins = 0;
         IsRunActive = false;
         CurrentMapIndex = 0;
@@ -165,6 +172,7 @@ public static class RunState
         SacrificedMaxHealthMultiplier = 1.0f;
         EffectTotals.Clear();
         EffectParameters.Clear();
+        BlessingEffectShares.Clear();
         ResetContextEffects();
         SavedPlayerHealth = -1.0f;
         BlessingPermanentDamage = 0.0f;
@@ -597,6 +605,7 @@ public static class RunState
         _artifactMaxHealthBonus = 0.0f; // a Fruta do Diabo fica em _devilsFruitMaxHealth e sobrevive ao recalculo
         EffectTotals.Clear();
         EffectParameters.Clear();
+        BlessingEffectShares.Clear();
 
         foreach (var artifact in TemporaryArtifacts)
         {
@@ -743,6 +752,12 @@ public static class RunState
         }
         var suffix = effect.Operation.Contains("Multiplier") ? ".Multiplier" : ".Flat";
         AddEffectTotal(effect.Type + suffix, amount);
+        if (amount > 0.0f)
+        {
+            if (!BlessingEffectShares.TryGetValue(effect.Type, out var shares))
+                BlessingEffectShares[effect.Type] = shares = new System.Collections.Generic.Dictionary<string, float>();
+            shares[blessingId] = (shares.TryGetValue(blessingId, out var current) ? current : 0.0f) + amount;
+        }
         foreach (var parameter in effect.NumberParameters)
             SetEffectParameterMaximum(effect.Type, parameter.Key, parameter.Value);
     }
@@ -775,6 +790,21 @@ public static class RunState
     }
 
     public static float GetEffectTotal(string key) => EffectTotals.TryGetValue(key, out var value) ? value : 0.0f;
+
+    /// <summary>
+    /// Bencaos que somam no tipo de efeito (id -> valor) e o total que divide esses valores: o total do efeito
+    /// (que inclui artefatos) ou, se maior, a soma das bencaos. Null quando nenhuma bencao tem o efeito.
+    /// </summary>
+    public static System.Collections.Generic.IReadOnlyDictionary<string, float> GetBlessingShares(string effectType, out float total)
+    {
+        total = 0.0f;
+        if (string.IsNullOrEmpty(effectType) || !BlessingEffectShares.TryGetValue(effectType, out var shares) || shares.Count == 0)
+            return null;
+        var blessingSum = 0.0f;
+        foreach (var amount in shares.Values) blessingSum += amount;
+        total = MathfMax(GetEffectTotal(effectType + ".Flat") + GetEffectTotal(effectType + ".Multiplier"), blessingSum);
+        return shares;
+    }
     public static bool HasEffectType(string effectType)
         => GetEffectTotal(effectType + ".Flat") != 0.0f || GetEffectTotal(effectType + ".Multiplier") != 0.0f;
     public static float GetEffectParameter(string effectType, string parameter, float fallback = 0.0f)
@@ -807,6 +837,7 @@ public static class RunState
 
     public static void Tick(float delta)
     {
+        if (IsRunActive) RunStats.Tick(delta);
         TickTimer(ref _killAttackSpeedTimer, ref _killAttackSpeedBonus, delta);
         TickTimer(ref _moveOnHitTimer, ref _moveOnHitBonus, delta);
         TickTimer(ref _fatalDamageTimer, ref _fatalDamageBonus, delta);

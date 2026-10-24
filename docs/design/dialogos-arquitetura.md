@@ -267,7 +267,7 @@ Todos em `DialogueProgress` (classe estática nova, seção 6.5), no estilo de `
 | `LastRun` (desfecho, mapa, sala, sala de boss) | **não** (sessão) | `OnRunEnded`, `OnRunCompleted`; zerado em `OnRunStarted` e em `DialogueProgress.Reset/LoadSaveData` |
 | `_abandonPending` | **não** | `DialogueProgress.FlagAbandon()`, chamado pelo HUD ao detectar desistência (6.7) |
 
-Por que `Deaths` entra em `FailRun` e não no `Died` do `Health`: `FailRun` já é o ponto único de fim de run (chamado por `HUD.ContinueAfterGameOver` e `ReturnToMainMenuAfterGameOver`), roda uma vez e tem `CurrentMapIndex/CurrentRoom` antes do reset. `MainMenu.StartSlot` também chama `FailRun`, mas com `IsRunActive == false`, então é ignorado. Limitação aceita: se o jogador fechar o jogo na tela de game over sem confirmar, a morte não é contada.
+Por que `Deaths` entra em `FailRun` e não no `Died` do `Health`: `FailRun` já é o ponto único de fim de run (chamado por `HUD.ContinueAfterGameOver`, o botão Renascer), roda uma vez e tem `CurrentMapIndex/CurrentRoom` antes do reset. `MainMenu.StartSlot` também chama `FailRun`, mas com `IsRunActive == false`, então é ignorado. Limitação aceita: se o jogador fechar o jogo na tela de game over sem confirmar, a morte não é contada.
 
 ### 3.2 Contexto de avaliação
 `DialogueContext` (record, seção 6.4) leva só o que não é estático: `float PlayerHealthRatio` (−1 = sem jogador). O `DialogueManager` o monta com `GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<Health>("Health")`. O resto o avaliador lê direto de `RunState`, `CharacterSheet`, `CodexProgress`, `WeaponLoadout` e `DialogueProgress`.

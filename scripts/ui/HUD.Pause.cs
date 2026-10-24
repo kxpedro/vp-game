@@ -10,6 +10,9 @@ public partial class HUD
 	// Causa usada por AbandonRun: o game over troca "derrotado por" por "desistiu".
 	private const string AbandonRunDeathSource = "abandon_run";
 	private const float GameOverButtonWidth = 280.0f;
+	private const float GameOverWidth = 760.0f;
+	// Quantas bênçãos entram no ranking de dano do game over (a primeira em destaque).
+	private const int GameOverBlessingRankSize = 3;
 
 	private UiWindow _pauseWindow;
 	private VBoxContainer _pauseMainPage;
@@ -25,9 +28,10 @@ public partial class HUD
 	private UiWindow _gameOverWindow;
 	private Label _gameOverCauseLabel;
 	private Label _gameOverLastHitLabel;
-	private VBoxContainer _gameOverSummary;
-	private Button _gameOverRetryButton;
-	private Button _gameOverMenuButton;
+	private Label _gameOverReachedLabel;
+	private GridContainer _gameOverStats;
+	private VBoxContainer _gameOverBlessings;
+	private Button _gameOverRebirthButton;
 
 	// ---------- Game over (§8.11) ----------
 
@@ -37,40 +41,44 @@ public partial class HUD
 		_gameOverOverlay = _gameOverWindow.Root;
 		_gameOverOverlay.Visible = false;
 
-		// Small com 640 de largura (§8.11) e título Display.
+		// Small alargada para caber a grade de estatísticas em duas colunas; título Display.
 		var panel = _gameOverWindow.Panel;
-		panel.OffsetLeft = -320.0f;
-		panel.OffsetRight = 320.0f;
-		panel.CustomMinimumSize = new Vector2(640.0f, 0.0f);
+		panel.OffsetLeft = -GameOverWidth * 0.5f;
+		panel.OffsetRight = GameOverWidth * 0.5f;
+		panel.CustomMinimumSize = new Vector2(GameOverWidth, 0.0f);
 		var title = _gameOverWindow.Title;
 		title.ThemeTypeVariation = UiVariation.DisplayLabel;
 		title.Uppercase = true;
 		if (title.GetParent() is Control titleRow)
 			titleRow.CustomMinimumSize = new Vector2(0.0f, 84.0f);
-		_gameOverWindow.SetStatus(Localization.Text("gameover.subtitle"));
 
 		var body = _gameOverWindow.Body;
 		_gameOverCauseLabel = MakeGameOverLabel(UiVariation.BodyLabel);
 		body.AddChild(_gameOverCauseLabel);
-		_gameOverLastHitLabel = MakeGameOverLabel(UiVariation.BodyLabel);
+		_gameOverLastHitLabel = MakeGameOverLabel(UiVariation.SecondaryLabel);
 		body.AddChild(_gameOverLastHitLabel);
-		_gameOverSummary = new VBoxContainer { Name = "GameOverSummary" };
-		_gameOverSummary.AddThemeConstantOverride("separation", UiMetrics.S1);
-		body.AddChild(_gameOverSummary);
+		_gameOverReachedLabel = MakeGameOverLabel(UiVariation.SecondaryLabel);
+		body.AddChild(_gameOverReachedLabel);
+
+		// Estatísticas: duas colunas de pares rótulo/valor dentro de um painel rebaixado.
+		var statsPanel = new PanelContainer { ThemeTypeVariation = UiVariation.InsetPanel, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+		body.AddChild(statsPanel);
+		_gameOverStats = new GridContainer { Name = "GameOverStats", Columns = 4 };
+		_gameOverStats.AddThemeConstantOverride("h_separation", UiMetrics.S5);
+		_gameOverStats.AddThemeConstantOverride("v_separation", UiMetrics.S2);
+		statsPanel.AddChild(_gameOverStats);
+
+		_gameOverBlessings = new VBoxContainer { Name = "GameOverBlessings" };
+		_gameOverBlessings.AddThemeConstantOverride("separation", UiMetrics.S2);
+		body.AddChild(_gameOverBlessings);
 
 		var actions = _gameOverWindow.Actions;
 		actions.Visible = true;
 		actions.Alignment = BoxContainer.AlignmentMode.Center;
-		_gameOverRetryButton = UiComponents.MenuButton(Localization.Text("gameover.return_nest"), ContinueAfterGameOver, ButtonVariant.Primary, ButtonSize.Medium);
-		_gameOverRetryButton.Name = "RestartButton";
-		actions.AddChild(_gameOverRetryButton);
-		_gameOverMenuButton = UiComponents.MenuButton(Localization.Text("gameover.main_menu"), ReturnToMainMenuAfterGameOver, ButtonVariant.Secondary, ButtonSize.Medium);
-		_gameOverMenuButton.Name = "GameOverMainMenuButton";
-		actions.AddChild(_gameOverMenuButton);
-		// Mesma largura mínima nos dois botões (o rótulo do primeiro é mais longo).
-		foreach (var button in new[] { _gameOverRetryButton, _gameOverMenuButton })
-			button.CustomMinimumSize = new Vector2(GameOverButtonWidth, button.CustomMinimumSize.Y);
-		ControllerUiSupport.SetHorizontalCycle(new Control[] { _gameOverRetryButton, _gameOverMenuButton });
+		_gameOverRebirthButton = UiComponents.MenuButton(Localization.Text("gameover.rebirth"), ContinueAfterGameOver, ButtonVariant.Primary, ButtonSize.Medium);
+		_gameOverRebirthButton.Name = "RebirthButton";
+		_gameOverRebirthButton.CustomMinimumSize = new Vector2(GameOverButtonWidth, _gameOverRebirthButton.CustomMinimumSize.Y);
+		actions.AddChild(_gameOverRebirthButton);
 
 		_gameOverWindow.Footer.Add(UiAction.Accept, Localization.Text("ui.common.choose"));
 	}
@@ -100,10 +108,18 @@ public partial class HUD
 		ShowGameOver(source, finalDamage);
 	}
 
-	// Igual a OnPlayerDied, sem áudio, log nem jogador real (causa fictícia).
+	// Igual a OnPlayerDied, sem áudio, log nem jogador real (causa e números fictícios).
 	private void ShowPreviewGameOver()
 	{
 		_isGameOver = true;
+		EnsurePreviewRunActive();
+		var previewBlessings = new List<string>();
+		foreach (var definition in BloodBlessingCatalog.All)
+		{
+			if (previewBlessings.Count >= GameOverBlessingRankSize) break;
+			previewBlessings.Add(definition.Id);
+		}
+		RunStats.SeedPreview(previewBlessings);
 		ShowGameOver(Localization.Text("boss.armand.name"), 42.0f);
 	}
 
@@ -118,40 +134,134 @@ public partial class HUD
 		var lastHit = Mathf.RoundToInt(finalDamage);
 		_gameOverLastHitLabel.Text = Localization.TextFormat("gameover.last_hit", lastHit);
 		_gameOverLastHitLabel.Visible = !abandoned && lastHit > 0;
-		FillGameOverSummary();
+		FillGameOverStats();
 
 		HideOverlaysForGameOver();
 		UiModalStack.Clear();
-		UiModalStack.Push(_gameOverOverlay, pauses: true, initialFocus: _gameOverRetryButton, mandatory: true, pausesAudio: false);
+		UiModalStack.Push(_gameOverOverlay, pauses: true, initialFocus: _gameOverRebirthButton, mandatory: true, pausesAudio: false);
 		_gameOverWindow.FadeIn();
 	}
 
-	// Resumo com dados já existentes em RunState/CharacterSheet; linha sem dado é omitida.
-	private void FillGameOverSummary()
+	// Lê RunState e RunStats antes do FailRun (que zera os dois; roda em ContinueAfterGameOver).
+	private void FillGameOverStats()
 	{
-		foreach (var child in _gameOverSummary.GetChildren())
-		{
-			_gameOverSummary.RemoveChild(child);
-			child.QueueFree();
-		}
+		ClearChildren(_gameOverStats);
+		ClearChildren(_gameOverBlessings);
 
+		_gameOverReachedLabel.Visible = RunState.IsRunActive;
 		if (RunState.IsRunActive)
 		{
 			var map = RunState.CurrentMap;
 			var room = RunState.IsBossRoom ? Localization.Text("hud.room.boss") : Localization.TextFormat("hud.room.progress", RunState.CurrentRoom, map.CommonRoomCount);
-			AddGameOverSummaryLine(Localization.TextFormat("gameover.reached", map.Name, room));
-			AddGameOverSummaryLine(Localization.TextFormat("gameover.run_summary", RunState.RunBlessings.Count, RunState.RunArtifacts.Count));
+			_gameOverReachedLabel.Text = Localization.TextFormat("gameover.reached", map.Name, room);
 		}
-		// Moedas de Sangue desta run (RunState.RunBloodCoins), lidas aqui: o saldo só zera em RunState.FailRun, que roda
-		// depois (ContinueAfterGameOver / ReturnToMainMenuAfterGameOver). O Sangue Amaldiçoado permanente não entra no resumo.
-		AddGameOverSummaryLine(Localization.TextFormat("hud.blood_coins", RunState.RunBloodCoins));
+
+		AddGameOverStat(Localization.Text("gameover.stat.damage_dealt"), FormatStatNumber(RunStats.DamageDealt));
+		AddGameOverStat(Localization.Text("gameover.stat.biggest_hit"), FormatStatNumber(RunStats.BiggestHit));
+		AddGameOverStat(Localization.Text("gameover.stat.damage_taken"), FormatStatNumber(RunStats.DamageTaken));
+		AddGameOverStat(Localization.Text("gameover.stat.healing"), FormatStatNumber(RunStats.HealingDone));
+		AddGameOverStat(Localization.Text("gameover.stat.kills"), RunStats.EnemiesKilled.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.elites"), RunStats.ElitesKilled.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.crits"), RunStats.CriticalHits.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.rooms"), RunStats.RoomsCleared.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.blessings"), RunState.RunBlessings.Count.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.artifacts"), RunState.RunArtifacts.Count.ToString("N0"));
+		// Moedas de Sangue desta run: o saldo só zera no FailRun. O Sangue Amaldiçoado permanente não entra.
+		AddGameOverStat(Localization.Text("gameover.stat.coins"), RunState.RunBloodCoins.ToString("N0"));
+		AddGameOverStat(Localization.Text("gameover.stat.time"), FormatRunTime(RunStats.ElapsedSeconds));
+
+		FillGameOverBlessingRanking();
 	}
 
-	private void AddGameOverSummaryLine(string text)
+	private void AddGameOverStat(string label, string value)
 	{
-		var label = MakeGameOverLabel(UiVariation.SecondaryLabel);
-		label.Text = text;
-		_gameOverSummary.AddChild(label);
+		_gameOverStats.AddChild(new Label
+		{
+			Text = label,
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+		});
+		var valueLabel = new Label
+		{
+			Text = value,
+			ThemeTypeVariation = UiVariation.BodyLabel,
+			HorizontalAlignment = HorizontalAlignment.Right
+		};
+		valueLabel.AddThemeColorOverride("font_color", UiPalette.Gold);
+		_gameOverStats.AddChild(valueLabel);
+	}
+
+	// Bênção mais letal em destaque (ícone + nome + dano e % do total) e as seguintes numa linha menor cada.
+	private void FillGameOverBlessingRanking()
+	{
+		var ranking = RunStats.GetBlessingDamageRanking();
+		_gameOverBlessings.Visible = ranking.Count > 0;
+		if (ranking.Count == 0)
+			return;
+
+		var header = new Label
+		{
+			Text = Localization.Text("gameover.top_blessing"),
+			ThemeTypeVariation = UiVariation.SectionGoldLabel,
+			HorizontalAlignment = HorizontalAlignment.Center
+		};
+		_gameOverBlessings.AddChild(header);
+
+		var total = Mathf.Max(RunStats.DamageDealt, 1.0f);
+		for (var i = 0; i < ranking.Count && i < GameOverBlessingRankSize; i++)
+		{
+			var (blessingId, damage) = ranking[i];
+			var record = FindRunBlessingRecord(blessingId);
+			var top = i == 0;
+			var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+			row.AddThemeConstantOverride("separation", UiMetrics.S3);
+			var icon = UiComponents.BlessingIcon(record, top ? UiMetrics.IconM : UiMetrics.IconS, top);
+			icon.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+			row.AddChild(icon);
+			var name = new Label
+			{
+				Text = record.DisplayName,
+				ThemeTypeVariation = top ? UiVariation.BodyLabel : UiVariation.SecondaryLabel,
+				VerticalAlignment = VerticalAlignment.Center
+			};
+			name.AddThemeColorOverride("font_color", UiComponents.RarityColor(record.Rarity));
+			row.AddChild(name);
+			var percent = Mathf.RoundToInt(Mathf.Clamp(damage / total, 0.0f, 1.0f) * 100.0f);
+			row.AddChild(new Label
+			{
+				Text = Localization.TextFormat("gameover.blessing_damage", FormatStatNumber(damage), percent),
+				ThemeTypeVariation = UiVariation.SecondaryLabel,
+				VerticalAlignment = VerticalAlignment.Center
+			});
+			_gameOverBlessings.AddChild(row);
+		}
+	}
+
+	// Registro da run (raridade e nível do ícone); bênção que já saiu da run (grupo exclusivo) cai no catálogo.
+	private static BloodBlessingRecord FindRunBlessingRecord(string blessingId)
+	{
+		foreach (var blessing in RunState.RunBlessings)
+			if (blessing.Id == blessingId)
+				return blessing;
+		var name = BloodBlessingCatalog.TryGet(blessingId, out var definition) ? definition.DisplayName : blessingId;
+		return new BloodBlessingRecord(blessingId, name, 1);
+	}
+
+	private static string FormatStatNumber(float value) => Mathf.RoundToInt(value).ToString("N0");
+
+	private static string FormatRunTime(float seconds)
+	{
+		var time = TimeSpan.FromSeconds(Mathf.Max(seconds, 0.0f));
+		return time.TotalHours >= 1.0 ? time.ToString(@"h\:mm\:ss") : time.ToString(@"m\:ss");
+	}
+
+	private static void ClearChildren(Node parent)
+	{
+		foreach (var child in parent.GetChildren())
+		{
+			parent.RemoveChild(child);
+			child.QueueFree();
+		}
 	}
 
 	// Game over fica sozinho: esconde as telas legadas e o HUD de combate (§8.11).
@@ -173,6 +283,7 @@ public partial class HUD
 		}
 	}
 
+	// "Renascer": encerra a run e volta ao Ninho do Corvo (a run já terminou, sem confirmação).
 	private void ContinueAfterGameOver()
 	{
 		RunState.FailRun();
@@ -180,13 +291,6 @@ public partial class HUD
 		UiModalStack.Clear();
 		UiModalStack.ApplyPause(false);
 		GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
-	}
-
-	// A run já terminou: sem confirmação (§8.11).
-	private void ReturnToMainMenuAfterGameOver()
-	{
-		RunState.FailRun();
-		ReturnToMainMenu();
 	}
 
 	// ---------- Pausa (§8.10) ----------

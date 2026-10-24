@@ -63,6 +63,7 @@ public partial class SummonedRat : CharacterBody3D
             return;
 
         _attackTimer = Mathf.Max(AttackInterval, 0.08f);
+        RunStats.Attribute("RatSummonOnPestilentKill");
         _target.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage, false, "Rato invocado");
         SpawnBitePulse();
     }
