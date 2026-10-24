@@ -3,7 +3,7 @@ import numpy as np
 from iso import FID, vnoise
 from materials import (sarc, stone_coffin, wood_coffin, candle, cluster, sconce as _sconce, carpet,
                        rubble_tex, BONES, BONES_C, SCONCE, SCONCE_C, FLAME, FLAME_C, wax,
-                       stone_cyl, side_light, HEART, HEART_C, wood_tex,
+                       stone_cyl, side_light, HEART, HEART_C, wood_tex, grain, plain_stone,
                        SWORD, SWORD_C, AXE, AXE_C, WHIP, WHIP_C, REVOLVER, REVOLVER_C, x2)
 
 def coffin_virgil(cv, axis, lights):
@@ -125,3 +125,50 @@ def weapon_bench(cv, lights, X=0, y0=-56, y1=72):
     cv.sprite(x2(WHIP), WHIP_C, (tx0 + tx1) / 2, ty1 - 18, th, depth_bias=6)
     candle(cv, tx0 + 6, ty0 + 6, 7, lights, z=th); candle(cv, tx0 + 9, ty0 + 10, 4, lights, z=th)
     candle(cv, tx1 - 7, ty1 - 7, 6, lights, z=th)
+
+# ---------- bebedouro de sangue (sala da primeira herança; referência: bebedouro de jardim em pedestal) ----------
+def _lathe_stone(shift=0.0, flutes=0):
+    """pedra torneada: luz do lado, caneluras verticais (folhas do pedestal) quando flutes > 0"""
+    def tex(face, wx, wy, wz, th, rr):
+        if face == "top":
+            v = 3.6 + shift + grain(wx, wy, wz, .5)
+        else:
+            v = side_light(th) + shift + grain(wx, wy, wz, .5)
+            if flutes:
+                u = (th / (2 * np.pi) * flutes) % 1
+                v = v + np.where(u < .18, -1.1, 0) + np.where((u > .45) & (u < .6), .6, 0)
+        return np.full(np.shape(v), FID["cool"]), v
+    return tex
+
+# perfil do pedestal: (z0, z1, raio embaixo, raio em cima, caneluras)
+BASIN_PROFILE = [
+    (7, 9, 11, 10, 0), (9, 11, 9, 9, 0), (11, 13, 10, 10, 0),         # anéis sobre a base
+    (13, 33, 6, 8, 10),                                                # bulbo com folhas
+    (33, 36, 10, 10, 0), (36, 40, 6, 5, 0),                            # colar e pescoço
+]
+BASIN_RIM = 48                                                         # altura da borda da taça
+
+def blood_basin(cv, lights, t=0.0):
+    """bebedouro: base quadrada, pedestal torneado e taça larga e rasa de borda virada, cheia de sangue"""
+    cx = cy = 32
+    cv.box(cx - 14, cx + 14, cy - 14, cy + 14, 0, 4, plain_stone(.1, frame=2))
+    cv.box(cx - 11, cx + 11, cy - 11, cy + 11, 4, 7, plain_stone(.3, frame=2))
+    for (z0, z1, r0, r1, fl) in BASIN_PROFILE:
+        for z in np.arange(z0, z1, 1.0):
+            r = r0 + (r1 - r0) * ((z - z0) / max(z1 - z0, 1))
+            if fl: r = r + 2.6 * np.sin((z - z0) / (z1 - z0) * np.pi)     # barriga do bulbo
+            cv.cyl(cx, cy, r, z, z + 1, _lathe_stone(0, fl), top=(z == z1 - 1))
+    R = BASIN_RIM
+    for z in np.arange(40, R - 2, 1.0):                                # taça: abre de 5 a 21
+        r = 5 + 16 * ((z - 40) / (R - 42)) ** .6
+        cv.cyl(cx, cy, r, z, z + 1, _lathe_stone(-.2 + (z - 40) * .08), top=False)
+    cv.cyl(cx, cy, 23, R - 2, R, _lathe_stone(.5), r_in=19)            # borda virada
+    cv.cyl(cx, cy, 19, R - 4, R, stone_cyl(-1.2), top=False)            # parede interna
+    cv.cyl(cx, cy, 19, R - 4, R - 1.5, _pool(cx, cy, t, 63), side=False)
+    for k, ang in enumerate([1.9, 1.1, -.2]):                           # pingos escorrendo pela borda
+        x, y = cx + np.cos(ang) * 22.6, cy + np.sin(ang) * 22.6
+        drop = 3 * ((t * 8 + k * 3) % 8) / 8
+        cv.box(x - .6, x + .6, y - .6, y + .6, R - 4 - drop, R - 1, _blood_flat, step=.34)
+    lights.append((cx, cy, R + 6, .6, 50))
+
+def _blood_flat(face, wx, wy, wz, a, b, B): return np.full(wx.shape, FID["blood"]), np.full(wx.shape, 2.4)

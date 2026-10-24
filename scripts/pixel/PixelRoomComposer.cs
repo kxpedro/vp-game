@@ -129,6 +129,7 @@ public static class PixelRoomComposer
     {
         ("coffin_virgil", new Vector2(19, 36), Vector2.Zero), ("coffin_stone", new Vector2(13, 31), Vector2.Zero),
         ("coffin_wood", new Vector2(12, 29), Vector2.Zero), ("blood_fountain", new Vector2(46, 46), Vector2.Zero),
+        ("blood_basin", new Vector2(14, 14), Vector2.Zero),
         ("weapon_bench", new Vector2(30, 64), new Vector2(-2, -23))
     };
 

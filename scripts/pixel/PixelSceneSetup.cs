@@ -15,12 +15,15 @@ public partial class PixelSceneSetup : Node3D
     }
 
     private const string RoomsRoot = "res://assets/pixel_art/crypt/rooms/";
-    // Fonte e bancada do kit (props blood_fountain e weapon_bench): alcance da interação além do obstáculo
-    // (PixelRoomComposer.BlockerSizes) e altura dos títulos, acima do topo das peças (fonte 74 e bancada 67 de z do kit).
+    // Fonte, bebedouro e bancada do kit (props blood_fountain, blood_basin e weapon_bench): raio da interação (o
+    // obstáculo está em PixelRoomComposer.BlockerSizes) e altura dos títulos, acima do topo das peças (fonte 74,
+    // bebedouro 50 e bancada 67 de z do kit).
     private const float FountainReach = 4.0f;
+    private const float BasinReach = 2.1f;
+    private const float BasinTitleHeight = 2.6f;
     private const float BenchReachX = 1.25f;
     private const float BenchReachZ = 0.8f;
-    private const float KitTitleHeight = 3.2f;
+    private const float KitTitleHeight = 3.5f;
 
     [Export] public RoomKind Kind { get; set; } = RoomKind.RunRoom;
 
@@ -70,12 +73,14 @@ public partial class PixelSceneSetup : Node3D
     // títulos sobem acima da peça. Roda antes do _Ready dos interativos e dos scripts das salas.
     private void PlaceKitInteractives(Node scene, PixelRoomLayout layout)
     {
-        if (FindProp(layout, "blood_fountain") is { } fountainProp && scene.GetNodeOrNull<Node3D>("BloodFountain") is { } fountain)
+        // A sala da primeira herança usa o bebedouro no lugar da fonte; o nó da cena continua sendo o BloodFountain.
+        var basin = FindProp(layout, "blood_basin");
+        if ((basin ?? FindProp(layout, "blood_fountain")) is { } fountainProp && scene.GetNodeOrNull<Node3D>("BloodFountain") is { } fountain)
         {
             fountain.Position = PropCenter(fountainProp);
             HideMeshes(fountain);
-            ReplaceAreaShape(fountain, new CylinderShape3D { Radius = FountainReach, Height = 3.0f });
-            RaiseTitles(fountain);
+            ReplaceAreaShape(fountain, new CylinderShape3D { Radius = basin != null ? BasinReach : FountainReach, Height = 3.0f });
+            RaiseTitles(fountain, basin != null ? BasinTitleHeight : KitTitleHeight);
         }
 
         if (FindProp(layout, "weapon_bench") is { } benchProp && scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
@@ -86,7 +91,7 @@ public partial class PixelSceneSetup : Node3D
             HideMeshes(bench);
             var size = new Vector3((half.X * PixelRoom.UnitMeters + BenchReachX) * 2.0f, 2.0f, (half.Y * PixelRoom.UnitMeters + BenchReachZ) * 2.0f);
             ReplaceAreaShape(bench, new BoxShape3D { Size = size });
-            RaiseTitles(bench);
+            RaiseTitles(bench, KitTitleHeight);
         }
     }
 
@@ -122,10 +127,10 @@ public partial class PixelSceneSetup : Node3D
         }
     }
 
-    private static void RaiseTitles(Node3D node)
+    private static void RaiseTitles(Node3D node, float height)
     {
         foreach (var label in node.GetChildren().OfType<Label3D>())
-            label.Position = new Vector3(label.Position.X, Mathf.Max(label.Position.Y, KitTitleHeight), label.Position.Z);
+            label.Position = new Vector3(label.Position.X, Mathf.Max(label.Position.Y, height), label.Position.Z);
     }
 
     // Salas fixas (bênção e câmara): as paredes 3D da cena somem e vão para a borda da sala do kit, porque as portas

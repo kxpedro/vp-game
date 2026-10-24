@@ -1,4 +1,4 @@
-# Sala da primeira Bênção (modo 2D): 7x7 tiles, fonte no centro (tile 3,3), saída em arco na parede norte.
+# Sala da primeira Bênção (modo 2D): 7x7 tiles, bebedouro de sangue no centro (tile 3,3), saída em arco na parede norte.
 # A cena (scenes/pixel/RunStartBlessingRoom.tscn) põe a origem no centro da sala.
 [grid]
 .......
@@ -14,7 +14,7 @@ niche ne 1 0
 niche ne 5 0
 niche nw 0 3
 [props]
-blood_fountain 3 3
+blood_basin 3 3
 carpet_sw 3 1
 carpet_sw 3 2
 carpet_sw 3 4

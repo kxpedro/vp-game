@@ -67,7 +67,7 @@ def piece_height(name):
 # meia-largura x meia-profundidade (unidades do mundo, eixo "sw" = comprido em y) dos objetos que bloqueiam o passo
 BLOCKERS = {"coffin_virgil": (19, 36), "coffin_stone": (13, 31), "coffin_wood": (12, 29),
             "candles_large": (13, 13), "candles_medium": (9, 9), "candles_small": (6, 6), "candle_tall": (4, 4),
-            "blood_fountain": (46, 46), "weapon_bench": (30, 64)}
+            "blood_fountain": (46, 46), "blood_basin": (14, 14), "weapon_bench": (30, 64)}
 # centro do obstáculo fora do centro do tile (unidades do mundo)
 BLOCKER_OFFSETS = {"weapon_bench": (-2, -23)}
 WALL_EDGES = ("plain", "niche", "low")

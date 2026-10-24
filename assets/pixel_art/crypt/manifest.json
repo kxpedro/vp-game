@@ -612,6 +612,95 @@
     }
    ]
   },
+  "props/blood_basin": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ],
+   "frames": 8
+  },
+  "props/blood_basin_1": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_2": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_3": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_4": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_5": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_6": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
+  "props/blood_basin_7": {
+   "kind": "frame",
+   "lights": [
+    {
+     "x": 112,
+     "y": 94,
+     "power": 0.6,
+     "radius": 50.0
+    }
+   ]
+  },
   "props/weapon_bench": {
    "kind": "prop",
    "lights": [

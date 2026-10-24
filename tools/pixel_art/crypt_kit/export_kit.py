@@ -76,10 +76,14 @@ def pieces():
     P["props/blood_fountain"] = ("prop", lambda cv, L: Pr.blood_fountain(cv, L, 0.0))
     for k in range(1, Pr.FOUNTAIN_FRAMES):
         P[f"props/blood_fountain_{k}"] = ("frame", lambda cv, L, k=k: Pr.blood_fountain(cv, L, k / Pr.FOUNTAIN_FRAMES))
+    # Bebedouro de sangue da sala da primeira herança (mesma ideia: quadro 0 no layout, quadros 1..N-1 trocados).
+    P["props/blood_basin"] = ("prop", lambda cv, L: Pr.blood_basin(cv, L, 0.0))
+    for k in range(1, Pr.FOUNTAIN_FRAMES):
+        P[f"props/blood_basin_{k}"] = ("frame", lambda cv, L, k=k: Pr.blood_basin(cv, L, k / Pr.FOUNTAIN_FRAMES))
     P["props/weapon_bench"] = ("prop", lambda cv, L: Pr.weapon_bench(cv, L), BENCH_CANVAS)
     return P
 
-FRAMES = {"props/blood_fountain": Pr.FOUNTAIN_FRAMES}
+FRAMES = {"props/blood_fountain": Pr.FOUNTAIN_FRAMES, "props/blood_basin": Pr.FOUNTAIN_FRAMES}
 
 def main(out):
     man = {"canvas": [CW, CH], "tile_top_vertex": [TX, TY], "tile_center": [TX, TY + 32], "tile_size": [128, 64],
