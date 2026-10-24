@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 
 // Modelo das portas com recompensa visivel (docs/design/portas-recompensas.md, secoes 1 a 3, 7.4 e 9).
-// Opcao B (decisao do usuario): toda saida de sala comum tem uma Bencao de Sangue em uma das portas;
-// Fruta do Diabo e Moedas de Sangue aparecem so na segunda porta, que e opcional.
+// Opcao B (decisao do usuario): toda saida de sala comum tem uma Bencao de Sangue em uma das portas.
+// Revisao de 2026-10-24: duas portas sao mais comuns que uma, e a segunda porta e quase sempre outra Bencao,
+// de linhagem diferente da primeira. Moedas e Fruta aparecem menos e a Bigorna e rara (so na segunda porta).
 // Esta classe e pura: nao le o estado da run. RunState guarda o conjunto sorteado, o pity e o contador de frutas.
 
 public enum RoomRewardType
@@ -45,15 +46,15 @@ public sealed record RoomRewardSet(int MapIndex, int OriginRoom, IReadOnlyList<R
 public static class RoomRewardCatalog
 {
     // Padroes da secao 9 do documento. Indexados por mapa (0 a 2); o mapa 4 (indice 3) nao tem sala comum.
-    private static readonly float[] DefaultTwoDoorBase = { 0.30f, 0.35f, 0.40f };
+    private static readonly float[] DefaultTwoDoorBase = { 0.70f, 0.75f, 0.80f };
     private const float DefaultTwoDoorStep = 0.05f;
     private const int DefaultTwoDoorStepEvery = 2;
-    private const float DefaultTwoDoorCap = 0.55f;
+    private const float DefaultTwoDoorCap = 0.90f;
 
-    private static readonly int[] DefaultBlessingWeight = { 72, 68, 64 };
-    private static readonly int[] DefaultFruitWeight = { 6, 8, 10 };
-    private static readonly int[] DefaultCoinsWeight = { 22, 24, 26 };
-    private static readonly int[] DefaultAnvilWeight = { 8, 10, 12 };
+    private static readonly int[] DefaultBlessingWeight = { 70, 66, 62 };
+    private static readonly int[] DefaultFruitWeight = { 8, 10, 12 };
+    private static readonly int[] DefaultCoinsWeight = { 18, 20, 22 };
+    private static readonly int[] DefaultAnvilWeight = { 4, 4, 4 };
     private const float DefaultRampFromFraction = 0.5f;
     private const int DefaultRampShift = 2;
 
@@ -126,7 +127,8 @@ public static class RoomRewardCatalog
         if (setsWithoutBlessing >= MaxSetsWithoutBlessing(mapIndex))
             types.Add(RoomRewardType.Blessing);
 
-        // Demais portas (3.2.2): sem repetir tipo na mesma CP; teto de Fruta sai do sorteio (3.2.3).
+        // Demais portas (3.2.2): Bencao pode repetir (a segunda tera outra linhagem, PlanBlessingsForSet); os outros
+        // tipos nao repetem na mesma CP; teto de Fruta sai do sorteio (3.2.3).
         while (types.Count < doorCount)
         {
             if (!TryDrawType(mapIndex, originRoom, totalRooms, types, fruitCapReached, anvilAvailable, rng, out var type))
@@ -208,15 +210,44 @@ public static class RoomRewardCatalog
         return offers.Count == 0 ? null : new RoomBlessingPlan(family, offers);
     }
 
-    /// <summary>Devolve o conjunto com o plano de bencaos gravado na porta de Bencao (as demais portas ficam iguais).</summary>
-    public static RoomRewardSet WithBlessingPlan(RoomRewardSet set, RoomBlessingPlan plan)
+    /// <summary>
+    /// Grava um plano de bencaos em cada porta de Bencao do conjunto. A segunda porta de Bencao sorteia uma linhagem
+    /// diferente da primeira; sem outra linhagem elegivel, ela vira Moedas (o jogador nunca ve duas portas iguais).
+    /// </summary>
+    public static RoomRewardSet PlanBlessingsForSet(RoomRewardSet set, RandomNumberGenerator rng, bool guaranteeBasicAttack)
     {
-        if (set == null || plan == null || !set.HasBlessing)
+        if (set == null || rng == null || !set.HasBlessing)
             return set;
 
+        var count = Math.Max(1, CompendiumTuning.GetInt("reward.blessing.choices", BlessingPlanSize));
+        var usedFamilies = new List<string>();
         var doors = new List<RoomRewardDoor>(set.Doors.Count);
         foreach (var door in set.Doors)
-            doors.Add(door.Type == RoomRewardType.Blessing ? door with { BlessingPlan = plan } : door);
+        {
+            if (door.Type != RoomRewardType.Blessing)
+            {
+                doors.Add(door);
+                continue;
+            }
+
+            if (usedFamilies.Count == 0)
+            {
+                var plan = PlanBlessings(rng, guaranteeBasicAttack);
+                if (plan != null)
+                    usedFamilies.Add(plan.Family);
+                doors.Add(door with { BlessingPlan = plan });
+                continue;
+            }
+
+            var offers = BloodBlessingCatalog.RollOffers(rng, count, out var family, guaranteeBasicAttack, false, usedFamilies);
+            if (offers.Count == 0)
+            {
+                doors.Add(door with { Type = RoomRewardType.Coins, CoinAmount = CoinPackAmount(door.MapIndex) });
+                continue;
+            }
+            usedFamilies.Add(family);
+            doors.Add(door with { BlessingPlan = new RoomBlessingPlan(family, offers) });
+        }
         return set with { Doors = doors };
     }
 
@@ -233,7 +264,8 @@ public static class RoomRewardCatalog
         var ramp = originRoom >= (int)Math.Floor(totalRooms * CompendiumTuning.GetFloat("reward.door_weight.ramp_from_fraction", DefaultRampFromFraction));
         var shift = ramp ? CompendiumTuning.GetInt("reward.door_weight.ramp_shift", DefaultRampShift) : 0;
 
-        var blessing = chosen.Contains(RoomRewardType.Blessing) ? 0 : BlessingWeight(mapIndex);
+        // Bencao repete: duas portas de Bencao (linhagens diferentes) sao o caso mais comum.
+        var blessing = BlessingWeight(mapIndex);
         var fruit = chosen.Contains(RoomRewardType.DevilsFruit) || fruitCapReached ? 0 : FruitWeight(mapIndex) + shift;
         var coins = chosen.Contains(RoomRewardType.Coins) ? 0 : Math.Max(0, CoinsWeight(mapIndex) - shift);
         // Bigorna: so como segunda porta (nunca a unica: chosen vazio = peso 0), sem repetir tipo e fora do sorteio sem elegibilidade.

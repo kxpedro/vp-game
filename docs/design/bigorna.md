@@ -161,6 +161,8 @@ Para o ícone/letras de carta da oferta, T4 usa o nome. Referências musicais: n
 
 ### 4.1 Valores padrão
 
+> **Revisão de 2026-10-24:** os pesos vigentes estão em `portas-recompensas.md` ("Revisão de 2026-10-24"): Bigorna 4 / 4 / 4 (rara), Moedas 18 / 20 / 22, Fruta 8 / 10 / 12, Bênção 70 / 66 / 62, e a segunda porta pode ser outra Bênção. A tabela abaixo é a proposta original.
+
 | Chave | Mapa 1 | Mapa 2 | Mapa 3 | Observação |
 |---|---|---|---|---|
 | `reward.door_weight.anvil.{m}` | 8 | 10 | 12 | Cresce com o mapa como a Fruta (build mais formado, mais valor em especializar). |

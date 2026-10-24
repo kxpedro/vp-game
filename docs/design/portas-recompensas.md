@@ -6,6 +6,37 @@ Documento de design da tarefa T1 do plano `20261011-0550-portas-recompensas`. Se
 
 Premissas fixas (decisões do usuário, não reabertas): D7 (1 ou 2 portas por sala limpa, quantidade e tipo sorteados), D8 (tipos: Bênção de Sangue, Fruta do Diabo e Moedas de Sangue; Sangue Amaldiçoado não é tipo de porta), recompensa da sala = a da porta cruzada, salas de boss com uma porta e recompensa fixa, ícones em geometria provisória com rótulo curto. Os valores de moeda, Sangue Amaldiçoado e Fruta vêm de `docs/design/economia-v2.md` (seções 2, 3, 5, 6 e 9).
 
+## Revisão de 2026-10-24 (vigente; prevalece sobre as seções abaixo)
+
+Pedido do Pedro: duas portas mais comuns que uma; a Bênção de Sangue é a recompensa mais comum, e o caso normal é escolher entre **duas Bênçãos diferentes**, uma em cada porta; Moedas e Fruta aparecem menos; a Bigorna é rara. A sala da primeira Bênção (`RunStartBlessingRoom`) continua com uma porta só.
+
+| Regra | Antes | Agora |
+|---|---|---|
+| Chance de duas portas (base por mapa) | 30% / 35% / 40% | **70% / 75% / 80%** |
+| Degrau e teto | +5 a cada 2 salas, teto 55% | +5 a cada 2 salas, **teto 90%** |
+| Primeira porta | Bênção (garantia, pity 0) | igual |
+| Segunda porta pode ser Bênção? | não (tipos nunca repetem) | **sim**, de **linhagem diferente** da primeira |
+| Pesos da segunda porta: Bênção | 72 / 68 / 64 (sem efeito: excluída) | **70 / 66 / 62** |
+| Moedas | 22 / 24 / 26 | **18 / 20 / 22** |
+| Fruta | 6 / 8 / 10 | **8 / 10 / 12** |
+| Bigorna (só segunda porta, só se elegível) | 8 / 10 / 12 (e 100 promovido em `tuning_overrides.json` para teste) | **4 / 4 / 4** (override de teste removido) |
+
+- A rampa da segunda metade do mapa (2 pontos de Moedas para Fruta) continua.
+- Fruta, Moedas e Bigorna continuam sem repetir no mesmo conjunto; o teto de Frutas (3 por run) e o da Bigorna não mudaram.
+- Duas portas de Bênção: cada uma tem seu plano de 3 opções (`RoomRewardCatalog.PlanBlessingsForSet`); a segunda sorteia a linhagem excluindo a da primeira (`BloodBlessingCatalog.RollOffers`, parâmetro `excludedFamilies`). Se não sobrar outra linhagem elegível, a segunda porta vira Moedas.
+- O override de dev "Forçar portas" (aba Ações do F1) também grava um plano por porta de Bênção, com linhagens diferentes.
+
+Números esperados por conjunto de portas (conta direta sobre os pesos, Bigorna sempre elegível, sem o teto de Fruta):
+
+| Mapa | Duas portas | Duas Bênçãos | Bênção + Moedas | Bênção + Fruta | Bênção + Bigorna |
+|---|---|---|---|---|---|
+| 1 (inclui a sala da primeira Bênção, sempre 1 porta) | 63% | 44% | 11% | 6% | 2,5% |
+| 1 (só salas comuns) | 76% | 53% | 13% | 7% | 3% |
+| 2 | 83% | 54% | 16% | 9% | 3% |
+| 3 | 87% | 54% | 18% | 11% | 3,5% |
+
+Impacto: o jogador continua recebendo uma recompensa por sala; o que muda é que a escolha entre duas Bênçãos é o caso típico, então a run deve terminar com mais Bênçãos e um pouco menos de Moedas e Frutas de porta. **[VALIDAR]** jogando.
+
 ---
 
 ## 0. Resumo das decisões
@@ -13,7 +44,7 @@ Premissas fixas (decisões do usuário, não reabertas): D7 (1 ou 2 portas por s
 | Tema | Decisão proposta | Seção |
 |---|---|---|
 | Unidade de sorteio | 1 conjunto de portas (CP) por saída; cada CP decide a recompensa da sala seguinte | 1 |
-| Quantidade | 1 ou 2 portas; P(2 portas) de 30% a 55%, sobe com a sala e com o mapa | 2 |
+| Quantidade | 1 ou 2 portas; P(2 portas) de 70% a 90% (revisão 2026-10-24; era 30% a 55%), sobe com a sala e com o mapa | 2 e revisão |
 | Tipos | Bênção, Fruta e Moedas com pesos por mapa e rampa na 2ª metade do mapa; duas portas nunca do mesmo tipo | 3.1 e 3.2 |
 | Garantia de Bênção | Mapa 1: Bênção em toda CP. Mapas 2 e 3: nunca duas CPs seguidas sem Bênção | 3.3 |
 | Impacto em bênçãos | Ofertas por run (incluindo a Sala Inicial) caem de 25 (hoje) para cerca de 22. Bênçãos escolhidas: 22 (jogador que prefere Bênção), 17 (escolha neutra), 12 (jogador que evita Bênção). Alternativas B e C na 3.4 | 3.4 |
@@ -109,7 +140,7 @@ Ou seja, cerca de 10 decisões reais por run e cerca de 14 saídas com porta ún
 ### 3.2 Regras de sorteio (ordem de aplicação)
 
 1. **Garantia de Bênção (3.3):** se a regra do mapa exige Bênção nesta origem, a primeira porta é Bênção.
-2. **Demais portas:** sorteadas pelo peso da faixa, excluindo os tipos já escolhidos na CP. Assim, **duas portas nunca têm o mesmo tipo**. Quando a segunda porta é sorteada, os pesos restantes são renormalizados.
+2. **Demais portas:** sorteadas pelo peso da faixa, excluindo os tipos já escolhidos na CP. Assim, **duas portas nunca têm o mesmo tipo** (revisão 2026-10-24: exceto Bênção, que pode repetir com outra linhagem). Quando a segunda porta é sorteada, os pesos restantes são renormalizados.
 3. **Teto de Fruta (5.3):** se o número de Frutas de porta já escolhidas na run chegou a 3, Fruta sai do sorteio e os pesos são renormalizados.
 4. **Sorteio fixo:** a CP é sorteada uma única vez, quando a origem é alcançada, e fica guardada na run. Recarregar a cena não rola de novo (mesmo critério da bênção da Sala Inicial, que não concede outra ao recarregar).
 5. **RNG:** semente derivada da semente da run (`RunState`), para ser reproduzível em teste.
@@ -372,29 +403,30 @@ Convenção: `CompendiumTuning.GetFloat/GetInt` (como em economia-v2 §9). Suges
 
 | Chave | Valor | Justificativa (seção) |
 |---|---|---|
-| `reward.doors.two_chance.base.0` | 0.30 | 2.3 |
-| `reward.doors.two_chance.base.1` | 0.35 | 2.3 |
-| `reward.doors.two_chance.base.2` | 0.40 | 2.3 |
+| `reward.doors.two_chance.base.0` | 0.70 (era 0.30) | revisão 2026-10-24 |
+| `reward.doors.two_chance.base.1` | 0.75 (era 0.35) | revisão 2026-10-24 |
+| `reward.doors.two_chance.base.2` | 0.80 (era 0.40) | revisão 2026-10-24 |
 | `reward.doors.two_chance.step` | 0.05 | 2.3 |
 | `reward.doors.two_chance.step_every` | 2 | 2.3 (degrau a cada 2 origens) |
-| `reward.doors.two_chance.cap` | 0.55 | 2.3 (ao menos 45% de porta única) |
+| `reward.doors.two_chance.cap` | 0.90 (era 0.55) | revisão 2026-10-24 (ao menos 10% de porta única) |
 
 ### 9.2 Pesos por tipo (por porta, em pontos)
 
 | Chave | Valor | Justificativa (seção) |
 |---|---|---|
-| `reward.door_weight.blessing.0` | 72 | 3.5 |
-| `reward.door_weight.blessing.1` | 68 | 3.5 |
-| `reward.door_weight.blessing.2` | 64 | 3.5 |
-| `reward.door_weight.fruit.0` | 6 | 3.5 |
-| `reward.door_weight.fruit.1` | 8 | 3.5 |
-| `reward.door_weight.fruit.2` | 10 | 3.5 |
-| `reward.door_weight.coins.0` | 22 | 3.5 |
-| `reward.door_weight.coins.1` | 24 | 3.5 |
-| `reward.door_weight.coins.2` | 26 | 3.5 |
+| `reward.door_weight.blessing.0` | 70 (era 72) | revisão 2026-10-24 |
+| `reward.door_weight.blessing.1` | 66 (era 68) | revisão 2026-10-24 |
+| `reward.door_weight.blessing.2` | 62 (era 64) | revisão 2026-10-24 |
+| `reward.door_weight.fruit.0` | 8 (era 6) | revisão 2026-10-24 |
+| `reward.door_weight.fruit.1` | 10 (era 8) | revisão 2026-10-24 |
+| `reward.door_weight.fruit.2` | 12 (era 10) | revisão 2026-10-24 |
+| `reward.door_weight.coins.0` | 18 (era 22) | revisão 2026-10-24 |
+| `reward.door_weight.coins.1` | 20 (era 24) | revisão 2026-10-24 |
+| `reward.door_weight.coins.2` | 22 (era 26) | revisão 2026-10-24 |
 | `reward.door_weight.ramp_from_fraction` | 0.5 | 3.1 (rampa vale para origens `k ≥ N÷2`) |
 | `reward.door_weight.ramp_shift` | 2 | 3.1 (pontos que saem de Moedas e vão para Fruta na rampa; Bênção não muda) |
-| `reward.door.distinct_types` | 1 | 3.2.2 (booleano: duas portas nunca do mesmo tipo) |
+| `reward.door_weight.anvil.0` a `.2` | 4 / 4 / 4 (era 8 / 10 / 12) | revisão 2026-10-24 (Bigorna rara, só na segunda porta) |
+| `reward.door.distinct_types` | — | não implementado; desde a revisão 2026-10-24 só a Bênção pode repetir (linhagens diferentes) |
 
 ### 9.3 Garantias
 
