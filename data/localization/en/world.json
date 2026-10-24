@@ -65,7 +65,6 @@
   "reward.pickup.prompt": "Pick up: {0}",
   "reward.door.fruit.short": "Fruit",
   "reward.door.prompt": "Enter: {0}",
-  "reward.door.badge": "Reward: {0}",
   "reward.door.anvil.short": "Anvil",
   "reward.door.anvil.hint": "Anvil: choose a modification for your weapon."
 }

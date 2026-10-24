@@ -512,7 +512,6 @@ public partial class RoomGenerator : Node3D
         var markers = new List<Node3D>();
         foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
         GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
-        GetTree().CallGroup("hud", "NotifyWaveIncoming", wave.Count, spawnDelay);
         await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
 
         if (RunState.IsBossRoom)

@@ -10,8 +10,7 @@ using System.Text.RegularExpressions;
 // O tooltip por mouse só repete o que a ficha mostra; a dica "[C/View/Create] Ficha" ao lado da barra indica o caminho.
 public partial class HUD
 {
-	// Slots visíveis no total (ícones + "+N"). Com 7 slots + dica a barra cabe nos 492 px do contêiner,
-	// fora da zona de combate protegida (faixa inferior, abaixo de 0.80 da altura).
+	// Slots visíveis no total (ícones + "+N"), em coluna na borda esquerda: 7 slots + dica cabem com folga em 720 px de altura.
 	private const int BlessingBarSlotLimit = 7;
 	// ~360 px de largura máxima do tooltip (guia §3.6) a 15 pt.
 	private const int BlessingTooltipWrapColumns = 46;
@@ -54,8 +53,10 @@ public partial class HUD
 	private void RenderBlessingBar(IReadOnlyList<BloodBlessingRecord> blessings)
 	{
 		ClearBlessingBar();
-		// Se a barra passar da largura prevista, cresce para os dois lados e continua centrada.
-		_blessingHudList.GrowHorizontal = Control.GrowDirection.Both;
+		// A coluna cresce para cima e para baixo e continua centrada na altura; zerar os offsets a recolhe ao conteúdo novo.
+		_blessingHudList.GrowVertical = Control.GrowDirection.Both;
+		_blessingHudList.OffsetTop = 0.0f;
+		_blessingHudList.OffsetBottom = 0.0f;
 		var count = blessings?.Count ?? 0;
 		if (count == 0)
 			return;
@@ -132,7 +133,7 @@ public partial class HUD
 		{
 			Name = "BlessingBarSheetHint",
 			MouseFilter = Control.MouseFilterEnum.Ignore,
-			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin
 		};
 		hint.AddThemeConstantOverride("separation", UiMetrics.S1);
 		var glyph = UiComponents.ButtonGlyph(UiAction.CharacterSheet);

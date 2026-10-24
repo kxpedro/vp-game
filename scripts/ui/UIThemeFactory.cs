@@ -290,7 +290,8 @@ public static class UIThemeFactory
         theme.SetTypeVariation(UiVariation.WindowPanel, "PanelContainer");
         theme.SetStylebox("panel", UiVariation.WindowPanel, WindowBox());
         theme.SetTypeVariation(UiVariation.HudPanel, "PanelContainer");
-        theme.SetStylebox("panel", UiVariation.HudPanel, ControlBox(UiPalette.PanelHud, UiPalette.Border, UiMetrics.BorderThin, UiMetrics.PadPanelX, UiMetrics.PadPanelY));
+        // No 2D o painel do HUD usa a moldura em pixel art (UiPixelKit); no 3D, o StyleBox desenhado.
+        theme.SetStylebox("panel", UiVariation.HudPanel, UiPixelKit.HudPanel() ?? (StyleBox)ControlBox(UiPalette.PanelHud, UiPalette.Border, UiMetrics.BorderThin, UiMetrics.PadPanelX, UiMetrics.PadPanelY));
         theme.SetTypeVariation(UiVariation.InsetPanel, "PanelContainer");
         theme.SetStylebox("panel", UiVariation.InsetPanel, ControlBox(UiPalette.PanelInset, UiPalette.Border, UiMetrics.BorderThin, UiMetrics.S2, UiMetrics.S2));
         theme.SetTypeVariation(UiVariation.RaisedPanel, "PanelContainer");
@@ -558,6 +559,75 @@ public static class UIThemeFactory
             BorderWidthLeft = borderWidth, BorderWidthTop = borderWidth, BorderWidthRight = borderWidth, BorderWidthBottom = borderWidth,
             CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius, CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius,
             ContentMarginLeft = 14, ContentMarginRight = 14, ContentMarginTop = 10, ContentMarginBottom = 10
+        };
+    }
+}
+
+// HUD em pixel art do modo 2D (assets/pixel_art/hud, peças de pacotes de terceiros remapeadas para a AAP-64 por
+// tools/pixel_art/hud/build_hud_kit.py). Só vale com GameMode.IsPixelArt; no 3D o HUD segue com os StyleBox desenhados.
+// Peça ausente = null (quem chama cai no desenho antigo), com aviso uma vez.
+public static class UiPixelKit
+{
+    private const string Folder = "res://assets/pixel_art/hud/";
+    // Borda das peças 9-slice já ampliadas 2x (px do PNG): moldura da barra (contorno + aro) e trilho fino (contorno).
+    public const int BarFrameMargin = 6;
+    public const int ThinTrackMargin = 2;
+    private const int PanelFrameMargin = 12;
+
+    private static readonly System.Collections.Generic.Dictionary<string, Texture2D> Cache = new();
+
+    public static bool Enabled => GameMode.IsPixelArt;
+
+    public static Texture2D Texture(string name)
+    {
+        if (Cache.TryGetValue(name, out var cached))
+            return cached;
+        var path = Folder + name;
+        Texture2D texture = null;
+        if (ResourceLoader.Exists(path))
+            texture = GD.Load<Texture2D>(path);
+        else
+            GD.PushWarning($"UiPixelKit: peça ausente {path}; usando o desenho antigo.");
+        Cache[name] = texture;
+        return texture;
+    }
+
+    // 9-slice com bordas em pixel inteiro (sem esticar o aro) e conteúdo com o padding pedido.
+    public static StyleBoxTexture NineSlice(string name, int margin, int padX, int padY)
+    {
+        var texture = Enabled ? Texture(name) : null;
+        if (texture == null)
+            return null;
+        return new StyleBoxTexture
+        {
+            Texture = texture,
+            TextureMarginLeft = margin, TextureMarginRight = margin,
+            TextureMarginTop = margin, TextureMarginBottom = margin,
+            ContentMarginLeft = padX, ContentMarginRight = padX,
+            ContentMarginTop = padY, ContentMarginBottom = padY,
+            AxisStretchHorizontal = StyleBoxTexture.AxisStretchMode.Stretch,
+            AxisStretchVertical = StyleBoxTexture.AxisStretchMode.Stretch
+        };
+    }
+
+    // Painel do HUD (vida, Moedas, legenda, barra do chefe): moldura dourada da cripta, miolo escuro.
+    public static StyleBox HudPanel() => NineSlice("panel_frame.png", PanelFrameMargin, UiMetrics.PadPanelX, UiMetrics.PadPanelY);
+
+    // Ícone em pixel art no lugar de um glifo desenhado; null se não houver peça (ou fora do 2D).
+    public static TextureRect Icon(string name, int size)
+    {
+        var texture = Enabled ? Texture(name) : null;
+        if (texture == null)
+            return null;
+        return new TextureRect
+        {
+            Texture = texture,
+            CustomMinimumSize = new Vector2(size, size),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
         };
     }
 }
