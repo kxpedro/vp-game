@@ -185,15 +185,16 @@ void fragment() {
     if (shape == 1 && d < inner_r - px * 0.5) discard;
 
     float t_time = TIME;
-    vec4 col = vec4(c_dark.rgb, 0.45);
+    vec4 col = vec4(c_dark.rgb, 0.1);
     bool lit = false;
 
     // Preenchimento pontilhado: cresce (da origem da carga, do centro ou da borda interna) e adensa até o impacto.
     float reach = shape == 3 ? along : clamp(band, 0.0, 1.0);
     if (shape == 2) reach = 1.0 - clamp(band, 0.0, 1.0);
     if (reach <= progress * 1.05) {
-        float density = 0.18 + 0.55 * progress;
-        if (dither < density) { col = vec4(c_mid.rgb, 0.85); lit = true; }
+        // Ralo de propósito: o aviso marca a área sem cobrir o golpe nem o chão.
+        float density = 0.05 + 0.2 * progress;
+        if (dither < density) { col = vec4(c_mid.rgb, 0.55); lit = true; }
     }
 
     // Desenho próprio de cada forma.
@@ -212,25 +213,25 @@ void fragment() {
             if (local > 0.18 && local < 0.82 && g > 0.42) { col = vec4(c_bright.rgb, 0.95); lit = true; }
         }
         // Anel interno fino e seis raios pontilhados girando ao contrário.
-        if (abs(d - outer_r * 0.62) < px * 0.6) { col = vec4(c_bright.rgb, 0.8); lit = true; }
+        if (abs(d - outer_r * 0.62) < px * 0.6 && dither < 0.6) { col = vec4(c_bright.rgb, 0.5); lit = true; }
         float spoke = fract((ang - t_time * 0.2) / 6.2831853 * 6.0);
         float spokeDistance = min(spoke, 1.0 - spoke) * 6.2831853 / 6.0 * d;
-        if (d < outer_r * 0.6 && d > px * 3.0 && spokeDistance < px * 0.7 && dither < 0.75) { col = vec4(c_bright.rgb, 0.7); lit = true; }
+        if (d < outer_r * 0.6 && d > px * 3.0 && spokeDistance < px * 0.7 && dither < 0.4) { col = vec4(c_bright.rgb, 0.45); lit = true; }
     } else if (shape == 1) {
         // Onda: hachuras diagonais correndo para fora.
         float stripe = fract((d - t_time * 2.5) / (px * 6.0));
-        if (stripe < 0.25 && dither < 0.6) { col = vec4(c_bright.rgb, 0.75); lit = true; }
+        if (stripe < 0.18 && dither < 0.35) { col = vec4(c_bright.rgb, 0.5); lit = true; }
     } else if (shape == 2) {
         // Vórtice: braços em espiral girando e anéis caindo para o centro.
         float spiral = fract((ang + d * 2.2 - t_time * 2.6) / 6.2831853 * 3.0);
-        if (spiral < 0.2) { col = vec4(c_bright.rgb, 0.85); lit = true; }
+        if (spiral < 0.12 && dither < 0.6) { col = vec4(c_bright.rgb, 0.6); lit = true; }
         float rings = fract(d / (px * 7.0) + t_time * 1.4);
-        if (rings < 0.16 && dither < 0.7) { col = vec4(c_hot.rgb, 0.7); lit = true; }
+        if (rings < 0.12 && dither < 0.35) { col = vec4(c_hot.rgb, 0.5); lit = true; }
         if (d < px * 2.5) { col = vec4(0.02, 0.0, 0.03, 1.0); lit = true; }
     } else {
         // Carga: setas apontando para o fim da faixa.
         float chevron = fract(along * max(length(seg_b - seg_a), 1.0) / 0.9 + band * 0.5 - t_time * 1.8);
-        if (chevron < 0.18 && band < 0.85) { col = vec4(c_bright.rgb, 0.9); lit = true; }
+        if (chevron < 0.14 && band < 0.85 && dither < 0.6) { col = vec4(c_bright.rgb, 0.6); lit = true; }
     }
 
     // Contorno de 1 pixel (pisca rápido perto do impacto).
@@ -242,16 +243,15 @@ void fragment() {
     if (impact > 0.0) {
         float front = impact * 1.15;
         float r01 = shape == 3 ? along : clamp(d / outer_r, 0.0, 1.0);
-        if (abs(r01 - front) < 0.12) { col = vec4(c_hot.rgb, 1.0); lit = true; }
+        if (abs(r01 - front) < 0.07) { col = vec4(c_hot.rgb, 0.95); lit = true; }
         else if (r01 < front) {
-            if (dither < impact) discard;
-            col = vec4(mix(c_bright.rgb, c_hot.rgb, 0.5), 0.9);
-        } else {
-            col.rgb = mix(col.rgb, c_hot.rgb, 0.35);
+            // Atrás da frente só sobram faíscas esparsas, que somem rápido.
+            if (dither < 0.8 + impact * 0.2) discard;
+            col = vec4(c_hot.rgb, 0.7);
         }
     }
     if (fade > 0.0 && dither < fade) discard;
-    if (!lit && col.a < 0.5 && dither > 0.5) col.a *= 0.6;
+    if (!lit && dither > 0.25) discard;
 
     ALBEDO = col.rgb;
     ALPHA = col.a;

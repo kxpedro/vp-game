@@ -38,11 +38,13 @@ public partial class BossOrbFx : Node3D
 
     public override void _Ready()
     {
+        // Orbe em dobro (22 px na tela): é o golpe que o jogador precisa ver, não o aviso no chão.
         _sprite = MakeSprite(OrbTexture, 1.0f);
+        _sprite.Scale = Vector3.One * 2.0f;
         AddChild(_sprite);
         var pulse = _sprite.CreateTween().SetLoops();
-        pulse.TweenProperty(_sprite, "scale", Vector3.One * 1.25f, 0.09f);
-        pulse.TweenProperty(_sprite, "scale", Vector3.One, 0.09f);
+        pulse.TweenProperty(_sprite, "scale", Vector3.One * 2.4f, 0.09f);
+        pulse.TweenProperty(_sprite, "scale", Vector3.One * 2.0f, 0.09f);
     }
 
     public override void _Process(double delta)
@@ -64,6 +66,7 @@ public partial class BossOrbFx : Node3D
         var scene = GetTree()?.CurrentScene;
         if (scene == null) return;
         var spark = MakeSprite(SparkTexture, 0.9f);
+        spark.Scale = Vector3.One * 2.0f;
         scene.AddChild(spark);
         spark.GlobalPosition = GlobalPosition + new Vector3((float)GD.RandRange(-0.08, 0.08), (float)GD.RandRange(-0.08, 0.08), 0.0f);
         var tween = spark.CreateTween();
