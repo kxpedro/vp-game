@@ -64,6 +64,7 @@ public partial class HUD
 		BuildPlayerPanel(_bottomLeftHud);
 		BuildResourcePanel(_bottomLeftHud, root);
 		BuildRoomTitle(root);
+		BuildDodgeIndicator(root);
 
 		_fpsLabel = new Label
 		{
@@ -113,7 +114,7 @@ public partial class HUD
 		RefreshResourceIndicator();
 		// 2D: molduras e barras em pixel art (UiPixelKit) sem borrar (o filtro padrão do projeto é linear).
 		if (UiPixelKit.Enabled)
-			foreach (var panel in new Control[] { _bottomLeftHud, _bossHealthPanel, _roomFrame, _barkPanel })
+			foreach (var panel in new Control[] { _bottomLeftHud, _bossHealthPanel, _roomFrame, _barkPanel, _dodgeIndicator })
 				if (panel != null)
 					panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 	}
@@ -634,6 +635,116 @@ public partial class HUD
 		SetRoomProgressVisible(!string.IsNullOrEmpty(_roomLabel.Text));
 	}
 
+	// ---------- Recarga da esquiva (centro inferior, na linha da barra de vida) ----------
+
+	// Ícone de dash em pixel art (12x12, ampliado 3x): duas setas para a direita. '#' = miolo, 'o' = contorno.
+	private static readonly string[] DodgeGlyph =
+	{
+		"oo....oo....",
+		"o#o...o#o...",
+		"o##o..o##o..",
+		".o##o..o##o.",
+		"..o##o..o##o",
+		"...o##o..o#o",
+		"...o##o..o#o",
+		"..o##o..o##o",
+		".o##o..o##o.",
+		"o##o..o##o..",
+		"o#o...o#o...",
+		"oo....oo....",
+	};
+	private const int DodgeGlyphScale = 3;
+	private const int DodgeSlotSize = 52;
+	private const float DodgeReadyFlashSeconds = 0.22f;
+
+	private Control _dodgeIndicator;
+	private StyleBox _dodgeSlotReady;
+	private StyleBox _dodgeSlotCharging;
+	private float _dodgeCooldownShown;
+	private float _dodgeReadyFlash;
+
+	private void BuildDodgeIndicator(Control root)
+	{
+		_dodgeIndicator = new Control
+		{
+			Name = "DodgeCooldown",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Size = new Vector2(DodgeSlotSize, DodgeSlotSize),
+			Visible = false
+		};
+		_dodgeSlotReady = (StyleBox)UiPixelKit.Frame(UiPalette.Gold, UiPalette.PanelHud, 0, 0)
+			?? UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.Gold, UiMetrics.BorderThin, 0, 0);
+		_dodgeSlotCharging = (StyleBox)UiPixelKit.Frame(UiPalette.Border, UiPalette.PanelHud, 0, 0)
+			?? UIThemeFactory.ControlBox(UiPalette.PanelHud, UiPalette.Border, UiMetrics.BorderThin, 0, 0);
+		_dodgeIndicator.Draw += DrawDodgeIndicator;
+		root.AddChild(_dodgeIndicator);
+	}
+
+	// Chamado todo quadro por HUD._Process.
+	private void UpdateDodgeIndicator(float delta)
+	{
+		if (_dodgeIndicator == null)
+			return;
+		var player = _runtimePlayerController != null && IsInstanceValid(_runtimePlayerController) ? _runtimePlayerController : null;
+		var visible = (player != null || _statusPreviewActive) && _playerHudFrame != null && _playerHudFrame.Visible;
+		if (_dodgeIndicator.Visible != visible)
+			_dodgeIndicator.Visible = visible;
+		if (!visible)
+			return;
+
+		// Mesma linha da barra de vida (centro vertical), no centro horizontal da tela.
+		var size = _dodgeIndicator.Size;
+		var barRect = _healthResourceBar?.Bar?.GetGlobalRect() ?? new Rect2(0, _hudRoot.Size.Y - UiMetrics.SafeMargin - size.Y * 0.5f, 0, 0);
+		var target = new Vector2(Mathf.Round((_hudRoot.Size.X - size.X) * 0.5f), Mathf.Round(barRect.GetCenter().Y - size.Y * 0.5f));
+		if (_dodgeIndicator.GlobalPosition != target)
+			_dodgeIndicator.GlobalPosition = target;
+
+		var ratio = _statusPreviewActive ? _dodgeCooldownShown : player.DodgeCooldownRatio;
+		var wasCharging = _dodgeCooldownShown > 0.0f;
+		if (wasCharging && ratio <= 0.0f)
+			_dodgeReadyFlash = DodgeReadyFlashSeconds;
+		var flashBefore = _dodgeReadyFlash;
+		_dodgeReadyFlash = Mathf.Max(_dodgeReadyFlash - delta, 0.0f);
+		if (!Mathf.IsEqualApprox(ratio, _dodgeCooldownShown) || flashBefore > 0.0f)
+		{
+			_dodgeCooldownShown = ratio;
+			_dodgeIndicator.QueueRedraw();
+		}
+	}
+
+	private void DrawDodgeIndicator()
+	{
+		var ci = _dodgeIndicator;
+		var rect = new Rect2(Vector2.Zero, ci.Size);
+		var charging = _dodgeCooldownShown > 0.0f;
+		ci.DrawStyleBox(charging ? _dodgeSlotCharging : _dodgeSlotReady, rect);
+
+		var glyphSize = DodgeGlyph.Length * DodgeGlyphScale;
+		var origin = ((ci.Size - new Vector2(glyphSize, glyphSize)) * 0.5f).Floor();
+		var fill = charging ? UiPalette.TextDisabled : UiPalette.GoldBright;
+		var outline = UiPalette.TextOutline;
+		// Recarga: o ícone se enche de baixo para cima, em degraus de um pixel do ícone.
+		var filledRows = charging ? Mathf.FloorToInt((1.0f - _dodgeCooldownShown) * DodgeGlyph.Length) : DodgeGlyph.Length;
+		for (var y = 0; y < DodgeGlyph.Length; y++)
+		{
+			var row = DodgeGlyph[y];
+			var rowFilled = y >= DodgeGlyph.Length - filledRows;
+			for (var x = 0; x < row.Length; x++)
+			{
+				if (row[x] == '.')
+					continue;
+				var color = row[x] == 'o' ? outline : rowFilled ? (charging ? UiPalette.Gold : fill) : new Color(UiPalette.TextDisabled, 0.45f);
+				ci.DrawRect(new Rect2(origin + new Vector2(x, y) * DodgeGlyphScale, new Vector2(DodgeGlyphScale, DodgeGlyphScale)), color);
+			}
+		}
+		// Pronta de novo: clarão curto sobre o miolo.
+		if (_dodgeReadyFlash > 0.0f)
+		{
+			var alpha = 0.55f * (_dodgeReadyFlash / DodgeReadyFlashSeconds);
+			ci.DrawRect(rect.Grow(-UiPixelKit.FrameBorder), new Color(UiPalette.GoldBright, alpha));
+		}
+	}
+
 	// ---------- Pré-visualização (debug, --ui-preview; ligada em HUD.OpenPreviewScreen) ----------
 
 	// hud_combat: vida 83/100 + barreira 20, fúria cheia (pronta), 500 moedas.
@@ -645,6 +756,7 @@ public partial class HUD
 		_furyResourceBar.SetFuryState(true, false);
 		FitPlayerPanel();
 		_coinsLabel.Text = "500";
+		_dodgeCooldownShown = 0.5f;
 	}
 
 	// critical_health: vida 14/100, vinheta de vida crítica pulsando.

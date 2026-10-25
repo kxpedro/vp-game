@@ -36,6 +36,8 @@ public partial class PlayerController : CharacterBody3D
 	public bool CanDashAttack => IsDodging || _dashAttackGraceTimeRemaining > 0.0f;
 	public bool IsStaggered => _damageStaggerTimeRemaining > 0.0f;
 	public Vector3 DodgeDirection => _dodgeDirection;
+	// Indicador de recarga do HUD: 1 = acabou de esquivar, 0 = pronta.
+	public float DodgeCooldownRatio => _dodgeCooldownTotal > 0.0f ? Mathf.Clamp(_dodgeCooldownTimeRemaining / _dodgeCooldownTotal, 0.0f, 1.0f) : 0.0f;
 	public Vector3 LastMoveDirection => _lastMoveDirection;
 	public float DodgeAnimationSpeedMultiplier => BaseDodgeSpeed > 0.0f ? DodgeSpeed / BaseDodgeSpeed : 1.0f;
 	private float BaseDodgeSpeed => CompendiumTuning.GetFloat("player.dodge.speed", _defaultDodgeSpeed);
@@ -57,6 +59,7 @@ public partial class PlayerController : CharacterBody3D
 	private float _dodgeTimeRemaining;
 	private float _dashAttackGraceTimeRemaining;
 	private float _dodgeCooldownTimeRemaining;
+	private float _dodgeCooldownTotal;
 	private float _dodgeInputBufferTimer;
 	private float _damageStaggerTimeRemaining;
 
@@ -177,6 +180,7 @@ public partial class PlayerController : CharacterBody3D
 			_dodgeDirection = moveDirection.LengthSquared() > 0.001f ? moveDirection : _lastMoveDirection;
 			_dodgeTimeRemaining = DodgeDuration;
 			_dodgeCooldownTimeRemaining = DodgeDuration + CompendiumTuning.GetFloat("player.dodge.cooldown", DodgeCooldownSeconds);
+			_dodgeCooldownTotal = _dodgeCooldownTimeRemaining;
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();

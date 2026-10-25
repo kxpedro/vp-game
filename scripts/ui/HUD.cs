@@ -184,6 +184,7 @@ public partial class HUD : CanvasLayer
 	public override void _Process(double delta)
 	{
 		UpdateCriticalHealthIndicator((float)delta);
+		UpdateDodgeIndicator((float)delta);
 		UpdateDialogue((float)delta);
 		// Zoom/pan da Fonte de Sangue por controle e teclado (mouse fica no GuiInput da própria tela).
 		ProcessBloodFountainInput((float)delta);
