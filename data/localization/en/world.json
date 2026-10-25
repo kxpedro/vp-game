@@ -66,5 +66,7 @@
   "reward.door.fruit.short": "Fruit",
   "reward.door.prompt": "Enter: {0}",
   "reward.door.anvil.short": "Anvil",
-  "reward.door.anvil.hint": "Anvil: choose a modification for your weapon."
+  "reward.door.anvil.hint": "Anvil: choose a modification for your weapon.",
+  "reward.door.cursed_blood.short": "Ichor +{0}",
+  "reward.door.cursed_blood.hint": "Ichor: +{0}, permanent (Blood Fountain)."
 }

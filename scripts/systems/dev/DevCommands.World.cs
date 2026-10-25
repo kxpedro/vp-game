@@ -6,7 +6,7 @@ using System.Linq;
 // Mundo e sala: kill, room, jump, doors, time e tune (parâmetros do DevParameterRegistry, os mesmos do painel F1).
 public static partial class DevCommands
 {
-    private static readonly string[] DoorTypeWords = { "boon", "anvil", "fruit", "coins", "auto" };
+    private static readonly string[] DoorTypeWords = { "boon", "anvil", "fruit", "coins", "ichor", "auto" };
 
     private static void RegisterWorld()
     {
@@ -42,7 +42,7 @@ public static partial class DevCommands
         DevConsole.Register(new DevCommand("doors", "Força o tipo das próximas portas de recompensa (como no painel F1). off = sorteio normal.", Doors)
         {
             Aliases = new[] { "portas" },
-            Usage = "<tipo> [tipo]  |  <1|2>  |  off   (tipos: boon, anvil, fruit, coins, auto)",
+            Usage = "<tipo> [tipo]  |  <1|2>  |  off   (tipos: boon, anvil, fruit, coins, ichor, auto)",
             Examples = new[] { "doors anvil", "doors boon fruit", "doors 2", "doors off" },
             Complete = c => c.Count == 0 ? DoorTypeWords.Append("off").Append("1").Append("2") : DoorTypeWords
         });
@@ -202,6 +202,7 @@ public static partial class DevCommands
         if (IsWord(token, AnvilWords)) return RoomRewardType.Anvil;
         if (IsWord(token, FruitWords)) return RoomRewardType.DevilsFruit;
         if (IsWord(token, CoinWords)) return RoomRewardType.Coins;
+        if (IsWord(token, CursedBloodWords)) return RoomRewardType.CursedBlood;
         valid = DevText.Normalize(token) is "auto" or "any" or "qualquer";
         return null;
     }

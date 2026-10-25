@@ -79,7 +79,13 @@ public partial class PixelEnemySprite : Node3D
 
     private Sprite3D _sprite;
     private AnimationPlayer _player;
-    private Tween _flashTween;
+    // Cor final = tinta do estado (pulsando) por baixo do flash; a transparência fica à parte.
+    private float _alpha = 1.0f;
+    private Color _flashColor = Colors.White;
+    private float _flashSeconds;
+    private float _flashLeft;
+    private Color _statusTint = Colors.White;
+    private float _statusStrength;
 
     // "pixel:goblin" -> nó pronto para entrar como ImportedVisual; null se as folhas não existirem.
     public static PixelEnemySprite Create(string scenePath)
@@ -98,7 +104,8 @@ public partial class PixelEnemySprite : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            Shaded = true,
+            // Sem luz da cena, como o Virgil e a sala (ver PlayerSpriteVisual).
+            Shaded = false,
             DoubleSided = true,
             PixelSize = PlayerSpriteVisual.PixelSize,
             Offset = new Vector2(0.0f, FeetOffsets.TryGetValue(monster, out var feet) ? feet : FeetOffsetPixels),
@@ -165,6 +172,7 @@ public partial class PixelEnemySprite : Node3D
 
     public override void _Process(double delta)
     {
+        UpdateModulate((float)delta);
         // A arte olha para a direita: espelha quando a frente do inimigo aponta para a esquerda da tela.
         var camera = GetViewport()?.GetCamera3D();
         if (camera == null || _sprite == null || GetParent() is not Node3D owner)
@@ -175,17 +183,35 @@ public partial class PixelEnemySprite : Node3D
             _sprite.FlipH = side < 0.0f;
     }
 
-    // Pisca o sprite numa cor (dano, início do golpe) e volta ao normal.
+    // Pisca o sprite numa cor (dano, início do golpe, herança do golpe) e volta à tinta do estado.
     public void Flash(Color color, float seconds)
     {
         if (_sprite == null)
             return;
-        _flashTween?.Kill();
-        // Mantém a transparência atual (Guardiã meio invisível).
-        var alpha = _sprite.Modulate.A;
-        _sprite.Modulate = new Color(color, alpha);
-        _flashTween = CreateTween();
-        _flashTween.TweenProperty(_sprite, "modulate", new Color(1.0f, 1.0f, 1.0f, alpha), seconds);
+        _flashColor = color;
+        _flashSeconds = Mathf.Max(seconds, 0.01f);
+        _flashLeft = _flashSeconds;
+        UpdateModulate(0.0f);
+    }
+
+    // Estado de herança no inimigo (sangrando, pestilento, encantado): o corpo pulsa na cor da família.
+    // strength 0 = sem estado.
+    public void SetStatusTint(Color color, float strength)
+    {
+        _statusTint = color;
+        _statusStrength = Mathf.Clamp(strength, 0.0f, 1.0f);
+    }
+
+    private void UpdateModulate(float delta)
+    {
+        if (_sprite == null)
+            return;
+        _flashLeft = Mathf.Max(_flashLeft - delta, 0.0f);
+        var pulse = 0.55f + 0.45f * Mathf.Sin(Time.GetTicksMsec() * 0.007f);
+        var color = Colors.White.Lerp(_statusTint, _statusStrength * pulse);
+        if (_flashLeft > 0.0f)
+            color = color.Lerp(_flashColor, _flashLeft / _flashSeconds);
+        _sprite.Modulate = new Color(color, _alpha);
     }
 
     // Transparência do corpo (a Guardiã Invisível some e reaparece). O recorte de alfa só volta com o corpo opaco.
@@ -193,11 +219,12 @@ public partial class PixelEnemySprite : Node3D
     {
         if (_sprite == null)
             return;
+        _alpha = alpha;
         _sprite.AlphaCut = alpha < 0.99f ? SpriteBase3D.AlphaCutMode.Disabled : SpriteBase3D.AlphaCutMode.Discard;
         _sprite.Modulate = new Color(_sprite.Modulate, alpha);
     }
 
-    public float Alpha => _sprite?.Modulate.A ?? 1.0f;
+    public float Alpha => _sprite != null ? _alpha : 1.0f;
 
     // Cópia parada do quadro atual, tingida, que esmaece no lugar (imagem espelhada, rastro da investida).
     // offset desloca a cópia em relação ao sprite (rastro ao longo de um caminho).
@@ -238,7 +265,6 @@ public partial class PixelEnemySprite : Node3D
             return;
         Reparent(scene);
         SetProcess(false);
-        _flashTween?.Kill();
         _sprite.Modulate = Colors.White;
         _player.Play("Death");
         var length = (float)_player.GetAnimation("Death").Length;

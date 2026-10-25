@@ -304,9 +304,19 @@ public static class BloodBlessingCatalog
             }
             if (document.RootElement.TryGetProperty("families", out var families))
                 foreach (var family in families.EnumerateArray())
-                    Families.Add(new BloodBlessingFamily(S(family, "id"), S(family, "name"), S(family, "statusEffect")));
+                    Families.Add(new BloodBlessingFamily(S(family, "id"), S(family, "name"), S(family, "statusEffect"),
+                        ParseColor(S(family, "color")), ReadStrings(family, "statuses")));
         }
         catch (Exception exception) { GD.PushError($"Failed to load blood blessing catalog: {exception.Message}"); }
+    }
+
+    // "#rrggbb" da linhagem; ausente ou inválido = branco (aviso, para a família nova não sumir sem explicação).
+    private static Color ParseColor(string hex)
+    {
+        if (!string.IsNullOrWhiteSpace(hex) && Color.HtmlIsValid(hex))
+            return Color.FromHtml(hex);
+        GD.PushWarning($"BloodBlessingCatalog: família sem cor válida ('{hex}'), usando branco.");
+        return Colors.White;
     }
 
     private static string S(JsonElement e, string key) => e.TryGetProperty(key, out var v) ? v.GetString() ?? "" : "";

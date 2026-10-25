@@ -99,7 +99,7 @@ public partial class HUD
 	public void NotifyBloodCoinsRewarded(int reward, int totalAmount)
 	{
 		OnBloodCoinsChanged(totalAmount);
-		// Host = moldura do painel: o "+N" sai fora da borda, à direita (posição lida após o relayout).
+		// Host = moldura do painel: o "+N" sai logo acima dela, alinhado à direita (posição lida após o relayout).
 		if (reward > 0)
 			_toastStack?.ShowKill(_resourceFrame, reward);
 	}
@@ -137,13 +137,14 @@ public partial class HUD
 
 		_cursedBloodRewardLabel.Text = Localization.TextFormat("hud.cursed_blood.reward", amount);
 		_cursedBloodTotalLabel.Text = Localization.TextFormat("hud.cursed_blood.total", total);
-		// Logo acima da moldura de Moedas (canto inferior esquerdo), alinhado à esquerda dela; cresce para a direita e para cima.
+		// Logo acima da moldura do recurso (canto inferior direito), alinhado à direita dela; cresce para a esquerda e para cima.
 		var parent = _cursedBloodPopup.GetParent() as Control;
 		var frameRect = _resourceFrame.GetGlobalRect();
-		var origin = frameRect.Position - (parent?.GetGlobalRect().Position ?? Vector2.Zero);
-		var bottom = origin.Y - UiMetrics.S2;
-		_cursedBloodPopup.OffsetLeft = origin.X;
-		_cursedBloodPopup.OffsetRight = origin.X;
+		var parentOrigin = parent?.GetGlobalRect().Position ?? Vector2.Zero;
+		var right = frameRect.End.X - parentOrigin.X;
+		var bottom = frameRect.Position.Y - parentOrigin.Y - UiMetrics.S2;
+		_cursedBloodPopup.OffsetLeft = right;
+		_cursedBloodPopup.OffsetRight = right;
 		_cursedBloodPopup.OffsetTop = bottom;
 		_cursedBloodPopup.OffsetBottom = bottom;
 
@@ -164,8 +165,8 @@ public partial class HUD
 
 	private void BuildCursedBloodPopup()
 	{
-		// Irmão do canto inferior esquerdo (o contêiner dele reposicionaria o aviso).
-		var parent = _bottomLeftHud?.GetParent() as Control;
+		// Irmão do canto inferior direito (o contêiner dele reposicionaria o aviso).
+		var parent = _bottomRightHud?.GetParent() as Control;
 		if (parent == null)
 			return;
 
@@ -175,7 +176,7 @@ public partial class HUD
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 			ProcessMode = ProcessModeEnum.Pausable,
 			Visible = false,
-			GrowHorizontal = Control.GrowDirection.End,
+			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Begin
 		};
 		if (!UiPixelKit.ApplyPanel(popup, UiMetrics.S4, UiMetrics.S2))

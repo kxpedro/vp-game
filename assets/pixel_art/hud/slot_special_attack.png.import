@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b34ggeu8744yi"
-path="res://.godot/imported/gem_cursed.png-5594f277bd0d8ed144fb129ccab2437f.ctex"
+uid="uid://cuh5ioaodd33e"
+path="res://.godot/imported/slot_special_attack.png-1643c48dc78e23a96ca3f5835bd6789e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pixel_art/hud/gem_cursed.png"
-dest_files=["res://.godot/imported/gem_cursed.png-5594f277bd0d8ed144fb129ccab2437f.ctex"]
+source_file="res://assets/pixel_art/hud/slot_special_attack.png"
+dest_files=["res://.godot/imported/slot_special_attack.png-1643c48dc78e23a96ca3f5835bd6789e.ctex"]
 
 [params]
 

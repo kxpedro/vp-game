@@ -422,7 +422,7 @@ y0  ┌────────────────────────�
     │                    ( zona de combate protegida 0.18..0.82 × 0.16..0.80 )                │
     │                                                                                         │
     │                                                                                         │
-    │ [Painel do jogador 24 / −24, ~404 × auto]  [Barra de bênçãos ±246, −24]   [Log debug]  │
+    │ [Painel do jogador 24 / −24, ~404 × auto]  [Slots de herança ±160, −24]    [Log debug]  │
 y900└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -565,12 +565,12 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 - **Bugs junto:** banner sem pivô; `await` do banner sem `IsInstanceValid`.
 - **Previews:** `toast` (3 recompensas em fila + "+N"), `event_log`.
 
-### 8.6 HUD — barra de bênçãos (Aud §6) — **P0** (controle) / P1 (visual)
+### 8.6 HUD — slots de herança (Aud §6) — **P0** (controle) / P1 (visual)
 
 - **Tarefa:** hud-ingame T3 (`HUD.BlessingBar.cs`).
-- **Componentes:** `BlessingIcon(44, showLevel)`; tooltip do tema.
-- **Muda:** slot em StyleBox com borda 2 na cor da raridade (fim do `simple_panel` esticado); selo de nível; excedente "+3" no mesmo formato de slot. A barra **não é focável**: o acesso por controle é a aba/coluna "Bênçãos" da ficha (§8.13) — a dica "[View/Create] Ficha" aparece ao lado da barra quando houver ≥ 1 bênção. Tooltip só repete o que a ficha mostra.
-- **Previews:** `blessing_bar` (8 bênçãos fictícias, raridades variadas, níveis 1–3).
+- **Componentes:** losango desenhado (56 px, `PanelHud` + borda) com ícone 32x32 em 1x (`assets/pixel_art/hud/slot_*.png`, tons neutros tingidos por `Modulate`); tooltip do tema.
+- **Muda:** a lista vertical de bênçãos virou 5 slots fixos, como os do Hades: ataque básico, rápido, especial, esquiva e Fúria Bestial. Cada slot corresponde a um `exclusiveGroup` das heranças (`basic_attack_status`, `quick_attack_status`, `special_attack_status`, `dash_status` — reservado, ainda sem herança — e `bestial_fury_mode`). Vazio: ícone apagado e borda neutra, tooltip "nenhuma herança neste slot". Preenchido: ícone e borda na cor da família (Bathory vermelho, Orlok verde, Karnstein rosa, Dracul roxo). As heranças fora desses grupos só aparecem na ficha; quando houver alguma, um "+" com a dica "[C/View/Create] Ficha" aparece abaixo do último slot, com a lista no tooltip. A coluna **não é focável**: o acesso por controle é a aba/coluna "Bênçãos" da ficha (§8.13).
+- **Previews:** `blessing_bar` (básico e especial preenchidos, os outros vazios e 3 heranças fora dos slots).
 
 ### 8.7 HUD — vida crítica, flash e número de dano (Aud §7) — **P0**
 

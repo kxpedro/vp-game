@@ -244,6 +244,9 @@ public partial class BloodBlessingRuntime : Node
         var isQuickAttack = attackType == PlayerAttackType.Quick;
         var isSpecialAttack = attackType == PlayerAttackType.Special;
         enemy.RefreshPlayerHitStatuses();
+        // Golpe de um slot com herança: o acerto pisca na cor da família (BloodlineVisuals).
+        if (BloodlineVisuals.TryGetSlotColor(attackType, out var bloodlineColor))
+            enemy.FlashBloodline(bloodlineColor);
         var lifeSteal = RunState.GetEffectTotal("LifeSteal.Multiplier");
         if (isBasicAttack) lifeSteal += RunState.GetEffectTotal("BasicAttackLifeSteal.Multiplier");
         if (isQuickAttack) lifeSteal += RunState.GetEffectTotal("QuickAttackLifeSteal.Multiplier");
@@ -828,17 +831,19 @@ public partial class BloodBlessingRuntime : Node
         surface.AddVertex(d);
     }
 
+    // Roubo de vida = Dracul: o orbe sai na cor da família que declara "life_steal" (vermelho se nenhuma).
     private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
     {
+        var color = BloodlineVisuals.StatusColor("life_steal", new Color(1.0f, 0.0f, 0.08f));
         var orb = new MeshInstance3D
         {
             Name = "LifeStealTrail",
             Mesh = new SphereMesh { Radius = 0.13f, Height = 0.26f },
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(0.95f, 0.02f, 0.12f, 0.9f),
+                AlbedoColor = new Color(color, 0.9f),
                 EmissionEnabled = true,
-                Emission = new Color(1.0f, 0.0f, 0.08f),
+                Emission = color,
                 EmissionEnergyMultiplier = 4.0f,
                 Transparency = BaseMaterial3D.TransparencyEnum.Alpha
             }

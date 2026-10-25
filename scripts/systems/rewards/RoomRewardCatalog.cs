@@ -13,7 +13,8 @@ public enum RoomRewardType
     Blessing,
     DevilsFruit,
     Coins,
-    Anvil
+    Anvil,
+    CursedBlood
 }
 
 // Opcoes pre-sorteadas de uma porta de Bencao: a linhagem sorteada e as bencoes (com raridade ja rolada), na ordem
@@ -21,7 +22,7 @@ public enum RoomRewardType
 public sealed record RoomBlessingPlan(string Family, IReadOnlyList<BloodBlessingOffer> Offers);
 
 // Uma porta do conjunto. MapIndex e o mapa que recebe a sala (define o valor de moedas).
-// CoinAmount so tem valor quando Type == Coins; nos outros tipos e 0.
+// CoinAmount e a quantidade paga: Moedas de Sangue quando Type == Coins, Sangue Amaldicoado quando Type == CursedBlood; nos outros tipos e 0.
 // BlessingPlan so e preenchido na porta de Bencao (null nos demais tipos e quando nao ha bencao para oferecer).
 public sealed record RoomRewardDoor(RoomRewardType Type, int MapIndex, int CoinAmount, RoomBlessingPlan BlessingPlan = null);
 
@@ -62,12 +63,16 @@ public static class RoomRewardCatalog
     private static readonly int[] DefaultFruitWeight = { 8, 12, 12 };
     private static readonly int[] DefaultCoinsWeight = { 18, 22, 22 };
     private static readonly int[] DefaultAnvilWeight = { 4, 8, 4 };
+    // Sangue Amaldicoado (revisao de 2026-10-25): raro, so como segunda/terceira porta e sem repetir no conjunto.
+    private static readonly int[] DefaultCursedBloodWeight = { 5, 5, 5 };
     private const float DefaultRampFromFraction = 0.5f;
     private const int DefaultRampShift = 2;
 
     // Opcao B: Bencao em toda CP (zero CPs seguidas sem Bencao). A opcao A seria 0, 1, 1.
     private static readonly int[] DefaultMaxSetsWithoutBlessing = { 0, 0, 0 };
     private static readonly int[] DefaultCoinPack = EconomyDefaults.RoomCoinPack;
+    // Entre o Lendario (0 / 6 / 8) e o boss (40 / 60 / 80) do mesmo mapa.
+    private static readonly int[] DefaultCursedBloodPack = { 10, 12, 15 };
     private const int DefaultFruitRunCapFromDoors = 3;
 
     private const float DoorSwapChance = 0.5f;
@@ -81,6 +86,18 @@ public static class RoomRewardCatalog
     /// <summary>Valor fixo das Moedas de Sangue de porta para a sala que o mapa recebe (economy.coins.room_reward_pack.*).</summary>
     public static int CoinPackAmount(int mapIndex) =>
         CompendiumTuning.GetInt($"economy.coins.room_reward_pack.{mapIndex}", Tier(DefaultCoinPack, mapIndex));
+
+    /// <summary>Sangue Amaldicoado da porta para a sala que o mapa recebe (economy.cursed_blood.door.*).</summary>
+    public static int CursedBloodPackAmount(int mapIndex) =>
+        CompendiumTuning.GetInt($"economy.cursed_blood.door.{mapIndex}", Tier(DefaultCursedBloodPack, mapIndex));
+
+    /// <summary>Quantidade paga pela porta: Moedas ou Sangue Amaldicoado; 0 nos outros tipos.</summary>
+    public static int PackAmount(RoomRewardType type, int mapIndex) => type switch
+    {
+        RoomRewardType.Coins => CoinPackAmount(mapIndex),
+        RoomRewardType.CursedBlood => CursedBloodPackAmount(mapIndex),
+        _ => 0
+    };
 
     /// <summary>Quantas CPs seguidas podem faltar Bencao (reward.blessing.max_sets_without_blessing.*).</summary>
     public static int MaxSetsWithoutBlessing(int mapIndex) =>
@@ -168,7 +185,7 @@ public static class RoomRewardCatalog
 
         var doors = new List<RoomRewardDoor>(types.Count);
         foreach (var type in types)
-            doors.Add(new RoomRewardDoor(type, mapIndex, type == RoomRewardType.Coins ? CoinPackAmount(mapIndex) : 0));
+            doors.Add(new RoomRewardDoor(type, mapIndex, PackAmount(type, mapIndex)));
 
         return new RoomRewardSet(mapIndex, originRoom, doors);
     }
@@ -215,7 +232,7 @@ public static class RoomRewardCatalog
 
         var doors = new List<RoomRewardDoor>(doorCount);
         foreach (var type in slots)
-            doors.Add(new RoomRewardDoor(type.Value, mapIndex, type.Value == RoomRewardType.Coins ? CoinPackAmount(mapIndex) : 0));
+            doors.Add(new RoomRewardDoor(type.Value, mapIndex, PackAmount(type.Value, mapIndex)));
         return new RoomRewardSet(mapIndex, originRoom, doors);
     }
 
@@ -293,7 +310,9 @@ public static class RoomRewardCatalog
         var coins = chosen.Contains(RoomRewardType.Coins) ? 0 : Math.Max(0, CoinsWeight(mapIndex) - shift);
         // Bigorna: so como segunda porta (nunca a unica: chosen vazio = peso 0), sem repetir tipo e fora do sorteio sem elegibilidade.
         var anvil = !anvilAvailable || chosen.Count == 0 || chosen.Contains(RoomRewardType.Anvil) ? 0 : Math.Max(0, AnvilWeight(mapIndex));
-        var total = blessing + fruit + coins + anvil;
+        // Sangue Amaldicoado: como a Bigorna, nunca a unica porta e sem repetir no conjunto.
+        var cursedBlood = chosen.Count == 0 || chosen.Contains(RoomRewardType.CursedBlood) ? 0 : Math.Max(0, CursedBloodWeight(mapIndex));
+        var total = blessing + fruit + coins + anvil + cursedBlood;
 
         if (total <= 0)
         {
@@ -308,13 +327,18 @@ public static class RoomRewardCatalog
             type = RoomRewardType.DevilsFruit;
         else if (pick < blessing + fruit + coins)
             type = RoomRewardType.Coins;
-        else
+        else if (pick < blessing + fruit + coins + anvil)
             type = RoomRewardType.Anvil;
+        else
+            type = RoomRewardType.CursedBlood;
         return true;
     }
 
     private static int AnvilWeight(int mapIndex) =>
         CompendiumTuning.GetInt($"reward.door_weight.anvil.{mapIndex}", Tier(DefaultAnvilWeight, mapIndex));
+
+    private static int CursedBloodWeight(int mapIndex) =>
+        CompendiumTuning.GetInt($"reward.door_weight.cursed_blood.{mapIndex}", Tier(DefaultCursedBloodWeight, mapIndex));
 
     private static int BlessingWeight(int mapIndex) =>
         CompendiumTuning.GetInt($"reward.door_weight.blessing.{mapIndex}", Tier(DefaultBlessingWeight, mapIndex));
@@ -331,15 +355,17 @@ public static class RoomRewardCatalog
         RoomRewardType.Blessing => Localization.Text("reward.type.blessing.name"),
         RoomRewardType.DevilsFruit => Localization.Text("reward.type.devils_fruit.name"),
         RoomRewardType.Anvil => Localization.Text("reward.type.anvil.name"),
+        RoomRewardType.CursedBlood => Localization.Text("reward.type.cursed_blood.name"),
         _ => Localization.Text("reward.type.coins.name"),
     };
 
-    /// <summary>Descricao localizada do tipo (reward.type.*.desc). <paramref name="coinAmount"/> so e usado por Moedas.</summary>
+    /// <summary>Descricao localizada do tipo (reward.type.*.desc). <paramref name="coinAmount"/> so e usado por Moedas e Sangue Amaldicoado.</summary>
     public static string Description(RoomRewardType type, int coinAmount = 0) => type switch
     {
         RoomRewardType.Blessing => Localization.Text("reward.type.blessing.desc"),
         RoomRewardType.DevilsFruit => Localization.Text("reward.type.devils_fruit.desc"),
         RoomRewardType.Anvil => Localization.Text("reward.type.anvil.desc"),
+        RoomRewardType.CursedBlood => Localization.TextFormat("reward.type.cursed_blood.desc", coinAmount),
         _ => Localization.TextFormat("reward.type.coins.desc", coinAmount),
     };
 
