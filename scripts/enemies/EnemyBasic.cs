@@ -78,6 +78,10 @@ public partial class EnemyBasic : CharacterBody3D
     private Sprite3D _charmedStatusIcon;
     private Label3D _bleedingStackLabel;
     private Label3D _pestilenceStackLabel;
+    private EnemyStatusVisuals _statusVisuals;
+    private bool _wasBleeding;
+    private bool _wasPestilent;
+    private bool _wasCharmed;
     private Label3D _attackWarningLabel;
     private Node3D _attackTelegraph;
     private float _contactDamageTimer;
@@ -1622,8 +1626,11 @@ public partial class EnemyBasic : CharacterBody3D
         _bleedingStatusIcon = CreateStatusIcon("BleedingStatusIcon", "res://images/effects/bleeding.png", -0.22f);
         _pestilenceStatusIcon = CreateStatusIcon("PestilenceStatusIcon", "res://images/effects/pestilence.png", 0.0f);
         _charmedStatusIcon = CreateStatusIcon("CharmedStatusIcon", "res://images/effects/enchanted.png", 0.22f);
-        _bleedingStackLabel = CreateStatusStackLabel("BleedingStackLabel", -0.17f, new Color(1.0f, 0.28f, 0.34f));
-        _pestilenceStackLabel = CreateStatusStackLabel("PestilenceStackLabel", 0.05f, new Color(0.48f, 0.92f, 0.34f));
+        _bleedingStackLabel = CreateStatusStackLabel("BleedingStackLabel", -0.17f, EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Bleeding));
+        _pestilenceStackLabel = CreateStatusStackLabel("PestilenceStackLabel", 0.05f, EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Pestilence));
+        _statusVisuals = new EnemyStatusVisuals { Name = "StatusVisuals" };
+        AddChild(_statusVisuals);
+        _statusVisuals.Configure(PixelVisual, _overheadHeight);
         UpdateStatusIcons();
     }
 
@@ -1667,8 +1674,29 @@ public partial class EnemyBasic : CharacterBody3D
         return label;
     }
 
+    // Golpe com herança de sangue acertou: o corpo pisca na cor da família do slot e solta um estouro curto.
+    public void FlashBloodline(Color color)
+    {
+        if (_health == null || _health.IsDead)
+            return;
+        PixelVisual?.Flash(new Color(color.R * 1.3f, color.G * 1.3f, color.B * 1.3f), 0.18f);
+        _statusVisuals?.Burst(color, 8);
+    }
+
     private void UpdateStatusIcons()
     {
+        var charmedOrFascinated = IsCharmed || IsFascinated;
+        if (_statusVisuals != null)
+        {
+            _statusVisuals.Refresh(IsBleeding, IsPestilent, IsCharmed, IsFascinated);
+            // O estado acabou de pegar: estouro na cor dele.
+            if (IsBleeding && !_wasBleeding) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Bleeding));
+            if (IsPestilent && !_wasPestilent) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Pestilence));
+            if (charmedOrFascinated && !_wasCharmed) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Charm));
+        }
+        _wasBleeding = IsBleeding;
+        _wasPestilent = IsPestilent;
+        _wasCharmed = charmedOrFascinated;
         if (_bleedingStatusIcon != null) _bleedingStatusIcon.Visible = IsBleeding;
         if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Visible = IsPestilent;
         if (_charmedStatusIcon != null)
@@ -1757,6 +1785,7 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void UpdateOverheadLayout()
     {
+        _statusVisuals?.Configure(PixelVisual, _overheadHeight);
         if (_healthBarFill != null) _healthBarFill.Position = new Vector3(_healthBarFill.Position.X, _overheadHeight, 0.0f);
         if (_rarityIcon != null) _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f);
         if (_bleedingStatusIcon != null) _bleedingStatusIcon.Position = new Vector3(-0.319f, _overheadHeight + 0.28f, 0.0f);

@@ -30,6 +30,17 @@ public partial class PlayerSpriteVisual : Node
     private const float GhostLifetime = 0.22f;
     private static readonly Color GhostColor = new(0.75f, 0.12f, 0.2f, 0.55f);
     public const float PixelSize = 0.033f;
+    // Heranca de sangue no golpe (BloodlineVisuals): a lamina da folha de combate brilha na cor da familia do slot.
+    // O brilho e um sprite por cima do Virgil com so a espada (mascara tirada das cores exclusivas da lamina em
+    // tools/pixel_art/virgil/shade.py) e um halo de 2 px; a energia acima de 1 deixa a cor estourar como luz.
+    private static readonly Color[] BladeColors = { new("8b93af"), new("e8ecf5"), new("ffffff") };
+    // Tons que a lamina divide com o aco das ombreiras: so contam colados num pixel exclusivo da lamina.
+    private static readonly Color[] BladeEdgeColors = { new("b3b9d1"), new("4a5462"), new("73172d"), new("3b1725") };
+    // Pouco acima de 1: a lamina estoura como luz sem perder o tom (com mais, o roxo e o rosa viram a mesma cor).
+    private const float BladeGlowEnergy = 1.15f;
+    private const float BladeGlowTowardCamera = 0.05f;
+    private static Texture2D _bladeGlowSource;
+    private static Texture2D _bladeGlowSheet;
     // A folha do Virgil e renderizada a 0,0185 m por pixel (render.py, px): com esse PixelSize ele fica com a altura
     // real (~1,8 m) sem perder resolucao; com o pixel do cenario (0,033) ficava com ~3,2 m.
     private const float VirgilPixelSize = 0.0185f;
@@ -82,6 +93,10 @@ public partial class PlayerSpriteVisual : Node
     private int _previewIndex;
     private readonly Dictionary<string, Texture2D> _previewDirTextures = new();
     private float _previewBasePixelSize = PixelSize;
+    private Texture2D _combatSheet;
+    private Sprite3D _bladeGlow;
+    private bool _hasSlotColor;
+    private Color _slotColor = Colors.White;
 
     public override void _Ready()
     {
@@ -131,6 +146,9 @@ public partial class PlayerSpriteVisual : Node
         _player.AddChild(_previewSprite);
         _blobShadow = BuildBlobShadow();
         _player.AddChild(_blobShadow);
+        _bladeGlow = BuildBladeGlow();
+        if (_bladeGlow != null)
+            _player.AddChild(_bladeGlow);
         // A escala atual só vai para o log (PageUp/PageDown); o rótulo na tela saiu na limpeza da HUD.
         ApplyScale();
         ApplyEnabled();
@@ -305,6 +323,7 @@ public partial class PlayerSpriteVisual : Node
 
         if (_mode == Mode.Loop)
             PlayLoop();
+        UpdateBladeGlow();
     }
 
     public void SetMovementState(bool isMoving, bool isRunning, float movementSpeed)
@@ -322,6 +341,7 @@ public partial class PlayerSpriteVisual : Node
         if (IsRangedWeapon())
             return;
         var animation = shape == WeaponAttackShape.Line ? "thrust" : comboIndex % 2 == 0 ? "slash" : "slash_reverse";
+        SetSlot(BloodlineSlot.Basic);
         PlayOneShot(animation, hitDelay, recovery);
     }
 
@@ -330,8 +350,10 @@ public partial class PlayerSpriteVisual : Node
 
     public void PlayHeavyAttack(float hitDelay, float recovery)
     {
-        if (!IsRangedWeapon())
-            PlayOneShot("slash", hitDelay, recovery);
+        if (IsRangedWeapon())
+            return;
+        SetSlot(BloodlineSlot.Special);
+        PlayOneShot("slash", hitDelay, recovery);
     }
 
     // Ataque rapido (saindo da esquiva): giro com a espada estendida, dano em area.
@@ -339,6 +361,7 @@ public partial class PlayerSpriteVisual : Node
     {
         if (IsRangedWeapon())
             return;
+        SetSlot(BloodlineSlot.Quick);
         PlayOneShot("spin", hitDelay, recovery);
         // O giro deixa o mesmo vulto vermelho do dash a cada quadro da volta.
         StartGhosts(hitDelay + recovery);
@@ -346,6 +369,7 @@ public partial class PlayerSpriteVisual : Node
 
     public void PlayDodge(float duration)
     {
+        SetSlot(BloodlineSlot.Dash);
         PlayOneShot("dash", 0.0f, duration);
         StartGhosts(duration);
     }
@@ -356,7 +380,14 @@ public partial class PlayerSpriteVisual : Node
         _ghostTimer = 0.0f;
     }
 
-    public void PlayHitReaction(float duration) => PlayOneShot("hit", 0.0f, Mathf.Max(duration, 0.15f));
+    public void PlayHitReaction(float duration)
+    {
+        _hasSlotColor = false;
+        PlayOneShot("hit", 0.0f, Mathf.Max(duration, 0.15f));
+    }
+
+    // Cor da heranca do golpe que vai tocar (sem heranca: lamina normal e vulto vermelho de sempre).
+    private void SetSlot(BloodlineSlot slot) => _hasSlotColor = BloodlineVisuals.TryGetSlotColor(slot, out _slotColor);
 
     // Os golpes da folha sao de espada; com arma de fogo o sprite segue no idle/corrida.
     private bool IsRangedWeapon() => WeaponLoadout.EquippedWeapon?.IsRanged == true;
@@ -490,7 +521,7 @@ public partial class PlayerSpriteVisual : Node
             DoubleSided = true,
             PixelSize = _sprite.PixelSize,
             Offset = _sprite.Offset,
-            Modulate = GhostColor,
+            Modulate = _hasSlotColor ? new Color(_slotColor, GhostColor.A) : GhostColor,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             TopLevel = true,
         };
@@ -565,6 +596,147 @@ public partial class PlayerSpriteVisual : Node
         };
     }
 
+    private Sprite3D BuildBladeGlow()
+    {
+        var sheet = GetBladeGlowSheet(_combatSheet);
+        if (sheet == null)
+            return null;
+        var glow = new Sprite3D
+        {
+            Name = "BladeGlow",
+            Texture = sheet,
+            RegionEnabled = true,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+            Shaded = false,
+            DoubleSided = true,
+            PixelSize = _sprite.PixelSize,
+            Offset = _sprite.Offset,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Visible = false,
+        };
+        PixelRoom.StandUpright(glow);
+        return glow;
+    }
+
+    // Acende do inicio do golpe ate o impacto e apaga no fim da recuperacao, sempre no quadro atual do Virgil.
+    private void UpdateBladeGlow()
+    {
+        if (_bladeGlow == null)
+            return;
+        var frame = _hasSlotColor && _mode == Mode.OneShot && _sprite.Visible
+            ? _sprite.SpriteFrames.GetFrameTexture(_sprite.Animation, _sprite.Frame) as AtlasTexture
+            : null;
+        if (frame == null || frame.Atlas != _combatSheet)
+        {
+            if (_bladeGlow.Visible)
+                _bladeGlow.Visible = false;
+            return;
+        }
+
+        _bladeGlow.RegionRect = frame.Region;
+        _bladeGlow.FlipH = _sprite.FlipH;
+        _bladeGlow.PixelSize = _sprite.PixelSize;
+        // Um passo na direcao da camera: fica na frente do proprio Virgil sem atravessar paredes.
+        var toward = GetViewport()?.GetCamera3D()?.GlobalBasis.Z ?? Vector3.Zero;
+        toward.Y = 0.0f;
+        _bladeGlow.GlobalPosition = _sprite.GlobalPosition + (toward.LengthSquared() > 0.0001f ? toward.Normalized() * BladeGlowTowardCamera : Vector3.Zero);
+        var rise = Mathf.Clamp(_oneShotElapsed / Mathf.Max(_oneShotHitDelay * 0.6f, 0.04f), 0.0f, 1.0f);
+        var fall = Mathf.Clamp(_oneShotTimer / Mathf.Max(_oneShotRecovery * 0.45f, 0.05f), 0.0f, 1.0f);
+        var flicker = 0.88f + 0.12f * Mathf.Sin(Time.GetTicksMsec() * 0.04f);
+        var c = _slotColor;
+        _bladeGlow.Modulate = new Color(c.R * BladeGlowEnergy, c.G * BladeGlowEnergy, c.B * BladeGlowEnergy, Mathf.Min(rise, fall) * flicker);
+        if (!_bladeGlow.Visible)
+            _bladeGlow.Visible = true;
+    }
+
+    // Mascara da lamina na mesma grade da folha de combate: lamina branca opaca, halo de 1 e 2 px mais fraco.
+    // Montada uma vez por folha e guardada (a folha e a mesma em todas as cenas).
+    private static Texture2D GetBladeGlowSheet(Texture2D combat)
+    {
+        if (combat == null)
+            return null;
+        if (_bladeGlowSource == combat && _bladeGlowSheet != null)
+            return _bladeGlowSheet;
+        var image = combat.GetImage();
+        if (image == null || image.IsEmpty())
+            return null;
+        if (image.IsCompressed())
+            image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        var width = image.GetWidth();
+        var height = image.GetHeight();
+        var source = image.GetData();
+        var core = new bool[width * height];
+        for (var i = 0; i < core.Length; i++)
+            core[i] = source[i * 4 + 3] > 0 && Matches(source, i, BladeColors);
+        var edges = new List<int>();
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var i = y * width + x;
+                if (core[i] || source[i * 4 + 3] == 0 || !Matches(source, i, BladeEdgeColors))
+                    continue;
+                var touches = false;
+                for (var dy = -1; dy <= 1 && !touches; dy++)
+                    for (var dx = -1; dx <= 1 && !touches; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        touches = nx >= 0 && ny >= 0 && nx < width && ny < height && core[ny * width + nx];
+                    }
+                if (touches)
+                    edges.Add(i);
+            }
+        }
+        foreach (var i in edges)
+            core[i] = true;
+
+        var alpha = new byte[width * height];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                if (!core[y * width + x])
+                    continue;
+                // O halo nao passa para a celula vizinha (ponta da lamina encostada na borda do quadro).
+                int cellX = x / CombatCellWidth, cellY = y / CombatCellHeight;
+                for (var dy = -2; dy <= 2; dy++)
+                    for (var dx = -2; dx <= 2; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= width || ny >= height || nx / CombatCellWidth != cellX || ny / CombatCellHeight != cellY)
+                            continue;
+                        var ring = Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy));
+                        var value = (byte)(ring == 0 ? 255 : ring == 1 ? 170 : 70);
+                        var n = ny * width + nx;
+                        if (alpha[n] < value)
+                            alpha[n] = value;
+                    }
+            }
+        }
+        var data = new byte[width * height * 4];
+        for (var i = 0; i < alpha.Length; i++)
+        {
+            data[i * 4] = 255;
+            data[i * 4 + 1] = 255;
+            data[i * 4 + 2] = 255;
+            data[i * 4 + 3] = alpha[i];
+        }
+        _bladeGlowSource = combat;
+        _bladeGlowSheet = ImageTexture.CreateFromImage(Image.CreateFromData(width, height, false, Image.Format.Rgba8, data));
+        return _bladeGlowSheet;
+    }
+
+    private static bool Matches(byte[] rgba, int pixel, Color[] palette)
+    {
+        int r = rgba[pixel * 4], g = rgba[pixel * 4 + 1], b = rgba[pixel * 4 + 2];
+        foreach (var color in palette)
+            if (r == color.R8 && g == color.G8 && b == color.B8)
+                return true;
+        return false;
+    }
+
     private SpriteFrames BuildFrames()
     {
         var sheet = LoadSheet(SheetFile);
@@ -583,6 +755,7 @@ public partial class PlayerSpriteVisual : Node
 
         // Sem a folha de combate os golpes nao tocam (PlayOneShot mantem o idle/corrida).
         var combat = LoadSheet(CombatSheetFile);
+        _combatSheet = combat;
         if (combat == null)
             GD.PushWarning("PlayerSpriteVisual: folha de combate nao encontrada: " + CombatSheetFile);
         for (var row = 0; combat != null && row < Directions.Length; row++)

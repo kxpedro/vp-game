@@ -141,6 +141,23 @@ def main() -> int:
         for family in family_entries
         if isinstance(family, dict) and isinstance(family.get("name"), str)
     }
+    # Cor da linhagem (BloodlineVisuals): "#rrggbb" obrigatório; "statuses" = lista de ids de estado sem repetir entre famílias.
+    seen_statuses: dict[str, str] = {}
+    for family in family_entries:
+        if not isinstance(family, dict):
+            continue
+        family_label = family.get("id") or family.get("name") or "?"
+        color = family.get("color")
+        if not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+            errors.append(f"families[{family_label}].color must be \"#rrggbb\"")
+        statuses = family.get("statuses", [])
+        if not isinstance(statuses, list) or not all(isinstance(status, str) and ID_PATTERN.fullmatch(status) for status in statuses):
+            errors.append(f"families[{family_label}].statuses must be a list of snake_case ids")
+            continue
+        for status in statuses:
+            if status in seen_statuses:
+                errors.append(f"status '{status}' declared by {seen_statuses[status]} and {family_label}")
+            seen_statuses[status] = family_label
     texts = load_content(root, errors)
     for language in LANGUAGES:
         for keyword in sorted(KEYWORD_IDS):

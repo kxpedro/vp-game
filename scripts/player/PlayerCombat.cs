@@ -268,7 +268,7 @@ public partial class PlayerCombat : Node
 			_animator?.PlayLightAttack(_lightComboIndex, hitDelay, recoveryDelay, attack.Shape, IsComboFinisher);
 		// O disparo basico e rapido demais para preview; a Bala de Prata mostra a linha do tiro na preparacao.
 		if (!(isRangedShot && attackType == PlayerAttackType.Basic))
-			SpawnAttackPreview(attack, hitDelay, attackType == PlayerAttackType.Special || IsComboFinisher);
+			SpawnAttackPreview(attack, hitDelay, attackType == PlayerAttackType.Special || IsComboFinisher, attackType);
 		var swingEffect = isRangedShot
 			? attackType == PlayerAttackType.Special ? "gun_heavy" : "gun_fire"
 			: attackType == PlayerAttackType.Special
@@ -735,6 +735,24 @@ public partial class PlayerCombat : Node
 			: EquippedWeapon.TunedHitboxEdgeForgiveness;
 	}
 
+	// Golpe com heranca de sangue: o indicador troca o ciano/dourado neutro pela cor da familia do slot (BloodlineVisuals),
+	// com a borda mais clara. Sem heranca no slot, nada muda.
+	private static void ApplyBloodlineTint(PlayerAttackType attackType, StandardMaterial3D fill, StandardMaterial3D edge)
+	{
+		if (!BloodlineVisuals.TryGetSlotColor(attackType, out var color))
+			return;
+		if (fill != null)
+		{
+			fill.AlbedoColor = new Color(color, fill.AlbedoColor.A + 0.06f);
+			fill.Emission = color;
+		}
+		if (edge != null)
+		{
+			edge.AlbedoColor = new Color(BloodlineVisuals.Lighten(color, 0.35f), edge.AlbedoColor.A);
+			edge.Emission = color;
+		}
+	}
+
 	private async void SpawnAttackSlash(WeaponAttackDefinition attack, PlayerAttackType attackType, bool isHeavy)
 	{
 		var player = GetParent<Node3D>();
@@ -755,6 +773,7 @@ public partial class PlayerCombat : Node
 			EmissionEnergyMultiplier = isHeavy ? 2.6f : 1.9f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
+		ApplyBloodlineTint(attackType, fillMaterial, edgeMaterial);
 
 		var indicator = new Node3D
 		{
@@ -795,6 +814,7 @@ public partial class PlayerCombat : Node
 			EmissionEnergyMultiplier = 2.4f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
+		ApplyBloodlineTint(attackType, fillMaterial, ringMaterial);
 
 		var indicator = new Node3D
 		{
@@ -868,6 +888,7 @@ public partial class PlayerCombat : Node
 			EmissionEnergyMultiplier = 2.0f,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
+		ApplyBloodlineTint(attackType, null, material);
 		var indicator = new Node3D { Name = "ThrustAttackIndicator" };
 		player.AddChild(indicator);
 		var visualRange = attack.Range + GetEdgeForgiveness(attackType);
@@ -881,7 +902,7 @@ public partial class PlayerCombat : Node
 	}
 
 	// Preview barato na fase de startup: preenchimento tenue (arco ou linha) que cresce ate o impacto.
-	private void SpawnAttackPreview(WeaponAttackDefinition attack, float hitDelay, bool isHeavy)
+	private void SpawnAttackPreview(WeaponAttackDefinition attack, float hitDelay, bool isHeavy, PlayerAttackType attackType)
 	{
 		FreeAttackPreview();
 		if (attack.Shape == WeaponAttackShape.Radial)
@@ -889,6 +910,8 @@ public partial class PlayerCombat : Node
 
 		var player = GetParent<Node3D>();
 		var color = isHeavy ? new Color(1.0f, 0.90f, 0.60f, 0.05f) : new Color(0.45f, 0.85f, 1.0f, 0.05f);
+		if (BloodlineVisuals.TryGetSlotColor(attackType, out var bloodline))
+			color = new Color(bloodline, color.A);
 		var material = new StandardMaterial3D
 		{
 			AlbedoColor = color,
@@ -1619,6 +1642,7 @@ void fragment() {
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 			Transparency = BaseMaterial3D.TransparencyEnum.Alpha
 		};
+		ApplyBloodlineTint(attackType, null, material);
 		var thickness = isSpecial ? 0.16f : 0.05f;
 		var tracer = new MeshInstance3D
 		{
