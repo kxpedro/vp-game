@@ -755,6 +755,9 @@ public partial class EnemyBasic : CharacterBody3D
 
     public void ApplyBleeding(float seconds, float damagePerSecond, int maxStacks, string sourceEffect = "")
     {
+        damagePerSecond *= G("enemy.status.bleeding_damage_multiplier", 1.0f);
+        if (!string.IsNullOrEmpty(sourceEffect))
+            damagePerSecond *= G($"enemy.status.bleeding.{sourceEffect}.damage_multiplier", 1.0f);
         _bleedingStacks = Mathf.Min(_bleedingStacks + 1, Mathf.Max(maxStacks, 1));
         _bleedingTimer = Mathf.Max(_bleedingTimer, seconds);
         if (damagePerSecond >= _bleedingDamagePerSecond && !string.IsNullOrEmpty(sourceEffect))
