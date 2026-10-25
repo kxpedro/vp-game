@@ -1,0 +1,208 @@
+{
+ "canvas": [
+  224,
+  208
+ ],
+ "tile_top_vertex": [
+  112,
+  116
+ ],
+ "tile_center": [
+  112,
+  148
+ ],
+ "tile_size": [
+  128,
+  64
+ ],
+ "godot_texture_origin": [
+  0,
+  44
+ ],
+ "palette": "AAP-64",
+ "baked_ambient": -0.6,
+ "floor": {
+  "root": "res://assets/pixel_art/tiles/garden_floor/garden_floor_128_",
+  "variants": [
+   "base",
+   "dark",
+   "moss",
+   "blood"
+  ],
+  "weights": [
+   0.55,
+   0.2,
+   0.17,
+   0.08
+  ]
+ },
+ "pieces": {
+  "walls/wall_ne_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_n": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_s": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w_tall": {
+   "kind": "wall",
+   "lights": []
+  },
+  "props/hedge_block_a": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/hedge_block_b": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/hedge_block_c": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/parterre": {
+   "kind": "prop",
+   "lights": [],
+   "canvas": [
+    288,
+    184
+   ],
+   "tile_top_vertex": [
+    144,
+    40
+   ]
+  },
+  "props/topiary_center": {
+   "kind": "prop",
+   "lights": [],
+   "canvas": [
+    224,
+    240
+   ],
+   "tile_top_vertex": [
+    112,
+    148
+   ]
+  },
+  "props/topiary_ball": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/rose_bush": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/lantern": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 91,
+     "power": 1.4,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/dead_tree_a": {
+   "kind": "prop",
+   "lights": [],
+   "canvas": [
+    224,
+    240
+   ],
+   "tile_top_vertex": [
+    112,
+    148
+   ]
+  },
+  "props/dead_tree_b": {
+   "kind": "prop",
+   "lights": [],
+   "canvas": [
+    224,
+    240
+   ],
+   "tile_top_vertex": [
+    112,
+    148
+   ]
+  }
+ }
+}

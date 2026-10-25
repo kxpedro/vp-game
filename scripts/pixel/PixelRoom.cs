@@ -75,7 +75,7 @@ public partial class PixelRoom : Node3D
             return;
         var version = ++_recomposeVersion;
         // Cópia: o layout pode mudar de novo enquanto a thread desenha.
-        var layout = new PixelRoomLayout { Ambient = Layout.Ambient, Seed = Layout.Seed };
+        var layout = new PixelRoomLayout { Ambient = Layout.Ambient, Seed = Layout.Seed, Kit = Layout.Kit };
         foreach (var tile in Layout.Tiles)
             layout.Tiles[tile.Key] = tile.Value;
         foreach (var edge in Layout.Edges)

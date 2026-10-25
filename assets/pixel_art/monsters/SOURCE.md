@@ -41,3 +41,22 @@ do `PixelEnemySprite` reaproveitam a mesma folha.
 - **Autor:** creativekind (creativekind.itch.io), pelo nome da pasta do pacote.
 - **Licença:** NÃO REGISTRADA. O pacote veio sem licença nem readme. Antes de distribuir o jogo, confirmar os termos
   na página do pacote e registrar aqui e em `CREDITS.md`.
+
+## plant_red, plant_bulb, plant_purple (plantas carnívoras do Jardim Sangrento, mapa 2)
+
+Pacote **Free Predator Plant Mobs** (Craftpix), copiado de `F:\ASSETS` no PC do Pedro. Cada folha original tem 4
+linhas (uma por direção); daqui saiu só a linha 3 (y 192–256, olhando para a direita), em quadros de 64x64 com os pés
+em y≈51 (`PixelEnemySprite.FeetOffsets`). Remapeadas para a AAP-64 com o mesmo `recolor_monsters.py`; os originais
+recortados ficam em `tools/pixel_art/monsters/source/plant_*/`.
+
+| Pasta | Planta do pacote | Arquétipo (`EnemyVisualCatalog.GetPixelEnemy`, só no mapa 2) |
+|---|---|---|
+| `plant_red/` | Plant1 | corpo a corpo |
+| `plant_bulb/` | Plant2 | à distância |
+| `plant_purple/` | Plant3 | tanque |
+
+Arquivos: `idle`, `walk`, `attack`, `hit`, `death` (Idle, Walk, Attack, Hurt, Death do pacote).
+
+- **Autor:** Craftpix (craftpix.net).
+- **Licença:** licença de arquivos da Craftpix (https://craftpix.net/file-licenses/), indicada no `License.txt` do
+  pacote: uso em jogos, inclusive comerciais, sem exigir atribuição; não pode redistribuir os arquivos soltos.

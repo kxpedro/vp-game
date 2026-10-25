@@ -33,6 +33,15 @@ Salas comuns usam atualmente um mapa linear compacto com quatro regiões de 9 ×
 
 O conjunto recebe rotação em quartos de volta e pode ser espelhado. Como as regiões de 9 × 9 se sobrepõem ou se tocam ao longo do eixo principal, o layout permanece conectado sem uma etapa posterior de reparo.
 
+### Jardim Sangrento no modo 2D (mapa 2)
+
+No modo 2D, as salas comuns do mapa 2 não usam o mapa linear: `RoomGenerator.Garden.cs` monta uma planta própria em tiles do kit (1 tile = 2 × 2 células), desenhada com o kit `garden` (`PixelArenaLayout.BuildGarden`, `PixelRoomLayout.Kit`). As salas alternam pela paridade:
+
+- **Clareira** (salas ímpares): jardim formal de 11 × 11 tiles, com quatro canteiros 2 × 2, uma topiaria pequena no meio, lanternas nos cantos e a saída no meio da sebe do fundo.
+- **Corredores** (salas pares): labirinto de 8 × 8 macrocélulas (corredor de 1 tile, sebe de 1 tile), gerado por busca em profundidade com o `_rng` da sala e cerca de 10% de laços, com uma clareira de 5 × 5 tiles no meio e a saída aberta na sebe do fundo (coluna sorteada). Becos sem saída podem ter uma árvore seca ou uma roseira.
+
+Os tiles de sebe, canteiro e topiaria entram no layout (para o chão e a borda) mas não nas células caminháveis, e têm colisão pelos obstáculos das peças (`PixelRoomComposer.BlockerSizes`). Como os inimigos vão reto até o jogador, sem desviar de obstáculos, a luta fica na clareira: nos corredores o jogador começa nela, `_roomCells` é só a clareira (os inimigos só surgem ali) e o labirinto é o caminho até as portas. A sala de boss do mapa 2 no 2D é a arena de sempre com o kit do jardim e blocos de sebe no lugar dos pilares. A prévia das duas formas sai de `py tools/pixel_art/garden_kit/preview_rooms.py <pasta>`. O modo 3D não mudou.
+
 ## Escala e composição
 
 - `CellSize = 1.45`;

@@ -26,10 +26,12 @@ public sealed record RoomBlessingPlan(string Family, IReadOnlyList<BloodBlessing
 public sealed record RoomRewardDoor(RoomRewardType Type, int MapIndex, int CoinAmount, RoomBlessingPlan BlessingPlan = null);
 
 // Conjunto de portas (CP) de uma saida. OriginRoom 0 = entrada do mapa (Sala Inicial ou Camara).
-// Doors[0] fica a esquerda e Doors[1] a direita (ordem ja sorteada 50/50 quando ha duas portas).
+// Doors[0] fica a esquerda e Doors[1] a direita (ordem ja sorteada 50/50 quando ha duas portas). Com tres portas
+// (Jardim Sangrento), Doors[2] fica a direita e a ordem das tres e embaralhada.
 public sealed record RoomRewardSet(int MapIndex, int OriginRoom, IReadOnlyList<RoomRewardDoor> Doors)
 {
     public bool TwoDoors => Doors.Count > 1;
+    public bool ThreeDoors => Doors.Count > 2;
 
     public bool HasBlessing
     {
@@ -51,10 +53,15 @@ public static class RoomRewardCatalog
     private const int DefaultTwoDoorStepEvery = 2;
     private const float DefaultTwoDoorCap = 0.90f;
 
-    private static readonly int[] DefaultBlessingWeight = { 70, 66, 62 };
-    private static readonly int[] DefaultFruitWeight = { 8, 10, 12 };
-    private static readonly int[] DefaultCoinsWeight = { 18, 20, 22 };
-    private static readonly int[] DefaultAnvilWeight = { 4, 4, 4 };
+    // Terceira porta (Jardim Sangrento, mapa 2): chance de uma saida que ja tem duas portas ganhar a terceira. Os outros
+    // mapas ficam com 1 a 2 portas (chance 0, sem sorteio extra).
+    private static readonly float[] DefaultThreeDoorChance = { 0.0f, 0.40f, 0.0f };
+
+    // Mapa 2 (Jardim): com ate tres portas, a Bencao pesa menos e Fruta, Moedas e Bigorna aparecem mais.
+    private static readonly int[] DefaultBlessingWeight = { 70, 58, 62 };
+    private static readonly int[] DefaultFruitWeight = { 8, 12, 12 };
+    private static readonly int[] DefaultCoinsWeight = { 18, 22, 22 };
+    private static readonly int[] DefaultAnvilWeight = { 4, 8, 4 };
     private const float DefaultRampFromFraction = 0.5f;
     private const int DefaultRampShift = 2;
 
@@ -104,6 +111,10 @@ public static class RoomRewardCatalog
         return Math.Clamp(Math.Min(cap, chance), 0.0f, 1.0f);
     }
 
+    /// <summary>Chance de uma saida com duas portas ganhar a terceira (reward.doors.three_chance.{mapa}); 0 fora do Jardim.</summary>
+    public static float ThreeDoorChance(int mapIndex) =>
+        Math.Clamp(CompendiumTuning.GetFloat($"reward.doors.three_chance.{mapIndex}", Tier(DefaultThreeDoorChance, mapIndex)), 0.0f, 1.0f);
+
     /// <summary>
     /// Sorteia o conjunto de portas (secao 7.4). Nao guarda nada: quem chama (RunState) guarda o resultado,
     /// atualiza o pity com <see cref="RoomRewardSet.HasBlessing"/> e conta as frutas escolhidas.
@@ -120,6 +131,10 @@ public static class RoomRewardCatalog
 
         var totalRooms = CampaignCatalog.All[mapIndex].CommonRoomCount;
         var doorCount = !singleDoor && rng.Randf() < TwoDoorChance(mapIndex, originRoom) ? 2 : 1;
+        // Terceira porta: sorteio extra so quando o mapa tem chance (os outros mapas mantem a mesma sequencia de RNG).
+        var threeChance = ThreeDoorChance(mapIndex);
+        if (doorCount == 2 && threeChance > 0.0f && rng.Randf() < threeChance)
+            doorCount = 3;
         var fruitCapReached = fruitDoorsChosen >= FruitDoorRunCap;
         var types = new List<RoomRewardType>(doorCount);
 
@@ -142,6 +157,14 @@ public static class RoomRewardCatalog
         // Ordem esquerda/direita sorteada por CP (secao 6.3), para o jogador nao decorar a posicao.
         if (types.Count == 2 && rng.Randf() < CompendiumTuning.GetFloat("reward.door_swap_chance", DoorSwapChance))
             (types[0], types[1]) = (types[1], types[0]);
+        else if (types.Count == 3)
+        {
+            for (var i = types.Count - 1; i > 0; i--)
+            {
+                var j = rng.RandiRange(0, i);
+                (types[i], types[j]) = (types[j], types[i]);
+            }
+        }
 
         var doors = new List<RoomRewardDoor>(types.Count);
         foreach (var type in types)

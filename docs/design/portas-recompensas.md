@@ -6,6 +6,20 @@ Documento de design da tarefa T1 do plano `20261011-0550-portas-recompensas`. Se
 
 Premissas fixas (decisões do usuário, não reabertas): D7 (1 ou 2 portas por sala limpa, quantidade e tipo sorteados), D8 (tipos: Bênção de Sangue, Fruta do Diabo e Moedas de Sangue; Sangue Amaldiçoado não é tipo de porta), recompensa da sala = a da porta cruzada, salas de boss com uma porta e recompensa fixa, ícones em geometria provisória com rótulo curto. Os valores de moeda, Sangue Amaldiçoado e Fruta vêm de `docs/design/economia-v2.md` (seções 2, 3, 5, 6 e 9).
 
+## Revisão de 2026-10-25: Jardim Sangrento com 1 a 3 portas (vigente para o mapa 2)
+
+Pedido do Pedro: no level 2 as saídas têm de 1 a 3 portas (no mapa 1 continua de 1 a 2), e as chances das recompensas são outras.
+
+| Regra | Mapa 1 e 3 | Mapa 2 (Jardim Sangrento) |
+|---|---|---|
+| Duas portas | igual à revisão de 2026-10-24 | igual (75% de base, +5 a cada 2 salas, teto 90%) |
+| Terceira porta (`reward.doors.three_chance.{m}`) | 0% (sem sorteio extra, mesma sequência de RNG) | **40%** das saídas que já teriam duas portas |
+| Pesos Bênção / Fruta / Moedas / Bigorna | 70 / 8 / 18 / 4 (mapa 1); 62 / 12 / 22 / 4 (mapa 3) | **58 / 12 / 22 / 8** |
+
+- Na prática, no mapa 2: 1 porta em 10% a 25% das saídas, 2 portas em 45% a 54% e 3 portas em 30% a 36% (sobe com a sala).
+- A terceira porta segue as mesmas regras da segunda: Bênção pode repetir com outra linhagem (`PlanBlessingsForSet` já exclui todas as linhagens usadas), Fruta, Moedas e Bigorna não repetem, e o teto de Frutas vale. A ordem das três portas é embaralhada.
+- Posição: três portas lado a lado na parede da saída (−1, 0, +1 tile no 2D, `PixelDoorWall.FitsThreeDoors`; no 3D, ±1 célula com a moldura menor). Se a parede não comportar três, a saída fica com duas.
+
 ## Revisão de 2026-10-24 (vigente; prevalece sobre as seções abaixo)
 
 Pedido do Pedro: duas portas mais comuns que uma; a Bênção de Sangue é a recompensa mais comum, e o caso normal é escolher entre **duas Bênçãos diferentes**, uma em cada porta; Moedas e Fruta aparecem menos; a Bigorna é rara. A sala da primeira Bênção (`RunStartBlessingRoom`) continua com uma porta só.
