@@ -448,6 +448,27 @@ public partial class HUD
 	// Preview (debug): o reroll aparece e só simula (não consome o uso do mapa).
 	private bool _blessingOfferPreview;
 
+	private const string BlessingVirgilPath = "res://assets/ui/virgil_oferta/virgil_espada.png";
+	private const float BlessingVirgilSize = 560.0f;
+
+	// Virgil de pé à esquerda da janela, olhando as opções (estilo Hades): fora da moldura, encostado na borda inferior.
+	private void AddBlessingVirgil()
+	{
+		if (!ResourceLoader.Exists(BlessingVirgilPath)) return;
+		var virgil = new TextureRect
+		{
+			Name = "BlessingVirgil", Texture = ResourceLoader.Load<Texture2D>(BlessingVirgilPath),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			TextureFilter = CanvasItem.TextureFilterEnum.Nearest, MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+			// Sobrepõe 24 px da moldura; a base alinha com a base da janela (720 px de altura, centrada).
+			OffsetLeft = -BlessingWindowWidth * 0.5f + 24 - BlessingVirgilSize,
+			OffsetRight = -BlessingWindowWidth * 0.5f + 24,
+			OffsetTop = 360 - BlessingVirgilSize, OffsetBottom = 360
+		};
+		_blessingWindow.Root.AddChild(virgil);
+	}
+
 	private void BuildBloodBlessingOverlay(Control root)
 	{
 		_blessingWindow = UiComponents.Window(root, "BloodBlessingOverlay", WindowSize.Large, Localization.Text("offer.blessing.title"));
@@ -470,6 +491,8 @@ public partial class HUD
 		};
 		_bloodBlessingList.AddThemeConstantOverride("separation", UiMetrics.S3);
 		_blessingWindow.Body.AddChild(_bloodBlessingList);
+
+		AddBlessingVirgil();
 
 		_blessingTermPanel = new VBoxContainer
 		{
