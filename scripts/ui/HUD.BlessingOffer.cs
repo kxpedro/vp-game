@@ -498,12 +498,12 @@ public partial class HUD
 
 	private const string SanguisBandShader = @"
 shader_type canvas_item;
-uniform vec4 band_color : source_color = vec4(0.015, 0.004, 0.006, 0.82);
+uniform vec4 band_color : source_color = vec4(0.015, 0.004, 0.006, 0.9);
 uniform float edge_fade = 0.30;
 void fragment() {
 	float v = 1.0 - abs(UV.y * 2.0 - 1.0);
 	float h = 1.0 - abs(UV.x * 2.0 - 1.0);
-	float alpha = smoothstep(0.0, 0.8, v) * smoothstep(0.0, edge_fade, h);
+	float alpha = smoothstep(0.0, 0.6, v) * smoothstep(0.0, edge_fade, h);
 	COLOR = vec4(band_color.rgb, band_color.a * alpha);
 }";
 
