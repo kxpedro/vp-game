@@ -7,8 +7,9 @@ from materials import (SKULL, SKULL_C, sarc, stone_coffin, wood_coffin, candle, 
                        iron, SWORD, SWORD_C, AXE, AXE_C, WHIP, WHIP_C, REVOLVER, REVOLVER_C, x2)
 
 # Saída do Virgil ao renascer (CoffinRise.cs): deslocamento da tampa ao longo do caixão (0 = posição de sempre,
-# entreaberta; -10 = fechada sobre o forro) e quanto ela pula ao ser empurrada por dentro, quadro a quadro.
-VIRGIL_LID_FRAMES = [(-10, 0), (-10, 2), (-10, 0), (-9, 3), (-6, 1), (-3, 0), (-1, 0), (0, 0)]
+# entreaberta; -10 = fechada sobre o forro) e quanto ela sobe ao ser empurrada por dentro, quadro a quadro: duas
+# pancadas, a tampa erguida desliza e cai de volta no lugar de sempre.
+VIRGIL_LID_FRAMES = [(-10, 0), (-10, 3), (-10, 0), (-9, 5), (-6, 5), (-3, 4), (-1, 2), (0, 0)]
 
 def _slid(tex, ox, oy):
     """textura presa à tampa: avalia nas coordenadas de antes do deslocamento, então o grão não escorrega"""

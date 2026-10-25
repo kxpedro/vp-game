@@ -33,7 +33,8 @@ public static class CoffinRise
     private const float HiddenFeet = -1.1f;
     private const float FloorHeight = 0.0f;
 
-    // Quadros da tampa (props.py VIRGIL_LID_FRAMES): 1 = fechada, 2 e 4 = pancadas, 8 = entreaberta (a de sempre).
+    // Quadros da tampa (props.py VIRGIL_LID_FRAMES): 1 = fechada, 2 e 4 = pancadas, 5-7 = erguida deslizando,
+    // 8 = caída na posição de sempre (entreaberta).
     private const int LastLidFrame = 8;
 
     private static Node _driver;
@@ -79,7 +80,7 @@ public static class CoffinRise
         void Frame(int k) => tween.TweenCallback(Callable.From(() => room.SetAnimationFrame(piece, k)));
         void Shake(float strength) => tween.TweenCallback(Callable.From(() => camera?.Shake(strength, 0.15f)));
 
-        // Tampa: duas pancadas por dentro e depois desliza até a posição de sempre.
+        // Tampa: duas pancadas por dentro; depois sobe, desliza e cai na posição de sempre.
         tween.TweenInterval(StartDelay);
         Frame(2);
         Shake(0.04f);
@@ -100,7 +101,12 @@ public static class CoffinRise
         for (var k = 7; k <= LastLidFrame; k++)
         {
             var frame = k;
-            tween.Parallel().TweenCallback(Callable.From(() => room.SetAnimationFrame(piece, frame))).SetDelay(SlideFrameSeconds * (k - 6));
+            tween.Parallel().TweenCallback(Callable.From(() =>
+            {
+                room.SetAnimationFrame(piece, frame);
+                if (frame == LastLidFrame)
+                    camera?.Shake(0.08f, 0.18f);
+            })).SetDelay(SlideFrameSeconds * (k - 6));
         }
         tween.TweenInterval(StandSeconds);
 
