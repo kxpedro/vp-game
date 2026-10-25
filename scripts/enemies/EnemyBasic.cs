@@ -201,8 +201,8 @@ public partial class EnemyBasic : CharacterBody3D
         };
         _windupFlashMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1.0f, 0.95f, 0.8f),
-            EmissionEnabled = true,
+            AlbedoColor = PixelTint("fef3c0", new Color(1.0f, 0.95f, 0.8f)),
+            EmissionEnabled = !GameMode.IsPixelArt,
             Emission = new Color(1.0f, 0.85f, 0.55f),
             EmissionEnergyMultiplier = 2.6f,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
@@ -267,9 +267,9 @@ public partial class EnemyBasic : CharacterBody3D
         {
             var archetypeColor = archetype switch
             {
-                EnemyArchetype.Ranged => new Color(1.0f, 0.02f, 0.48f),
-                EnemyArchetype.Tank => new Color(1.0f, 0.78f, 0.04f),
-                _ => new Color(0.0f, 0.86f, 0.96f)
+                EnemyArchetype.Ranged => PixelTint("e86a73", new Color(1.0f, 0.02f, 0.48f)),
+                EnemyArchetype.Tank => PixelTint("f9a31b", new Color(1.0f, 0.78f, 0.04f)),
+                _ => PixelTint("588dbe", new Color(0.0f, 0.86f, 0.96f))
             };
             _baseMaterial = new StandardMaterial3D
             {
@@ -304,7 +304,8 @@ public partial class EnemyBasic : CharacterBody3D
             MaterialOverride = new StandardMaterial3D
             {
                 AlbedoColor = new Color(color.R, color.G, color.B, 0.72f),
-                EmissionEnabled = true,
+                // No 2D sem emissão: o brilho e o bloom tirariam a cor da AAP-64 (material já é sem sombreamento).
+                EmissionEnabled = !GameMode.IsPixelArt,
                 Emission = color,
                 EmissionEnergyMultiplier = 2.2f,
                 ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -363,8 +364,8 @@ public partial class EnemyBasic : CharacterBody3D
         // Alinhado ao teste de acerto (IsPlayerInsideLockedAttack): da origem do inimigo ate AttackRange + AttackDepthBonus.
         var depth = ranged ? AttackRange * ProjectileRangeMultiplier : AttackRange + AttackDepthBonus;
         var width = ranged ? 0.38f : AttackWidth;
-        var fillColor = ranged ? new Color(0.62f, 0.12f, 1.0f) : tank ? new Color(1.0f, 0.22f, 0.02f) : new Color(1.0f, 0.18f, 0.02f);
-        var borderColor = ranged ? new Color(0.82f, 0.62f, 1.0f) : tank ? new Color(1.0f, 0.84f, 0.12f) : new Color(1.0f, 0.55f, 0.12f);
+        var fillColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : tank ? PixelTint("df3e23", new Color(1.0f, 0.22f, 0.02f)) : PixelTint("b4202a", new Color(1.0f, 0.18f, 0.02f));
+        var borderColor = ranged ? PixelTint("b9bffb", new Color(0.82f, 0.62f, 1.0f)) : tank ? PixelTint("ffd541", new Color(1.0f, 0.84f, 0.12f)) : PixelTint("f9a31b", new Color(1.0f, 0.55f, 0.12f));
         _telegraphFillMaterial = CreateTelegraphMaterial(fillColor, 0.55f, 2.4f, 6);
         _telegraphBorderMaterial = CreateTelegraphMaterial(borderColor, 0.95f, 3.4f, 7);
         var frameMaterial = CreateTelegraphMaterial(fillColor, 0.17f, 1.2f, 5);
@@ -414,10 +415,14 @@ public partial class EnemyBasic : CharacterBody3D
         AddStrip("BorderNear", new Vector3(width, 0.05f, border), new Vector3(0.0f, 0.08f, -border * 0.5f));
     }
 
+    // Modo 2D: cor da paleta AAP-64 (a da pixel art) no lugar da cor livre do 3D, para o anel do arquétipo, o aviso
+    // do golpe e o "!" não destoarem dos sprites e dos efeitos.
+    private static Color PixelTint(string aapHex, Color color3D) => GameMode.IsPixelArt ? Color.FromHtml(aapHex) : color3D;
+
     private static StandardMaterial3D CreateTelegraphMaterial(Color color, float alpha, float energy, int renderPriority) => new()
     {
         AlbedoColor = new Color(color.R, color.G, color.B, alpha),
-        EmissionEnabled = true,
+        EmissionEnabled = !GameMode.IsPixelArt,
         Emission = color,
         EmissionEnergyMultiplier = energy,
         Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
@@ -1169,7 +1174,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (_health == null || _health.IsDead) return;
         if (_importedVisual is PixelEnemySprite windupSprite)
         {
-            windupSprite.Flash(new Color(1.0f, 0.85f, 0.35f), WindupFlashSeconds);
+            windupSprite.Flash(PixelTint("ffd541", new Color(1.0f, 0.85f, 0.35f)), WindupFlashSeconds);
             return;
         }
         if (_importedVisual != null)
@@ -1369,7 +1374,8 @@ public partial class EnemyBasic : CharacterBody3D
             Speed = G("enemy.projectile.speed", 5.2f),
             Damage = AttackDamage,
             SourceName = GetDisplayName(),
-            OwnerRid = GetRid()
+            OwnerRid = GetRid(),
+            PixelStyle = EnemyAttackFx.For(PixelVisual?.Monster)
         };
         GetTree().CurrentScene.AddChild(projectile);
     }
@@ -1896,8 +1902,8 @@ public partial class EnemyBasic : CharacterBody3D
         _windupBodyTween?.Kill();
 
         _attackWarningLabel.Visible = true;
-        _attackWarningLabel.Modulate = ranged ? new Color(0.72f, 0.38f, 1.0f)
-            : Archetype == EnemyArchetype.Tank ? new Color(1.0f, 0.8f, 0.1f) : new Color(1.0f, 0.12f, 0.0f);
+        _attackWarningLabel.Modulate = ranged ? PixelTint("b9bffb", new Color(0.72f, 0.38f, 1.0f))
+            : Archetype == EnemyArchetype.Tank ? PixelTint("ffd541", new Color(1.0f, 0.8f, 0.1f)) : PixelTint("df3e23", new Color(1.0f, 0.12f, 0.0f));
         _attackWarningLabel.Scale = Vector3.One * 0.5f;
 
         var tween = CreateTween();
@@ -1978,6 +1984,19 @@ public partial class EnemyBasic : CharacterBody3D
     private async void SpawnAttackImpact()
     {
         var attackDepth = AttackRange + AttackDepthBonus;
+        // Modo 2D: cada monstro tem o seu golpe em pixel art (corte, mordida, garras, esporos, poeira, espinhos).
+        if (EnemyAttackFx.For(PixelVisual?.Monster) is { Attack: not null } style)
+        {
+            var direction = _lockedAttackDirection.LengthSquared() > 0.001f ? _lockedAttackDirection.Normalized() : -GlobalTransform.Basis.Z;
+            direction.Y = 0.0f;
+            // Pancada no chão um pouco antes do meio da área; golpe no ar na altura do peito, mais perto do monstro.
+            var position = style.Grounded
+                ? GlobalPosition + direction * attackDepth * 0.45f
+                : GlobalPosition + direction * Mathf.Min(attackDepth * 0.4f, 1.1f) + Vector3.Up * 0.75f;
+            var scale = style.AttackScale * (Archetype == EnemyArchetype.Tank ? Mathf.Clamp(AttackWidth / 1.4f, 0.9f, 1.8f) : 1.0f);
+            EnemyAttackFx.Play(GetTree().CurrentScene, style.Attack, position, direction, scale, style.Grounded);
+            return;
+        }
         var material = new StandardMaterial3D
         {
             AlbedoColor = new Color(1.0f, 0.22f, 0.03f, 0.82f),

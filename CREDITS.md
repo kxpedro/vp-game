@@ -26,6 +26,10 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 - `assets/pixel_art/effects/blood_pool/`: poça de sangue dos inimigos, autoria própria, geradas por `tools/pixel_art/blood_pool/`.
 - `assets/pixel_art/effects/ritual_circle/`: círculo de ritual do spawn dos monstros, autoria própria, gerado por `tools/pixel_art/ritual_circle/`.
 
+## Efeitos visuais
+
+- Golpes e projéteis dos monstros no modo 2D (`assets/pixel_art/effects/enemy_attacks/`), recoloridos para a AAP-64: Effect and FX Pixel All Free e RPG Effect All Free, provavelmente de BDragon1727 — licença ainda a confirmar. Detalhes no `SOURCE.md` da pasta.
+
 ## Interface
 
 - `simple_panel.png` e `simple_divider.png` do [UI Pack](https://kenney.nl/assets/ui-pack), por Kenney — CC0 1.0.
@@ -65,6 +69,7 @@ Os arquivos abaixo estão no projeto sem `SOURCE.md` nem licença documentada. A
 - Músicas: `audio/ambience/*.mp3` (Floor 1–3, Game Over, Hub, Main Menu Theme) e `audio/boss/*.mp3`.
 - Efeitos: `audio/effects/Boss Defeated.mp3`, `Death.mp3`, `Treasure.mp3`.
 - Monstros do modo 2D: `assets/pixel_art/monsters/*` (pacote “Monsters Creatures Fantasy”, provavelmente de Luiz Melo; ver o `SOURCE.md` da pasta).
+- Efeitos do modo 2D: `assets/pixel_art/effects/enemy_attacks/*` (pacotes de efeitos provavelmente de BDragon1727; ver o `SOURCE.md` da pasta).
 - Imagens: `images/bloodBoons/*`, `images/effects/*`, `images/inventory/*`, `images/generic.png` e `icon.png`.
 
 ## Material arquivado

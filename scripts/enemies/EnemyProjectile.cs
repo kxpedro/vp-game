@@ -11,6 +11,8 @@ public partial class EnemyProjectile : Node3D
     public Rid OwnerRid { get; set; }
     // Alcance maximo; o projetil some depois disso (0 = sem limite).
     public float MaxDistance { get; set; }
+    // Modo 2D: orbe em pixel art do monstro que atirou (EnemyAttackFx) no lugar da flecha 3D, e o estouro dele no fim.
+    public EnemyAttackFx.Style PixelStyle { get; set; }
     private float _traveled;
 
     public override void _Ready()
@@ -20,6 +22,12 @@ public partial class EnemyProjectile : Node3D
         GlobalPosition = SpawnPosition;
         if (Direction.LengthSquared() > 0.001f)
             LookAt(GlobalPosition + Direction.Normalized(), Vector3.Up);
+
+        if (PixelStyle?.Projectile != null && EnemyAttackFx.CreateLoop(PixelStyle.Projectile, 1.0f) is { } orb)
+        {
+            AddChild(orb);
+            return;
+        }
 
         var shaftMaterial = new StandardMaterial3D
         {
@@ -92,7 +100,7 @@ public partial class EnemyProjectile : Node3D
             var collider = collision["collider"].AsGodotObject() as Node;
             if (collider?.IsInGroup("player") == true)
                 collider.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, ResolveSourceName());
-            QueueFree();
+            Finish();
             return;
         }
 
@@ -100,14 +108,14 @@ public partial class EnemyProjectile : Node3D
         _traveled += step.Length();
         if (MaxDistance > 0.0f && _traveled >= MaxDistance)
         {
-            QueueFree();
+            Finish();
             return;
         }
         var player = GetTree().GetFirstNodeInGroup("player") as Node3D;
         if (player != null && SegmentDistanceToPlayer(from, to, player.GlobalPosition) <= CompendiumTuning.GetFloat("enemy.projectile.hit_radius", 0.55f))
         {
             player.GetNodeOrNull<Health>("Health")?.ApplyDamage(Damage, false, ResolveSourceName());
-            QueueFree();
+            Finish();
             return;
         }
     }
@@ -123,6 +131,13 @@ public partial class EnemyProjectile : Node3D
             ? 0.0f
             : Mathf.Clamp((playerPosition - from).Dot(segment) / lengthSquared, 0.0f, 1.0f);
         return playerPosition.DistanceTo(from + segment * progress);
+    }
+
+    private void Finish()
+    {
+        if (PixelStyle?.Burst != null)
+            EnemyAttackFx.Play(GetParent(), PixelStyle.Burst, GlobalPosition, Direction, 1.0f, false);
+        QueueFree();
     }
 
     private string ResolveSourceName() => string.IsNullOrWhiteSpace(SourceName) ? Localization.Text("enemy.damage.projectile") : SourceName;
