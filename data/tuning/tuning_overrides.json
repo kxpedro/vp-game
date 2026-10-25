@@ -2,7 +2,6 @@
   "version": 1,
   "values": {
     "economy.anvil.run_cap": 10,
-    "economy.coins.boss.0": 4390,
     "enemy.projectile.speed": 11.5,
     "game.dash_distance": 80,
     "game.run": 70,

@@ -31,12 +31,12 @@ public static partial class DevParameterRegistry
 
     private static void RegisterEconomyLegacy()
     {
-        RegisterPerMap("economy.coins.boss.{m}", "Moedas do boss", GEconomy, new double[] { 100, 130, 160, 0 }, 0, 5000, 10, true);
+        RegisterPerMap("economy.coins.boss.{m}", "Moedas do boss", GEconomy, new double[] { 20, 30, 40, 0 }, 0, 5000, 5, true);
         RegisterPerMap("economy.cursed_blood.boss.{m}", "Ícor do boss", GEconomy, new double[] { 40, 60, 80, 120 }, 0, 2000, 5, true);
         P("economy.cursed_blood.legendary_drop_chance", "Chance de Ícor (Lendário)", GEconomy, 1.0, 0, 1, 0.05, false);
         RegisterPerMap("economy.cursed_blood.legendary.{m}", "Ícor do Lendário", GEconomy, new double[] { 0, 6, 8, 8 }, 0, 500, 1, true);
-        P("economy.coins.enemy.base_min", "Moedas base do inimigo (mín.)", GEconomy, 3, 0, 200, 1, true);
-        P("economy.coins.enemy.base_max", "Moedas base do inimigo (máx.)", GEconomy, 7, 0, 200, 1, true);
+        P("economy.coins.enemy.base_min", "Moedas base do inimigo (mín.)", GEconomy, 1, 0, 200, 1, true);
+        P("economy.coins.enemy.base_max", "Moedas base do inimigo (máx.)", GEconomy, 1, 0, 200, 1, true);
         P("economy.coins.archetype.tank", "Multiplicador de Moedas: Tank", GEconomy, 1.5, 0, 20, 0.1, false);
         P("economy.coins.archetype.ranged", "Multiplicador de Moedas: Ranged", GEconomy, 1.0, 0, 20, 0.1, false);
         P("economy.coins.archetype.melee", "Multiplicador de Moedas: Melee", GEconomy, 1.0, 0, 20, 0.1, false);
@@ -44,9 +44,9 @@ public static partial class DevParameterRegistry
         P("economy.coins.rarity.magic", "Multiplicador de Moedas: Mágico", GEconomy, 2.0, 0, 50, 0.5, false);
         P("economy.coins.rarity.rare", "Multiplicador de Moedas: Raro", GEconomy, 4.0, 0, 50, 0.5, false);
         P("economy.coins.rarity.legendary", "Multiplicador de Moedas: Lendário", GEconomy, 8.0, 0, 100, 0.5, false);
-        RegisterPerMap("economy.coins.map_factor.{m}", "Fator de Moedas do mapa", GEconomy, new[] { 1.0, 0.6, 0.5, 0.5 }, 0, 10, 0.1, false);
-        P("economy.coins.blessing_fallback", "Moedas no lugar de Bênção sem opções", GEconomy, 75, 0, 2000, 5, true);
-        RegisterPerMap("economy.coins.room_reward_pack.{m}", "Moedas da porta de Moedas", GEconomy, new double[] { 150, 130, 110 }, 0, 5000, 10, true, DevApplyMode.NextRoom);
+        RegisterPerMap("economy.coins.map_factor.{m}", "Fator de Moedas do mapa", GEconomy, new[] { 1.0, 0.6, 0.6, 0.6 }, 0, 10, 0.1, false);
+        P("economy.coins.blessing_fallback", "Moedas no lugar de Bênção sem opções", GEconomy, 25, 0, 2000, 5, true);
+        RegisterPerMap("economy.coins.room_reward_pack.{m}", "Moedas da porta de Moedas", GEconomy, new double[] { 40, 45, 50 }, 0, 5000, 5, true, DevApplyMode.NextRoom);
         RegisterPerMap("economy.cursed_blood.door.{m}", "Ícor da porta", GEconomy, new double[] { 10, 12, 15 }, 0, 500, 1, true, DevApplyMode.NextRoom);
         P("economy.ledger.max_bonus", "Teto do bônus de dano por Moedas (Ledger)", GEconomy, 1.0, 0, 20, 0.1, false);
         P("economy.shop.power_multiplier", "Multiplicador de poder dos artefatos", GEconomy, 1.75, 0, 10, 0.05, false, DevApplyMode.Reapply);
@@ -56,9 +56,9 @@ public static partial class DevParameterRegistry
         P("economy.shop.stock_max", "Estoque da loja (máx.)", GEconomy, 4, 0, 12, 1, true, DevApplyMode.NextRoom);
         P("economy.shop.stock_extra_chance", "Chance de item extra no estoque", GEconomy, 0.5, 0, 1, 0.05, false, DevApplyMode.NextRoom);
         string[] rarities = { "common", "uncommon", "rare", "epic", "legendary", "mythic" };
-        double[] prices = { 250, 420, 700, 1100, 1700, 2400 };
+        double[] prices = { 110, 150, 200, 270, 360, 480 }; // = EconomyDefaults.ShopPrices
         for (var i = 0; i < rarities.Length; i++)
-            P($"economy.shop.price.{rarities[i]}", $"Preço na loja: {rarities[i]}", GEconomy, prices[i], 0, 20000, 10, true);
+            P($"economy.shop.price.{rarities[i]}", $"Preço na loja: {rarities[i]}", GEconomy, prices[i], 0, 20000, 5, true);
         P("economy.fruit.boss_final_map", "Fruta do boss no mapa final", GEconomy, 0, 0, 5, 1, true);
         P("economy.fruit.boss_guaranteed", "Frutas do boss (demais mapas)", GEconomy, 1, 0, 5, 1, true);
         P("economy.fruit.run_cap_from_doors", "Teto de Frutas de porta por run", GEconomy, 3, 0, 20, 1, true);

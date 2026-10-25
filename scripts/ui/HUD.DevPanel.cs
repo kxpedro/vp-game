@@ -509,7 +509,7 @@ public partial class HUD
 
 	// Ações pontuais de teste (só debug). As APIs são públicas: RunManager.Dev*, RunState, CharacterSheet, Health.
 	// Os controles são recriados a cada abertura da aba; os valores digitados ficam nos campos abaixo.
-	private double _devCoinInput = 500;
+	private double _devCoinInput = 100;
 	private double _devCursedInput = 500;
 	private double _devHealthInput = 50;
 	private int _devJumpMap = 1;
@@ -594,7 +594,7 @@ public partial class HUD
 		// --- Moedas de Sangue (run) ---
 		DevHeader(parent, "Moedas de Sangue (run)");
 		var coinRow = DevRow(parent, "Quantidade");
-		coinRow.AddChild(DevSpin(0, 999999, _devCoinInput, 50, v => _devCoinInput = v));
+		coinRow.AddChild(DevSpin(0, 999999, _devCoinInput, 10, v => _devCoinInput = v));
 		DevButton(coinRow, "Dar", DevGiveCoins);
 		DevButton(coinRow, "Definir para", DevSetCoins);
 		DevButton(coinRow, "Zerar", DevZeroCoins, ButtonVariant.Destructive);

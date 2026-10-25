@@ -70,7 +70,7 @@ public static class RoomRewardCatalog
 
     // Opcao B: Bencao em toda CP (zero CPs seguidas sem Bencao). A opcao A seria 0, 1, 1.
     private static readonly int[] DefaultMaxSetsWithoutBlessing = { 0, 0, 0 };
-    private static readonly int[] DefaultCoinPack = { 150, 130, 110 };
+    private static readonly int[] DefaultCoinPack = EconomyDefaults.RoomCoinPack;
     // Entre o Lendario (0 / 6 / 8) e o boss (40 / 60 / 80) do mesmo mapa.
     private static readonly int[] DefaultCursedBloodPack = { 10, 12, 15 };
     private const int DefaultFruitRunCapFromDoors = 3;
