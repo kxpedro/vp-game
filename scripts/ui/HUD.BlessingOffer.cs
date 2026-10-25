@@ -428,20 +428,48 @@ public partial class HUD
 
 	// ---------- Oferta (guia §8.17): Window(Large, obrigatória) + ChoiceCard + HintBar ----------
 
-	// Mesma largura máxima dos cards de artefato (guia §3.4).
+	// Mesma largura máxima dos cards de artefato (guia §3.4); usada pela Bigorna.
 	private const float BlessingCardWidth = 1080.0f;
 
+	// Largura da coluna de termos à direita dos cards.
+	private const float BlessingTermPanelWidth = 330.0f;
+	// Janela da oferta (só os cards); o painel de termos fica fora dela, à direita.
+	private const float BlessingWindowWidth = 880.0f;
+
 	private UiWindow _blessingWindow;
-	private RichTextLabel _blessingGlossaryLabel;
+	private VBoxContainer _blessingTermPanel;
 	private UiHint _blessingRerollHint;
 	private readonly List<UiChoiceCard> _blessingCards = new();
-	// Termos de cada card (o glossário mostra só os do card focado/sob o mouse, em 1–2 linhas).
+	// Termos de cada card (o painel lateral mostra só os do card focado/sob o mouse).
 	private readonly List<List<BlessingKeyword>> _blessingCardGlossaries = new();
 	private string _blessingOfferFamily = "";
 	private bool _blessingAbsorptionRunning;
 	private bool _blessingChoiceLocked;
 	// Preview (debug): o reroll aparece e só simula (não consome o uso do mapa).
 	private bool _blessingOfferPreview;
+
+	private const string BlessingVirgilPath = "res://assets/ui/virgil_oferta/virgil_espada.png";
+	private const float BlessingVirgilSize = 520.0f;
+	// Fim do desenho (espada incluída) dentro do quadro 256x256: 176/256. Alinha a ponta direita com a borda da janela.
+	private const float BlessingVirgilRightEdge = 176.0f / 256.0f;
+
+	// Virgil de pé à esquerda da janela, olhando as opções (estilo Hades): fora da moldura, encostado na borda inferior.
+	private void AddBlessingVirgil()
+	{
+		if (!ResourceLoader.Exists(BlessingVirgilPath)) return;
+		var virgil = new TextureRect
+		{
+			Name = "BlessingVirgil", Texture = ResourceLoader.Load<Texture2D>(BlessingVirgilPath),
+			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+			TextureFilter = CanvasItem.TextureFilterEnum.Nearest, MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+			// Sobrepõe 20 px da moldura; a base alinha com a base da janela (720 px de altura, centrada).
+			OffsetLeft = -BlessingWindowWidth * 0.5f + 20 - BlessingVirgilSize * BlessingVirgilRightEdge,
+			OffsetRight = -BlessingWindowWidth * 0.5f + 20 + BlessingVirgilSize * (1.0f - BlessingVirgilRightEdge),
+			OffsetTop = 360 - BlessingVirgilSize, OffsetBottom = 360
+		};
+		_blessingWindow.Root.AddChild(virgil);
+	}
 
 	private void BuildBloodBlessingOverlay(Control root)
 	{
@@ -452,27 +480,33 @@ public partial class HUD
 		_bloodBlessingStatusLabel = _blessingWindow.Status;
 		_blessingWindow.SetStatus(Localization.Text("hud.blessing_choice"));
 
-		var scroll = UiComponents.ScrollList(0, out _bloodBlessingList);
-		PadChoiceCardScroll(scroll, _bloodBlessingList);
-		_blessingWindow.Body.AddChild(scroll);
+		// Janela mais estreita só com os 3 cards (sem scroll). Os termos ficam num painel à parte, fora da moldura, ao lado
+		// direito da janela (estilo Hades): só aparece quando o card está sob o mouse/foco.
+		_blessingWindow.Panel.OffsetLeft = -BlessingWindowWidth * 0.5f;
+		_blessingWindow.Panel.OffsetRight = BlessingWindowWidth * 0.5f;
+		_blessingWindow.Panel.CustomMinimumSize = new Vector2(BlessingWindowWidth, 560);
 
-		// Glossário dos termos destacados no card focado (substitui o [hint], que só funcionava com mouse).
-		// Altura fixa de 2 linhas: trocar de card não empurra a lista.
-		_blessingGlossaryLabel = new RichTextLabel
+		_bloodBlessingList = new VBoxContainer
 		{
-			Name = "BlessingGlossary",
-			BbcodeEnabled = true, FitContent = false, ScrollActive = false,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			CustomMinimumSize = new Vector2(BlessingCardWidth, UiFont.Secondary * 3.0f),
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			Visible = false
+			Name = "BlessingCards", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		_blessingGlossaryLabel.AddThemeFontSizeOverride("normal_font_size", UiFont.Secondary);
-		_blessingGlossaryLabel.AddThemeFontSizeOverride("bold_font_size", UiFont.Secondary);
-		_blessingGlossaryLabel.AddThemeColorOverride("default_color", UiPalette.TextSecondary);
-		_blessingWindow.Content.AddChild(_blessingGlossaryLabel);
-		_blessingWindow.Content.MoveChild(_blessingGlossaryLabel, _blessingWindow.FooterLine.GetIndex());
+		_bloodBlessingList.AddThemeConstantOverride("separation", UiMetrics.S3);
+		_blessingWindow.Body.AddChild(_bloodBlessingList);
+
+		AddBlessingVirgil();
+
+		_blessingTermPanel = new VBoxContainer
+		{
+			Name = "BlessingTerms", MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+			OffsetLeft = BlessingWindowWidth * 0.5f + UiMetrics.S4,
+			OffsetRight = BlessingWindowWidth * 0.5f + UiMetrics.S4 + BlessingTermPanelWidth,
+			OffsetTop = -190, OffsetBottom = 190,
+			GrowVertical = Control.GrowDirection.End
+		};
+		_blessingTermPanel.AddThemeConstantOverride("separation", UiMetrics.S3);
+		_blessingWindow.Root.AddChild(_blessingTermPanel);
 
 		// Rodapé sem "Voltar" (oferta obrigatória). Direita: ui_alt (trocar), ui_accept (escolher).
 		_blessingRerollHint = _blessingWindow.Footer.Add(UiAction.Alt, "", RerollBlessingOffer);
@@ -685,7 +719,6 @@ void fragment() {
 		{
 			var glossary = new List<BlessingKeyword>();
 			var card = UiComponents.ChoiceCard(BuildBlessingCardData(offer, glossary), () => SelectBloodBlessing(offer));
-			card.Root.TooltipText = FullBlessingTooltip(offer.Definition, UiComponents.RarityLabel(offer.Rarity), offer.PowerMultiplier);
 			_bloodBlessingList.AddChild(card.Root);
 			var choiceIndex = _blessingChoiceButtons.Count;
 			card.ActionButton.FocusEntered += () =>
@@ -734,7 +767,7 @@ void fragment() {
 			ActionText = Localization.Text("ui.common.choose"),
 			// Sem botão "Escolher" ao lado: o clique na linha escolhe.
 			WholeCardAction = true,
-			Width = BlessingCardWidth
+			Width = 0
 		};
 	}
 
@@ -807,14 +840,36 @@ void fragment() {
 		}
 	}
 
-	// Só os termos do card indicado; a área continua reservada (vazia) para não deslocar os cards.
+	// Painel lateral: uma caixa por termo do card indicado (nome na cor do destaque + explicação do termo).
 	private void UpdateBlessingGlossary(int index)
 	{
-		if (_blessingGlossaryLabel == null) return;
+		if (_blessingTermPanel == null) return;
+		foreach (var child in _blessingTermPanel.GetChildren())
+		{
+			_blessingTermPanel.RemoveChild(child);
+			child.QueueFree();
+		}
 		var glossary = index >= 0 && index < _blessingCardGlossaries.Count ? _blessingCardGlossaries[index] : null;
-		_blessingGlossaryLabel.Visible = _blessingCardGlossaries.Any(entries => entries.Count > 0);
-		_blessingGlossaryLabel.Text = glossary == null ? "" : string.Join("   ·   ", glossary.Select(keyword =>
-			$"[color={keyword.Color}][b]{keyword.Term}[/b][/color]: {keyword.Hint}"));
+		_blessingTermPanel.Visible = glossary != null && glossary.Count > 0;
+		if (!_blessingTermPanel.Visible) return;
+		// A caixa "abre" com um fade curto a cada troca de card.
+		_blessingTermPanel.Modulate = new Color(1, 1, 1, 0);
+		_blessingTermPanel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process)
+			.TweenProperty(_blessingTermPanel, "modulate:a", 1.0f, UiMotion.OverlayIn);
+		foreach (var keyword in glossary)
+		{
+			var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+			box.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.GoldDim, UiMetrics.BorderThin, 12, 10));
+			var text = new RichTextLabel
+			{
+				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Text = $"[color={keyword.Color}][b]{keyword.Term}[/b][/color]\n[color=#{UiPalette.TextSecondary.ToHtml(false)}]{keyword.Hint}[/color]"
+			};
+			box.AddChild(text);
+			_blessingTermPanel.AddChild(box);
+		}
 	}
 
 	private void ResetBlessingOfferStatus()
@@ -982,9 +1037,4 @@ void fragment() {
 
 	// Termos marcados no texto, em ordem de aparição e sem repetir (glossário da oferta).
 	private static void CollectBlessingKeywords(string text, List<BlessingKeyword> glossary) => BloodBlessingText.CollectKeywords(text, glossary);
-
-	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier, int level = 1)
-	{
-		return $"{blessing.DisplayName} [{rarity}] — {Localization.TextFormat("ui.common.level_short", level)}\n{FormatBloodBlessingDescription(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
-	}
 }
