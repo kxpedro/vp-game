@@ -428,14 +428,17 @@ public partial class HUD
 
 	// ---------- Oferta (guia §8.17): Window(Large, obrigatória) + ChoiceCard + HintBar ----------
 
-	// Mesma largura máxima dos cards de artefato (guia §3.4).
+	// Mesma largura máxima dos cards de artefato (guia §3.4); usada pela Bigorna.
 	private const float BlessingCardWidth = 1080.0f;
 
+	// Largura da coluna de termos à direita dos cards.
+	private const float BlessingTermPanelWidth = 340.0f;
+
 	private UiWindow _blessingWindow;
-	private RichTextLabel _blessingGlossaryLabel;
+	private VBoxContainer _blessingTermPanel;
 	private UiHint _blessingRerollHint;
 	private readonly List<UiChoiceCard> _blessingCards = new();
-	// Termos de cada card (o glossário mostra só os do card focado/sob o mouse, em 1–2 linhas).
+	// Termos de cada card (o painel lateral mostra só os do card focado/sob o mouse).
 	private readonly List<List<BlessingKeyword>> _blessingCardGlossaries = new();
 	private string _blessingOfferFamily = "";
 	private bool _blessingAbsorptionRunning;
@@ -452,27 +455,27 @@ public partial class HUD
 		_bloodBlessingStatusLabel = _blessingWindow.Status;
 		_blessingWindow.SetStatus(Localization.Text("hud.blessing_choice"));
 
-		var scroll = UiComponents.ScrollList(0, out _bloodBlessingList);
-		PadChoiceCardScroll(scroll, _bloodBlessingList);
-		_blessingWindow.Body.AddChild(scroll);
+		// Estilo Hades: as opções empilhadas à esquerda (sem scroll: a janela tem altura para 3 cards) e, à direita,
+		// um painel com a explicação de cada termo destacado no card focado/sob o mouse.
+		var row = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
+		row.AddThemeConstantOverride("separation", UiMetrics.S4);
+		_blessingWindow.Body.AddChild(row);
 
-		// Glossário dos termos destacados no card focado (substitui o [hint], que só funcionava com mouse).
-		// Altura fixa de 2 linhas: trocar de card não empurra a lista.
-		_blessingGlossaryLabel = new RichTextLabel
+		_bloodBlessingList = new VBoxContainer
 		{
-			Name = "BlessingGlossary",
-			BbcodeEnabled = true, FitContent = false, ScrollActive = false,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-			SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-			CustomMinimumSize = new Vector2(BlessingCardWidth, UiFont.Secondary * 3.0f),
-			MouseFilter = Control.MouseFilterEnum.Ignore,
-			Visible = false
+			Name = "BlessingCards", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		_blessingGlossaryLabel.AddThemeFontSizeOverride("normal_font_size", UiFont.Secondary);
-		_blessingGlossaryLabel.AddThemeFontSizeOverride("bold_font_size", UiFont.Secondary);
-		_blessingGlossaryLabel.AddThemeColorOverride("default_color", UiPalette.TextSecondary);
-		_blessingWindow.Content.AddChild(_blessingGlossaryLabel);
-		_blessingWindow.Content.MoveChild(_blessingGlossaryLabel, _blessingWindow.FooterLine.GetIndex());
+		_bloodBlessingList.AddThemeConstantOverride("separation", UiMetrics.S3);
+		row.AddChild(_bloodBlessingList);
+
+		_blessingTermPanel = new VBoxContainer
+		{
+			Name = "BlessingTerms", CustomMinimumSize = new Vector2(BlessingTermPanelWidth, 0),
+			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin, MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_blessingTermPanel.AddThemeConstantOverride("separation", UiMetrics.S3);
+		row.AddChild(_blessingTermPanel);
 
 		// Rodapé sem "Voltar" (oferta obrigatória). Direita: ui_alt (trocar), ui_accept (escolher).
 		_blessingRerollHint = _blessingWindow.Footer.Add(UiAction.Alt, "", RerollBlessingOffer);
@@ -685,7 +688,6 @@ void fragment() {
 		{
 			var glossary = new List<BlessingKeyword>();
 			var card = UiComponents.ChoiceCard(BuildBlessingCardData(offer, glossary), () => SelectBloodBlessing(offer));
-			card.Root.TooltipText = FullBlessingTooltip(offer.Definition, UiComponents.RarityLabel(offer.Rarity), offer.PowerMultiplier);
 			_bloodBlessingList.AddChild(card.Root);
 			var choiceIndex = _blessingChoiceButtons.Count;
 			card.ActionButton.FocusEntered += () =>
@@ -734,7 +736,7 @@ void fragment() {
 			ActionText = Localization.Text("ui.common.choose"),
 			// Sem botão "Escolher" ao lado: o clique na linha escolhe.
 			WholeCardAction = true,
-			Width = BlessingCardWidth
+			Width = 0
 		};
 	}
 
@@ -807,14 +809,31 @@ void fragment() {
 		}
 	}
 
-	// Só os termos do card indicado; a área continua reservada (vazia) para não deslocar os cards.
+	// Painel lateral: uma caixa por termo do card indicado (nome na cor do destaque + explicação do termo).
 	private void UpdateBlessingGlossary(int index)
 	{
-		if (_blessingGlossaryLabel == null) return;
+		if (_blessingTermPanel == null) return;
+		foreach (var child in _blessingTermPanel.GetChildren())
+		{
+			_blessingTermPanel.RemoveChild(child);
+			child.QueueFree();
+		}
 		var glossary = index >= 0 && index < _blessingCardGlossaries.Count ? _blessingCardGlossaries[index] : null;
-		_blessingGlossaryLabel.Visible = _blessingCardGlossaries.Any(entries => entries.Count > 0);
-		_blessingGlossaryLabel.Text = glossary == null ? "" : string.Join("   ·   ", glossary.Select(keyword =>
-			$"[color={keyword.Color}][b]{keyword.Term}[/b][/color]: {keyword.Hint}"));
+		if (glossary == null) return;
+		foreach (var keyword in glossary)
+		{
+			var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+			box.AddThemeStyleboxOverride("panel", UIThemeFactory.ControlBox(UiPalette.PanelInset, UiPalette.GoldDim, UiMetrics.BorderThin, 12, 10));
+			var text = new RichTextLabel
+			{
+				BbcodeEnabled = true, FitContent = true, ScrollActive = false,
+				AutowrapMode = TextServer.AutowrapMode.WordSmart,
+				MouseFilter = Control.MouseFilterEnum.Ignore,
+				Text = $"[color={keyword.Color}][b]{keyword.Term}[/b][/color]\n[color=#{UiPalette.TextSecondary.ToHtml(false)}]{keyword.Hint}[/color]"
+			};
+			box.AddChild(text);
+			_blessingTermPanel.AddChild(box);
+		}
 	}
 
 	private void ResetBlessingOfferStatus()
@@ -982,9 +1001,4 @@ void fragment() {
 
 	// Termos marcados no texto, em ordem de aparição e sem repetir (glossário da oferta).
 	private static void CollectBlessingKeywords(string text, List<BlessingKeyword> glossary) => BloodBlessingText.CollectKeywords(text, glossary);
-
-	private string FullBlessingTooltip(BloodBlessingDefinition blessing, string rarity, float powerMultiplier, int level = 1)
-	{
-		return $"{blessing.DisplayName} [{rarity}] — {Localization.TextFormat("ui.common.level_short", level)}\n{FormatBloodBlessingDescription(blessing, powerMultiplier)}\n\n{blessing.FlavorText}";
-	}
 }
