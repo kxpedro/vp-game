@@ -1836,13 +1836,15 @@ public partial class EnemyBasic : CharacterBody3D
         var toPlayer = _player.GlobalPosition - GlobalPosition;
         toPlayer.Y = 0.0f;
 
+        // O retângulo é o do telegraph; o jogador conta com o raio do corpo (encostar na borda já acerta).
+        var hurtRadius = PlayerCombat.PlayerHurtRadius;
         var forwardDistance = toPlayer.Dot(_lockedAttackDirection);
-        if (forwardDistance < 0.0f || forwardDistance > AttackRange + AttackDepthBonus)
+        if (forwardDistance < -hurtRadius || forwardDistance > AttackRange + AttackDepthBonus + hurtRadius)
             return false;
 
         var lateralDirection = new Vector3(-_lockedAttackDirection.Z, 0.0f, _lockedAttackDirection.X);
         var lateralDistance = Mathf.Abs(toPlayer.Dot(lateralDirection));
-        return lateralDistance <= AttackWidth * 0.5f;
+        return lateralDistance <= AttackWidth * 0.5f + hurtRadius;
     }
 
     private void ShowAttackTelegraph()

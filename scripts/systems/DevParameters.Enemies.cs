@@ -56,7 +56,7 @@ public static partial class DevParameterRegistry
         P("enemy.status.bleeding_tick_seconds", "Sangramento: intervalo do tick (s)", G, 1.0, 0.1, 10, 0.1, false);
         P("enemy.status.pestilence_spread_radius", "Pestilência infinita: raio de contágio", G, 6.0, 0, 30, 0.5, false);
         P("enemy.projectile.speed", "Projétil: velocidade", G, 5.2, 0.5, 40, 0.1, false);
-        P("enemy.projectile.hit_radius", "Projétil: raio de acerto no jogador", G, 0.82, 0.1, 5, 0.02, false);
+        P("enemy.projectile.hit_radius", "Projétil: raio de acerto no jogador (centro do jogador)", G, 0.55, 0.1, 5, 0.02, false);
         P("enemy.projectile.range_multiplier", "Projétil: alcance (x alcance de ataque)", G, 1.5, 0.5, 5, 0.05, false, DevApplyMode.NewObjects, "Também define o tamanho do telegraph do Ranged.");
         P("enemy.legendary.double_hit_delay", "Lendário: atraso do 2º golpe (s)", G, 0.16, 0, 2, 0.02, false);
         P("enemy.legendary.double_hit_damage", "Lendário: dano do 2º golpe (x dano)", G, 0.55, 0, 3, 0.05, false);
