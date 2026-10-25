@@ -232,6 +232,11 @@ public partial class EnemyBasic : CharacterBody3D
         if (archetype == EnemyArchetype.Ranged)
         {
             AttackRange = G("enemy.ranged.attack_range", 11.0f); AttackDamage *= G("enemy.ranged.damage_multiplier", 0.8f); MoveSpeed *= G("enemy.ranged.speed_multiplier", 0.9f);
+            AttackCooldown *= G("enemy.ranged.cooldown_multiplier", 1.0f);
+        }
+        else if (archetype == EnemyArchetype.Melee)
+        {
+            AttackCooldown *= G("enemy.melee.cooldown_multiplier", 1.0f);
         }
         else if (archetype == EnemyArchetype.Tank)
         {
@@ -245,6 +250,9 @@ public partial class EnemyBasic : CharacterBody3D
             AttackCooldown *= G("enemy.tank.cooldown_multiplier", 1.18f);
             KnockbackResistance *= G("enemy.tank.knockback_multiplier", 0.3f);
         }
+
+        // Frequencia de ataque por mapa (bosses recalculam o cooldown a cada golpe em ApplyBossMove).
+        AttackCooldown *= G($"enemy.map.{Mathf.Clamp(RunState.CurrentMapIndex, 0, 3)}.attack_cooldown_multiplier", 1.0f);
 
         ConfigureGeometricVisual(archetype);
         UpdateAttackTelegraphGeometry();

@@ -30,7 +30,7 @@ public static partial class DevParameterRegistry
         P("enemy.base.patrol_radius", "Raio de patrulha", G, 12.0, 0, 60, 0.5, false, N);
         P("enemy.base.attack_range", "Alcance do ataque (melee)", G, 1.65, 0.1, 30, 0.05, false, N, "Ranged usa enemy.ranged.attack_range; Tank multiplica por enemy.tank.range_multiplier.");
         P("enemy.base.attack_windup", "Windup do ataque (s)", G, 0.85, 0.05, 5, 0.05, false, N, "Telegraph: tempo até o golpe cair.");
-        P("enemy.base.attack_cooldown", "Cooldown do ataque (s)", G, 1.55, 0.25, 10, 0.05, false, N);
+        P("enemy.base.attack_cooldown", "Cooldown do ataque (s)", G, 1.55, 0.25, 10, 0.05, false, N, "Frequência de ataque de todos os inimigos comuns: menor = mais ataques. Cada arquétipo multiplica por enemy.<arquétipo>.cooldown_multiplier; o mapa por enemy.map.{m}.attack_cooldown_multiplier.");
         P("enemy.base.spawn_attack_delay", "Atraso do 1º ataque após nascer (s)", G, 2.0, 0, 20, 0.1, false, N);
         P("enemy.base.attack_width", "Largura do ataque", G, 1.25, 0.1, 10, 0.05, false, N);
         P("enemy.base.attack_depth_bonus", "Profundidade extra do ataque", G, 0.75, 0, 10, 0.05, false, N);
@@ -58,6 +58,7 @@ public static partial class DevParameterRegistry
         P("enemy.projectile.speed", "Projétil: velocidade", G, 5.2, 0.5, 40, 0.1, false);
         P("enemy.projectile.hit_radius", "Projétil: raio de acerto no jogador (centro do jogador)", G, 0.55, 0.1, 5, 0.02, false);
         P("enemy.projectile.range_multiplier", "Projétil: alcance (x alcance de ataque)", G, 1.5, 0.5, 5, 0.05, false, DevApplyMode.NewObjects, "Também define o tamanho do telegraph do Ranged.");
+        RegisterPerMap("enemy.map.{m}.attack_cooldown_multiplier", "Multiplicador de cooldown do ataque", G, new double[] { 1, 1, 1, 1 }, 0.1, 10, 0.02, false, N, "Menor = inimigos do mapa atacam com mais frequência. Não afeta bosses.");
         P("enemy.legendary.double_hit_delay", "Lendário: atraso do 2º golpe (s)", G, 0.16, 0, 2, 0.02, false);
         P("enemy.legendary.double_hit_damage", "Lendário: dano do 2º golpe (x dano)", G, 0.55, 0, 3, 0.05, false);
     }
@@ -68,6 +69,7 @@ public static partial class DevParameterRegistry
         const DevApplyMode N = DevApplyMode.NewObjects;
 
         // Melee (sem multiplicadores de estatística: usa a base).
+        P("enemy.melee.cooldown_multiplier", "Melee: multiplicador de cooldown do ataque", G, 1.0, 0.1, 10, 0.02, false, N, "Menor = ataca com mais frequência. Multiplica enemy.base.attack_cooldown.");
         P("enemy.melee.hit_radius", "Melee: raio do alvo (acerto do jogador)", G, 0.48, 0.1, 3, 0.02, false, N);
         P("enemy.melee.tactical_range_pad", "Melee: folga da zona tática", G, 0.9, 0, 10, 0.1, false);
         P("enemy.melee.retreat_weight", "Melee: peso do recuo tático", G, 0.32, 0, 2, 0.02, false);
@@ -78,6 +80,7 @@ public static partial class DevParameterRegistry
         P("enemy.ranged.attack_range", "Ranged: alcance do ataque", G, 11.0, 1, 40, 0.5, false, N);
         P("enemy.ranged.damage_multiplier", "Ranged: multiplicador de dano", G, 0.8, 0, 5, 0.05, false, N);
         P("enemy.ranged.speed_multiplier", "Ranged: multiplicador de velocidade", G, 0.9, 0, 3, 0.05, false, N);
+        P("enemy.ranged.cooldown_multiplier", "Ranged: multiplicador de cooldown do ataque", G, 1.0, 0.1, 10, 0.02, false, N, "Menor = atira com mais frequência. Multiplica enemy.base.attack_cooldown.");
         P("enemy.ranged.hit_radius", "Ranged: raio do alvo (acerto do jogador)", G, 0.48, 0.1, 3, 0.02, false, N);
         P("enemy.ranged.aim_lock_seconds", "Ranged: travamento da mira antes do tiro (s)", G, 0.25, 0, 3, 0.05, false, N, "Também afeta o aviso de travamento do telegraph.");
         P("enemy.ranged.tactical_range_pad", "Ranged: folga da zona tática", G, 2.0, 0, 10, 0.1, false);
@@ -95,7 +98,7 @@ public static partial class DevParameterRegistry
         P("enemy.tank.range_multiplier", "Tank: multiplicador de alcance", G, 1.18, 0.1, 5, 0.02, false, N);
         P("enemy.tank.width_multiplier", "Tank: multiplicador de largura do golpe", G, 1.65, 0.1, 10, 0.05, false, N);
         P("enemy.tank.depth_bonus_add", "Tank: profundidade extra do golpe (+)", G, 0.85, -2, 10, 0.05, false, N);
-        P("enemy.tank.cooldown_multiplier", "Tank: multiplicador de cooldown", G, 1.18, 0.1, 10, 0.02, false, N);
+        P("enemy.tank.cooldown_multiplier", "Tank: multiplicador de cooldown do ataque", G, 1.18, 0.1, 10, 0.02, false, N, "Menor = ataca com mais frequência. Multiplica enemy.base.attack_cooldown.");
         P("enemy.tank.knockback_multiplier", "Tank: multiplicador de resistência a knockback", G, 0.3, 0, 5, 0.05, false, N);
         P("enemy.tank.hit_radius", "Tank: raio do alvo (acerto do jogador)", G, 0.68, 0.1, 3, 0.02, false, N);
         P("enemy.tank.retreat_weight", "Tank: peso do recuo tático", G, 0.16, 0, 2, 0.02, false);
@@ -289,8 +292,11 @@ public static partial class DevParameterRegistry
         P("room.spawn.attempts", "Tentativas de posição de spawn", G, 18, 1, 100, 1, true, R);
         P("room.spawn.jitter", "Variação aleatória da posição de spawn", G, 0.45, 0, 2, 0.05, false, R);
         P("room.spawn.central_fraction", "Fração das células de spawn mais centrais", G, 0.62, 0.1, 1, 0.02, false, R);
-        P("room.archetype.ranged_chance", "Peso do arquétipo Ranged", G, 0.266667, 0, 1, 0.01, false, R, "Sorteio: Ranged, depois Melee; o resto é Tank.");
-        P("room.archetype.melee_chance", "Peso do arquétipo Melee", G, 0.366666, 0, 1, 0.01, false, R, "Tank = 1 - Ranged - Melee.");
+        // Pesos relativos de arquétipo por mapa (chance = peso / soma dos três; tudo zero = Melee).
+        const string weightNote = "Peso relativo: chance = peso / (Melee + Ranged + Tank) do mesmo mapa. Vale para as próximas waves.";
+        RegisterPerMap("room.archetype.melee_weight.{m}", "Spawn: peso Melee", G, new double[] { 36.67, 36.67, 36.67, 36.67 }, 0, 100, 1, false, R, weightNote);
+        RegisterPerMap("room.archetype.ranged_weight.{m}", "Spawn: peso Ranged", G, new double[] { 26.67, 26.67, 26.67, 26.67 }, 0, 100, 1, false, R, weightNote);
+        RegisterPerMap("room.archetype.tank_weight.{m}", "Spawn: peso Tank", G, new double[] { 36.67, 36.67, 36.67, 36.67 }, 0, 100, 1, false, R, weightNote);
 
         // CampaignCatalog: salas comuns e multiplicador de dificuldade por mapa.
         double[] rooms = { 6, 8, 10, 0 };
