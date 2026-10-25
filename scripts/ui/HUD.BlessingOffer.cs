@@ -432,7 +432,9 @@ public partial class HUD
 	private const float BlessingCardWidth = 1080.0f;
 
 	// Largura da coluna de termos à direita dos cards.
-	private const float BlessingTermPanelWidth = 340.0f;
+	private const float BlessingTermPanelWidth = 330.0f;
+	// Janela da oferta (só os cards); o painel de termos fica fora dela, à direita.
+	private const float BlessingWindowWidth = 880.0f;
 
 	private UiWindow _blessingWindow;
 	private VBoxContainer _blessingTermPanel;
@@ -455,11 +457,11 @@ public partial class HUD
 		_bloodBlessingStatusLabel = _blessingWindow.Status;
 		_blessingWindow.SetStatus(Localization.Text("hud.blessing_choice"));
 
-		// Estilo Hades: as opções empilhadas à esquerda (sem scroll: a janela tem altura para 3 cards) e, à direita,
-		// um painel com a explicação de cada termo destacado no card focado/sob o mouse.
-		var row = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
-		row.AddThemeConstantOverride("separation", UiMetrics.S4);
-		_blessingWindow.Body.AddChild(row);
+		// Janela mais estreita só com os 3 cards (sem scroll). Os termos ficam num painel à parte, fora da moldura, ao lado
+		// direito da janela (estilo Hades): só aparece quando o card está sob o mouse/foco.
+		_blessingWindow.Panel.OffsetLeft = -BlessingWindowWidth * 0.5f;
+		_blessingWindow.Panel.OffsetRight = BlessingWindowWidth * 0.5f;
+		_blessingWindow.Panel.CustomMinimumSize = new Vector2(BlessingWindowWidth, 560);
 
 		_bloodBlessingList = new VBoxContainer
 		{
@@ -467,15 +469,19 @@ public partial class HUD
 			SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		_bloodBlessingList.AddThemeConstantOverride("separation", UiMetrics.S3);
-		row.AddChild(_bloodBlessingList);
+		_blessingWindow.Body.AddChild(_bloodBlessingList);
 
 		_blessingTermPanel = new VBoxContainer
 		{
-			Name = "BlessingTerms", CustomMinimumSize = new Vector2(BlessingTermPanelWidth, 0),
-			SizeFlagsVertical = Control.SizeFlags.ShrinkBegin, MouseFilter = Control.MouseFilterEnum.Ignore
+			Name = "BlessingTerms", MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+			OffsetLeft = BlessingWindowWidth * 0.5f + UiMetrics.S4,
+			OffsetRight = BlessingWindowWidth * 0.5f + UiMetrics.S4 + BlessingTermPanelWidth,
+			OffsetTop = -190, OffsetBottom = 190,
+			GrowVertical = Control.GrowDirection.End
 		};
 		_blessingTermPanel.AddThemeConstantOverride("separation", UiMetrics.S3);
-		row.AddChild(_blessingTermPanel);
+		_blessingWindow.Root.AddChild(_blessingTermPanel);
 
 		// Rodapé sem "Voltar" (oferta obrigatória). Direita: ui_alt (trocar), ui_accept (escolher).
 		_blessingRerollHint = _blessingWindow.Footer.Add(UiAction.Alt, "", RerollBlessingOffer);
@@ -819,7 +825,12 @@ void fragment() {
 			child.QueueFree();
 		}
 		var glossary = index >= 0 && index < _blessingCardGlossaries.Count ? _blessingCardGlossaries[index] : null;
-		if (glossary == null) return;
+		_blessingTermPanel.Visible = glossary != null && glossary.Count > 0;
+		if (!_blessingTermPanel.Visible) return;
+		// A caixa "abre" com um fade curto a cada troca de card.
+		_blessingTermPanel.Modulate = new Color(1, 1, 1, 0);
+		_blessingTermPanel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process)
+			.TweenProperty(_blessingTermPanel, "modulate:a", 1.0f, UiMotion.OverlayIn);
 		foreach (var keyword in glossary)
 		{
 			var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
