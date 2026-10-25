@@ -36,6 +36,9 @@ CURSED_RAMP = ["242234", "793a80", "bc4a9b", "b9bffb", "e3e6ff"]
 BLOOD_RAMP = ["3b1725", "b4202a", "e86a73", "f5a097", "fef3c0"]
 # Moldura neutra (contorno escuro + dois tons claros): o PixelFrameBox tinge com a cor da raridade ou do estado.
 LIGHT_RAMP = ["141013", "b3b9d1", "ffffff"]
+# Slots de herança por tipo de ataque: rampa neutra clara, tingida em jogo (Modulate) com a cor da família ou apagada
+# quando o slot está vazio. O tom mais escuro não é preto para o ícone vazio não sumir no fundo do losango.
+SLOT_RAMP = ["333941", "6d758d", "b3b9d1", "ffffff"]
 PANEL_FILL = ("141013", 224)
 WINDOW_FILL = ("141013", 255)
 CLEAR = ("141013", 0)
@@ -47,6 +50,11 @@ PIECES = {
     "frame.png": ("frame.png", 2, LIGHT_RAMP, CLEAR),
     "coin_blood.png": ("coin_blood.png", 1, BLOOD_RAMP, None),
     "gem_cursed.png": ("gem_cursed.png", 1, CURSED_RAMP, None),
+    "slot_basic_attack.png": ("slot_basic_attack.png", 1, SLOT_RAMP, None),
+    "slot_quick_attack.png": ("slot_quick_attack.png", 1, SLOT_RAMP, None),
+    "slot_special_attack.png": ("slot_special_attack.png", 1, SLOT_RAMP, None),
+    "slot_dash.png": ("slot_dash.png", 1, SLOT_RAMP, None),
+    "slot_bestial_fury.png": ("slot_bestial_fury.png", 1, SLOT_RAMP, None),
 }
 
 

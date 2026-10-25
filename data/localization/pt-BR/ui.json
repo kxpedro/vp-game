@@ -187,6 +187,7 @@
   "hud.blessing_bar.more_other": "Mais {0} bênçãos:",
   "hud.blessing_bar.overflow_entry": "• {0} ({1}, N{2})",
   "hud.blessing_bar.sheet_hint": "Ficha",
+  "hud.inheritance_slot.empty": "Nenhuma herança de sangue neste slot ainda. Escolha uma deste tipo numa oferta para preenchê-lo.",
   "hud.blessing_choice": "Escolha uma entre três Bênçãos de Sangue.",
   "hud.blood_coins_name": "Moedas de Sangue",
   "hud.boss": "CHEFE",
