@@ -18,6 +18,8 @@ public partial class PixelEnemySprite : Node3D
     private static readonly Dictionary<string, Clip[]> Monsters = new()
     {
         ["skeleton"] = Clips("idle", "walk"),
+        // Lacaios da Guardiã Invisível: o esqueleto tingido na rampa violeta dela (recolor_monsters.py).
+        ["skeleton_guardian"] = Clips("idle", "walk"),
         ["goblin"] = Clips("idle", "walk"),
         ["mushroom"] = Clips("idle", "walk"),
         // O olho voador só tem o voo: serve de idle e de movimento.

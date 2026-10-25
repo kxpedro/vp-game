@@ -67,3 +67,5 @@ Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no
 - `ritual_circle_sheet.png`: 1 linha x 24 quadros de 72x40, já na projeção 2:1 da tela. Quadros 0-9 = acender (o anel
   é traçado e o pentagrama desenhado ponta a ponta); 10-15 = pulsar em loop até a wave chegar; 16-23 = estouro quando o
   monstro surge. O jogo (`SpawnRitualCircle.cs`, chamado pelo `RoomGenerator`) o deita no chão girado para a câmera.
+- `ritual_circle_violet_sheet.png`: o mesmo círculo na rampa violeta da Guardiã Invisível (`242234 403353 793a80
+  bc4a9b b9bffb e3e6ff`), usado na invocação dos lacaios dela (`BossMinionSummoner.cs`).

@@ -697,4 +697,40 @@ public partial class RunManager : Node3D
         }
         return spawned.Count;
     }
+
+    // Lacaios do boss (BossMinionSummoner): tuning de inimigo comum da sala, vida reduzida e Furia propria.
+    // Nao entram no TotalEnemies: o boss continua sendo o unico inimigo que conta para limpar a sala.
+    // Ponto dentro da area andavel, na altura das waves (RoomGenerator.CellToWorld).
+    public Vector3 ClampToRoom(Vector3 position)
+    {
+        if (_roomGenerator != null)
+            position = _roomGenerator.ClampToWalkableArea(position, 1);
+        position.Y = 0.2f;
+        return position;
+    }
+
+    public int SpawnBossMinions(Godot.Collections.Array<Vector3> positions)
+    {
+        if (_roomGenerator == null || !RunState.IsBossRoom || IsRoomCleared)
+            return 0;
+        var spawned = new Godot.Collections.Array<Node>();
+        foreach (var position in positions)
+        {
+            var enemy = _roomGenerator.SpawnBossMinion(position);
+            if (enemy == null)
+                continue;
+            enemy.IsBossMinion = true;
+            enemy.AddToGroup("boss_minions");
+            spawned.Add(enemy);
+        }
+        ApplyCommonEnemyTuning(spawned);
+        foreach (var node in spawned)
+        {
+            var enemy = (EnemyBasic)node;
+            enemy.FuryOnDeath = CompendiumTuning.GetFloat("boss.minions.fury_on_death", 20.0f);
+            var health = enemy.GetNodeOrNull<Health>("Health");
+            health?.SetMaxHealth(health.MaxHealth * CompendiumTuning.GetFloat("boss.minions.health_mult", 0.7f), true);
+        }
+        return spawned.Count;
+    }
 }

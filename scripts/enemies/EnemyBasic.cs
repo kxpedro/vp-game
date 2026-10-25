@@ -30,6 +30,8 @@ public partial class EnemyBasic : CharacterBody3D
     [Export] public float ContactDamageCooldown { get; set; } = 0.8f;
     [Export] public float KnockbackResistance { get; set; } = 0.45f;
     [Export] public float FuryOnDeath { get; set; } = 12.0f;
+    // Lacaio invocado pelo boss (BossMinionSummoner): fora do total da sala e sem recompensa; so da Furia ao morrer.
+    public bool IsBossMinion { get; set; }
     [Export] public int MaxPestilenceStacks { get; set; } = 5;
     [Export] public float DamageTakenPerStatusStack { get; set; } = 0.05f;
     [Export] public NodePath HealthPath { get; set; } = new("Health");
@@ -1346,8 +1348,11 @@ public partial class EnemyBasic : CharacterBody3D
         ClearCharmLink();
         if (!RunState.IsBossRoom) SpawnBloodPool();
         GetTree().GetFirstNodeInGroup("player")?.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.OnEnemyKilled(this);
-        RollDefeatRewards(out var bloodCoins, out var cursedBlood);
-        GetTree().CallGroup("run_manager", "QueueEnemyDefeat", bloodCoins, cursedBlood, GlobalPosition);
+        if (!IsBossMinion)
+        {
+            RollDefeatRewards(out var bloodCoins, out var cursedBlood);
+            GetTree().CallGroup("run_manager", "QueueEnemyDefeat", bloodCoins, cursedBlood, GlobalPosition);
+        }
         GetTree().CallGroup("player_skills", "OnEnemyDefeated");
         RunState.NotifyEnemyKilled();
         RunStats.NotifyEnemyKilled(Rarity != EnemyRarity.Normal);

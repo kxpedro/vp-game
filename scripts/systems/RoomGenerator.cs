@@ -390,19 +390,15 @@ public partial class RoomGenerator : Node3D
     private void GeneratePointsOfInterest()
     {
         CreatePointOfInterest("Entrance", CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
-        // Saída na parede (portão) não tem marcador no piso: o portão é a saída.
-        if (!HasExitOnWall && RunState.IsBossRoom)
-            CreatePointOfInterest("FinalGate", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
-        else if (!HasExitOnWall && !_exitHasDoors)
+        // Saída na parede (portão) não tem marcador no piso: o portão é a saída. A sala do boss também não
+        // (o disco vermelho ficava solto no chão durante a luta; o portal aparece ali quando o boss cai).
+        if (!HasExitOnWall && !_exitHasDoors && !RunState.IsBossRoom)
             CreatePointOfInterest("Exit", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
+        // A sala do boss não tem marcador no centro (era um disco vermelho solto no chão da arena).
         if (!RunState.IsBossRoom)
         {
             CreatePointOfInterest("CentralChamber", CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
-        }
-        else
-        {
-            CreatePointOfInterest("BossArena", Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
         }
     }
 
@@ -466,15 +462,34 @@ public partial class RoomGenerator : Node3D
     /// </summary>
     public EnemyBasic DevSpawnEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype)
     {
-        if (!OS.IsDebugBuild() || EnemyScene == null)
+        if (!OS.IsDebugBuild())
+            return null;
+        return SpawnActiveEnemy(position, rarity, archetype, "Dev");
+    }
+
+    /// <summary>
+    /// Lacaio do boss (BossMinionSummoner via RunManager.SpawnBossMinions): inimigo comum ja ativo, sem marcar o Diario.
+    /// </summary>
+    public EnemyBasic SpawnBossMinion(Vector3 position)
+    {
+        // Lacaio = corpo a corpo comum; o visual vem do boss do mapa (EnemyVisualCatalog.GetBossMinion).
+        var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        return SpawnActiveEnemy(position, EnemyRarity.Normal, EnemyArchetype.Melee, "BossMinion",
+            EnemyVisualCatalog.GetBossMinion(mapIndex, EnemyArchetype.Melee));
+    }
+
+    private EnemyBasic SpawnActiveEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype, string namePrefix,
+        EnemyVisualDefinition visual = null)
+    {
+        if (EnemyScene == null)
             return null;
         var resolvedArchetype = archetype ?? RollEnemyArchetype();
         var enemy = EnemyScene.Instantiate<EnemyBasic>();
-        enemy.Name = $"Dev_{resolvedArchetype}_{rarity}";
+        enemy.Name = $"{namePrefix}_{resolvedArchetype}_{rarity}";
         enemy.Position = position;
         AddChild(enemy, true);
         enemy.ConfigureVariant(rarity, resolvedArchetype);
-        enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetEnemy(resolvedArchetype));
+        enemy.ApplyPlaceholderVisual(visual ?? EnemyVisualCatalog.GetEnemy(resolvedArchetype));
         return enemy;
     }
 
