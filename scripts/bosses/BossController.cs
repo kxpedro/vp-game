@@ -567,7 +567,8 @@ public partial class BossController : Node
         if (target == null) return;
         var delta = target.GlobalPosition - center;
         delta.Y = 0.0f;
-        if (delta.Length() <= radius)
+        // Raio do corpo do jogador: o círculo do telegraph acerta quando encosta nele.
+        if (delta.Length() <= radius + PlayerCombat.PlayerHurtRadius)
             target.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage, false, source);
     }
 
@@ -586,7 +587,7 @@ public partial class BossController : Node
             ? Mathf.Clamp((targetPosition - start).Dot(segment) / segmentLengthSquared, 0.0f, 1.0f)
             : 0.0f;
         var closestPoint = start + segment * progress;
-        if (targetPosition.DistanceTo(closestPoint) <= radius)
+        if (targetPosition.DistanceTo(closestPoint) <= radius + PlayerCombat.PlayerHurtRadius)
             target.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage, false, source);
     }
 

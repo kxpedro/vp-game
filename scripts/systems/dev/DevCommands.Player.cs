@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// Jogador e recursos: add/set (vida, moedas, sangue amaldiçoado, fúria, frutas), heal, god, stamina, sprite.
+// Jogador e recursos: add/set (vida, moedas, sangue amaldiçoado, fúria, frutas), heal, god, stamina, hitbox, sprite.
 public static partial class DevCommands
 {
     private enum DevResource { Health, Coins, CursedBlood, Fury, Fruit }
@@ -46,6 +46,12 @@ public static partial class DevCommands
         DevConsole.Register(new DevCommand("stamina", "Stamina infinita. Sem argumento, alterna.", Stamina)
         {
             Aliases = new[] { "estamina", "infstamina" },
+            Usage = "[on|off]",
+            Complete = _ => ToggleWords
+        });
+        DevConsole.Register(new DevCommand("hitbox", "Mostra as áreas de acerto: corpo do jogador (verde), corpo dos inimigos (amarelo), mira (branco) e a área do golpe atual do jogador (ciano). Sem argumento, alterna.", Hitbox)
+        {
+            Aliases = new[] { "hitboxes", "hb" },
             Usage = "[on|off]",
             Complete = _ => ToggleWords
         });
@@ -205,6 +211,14 @@ public static partial class DevCommands
             return;
         PlayerController.DevInfiniteStamina = on;
         c.Ok(on ? "Stamina infinita ligada." : "Stamina infinita desligada.");
+    }
+
+    private static void Hitbox(DevCommandContext c)
+    {
+        if (ParseToggle(c, 0, PlayerCombat.DevShowHitboxes) is not { } on)
+            return;
+        PlayerCombat.DevShowHitboxes = on;
+        c.Ok(on ? "Hitboxes visíveis." : "Hitboxes ocultas.");
     }
 
     private static void Sprite(DevCommandContext c)
