@@ -73,6 +73,17 @@ Poça de sangue dos inimigos, desenhadas por código em
 - `blood_pool_sheet.png`: 3 variantes (linhas) x 12 quadros de 64x32, já na projeção 2:1 da tela. Quadros 0-7 = a
   poça escorrendo; 8-11 = brilho em loop. O jogo (`BloodPool.cs`) a deita no chão girada para a câmera.
 
+## effects/blood_drop
+
+Gota de Sangue (cura do Tributo Carmesim), desenhada por código em
+`tools/pixel_art/blood_drop/generate_blood_drop.py` (Pillow, paleta AAP-64). Para regerar:
+
+    py tools/pixel_art/blood_drop/generate_blood_drop.py
+
+- `blood_drop_sheet.png`: 6 quadros de 24x32 (gota em pé, reflexo que pulsa e cintilo na ponta). A flutuação é feita
+  pelo jogo (`BloodOrbPickup.cs`).
+- `blood_drop_shadow.png`: sombra tracejada 20x10, deitada no chão pelo jogo.
+
 ## effects/ritual_circle
 
 Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no modo 2D, desenhado por código em
