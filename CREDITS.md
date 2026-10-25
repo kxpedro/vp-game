@@ -10,6 +10,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 ## Inimigos e bosses
 
 - `Ninja`, `Demon`, `Orc`, `Dragon_Evolved`, `Ghost_Skull`, `Orc_Skull` e `BlueDemon` do [Ultimate Monsters Pack](https://quaternius.com/packs/ultimatemonsters.html), por Quaternius — CC0 1.0.
+- Guardiã Invisível no modo 2D (`assets/pixel_art/monsters/mage_guardian/`): Mage Guardian (free), por creativekind — licença ainda a confirmar. Detalhes em `assets/pixel_art/monsters/SOURCE.md`.
 
 ## Cenários
 

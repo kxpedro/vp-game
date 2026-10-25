@@ -25,6 +25,15 @@
       }
     },
     {
+      "id": "invisible_woman",
+      "name_key": "dlg.speaker.invisible_woman.name",
+      "kind": "npc",
+      "name_color": "#BC4A9B",
+      "portraits": {
+        "default": { "texture": "", "initial": "G", "color": "#403353", "accent": "#BC4A9B" }
+      }
+    },
+    {
       "id": "virgil",
       "name_key": "dlg.speaker.virgil.name",
       "kind": "player",

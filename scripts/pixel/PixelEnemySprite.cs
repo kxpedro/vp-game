@@ -22,6 +22,23 @@ public partial class PixelEnemySprite : Node3D
         ["mushroom"] = Clips("idle", "walk"),
         // O olho voador só tem o voo: serve de idle e de movimento.
         ["flying_eye"] = Clips("flight", "flight"),
+        // Guardiã Invisível (boss do mapa 1): o pacote só tem a flutuação parada, que serve para tudo; golpe, dano e
+        // morte vêm dos efeitos (BossController.InvisibleWoman.cs, Flash e o esmaecer de DetachAndDie).
+        ["mage_guardian"] = new[]
+        {
+            new Clip("Idle", "idle", 10.0f, true),
+            new Clip("Walk", "idle", 14.0f, true),
+            new Clip("Attack", "idle", 18.0f, false),
+            new Clip("HitReact", "idle", 18.0f, false),
+            new Clip("Death", "idle", 10.0f, false),
+        },
+    };
+
+    // Quadro quadrado de cada folha (padrão: 150 px do Monsters Creatures Fantasy). Os pés ficam em y≈FrameSize-49
+    // nas folhas de 150 e em y≈58 nas de 64: nos dois casos 26 px abaixo do centro.
+    private static readonly Dictionary<string, int> FrameSizes = new()
+    {
+        ["mage_guardian"] = 64,
     };
 
     private static readonly Dictionary<string, Texture2D> TextureCache = new();
@@ -72,7 +89,7 @@ public partial class PixelEnemySprite : Node3D
             var texture = LoadSheet(monster, clip.File);
             if (texture == null)
                 return null;
-            library.AddAnimation(clip.Name, BuildAnimation(texture, clip));
+            library.AddAnimation(clip.Name, BuildAnimation(texture, clip, FrameSizes.TryGetValue(monster, out var size) ? size : FrameSize));
         }
         visual._player = new AnimationPlayer { Name = "AnimationPlayer" };
         visual._player.AddAnimationLibrary("", library);
@@ -94,9 +111,9 @@ public partial class PixelEnemySprite : Node3D
     }
 
     // Trilhas da animação: textura e número de quadros no início, depois o quadro a cada passo.
-    private static Animation BuildAnimation(Texture2D texture, Clip clip)
+    private static Animation BuildAnimation(Texture2D texture, Clip clip, int frameSize)
     {
-        var frames = Mathf.Max(texture.GetWidth() / FrameSize, 1);
+        var frames = Mathf.Max(texture.GetWidth() / frameSize, 1);
         var step = 1.0f / clip.Fps;
         var animation = new Animation
         {
@@ -140,9 +157,53 @@ public partial class PixelEnemySprite : Node3D
         if (_sprite == null)
             return;
         _flashTween?.Kill();
-        _sprite.Modulate = color;
+        // Mantém a transparência atual (Guardiã meio invisível).
+        var alpha = _sprite.Modulate.A;
+        _sprite.Modulate = new Color(color, alpha);
         _flashTween = CreateTween();
-        _flashTween.TweenProperty(_sprite, "modulate", Colors.White, seconds);
+        _flashTween.TweenProperty(_sprite, "modulate", new Color(1.0f, 1.0f, 1.0f, alpha), seconds);
+    }
+
+    // Transparência do corpo (a Guardiã Invisível some e reaparece). O recorte de alfa só volta com o corpo opaco.
+    public void SetAlpha(float alpha)
+    {
+        if (_sprite == null)
+            return;
+        _sprite.AlphaCut = alpha < 0.99f ? SpriteBase3D.AlphaCutMode.Disabled : SpriteBase3D.AlphaCutMode.Discard;
+        _sprite.Modulate = new Color(_sprite.Modulate, alpha);
+    }
+
+    public float Alpha => _sprite?.Modulate.A ?? 1.0f;
+
+    // Cópia parada do quadro atual, tingida, que esmaece no lugar (imagem espelhada, rastro da investida).
+    // offset desloca a cópia em relação ao sprite (rastro ao longo de um caminho).
+    public void SpawnAfterimage(Color tint, float seconds, Vector3 offset = default)
+    {
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null || _sprite == null)
+            return;
+        var ghost = new Sprite3D
+        {
+            Name = "Afterimage",
+            Texture = _sprite.Texture,
+            Hframes = _sprite.Hframes,
+            Frame = _sprite.Frame,
+            FlipH = _sprite.FlipH,
+            Billboard = _sprite.Billboard,
+            TextureFilter = _sprite.TextureFilter,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+            Shaded = false,
+            DoubleSided = true,
+            PixelSize = _sprite.PixelSize,
+            Offset = _sprite.Offset,
+            Modulate = tint,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        scene.AddChild(ghost);
+        ghost.GlobalTransform = _sprite.GlobalTransform.Translated(offset);
+        var tween = ghost.CreateTween();
+        tween.TweenProperty(ghost, "modulate:a", 0.0f, Mathf.Max(seconds, 0.05f));
+        tween.TweenCallback(Callable.From(ghost.QueueFree));
     }
 
     // Morte: o sprite sai do inimigo (que é liberado na hora), toca a animação de morte no lugar e some.

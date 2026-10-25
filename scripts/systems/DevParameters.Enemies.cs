@@ -142,6 +142,7 @@ public static partial class DevParameterRegistry
         const DevApplyMode N = DevApplyMode.NewObjects;
         P("boss.hp.min", "Vida mínima do boss", G, 1000, 1, 1000000, 100, false, N);
         P("boss.first_move_delay", "Atraso do 1º golpe (s)", G, 1.1, 0, 10, 0.1, false, N);
+        P("boss.encounter.radius", "Distância do jogador que acorda o boss e abre o diálogo", G, 7.5, 1, 30, 0.25, false);
         P("boss.cooldown_min", "Cooldown mínimo entre golpes (s)", G, 0.75, 0.05, 10, 0.05, false);
         P("boss.cooldown_phase_reduction", "Redução de cooldown por fase", G, 0.12, 0, 0.9, 0.01, false);
         P("boss.attack_cooldown_min", "Cooldown mínimo do ataque do EnemyBasic (s)", G, 0.35, 0.05, 10, 0.05, false);
@@ -185,6 +186,7 @@ public static partial class DevParameterRegistry
         P("boss.force_outbreak.radius", "force_outbreak: raio máximo", G, 5.0, 0.5, 20, 0.1, false);
         P("boss.force_outbreak.windup", "force_outbreak: windup (s)", G, 0.48, 0.05, 3, 0.02, false);
         P("boss.force_outbreak.pulses_base", "force_outbreak: pulsos base (+fase)", G, 2, 0, 10, 1, true);
+        P("boss.force_outbreak.band_width", "force_outbreak (Guardiã): largura do anel de onda", G, 1.3, 0.2, 10, 0.05, false);
         P("boss.radial.damage_factor", "Pulsos radiais: divisor de dano por pulso", G, 0.72, 0.1, 3, 0.02, false);
         P("boss.radial.pulse_gap", "Pulsos radiais: pausa entre pulsos (s)", G, 0.12, 0, 3, 0.02, false);
 
@@ -226,6 +228,11 @@ public static partial class DevParameterRegistry
         P("boss.singularity.radius_step", "singularity: acréscimo de raio por pulso", G, 0.8, 0, 5, 0.05, false);
         P("boss.singularity.damage", "singularity: dano por pulso (x dano)", G, 0.42, 0, 5, 0.02, false);
         P("boss.singularity.windup", "singularity: windup por pulso (s)", G, 0.34, 0.05, 3, 0.02, false);
+        P("boss.singularity.band_width", "singularity (Guardiã): largura das ondulações", G, 1.0, 0.2, 10, 0.05, false);
+        P("boss.invisible_woman.dormant_alpha", "Guardiã: opacidade enquanto espera", G, 0.2, 0, 1, 0.05, false);
+        P("boss.invisible_woman.materialize_seconds", "Guardiã: tempo para se materializar (s)", G, 0.8, 0.05, 5, 0.05, false);
+        P("boss.invisible_woman.appear_seconds", "Guardiã: tempo para reaparecer após teleporte (s)", G, 0.15, 0.02, 2, 0.01, false);
+        P("boss.invisible_woman.orb_height", "Guardiã: altura de saída dos orbes", G, 1.7, 0, 5, 0.05, false);
 
         // kinetic_shift
         P("boss.kinetic_shift.shield_base", "kinetic_shift: escudos base (+fase)", G, 2, 0, 20, 1, true);

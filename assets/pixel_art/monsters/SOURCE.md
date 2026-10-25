@@ -29,3 +29,15 @@ adicionar uma folha nos originais:
 Cada cor vira a cor da AAP-64 mais próxima (OKLab, com peso maior na luminosidade); os vermelhos saturados vão
 para a rampa de sangue e os cinzas neutros para a rampa fria da pedra. As cores berrantes da paleta (neon, ciano,
 rosa, verde-limão) ficam de fora.
+
+## mage_guardian (Guardiã Invisível, boss do mapa 1)
+
+`mage_guardian/idle.png` é o `mage_guardian-magenta.png` do pacote **Mage Guardian (free)**, copiado sem alteração de
+`F:\ASSETS\mage_guardian_free_creativekind` no PC do Pedro: faixa horizontal de 14 quadros de 64x64, olhando para a
+direita, pés em y≈58. Não foi remapeado para a AAP-64 de propósito: o magenta do núcleo é a cor da Guardiã e casa
+com a rampa violeta dos efeitos dela (`BossRuneFx.Violet`). O pacote só tem a flutuação parada; as outras animações
+do `PixelEnemySprite` reaproveitam a mesma folha.
+
+- **Autor:** creativekind (creativekind.itch.io), pelo nome da pasta do pacote.
+- **Licença:** NÃO REGISTRADA. O pacote veio sem licença nem readme. Antes de distribuir o jogo, confirmar os termos
+  na página do pacote e registrar aqui e em `CREDITS.md`.
