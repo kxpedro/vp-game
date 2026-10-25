@@ -75,6 +75,7 @@ O `--ui-batch` (`scripts/ui/UiPreview.cs`) percorre todas as telas × idiomas nu
 - **Comunicação:** grupos + `GetTree().CallGroup("hud", "Metodo", ...)`, com nomes de método em string (`RoomGenerator.cs:317`). Singletons usam `public static X Instance` atribuído em `_Ready`.
 - **Referências para algo novo:**
   - Bênção: entrada em `data/blessings/blood_blessings.json` (só IDs e números) + `blessing.<id>.name/.desc/.flavor` em `content.json` nos 3 idiomas. Efeito novo em `BloodBlessingRuntime.cs`/`RunState`.
+  - Família de herança nova: entrada em `families` de `blood_blessings.json` com `color` (`#rrggbb`) e `statuses` (estados de inimigo desenhados com essa cor) + `blessing.family.<id>.theme`. A cor vale sozinha para o brilho da lâmina do Virgil, arcos, rastro do dash, flash do acerto e partículas/tinta dos estados (`BloodlineVisuals`, `EnemyStatusVisuals`); a herança de um slot = família da bênção do grupo `<slot>_attack_status` (o dash usa a do ataque rápido).
   - Artefato (obtido só na Loja da Câmara, `HUD.Shop.cs` + `RunState.TryBuyShopArtifact`; `RollChoices` foi removido): `data/artifacts/artifacts.json` (com `saveName` único) + `artifact.<id>.name/.desc/.flavor` em `content.json` + `ArtifactEffectRegistry.cs` (e `artifact.effect.<Tipo>` se o efeito for novo).
   - Skill: `data/skills/skills.json` (IDs `bestialis.*`/`humanitas.*`) + `skill.<id>.name/.desc/.flavor/.icon` em `content.json`.
   - Inimigo: `EnemyBasic.ConfigureVariant` + `EnemyTuningCatalog` + `RoomGenerator.RollEnemyArchetype`.

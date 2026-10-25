@@ -75,7 +75,8 @@ public sealed record BloodBlessingRarity(string Id, string DisplayName, float Po
 
 // DisplayName = nome da linhagem (Dracul, Bathory, Karnstein, Orlok, Stirps): nome próprio, igual em todos os idiomas
 // e usado como identificador no campo "family" das bênçãos.
-public sealed record BloodBlessingFamily(string Id, string DisplayName, string StatusEffect)
+// Color = cor da linhagem no jogo (BloodlineVisuals); Statuses = estados de inimigo desenhados com essa cor.
+public sealed record BloodBlessingFamily(string Id, string DisplayName, string StatusEffect, Godot.Color Color, string[] Statuses)
 {
     public string Theme => Localization.Text($"blessing.family.{Id}.theme");
 }
@@ -104,7 +105,7 @@ public static class BloodBlessingText
         ["host"] = ("#b4ff6a", false),
         ["interrupt"] = ("#ffd166", false),
         ["wound"] = ("#ff9f9f", false),
-        ["charm"] = ("#dd77ff", false)
+        ["charm"] = ("#ff6fe8", false)
     };
 
     public static IEnumerable<string> KeywordIds => KeywordStyles.Keys;

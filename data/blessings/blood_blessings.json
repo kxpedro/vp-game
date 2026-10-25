@@ -1541,31 +1541,42 @@
       ]
     }
   ],
+  "familiesNotes": "color = cor da linhagem no jogo (brilho da lamina de Virgil nos golpes com essa heranca, arcos, rastro do dash, acerto e estados nos inimigos). statuses = estados de inimigo desenhados com essa cor (bleeding, blood_pool, pestilence, charm, fascination, life_steal). Familia nova: so adicionar a entrada com id, name, color e statuses.",
   "families": [
     {
       "id": "dracul",
       "name": "Dracul",
-      "statusEffect": "Blood Dominion"
+      "statusEffect": "Blood Dominion",
+      "color": "#7b3dff",
+      "statuses": ["life_steal"]
     },
     {
       "id": "bathory",
       "name": "Bathory",
-      "statusEffect": "Blood Pool"
+      "statusEffect": "Blood Pool",
+      "color": "#ff1f3d",
+      "statuses": ["bleeding", "blood_pool"]
     },
     {
       "id": "orlok",
       "name": "Orlok",
-      "statusEffect": "Pestilence"
+      "statusEffect": "Pestilence",
+      "color": "#5cff3a",
+      "statuses": ["pestilence"]
     },
     {
       "id": "karnstein",
       "name": "Karnstein",
-      "statusEffect": "Charm"
+      "statusEffect": "Charm",
+      "color": "#ff4fc0",
+      "statuses": ["charm", "fascination"]
     },
     {
       "id": "stirps",
       "name": "Stirps",
-      "statusEffect": "Hybrid Bloodline"
+      "statusEffect": "Hybrid Bloodline",
+      "color": "#ffc93a",
+      "statuses": []
     }
   ]
 }
