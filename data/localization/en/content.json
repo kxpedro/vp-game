@@ -481,6 +481,8 @@
   "weapon.whip.name": "Whip",
   "reward.type.anvil.name": "Anvil",
   "reward.type.anvil.desc": "Forges a modification for your equipped weapon: choose from those offered. Lasts until the end of the run.",
+  "reward.type.cursed_blood.name": "Ichor",
+  "reward.type.cursed_blood.desc": "+{0} Ichor, the corrupted blood Virgil purifies. It is permanent: it stays in your save even if the run ends and is spent at the Blood Fountain in the Nest.",
   "weaponmod.longsword_reach.name": "Elongated Blade",
   "weaponmod.longsword_reach.desc": "Increases the range of all attacks by {0}.",
   "weaponmod.longsword_reach.flavor": "More steel between you and the danger.",

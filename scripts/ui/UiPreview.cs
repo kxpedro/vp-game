@@ -327,8 +327,9 @@ public partial class UiPreview : Node
 			value = ValueOf(argument, "--ui-lang=");
 			if (value != null) _language = value;
 			value = ValueOf(argument, "--ui-mode=");
-			if (value != null && value.ToLowerInvariant() is "pixel" or "2d")
-				GameMode.Current = GameMode.Kind.PixelArt;
+			// O 2D é o padrão; --ui-mode=3d mostra as telas no 3D antigo.
+			if (value != null)
+				GameMode.Current = value.ToLowerInvariant() is "3d" ? GameMode.Kind.ThreeD : GameMode.Kind.PixelArt;
 			value = ValueOf(argument, "--ui-device=");
 			if (value != null) _device = value.ToLowerInvariant();
 			value = ValueOf(argument, "--ui-tab=");

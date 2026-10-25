@@ -736,7 +736,7 @@ public partial class HUD
 				BuildDev = section =>
 				{
 					section.AddChild(MakeCompendiumDevLine($"Tier {definition.Tier} · grade {definition.GridColumn},{definition.GridRow} · {definition.ImplementationStatus}"));
-					AddCompendiumNumberEditor(section, "Custo base (Sangue Amaldiçoado)", $"{definition.Id}.cost", definition.Cost);
+					AddCompendiumNumberEditor(section, "Custo base (Ícor)", $"{definition.Id}.cost", definition.Cost);
 					AddCompendiumNumberEditor(section, "Rank máximo", $"{definition.Id}.max_rank", definition.MaxRank);
 				}
 			});
@@ -844,7 +844,7 @@ public partial class HUD
 					AddCompendiumNumberEditor(section, "Alcance", "enemy.blood_mage.attack_range", 2.25, 0.05, 100.0);
 					var rewardIndex = Mathf.Clamp(mapNumber - 1, 0, 3);
 					AddCompendiumNumberEditor(section, "Moedas da run (fixo)", $"economy.coins.boss.{rewardIndex}", EconomyDefaults.BossCoins[rewardIndex]);
-					AddCompendiumNumberEditor(section, "Sangue Amaldiçoado (fixo)", $"economy.cursed_blood.boss.{rewardIndex}", EconomyDefaults.BossCursedBlood[rewardIndex]);
+					AddCompendiumNumberEditor(section, "Ícor (fixo)", $"economy.cursed_blood.boss.{rewardIndex}", EconomyDefaults.BossCursedBlood[rewardIndex]);
 				}
 			});
 		}

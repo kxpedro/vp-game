@@ -28,7 +28,7 @@ Edite `walls.py`/`props.py`/`materials.py` e rode `export_kit.py`: todas as sala
 
 ## No jogo (modo 2D)
 
-O menu tem "Jogar 2D (pixel art)": as cenas de `scenes/pixel/` montam as salas em tempo de execução com as mesmas
+O 2D é a versão oficial (o "Jogar" do menu abre nele): as cenas de `scenes/pixel/` montam as salas em tempo de execução com as mesmas
 peças e a mesma luz (`scripts/pixel/PixelRoomComposer.cs`, porte do `build_room.py`). As salas fixas são layouts
 deste formato em `assets/pixel_art/crypt/rooms/` (`hub_completo.txt`, `sala_bencao.txt`, `camara_intervalo.txt`);
 as salas da run saem do `RoomGenerator` (`scripts/pixel/PixelArenaLayout.cs`). Um layout novo no hub ou nas salas

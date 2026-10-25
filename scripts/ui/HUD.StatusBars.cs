@@ -27,8 +27,10 @@ public partial class HUD
 	private string _bossDisplayName;
 	private Control _roomTitleGroup;
 	private PanelContainer _resourceFrame;
-	// Canto inferior esquerdo: painel do jogador (vida/fúria/munição) e, ao lado, o contador de Moedas.
+	// Canto inferior esquerdo: painel do jogador (vida/fúria/munição).
 	private HBoxContainer _bottomLeftHud;
+	// Canto inferior direito: contador de recurso (Moedas na run, Ícor no hub).
+	private HBoxContainer _bottomRightHud;
 	private Control _coinGlyph;
 	private Control _cursedBloodGlyph;
 	// Debug (previews): congela o painel do jogador com dados fictícios; critical < 0 = sem vida crítica forçada.
@@ -62,7 +64,17 @@ public partial class HUD
 		_bottomLeftHud.AddThemeConstantOverride("separation", UiMetrics.S3);
 		root.AddChild(_bottomLeftHud);
 		BuildPlayerPanel(_bottomLeftHud);
-		BuildResourcePanel(_bottomLeftHud, root);
+		// Canto inferior direito: o contador de recurso (Moedas na run, Ícor no hub), sozinho.
+		_bottomRightHud = new HBoxContainer
+		{
+			Name = "BottomRightHud",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			AnchorLeft = 1.0f, AnchorTop = 1.0f, AnchorRight = 1.0f, AnchorBottom = 1.0f,
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin
+		};
+		root.AddChild(_bottomRightHud);
+		BuildResourcePanel(_bottomRightHud, root);
 		BuildRoomTitle(root);
 		BuildDodgeIndicator(root);
 
@@ -78,18 +90,18 @@ public partial class HUD
 		};
 		root.AddChild(_fpsLabel);
 
-		// Heranças (Bênçãos) na borda esquerda, em coluna centrada na altura da tela.
+		// Slots de herança na borda esquerda: a coluna ocupa a altura toda e centra os slots (Alignment), então trocar o
+		// conteúdo não a desloca. Ignore no contêiner para não segurar o mouse do jogo; os slots têm o próprio tooltip.
 		_blessingHudList = new VBoxContainer
 		{
 			Name = "BlessingHudList",
-			AnchorLeft = 0.0f, AnchorTop = 0.5f, AnchorRight = 0.0f, AnchorBottom = 0.5f,
+			AnchorLeft = 0.0f, AnchorTop = 0.0f, AnchorRight = 0.0f, AnchorBottom = 1.0f,
 			OffsetLeft = UiMetrics.SafeMargin, OffsetTop = 0.0f, OffsetRight = UiMetrics.SafeMargin, OffsetBottom = 0.0f,
 			GrowHorizontal = Control.GrowDirection.End,
-			GrowVertical = Control.GrowDirection.Both,
 			Alignment = BoxContainer.AlignmentMode.Center,
-			MouseFilter = Control.MouseFilterEnum.Pass
+			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		_blessingHudList.AddThemeConstantOverride("separation", 8);
+		_blessingHudList.AddThemeConstantOverride("separation", UiMetrics.S1);
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
 
@@ -114,7 +126,7 @@ public partial class HUD
 		RefreshResourceIndicator();
 		// 2D: molduras e barras em pixel art (UiPixelKit) sem borrar (o filtro padrão do projeto é linear).
 		if (UiPixelKit.Enabled)
-			foreach (var panel in new Control[] { _bottomLeftHud, _bossHealthPanel, _roomFrame, _barkPanel, _dodgeIndicator })
+			foreach (var panel in new Control[] { _bottomLeftHud, _bottomRightHud, _bossHealthPanel, _roomFrame, _barkPanel, _dodgeIndicator })
 				if (panel != null)
 					panel.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
 	}
@@ -160,20 +172,29 @@ public partial class HUD
 		panel.Visible = showCombatHud;
 	}
 
-	// Recolhe o canto inferior esquerdo ao conteúdo atual (o Control fora de contêiner não encolhe sozinho) e cresce para cima.
+	// Recolhe os cantos inferiores ao conteúdo atual (o Control fora de contêiner não encolhe sozinho) e cresce para cima
+	// (o esquerdo para a direita, o direito para a esquerda).
 	private void FitPlayerPanel()
 	{
-		if (_bottomLeftHud == null)
-			return;
-		_bottomLeftHud.OffsetLeft = UiMetrics.SafeMargin;
-		_bottomLeftHud.OffsetRight = UiMetrics.SafeMargin;
-		_bottomLeftHud.OffsetTop = -UiMetrics.SafeMargin;
-		_bottomLeftHud.OffsetBottom = -UiMetrics.SafeMargin;
+		if (_bottomLeftHud != null)
+		{
+			_bottomLeftHud.OffsetLeft = UiMetrics.SafeMargin;
+			_bottomLeftHud.OffsetRight = UiMetrics.SafeMargin;
+			_bottomLeftHud.OffsetTop = -UiMetrics.SafeMargin;
+			_bottomLeftHud.OffsetBottom = -UiMetrics.SafeMargin;
+		}
+		if (_bottomRightHud != null)
+		{
+			_bottomRightHud.OffsetLeft = -UiMetrics.SafeMargin;
+			_bottomRightHud.OffsetRight = -UiMetrics.SafeMargin;
+			_bottomRightHud.OffsetTop = -UiMetrics.SafeMargin;
+			_bottomRightHud.OffsetBottom = -UiMetrics.SafeMargin;
+		}
 	}
 
 	// §8.2: um recurso só (glifo + número + rótulo). Na run são as Moedas de Sangue (gota dourada); no hub é o Sangue
 	// Amaldiçoado (losango violeta), ver RefreshResourceIndicator. A arma fica na ficha e na bancada; o progresso vai para o título da sala.
-	// Fica ao lado do painel do jogador, alinhado pela base; no hub (sem painel do jogador) ocupa o canto sozinho.
+	// Fica sozinho no canto inferior direito, na run e no hub; no hub (Ícor) mostra só o glifo e o número.
 	private void BuildResourcePanel(Control parent, Control root)
 	{
 		var panel = new PanelContainer
@@ -577,13 +598,14 @@ public partial class HUD
 		_coinsLabel.Text = (cursed ? CharacterSheet.CursedBlood : runCoins).ToString();
 		if (cursed)
 		{
+			// Ícor: só o frasco e a quantidade; o nome fica no tooltip do ícone.
 			_coinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
-			_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
-			_coinsNameLabel.Text = Localization.Text("hud.cursed_blood_name");
+			_coinsNameLabel.Visible = false;
 		}
 		else
 		{
 			_coinsLabel.RemoveThemeColorOverride("font_color");
+			_coinsNameLabel.Visible = true;
 			_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
 			_coinsNameLabel.Text = Localization.Text("hud.coins_label");
 		}

@@ -30,7 +30,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 
 - `simple_panel.png` e `simple_divider.png` do [UI Pack](https://kenney.nl/assets/ui-pack), por Kenney — CC0 1.0.
 - `cursor_pointer.png` e `cursor_gauntlet.png` do [Cursor Pack](https://kenney.nl/assets/cursor-pack), por Kenney — CC0 1.0.
-- HUD do modo 2D (`assets/pixel_art/hud/`), recolorido para a AAP-64: molduras dos painéis, das janelas e dos botões do Retro Inventory, por ElvGames (crédito exigido); moeda e gema do Free - Raven Fantasy Icons, por Clockwork Raven Studios; molduras das barras do Pixel UI pack 3 (origem e licença ainda a confirmar). Detalhes em `assets/pixel_art/hud/SOURCE.md`.
+- HUD do modo 2D (`assets/pixel_art/hud/`), recolorido para a AAP-64: molduras dos painéis, das janelas e dos botões do Retro Inventory, por ElvGames (crédito exigido); moeda e ícones dos slots de herança do Free - Raven Fantasy Icons, por Clockwork Raven Studios (o frasco do Ícor é arte própria); molduras das barras do Pixel UI pack 3 (origem e licença ainda a confirmar). Detalhes em `assets/pixel_art/hud/SOURCE.md`.
 
 ## Armas
 
