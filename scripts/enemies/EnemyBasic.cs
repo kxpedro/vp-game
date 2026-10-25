@@ -201,8 +201,8 @@ public partial class EnemyBasic : CharacterBody3D
         };
         _windupFlashMaterial = new StandardMaterial3D
         {
-            AlbedoColor = new Color(1.0f, 0.95f, 0.8f),
-            EmissionEnabled = true,
+            AlbedoColor = PixelTint("fef3c0", new Color(1.0f, 0.95f, 0.8f)),
+            EmissionEnabled = !GameMode.IsPixelArt,
             Emission = new Color(1.0f, 0.85f, 0.55f),
             EmissionEnergyMultiplier = 2.6f,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
@@ -304,7 +304,8 @@ public partial class EnemyBasic : CharacterBody3D
             MaterialOverride = new StandardMaterial3D
             {
                 AlbedoColor = new Color(color.R, color.G, color.B, 0.72f),
-                EmissionEnabled = true,
+                // No 2D sem emissão: o brilho e o bloom tirariam a cor da AAP-64 (material já é sem sombreamento).
+                EmissionEnabled = !GameMode.IsPixelArt,
                 Emission = color,
                 EmissionEnergyMultiplier = 2.2f,
                 ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
@@ -421,7 +422,7 @@ public partial class EnemyBasic : CharacterBody3D
     private static StandardMaterial3D CreateTelegraphMaterial(Color color, float alpha, float energy, int renderPriority) => new()
     {
         AlbedoColor = new Color(color.R, color.G, color.B, alpha),
-        EmissionEnabled = true,
+        EmissionEnabled = !GameMode.IsPixelArt,
         Emission = color,
         EmissionEnergyMultiplier = energy,
         Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
