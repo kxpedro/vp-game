@@ -287,6 +287,8 @@ public partial class HUD
 	private void ContinueAfterGameOver()
 	{
 		RunState.FailRun();
+		// No 2D o Virgil volta saindo do caixão dele (CoffinRise).
+		CoffinRise.Pending = true;
 		SaveGameManager.RequestAutosave();
 		UiModalStack.Clear();
 		UiModalStack.ApplyPause(false);

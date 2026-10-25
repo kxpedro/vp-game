@@ -6,20 +6,32 @@ from materials import (SKULL, SKULL_C, sarc, stone_coffin, wood_coffin, candle, 
                        stone_cyl, side_light, HEART, HEART_C, wood_tex, grain, plain_stone,
                        iron, SWORD, SWORD_C, AXE, AXE_C, WHIP, WHIP_C, REVOLVER, REVOLVER_C, x2)
 
-def coffin_virgil(cv, axis, lights):
-    """caixão do Virgil num estrado de dois degraus, tampa deslocada, forro vermelho e velas altas"""
+# Saída do Virgil ao renascer (CoffinRise.cs): deslocamento da tampa ao longo do caixão (0 = posição de sempre,
+# entreaberta; -10 = fechada sobre o forro) e quanto ela pula ao ser empurrada por dentro, quadro a quadro.
+VIRGIL_LID_FRAMES = [(-10, 0), (-10, 2), (-10, 0), (-9, 3), (-6, 1), (-3, 0), (-1, 0), (0, 0)]
+
+def _slid(tex, ox, oy):
+    """textura presa à tampa: avalia nas coordenadas de antes do deslocamento, então o grão não escorrega"""
+    def t(face, wx, wy, wz, a, b, B):
+        return tex(face, wx - ox, wy - oy, wz, a, b, B)
+    return t
+
+def coffin_virgil(cv, axis, lights, lid=(0, 0)):
+    """caixão do Virgil num estrado de dois degraus, tampa deslocada, forro vermelho e velas altas;
+    lid = (deslocamento, pulo) da tampa ou None (sem tampa)"""
     cx = cy = 32
     w, l = 12, 29
     W, L = (w, l) if axis == "y" else (l, w)
     cv.box(cx - W - 6, cx + W + 6, cy - L - 6, cy + L + 6, 0, 3, sarc(2))
     cv.box(cx - W - 4, cx + W + 4, cy - L - 4, cy + L + 4, 3, 7, sarc(2))
     cv.box(cx - W, cx + W, cy - L, cy + L, 7, 27, sarc(2.5, cavity=True))
-    if axis == "y":
-        cv.box(cx - W - 2, cx + W + 2, cy - L + 12, cy + L + 8, 27, 32, sarc(2, cross=True))
-        corners = [(-W - 4, -L - 4), (W + 4, -L - 4)]
-    else:
-        cv.box(cx - W + 12, cx + W + 8, cy - L - 2, cy + L + 2, 27, 32, sarc(2, cross=False))
-        corners = [(-W - 4, -L - 4), (-W - 4, L + 4)]
+    if lid is not None:
+        s, up = lid
+        if axis == "y":
+            cv.box(cx - W - 2, cx + W + 2, cy - L + 12 + s, cy + L + 8 + s, 27 + up, 32 + up, _slid(sarc(2, cross=True), 0, s))
+        else:
+            cv.box(cx - W + 12 + s, cx + W + 8 + s, cy - L - 2, cy + L + 2, 27 + up, 32 + up, _slid(sarc(2, cross=False), s, 0))
+    corners = [(-W - 4, -L - 4), (W + 4, -L - 4)] if axis == "y" else [(-W - 4, -L - 4), (-W - 4, L + 4)]
     for (dx, dy) in corners:
         candle(cv, cx + dx, cy + dy, 14, lights, z=7, power=1.1, rad=40)
 

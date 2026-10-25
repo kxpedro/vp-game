@@ -209,6 +209,7 @@ public partial class HUD : CanvasLayer
 		// Ofertas, ficha, Fonte, loja e bancada estão na UiModalStack (AnyOpen); aqui só as camadas ainda legadas.
 		return UiModalStack.AnyOpen
 			|| RoomTransition.IsBusy
+			|| CoffinRise.IsBusy
 			|| IsVisible(_pauseOverlay)
 			|| IsVisible(_compendiumOverlay)
 			|| IsVisible(_gameOverOverlay);

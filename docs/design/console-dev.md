@@ -29,6 +29,7 @@ Console de texto dentro do jogo, só em build de debug (`OS.IsDebugBuild()`). Co
 | `kill [all\|mobs\|boss\|player]` | mata os inimigos vivos (as waves futuras continuam), só o chefe ou o jogador | `kill all mobs` |
 | `room complete` / `room reroll` | encerra a sala como limpa / sorteia de novo as portas desta sala | |
 | `jump <mapa> [sala\|boss]`, `jump boss` | pula de sala (recarrega a arena) | `jump 2 boss` |
+| `rise` | volta ao hub saindo do caixão, como ao renascer (encerra a run em andamento; só no 2D) | `rise` |
 | `doors <tipo> [tipo]`, `doors <1\|2>`, `doors off` | força as próximas portas (mesmo override do F1) | `doors anvil fruit` |
 | `time <escala>` | escala de tempo de 0.1 a 4 | `time 0.25` |
 | `tune <chave> [valor\|reset]` | lê ou altera um parâmetro do `DevParameterRegistry` (o mesmo do F1, gravado em `user://dev_tuning.json`) | `tune room.waves.count 1` |

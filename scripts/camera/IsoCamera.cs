@@ -19,6 +19,9 @@ public partial class IsoCamera : Camera3D
     public float? LockedYawDegrees { get; set; }
     public float? LockedPitchDegrees { get; set; }
     public float? LockedZoomDistance { get; set; }
+    // Ponto seguido no lugar do alvo (cenas curtas, como o Virgil saindo do caixão em CoffinRise); null = segue o alvo.
+    public Vector3? FocusOverride { get; set; }
+    private Vector3 FocusPoint => FocusOverride ?? _target.GlobalPosition;
 
     private float Yaw => LockedYawDegrees ?? CompendiumTuning.GetFloat("camera.yaw", CameraYawDegrees);
     private float Pitch => LockedPitchDegrees ?? CompendiumTuning.GetFloat("camera.pitch", CameraPitchDegrees);
@@ -44,8 +47,8 @@ public partial class IsoCamera : Camera3D
 
         if (_target != null)
         {
-            GlobalPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance;
-            LookAt(_target.GlobalPosition + Vector3.Up * 0.35f, Vector3.Up);
+            GlobalPosition = FocusPoint + _offsetDirection * _zoomDistance;
+            LookAt(FocusPoint + Vector3.Up * 0.35f, Vector3.Up);
             _fixedRotation = GlobalRotation;
         }
 
@@ -82,7 +85,7 @@ public partial class IsoCamera : Camera3D
         if (_target == null)
             return;
 
-        var desiredPosition = _target.GlobalPosition + _offsetDirection * _zoomDistance;
+        var desiredPosition = FocusPoint + _offsetDirection * _zoomDistance;
         GlobalPosition = GlobalPosition.Lerp(desiredPosition, 1.0f - Mathf.Exp(-CompendiumTuning.GetFloat("camera.follow_speed", FollowSpeed) * (float)delta));
         ApplyShake((float)delta);
         GlobalRotation = _fixedRotation;

@@ -40,6 +40,8 @@ public partial class PixelRoom : Node3D
     private ShaderMaterial _backdropMaterial;
     private int _recomposeVersion;
     private readonly List<(MeshInstance3D Mesh, ImageTexture[] Colors, ImageTexture[] Heights)> _animations = new();
+    // Peças com "manual" no manifest: ficam no quadro que quem as usa escolher (SetAnimationFrame).
+    private readonly Dictionary<string, (MeshInstance3D Mesh, ImageTexture[] Colors, ImageTexture[] Heights)> _manualAnimations = new();
     private double _animationTime;
     private int _animationFrame = -1;
 
@@ -197,8 +199,25 @@ public partial class PixelRoom : Node3D
             material.SetShaderParameter("depth_bias", AnimationDepthBias);
             material.SetShaderParameter("color_tex", colors[0]);
             material.SetShaderParameter("height_tex", heights[0]);
-            _animations.Add((overlay, colors, heights));
+            if (animation.Manual)
+                _manualAnimations[animation.Name] = (overlay, colors, heights);
+            else
+                _animations.Add((overlay, colors, heights));
         }
+    }
+
+    /// <summary>
+    /// Mostra o quadro <paramref name="frame"/> da peça animada manual <paramref name="piece"/> (caminho do kit, como
+    /// "props/coffin_virgil_rise_sw"). O quadro 0 é o que está desenhado no fundo da sala. Falso se a peça não está na sala.
+    /// </summary>
+    public bool SetAnimationFrame(string piece, int frame)
+    {
+        if (!_manualAnimations.TryGetValue(piece, out var animation) || animation.Mesh.MaterialOverride is not ShaderMaterial material)
+            return false;
+        frame = Mathf.Clamp(frame, 0, animation.Colors.Length - 1);
+        material.SetShaderParameter("color_tex", animation.Colors[frame]);
+        material.SetShaderParameter("height_tex", animation.Heights[frame]);
+        return true;
     }
 
     private void UpdateCameraSize()
