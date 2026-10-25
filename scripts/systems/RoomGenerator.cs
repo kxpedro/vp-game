@@ -390,10 +390,9 @@ public partial class RoomGenerator : Node3D
     private void GeneratePointsOfInterest()
     {
         CreatePointOfInterest("Entrance", CellToWorld(_entranceCell), new Color(0.35f, 0.35f, 0.38f));
-        // Saída na parede (portão) não tem marcador no piso: o portão é a saída.
-        if (!HasExitOnWall && RunState.IsBossRoom)
-            CreatePointOfInterest("FinalGate", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
-        else if (!HasExitOnWall && !_exitHasDoors)
+        // Saída na parede (portão) não tem marcador no piso: o portão é a saída. A sala do boss também não
+        // (o disco vermelho ficava solto no chão durante a luta; o portal aparece ali quando o boss cai).
+        if (!HasExitOnWall && !_exitHasDoors && !RunState.IsBossRoom)
             CreatePointOfInterest("Exit", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
         if (!RunState.IsBossRoom)
