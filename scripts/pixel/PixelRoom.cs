@@ -66,8 +66,8 @@ public partial class PixelRoom : Node3D
 
     /// <summary>
     /// Redesenha a sala a partir do <see cref="Layout"/> (já alterado) numa thread de fundo e troca a imagem quando
-    /// fica pronta. Só para mudanças de borda (arco no lugar de parede): os tiles, as colisões e o enquadramento não
-    /// mudam. Chamadas seguidas valem pela última.
+    /// fica pronta. Só para mudanças de borda (arco no lugar de parede): os tiles e o enquadramento não mudam; a colisão
+    /// é refeita (vãos das portas). Chamadas seguidas valem pela última.
     /// </summary>
     public void RecomposeAsync()
     {
@@ -103,6 +103,13 @@ public partial class PixelRoom : Node3D
         Picture = picture;
         _backdropMaterial.SetShaderParameter("color_tex", ImageTexture.CreateFromImage(picture.Color));
         _backdropMaterial.SetShaderParameter("height_tex", ImageTexture.CreateFromImage(picture.Height));
+        // Os vãos das portas mudam com o número de arcos: a colisão segue o desenho novo.
+        if (GetNodeOrNull<Node>("PixelRoomCollision") is { } oldCollision)
+        {
+            RemoveChild(oldCollision);
+            oldCollision.QueueFree();
+        }
+        CreateCollision();
     }
 
     // Câmera ortográfica travada no ângulo da arte; chamar antes do _Ready da IsoCamera.
