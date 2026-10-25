@@ -15,6 +15,6 @@ Usadas só no modo 2D (`UiPixelKit`, em `scripts/ui/UIThemeFactory.cs`); no 3D o
 | `bar_frame.png` (76x22, 9-slice com borda 6) | moldura das barras de vida e do chefe | Pixel UI pack 3 (`All.png`, moldura arredondada) | **origem e licença a confirmar** (o pacote baixado não traz licença) |
 | `bar_track_thin.png` (64x10, 9-slice com borda 2) | trilho da barra de Fúria | Pixel UI pack 3 (`All.png`, barra vazia) | **origem e licença a confirmar** |
 | `coin_blood.png` (32x32) | glifo das Moedas de Sangue | Free - Raven Fantasy Icons, por Clockwork Raven Studios (`32x32.png`, moeda vermelha) | pacote gratuito do autor; conferir os termos na página da loja |
-| `cursed_blood.png` (32x32) | glifo do Sangue Amaldiçoado (HUD, Fonte, menu) e emblema da porta e do item no chão | arte própria do projeto, desenhada por código em `tools/pixel_art/hud/draw_cursed_blood.py` (paleta AAP-64) | do projeto |
+| `cursed_blood.png` (32x32) | glifo do Ícor, um frasco de sangue corrompido (HUD, Fonte, menu) e emblema da porta e do item no chão | arte própria do projeto, desenhada por código em `tools/pixel_art/hud/draw_cursed_blood.py` (paleta AAP-64) | do projeto |
 
 As cores foram trocadas (AAP-64, de Adigun A. Polack); o desenho é dos autores acima.

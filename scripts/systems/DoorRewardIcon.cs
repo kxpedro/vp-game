@@ -9,7 +9,7 @@ using System;
 //   Fruta do Diabo: esfera vermelho-escuro com haste (emissiva, para não sumir no disco escuro);
 //   Moedas de Sangue: pilha de três discos bronze;
 //   Bigorna: silhueta de bigorna em aço claro (base larga, cintura, tampo e chifre);
-//   Sangue Amaldiçoado: a gota em pixel art do HUD (assets/pixel_art/hud/cursed_blood.png), vermelha com a base violeta.
+//   Ícor (ex-Sangue Amaldiçoado): o frasco em pixel art do HUD (assets/pixel_art/hud/cursed_blood.png), sangue vermelho com o fundo violeta.
 // Tudo fica de frente para a câmera (billboard), para ler igual de qualquer ponto da sala.
 // Quem chama: ScenePortal.AddRewardIcon (porta, medalhão a 3,5 m do piso, acima do lintel) e RewardPickup (item no chão).
 public static class DoorRewardIcon
@@ -146,7 +146,7 @@ public static class DoorRewardIcon
         });
     }
 
-    // Sangue Amaldiçoado: a gota do HUD em pixel art, sem filtro (pixels nítidos). Sem o arquivo, fica só o disco.
+    // Ícor: o frasco do HUD em pixel art, sem filtro (pixels nítidos). Sem o arquivo, fica só o disco.
     private static void AddCursedBloodEmblem(Node3D emblem)
     {
         var texture = LoadTexture(CursedBloodIconPath);

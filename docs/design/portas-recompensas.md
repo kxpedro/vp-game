@@ -18,7 +18,7 @@ Pedido do Pedro: o Sangue Amaldiçoado (recurso permanente da Fonte de Sangue) p
 | Peso (`reward.door_weight.cursed_blood.{m}`) | **5 / 5 / 5** (mapas 1 a 3), somado aos pesos de Bênção, Fruta, Moedas e Bigorna |
 | Onde aparece | como a Bigorna: nunca a única porta (só segunda ou terceira) e no máximo uma por conjunto |
 | Quantidade (`economy.cursed_blood.door.{m}`) | **10 / 12 / 15**, entre o Lendário (0 / 6 / 8) e o boss (40 / 60 / 80) do mesmo mapa |
-| Entrega | item no chão (`RewardPickup`) com o medalhão da gota; ao pegar, vai direto ao save (`CharacterSheet.AddCursedBlood`), como o do boss |
+| Entrega | item no chão (`RewardPickup`) com o medalhão do frasco; ao pegar, vai direto ao save (`CharacterSheet.AddCursedBlood`), como o do boss |
 | Ícone | `assets/pixel_art/hud/cursed_blood.png` (arte própria, `tools/pixel_art/hud/draw_cursed_blood.py`), o mesmo glifo do HUD no 2D |
 
 - Na prática, com duas portas, a segunda é Sangue Amaldiçoado em cerca de 5% das vezes (mapa 1: 5 de 105 com a Bigorna elegível), ou seja, por volta de uma porta de Sangue por run. **[VALIDAR]** jogando.
