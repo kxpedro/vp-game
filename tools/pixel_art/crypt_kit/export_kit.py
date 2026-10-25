@@ -3,7 +3,8 @@
 O vértice de cima do tile fica no pixel (112, 116) e o centro do tile em (112, 148), em todas as peças.
 No TileSet do Godot (tile_size 128x64) isso equivale a texture_origin = (0, 44).
 Gera também manifest.json com o tipo de cada peça e as luzes (velas, arandelas) em pixels do PNG,
-(as peças com tela própria levam "canvas" e "tile_top_vertex"; as animadas, "frames" = quadros <peça>_1..N-1)
+(as peças com tela própria levam "canvas" e "tile_top_vertex"; as animadas, "frames" = quadros <peça>_1..N-1,
+e "manual" quando o jogo troca os quadros à mão em vez de tocar em laço)
 e heights/<peça>.png: altura (z do mundo) de cada pixel, x100 em 16 bits (R = byte alto, G = byte baixo),
 usada pelo modo 2D do jogo para escrever a profundidade de cada pixel (PixelRoomComposer.cs).
 
@@ -53,6 +54,11 @@ def pieces():
         P[f"walls/corner_{c}"] = ("wall", lambda cv, L, c=c: W.corner(cv, c))
     for ax, nm in (("y", "sw"), ("x", "se")):
         P[f"props/coffin_virgil_{nm}"] = ("prop", lambda cv, L, a=ax: Pr.coffin_virgil(cv, a, L))
+        # Caixão do Virgil ao renascer: o quadro 0 (sem tampa) entra no layout no lugar do de sempre e os quadros
+        # 1..N-1 são a tampa, da fechada à entreaberta. O jogo troca os quadros à mão (CoffinRise.cs), sem laço.
+        P[f"props/coffin_virgil_rise_{nm}"] = ("prop", lambda cv, L, a=ax: Pr.coffin_virgil(cv, a, L, lid=None))
+        for k, lid in enumerate(Pr.VIRGIL_LID_FRAMES, 1):
+            P[f"props/coffin_virgil_rise_{nm}_{k}"] = ("frame", lambda cv, L, a=ax, lid=lid: Pr.coffin_virgil(cv, a, L, lid=lid))
         for st in ("closed", "broken"):
             P[f"props/coffin_stone_{st}_{nm}"] = ("prop", lambda cv, L, a=ax, s=st: Pr.coffin_stone(cv, a, s, L))
         for st in ("closed", "open", "broken"):
@@ -91,6 +97,9 @@ def pieces():
     return P
 
 FRAMES = {"props/blood_fountain": Pr.FOUNTAIN_FRAMES, "props/blood_basin": Pr.FOUNTAIN_FRAMES}
+FRAMES.update({f"props/coffin_virgil_rise_{nm}": len(Pr.VIRGIL_LID_FRAMES) + 1 for nm in ("sw", "se")})
+# Peças animadas tocadas pelo jogo (quadro a quadro, sem laço), não pelo relógio da sala.
+MANUAL = {f"props/coffin_virgil_rise_{nm}" for nm in ("sw", "se")}
 
 def main(out):
     man = {"canvas": [CW, CH], "tile_top_vertex": [TX, TY], "tile_center": [TX, TY + 32], "tile_size": [128, 64],
@@ -110,6 +119,8 @@ def main(out):
             man["pieces"][name]["tile_top_vertex"] = list(canvas[2:])
         if name in FRAMES:
             man["pieces"][name]["frames"] = FRAMES[name]
+        if name in MANUAL:
+            man["pieces"][name]["manual"] = True
         print(name, len(L))
     with open(os.path.join(out, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(man, f, indent=1, ensure_ascii=False)

@@ -111,6 +111,8 @@ public sealed class PixelRoomAnimation
     public float Dx { get; init; }
     public float Dy { get; init; }
     public Vector2I TileTop { get; init; }
+    // Quadros trocados à mão por quem usa a peça (PixelRoom.SetAnimationFrame), sem o laço da sala.
+    public bool Manual { get; init; }
     public List<Image> Colors { get; } = new();
     public List<Image> Heights { get; } = new();
 }
@@ -189,6 +191,7 @@ public static class PixelRoomComposer
         public int TopX;
         public int TopY;
         public int Frames = 1;
+        public bool Manual;
         public List<(float X, float Y, float Power, float Radius)> Lights = new();
     }
 
@@ -407,7 +410,7 @@ public static class PixelRoomComposer
     {
         var first = LoadPiece(kit, name);
         var lights = roomLights.Select(l => (l.X - x0, l.Y - y0, l.Power, l.Radius)).ToList();
-        var animation = new PixelRoomAnimation { Name = name, Gx = gx, Gy = gy, Dx = dx, Dy = dy, TileTop = new Vector2I(first.TopX, first.TopY) };
+        var animation = new PixelRoomAnimation { Name = name, Gx = gx, Gy = gy, Dx = dx, Dy = dy, TileTop = new Vector2I(first.TopX, first.TopY), Manual = first.Manual };
         for (var k = 0; k < first.Frames; k++)
         {
             var piece = k == 0 ? first : LoadPiece(kit, $"{name}_{k}");
@@ -648,6 +651,8 @@ public static class PixelRoomComposer
                 }
                 if (info.TryGetProperty("frames", out var frames))
                     piece.Frames = Math.Max(frames.GetInt32(), 1);
+                if (info.TryGetProperty("manual", out var manual))
+                    piece.Manual = manual.GetBoolean();
                 if (heights != null && heights.GetWidth() == piece.Width && heights.GetHeight() == piece.Height)
                 {
                     heights.Convert(Image.Format.Rgb8);

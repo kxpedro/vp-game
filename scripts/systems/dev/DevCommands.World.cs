@@ -39,6 +39,11 @@ public static partial class DevCommands
             Complete = c => c.Count <= 1 ? new[] { "boss", "1", "2", "3", "4" } : Enumerable.Empty<string>()
         });
 
+        DevConsole.Register(new DevCommand("rise", "Volta ao hub saindo do caixão, como ao renascer (encerra a run em andamento).", Rise)
+        {
+            Aliases = new[] { "renascer", "coffin", "caixao" }
+        });
+
         DevConsole.Register(new DevCommand("doors", "Força o tipo das próximas portas de recompensa (como no painel F1). off = sorteio normal.", Doors)
         {
             Aliases = new[] { "portas" },
@@ -280,6 +285,20 @@ public static partial class DevCommands
         CombatFeedback.DevSetBaseTimeScale((float)scale);
         c.Hud?.DevConsoleTimeChanged();
         c.Ok($"Escala de tempo: {DevText.Number(Engine.TimeScale)}×{(Mathf.IsEqualApprox((float)scale, 1.0f) ? " (normal)" : "; um aviso fica na tela até voltar a 1")}.");
+    }
+
+    // ---------- rise ----------
+
+    private static void Rise(DevCommandContext c)
+    {
+        if (RunState.IsRunActive)
+            RunState.FailRun();
+        CoffinRise.Pending = true;
+        c.CloseConsole = true;
+        UiModalStack.Clear();
+        UiModalStack.ApplyPause(false);
+        c.Tree.ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
+        c.Ok("Voltando ao hub pelo caixão.");
     }
 
     // ---------- tune ----------
