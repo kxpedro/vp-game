@@ -600,7 +600,7 @@ public partial class HUD
 		DevButton(coinRow, "Zerar", DevZeroCoins, ButtonVariant.Destructive);
 
 		// --- Sangue Amaldiçoado (permanente) ---
-		DevHeader(parent, "Sangue Amaldiçoado (permanente, vai ao save)");
+		DevHeader(parent, "Ícor (permanente, vai ao save)");
 		var cursedRow = DevRow(parent, "Quantidade");
 		cursedRow.AddChild(DevSpin(0, 999999, _devCursedInput, 10, v => _devCursedInput = v));
 		DevButton(cursedRow, "Dar", DevGiveCursedBlood);
@@ -707,7 +707,7 @@ public partial class HUD
 	// ---------- Portas de recompensa (forçar o que aparece nas próximas portas) ----------
 
 	private static readonly string[] DevDoorCountNames = { "Auto", "1 porta", "2 portas" };
-	private static readonly string[] DevDoorTypeNames = { "Auto", "Bênção", "Bigorna", "Fruta do Diabo", "Moedas", "Sangue Amaldiçoado" };
+	private static readonly string[] DevDoorTypeNames = { "Auto", "Bênção", "Bigorna", "Fruta do Diabo", "Moedas", "Ícor" };
 	private CheckBox _devDoorsCheck;
 	private OptionButton _devDoorsCountPick;
 	private readonly OptionButton[] _devDoorsTypePicks = new OptionButton[2];
@@ -782,7 +782,7 @@ public partial class HUD
 		DevButton(presetRow, "Bênção + Bigorna", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.Anvil));
 		DevButton(presetRow, "Bênção + Fruta", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.DevilsFruit));
 		DevButton(presetRow, "Bênção + Moedas", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.Coins));
-		DevButton(presetRow, "Bênção + Sangue", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.CursedBlood));
+		DevButton(presetRow, "Bênção + Ícor", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.CursedBlood));
 		DevButton(presetRow, "Só Bênção", () => DevApplyDoorPreset(1, RoomRewardType.Blessing, null));
 
 		var actionRow = DevRow(parent, "Agora");
@@ -980,7 +980,7 @@ public partial class HUD
 			return;
 		CharacterSheet.AddCursedBlood(amount);
 		RefreshResourceIndicator();
-		DevActionStatus($"+{amount} Sangue Amaldiçoado (total {CharacterSheet.CursedBlood}).");
+		DevActionStatus($"+{amount} Ícor (total {CharacterSheet.CursedBlood}).");
 	}
 
 	private void DevSetCursedBlood()
@@ -988,7 +988,7 @@ public partial class HUD
 		var target = Math.Max((int)_devCursedInput, 0);
 		CharacterSheet.AddCursedBlood(target - CharacterSheet.CursedBlood);
 		RefreshResourceIndicator();
-		DevActionStatus($"Sangue Amaldiçoado definido para {CharacterSheet.CursedBlood}.");
+		DevActionStatus($"Ícor definido para {CharacterSheet.CursedBlood}.");
 	}
 
 	private void DevHealFull()

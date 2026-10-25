@@ -100,7 +100,7 @@ public static partial class DevCommands
             : "Nenhuma run ativa.");
         if (c.PlayerHealth is { } health)
             c.Print($"Vida: {Mathf.RoundToInt(health.CurrentHealth)}/{Mathf.RoundToInt(health.MaxHealth)}{(Health.DevGodMode ? " (modo deus)" : "")}.");
-        c.Print($"Moedas de Sangue: {RunState.RunBloodCoins}. Sangue Amaldiçoado: {CharacterSheet.CursedBlood}. Frutas: {RunState.DevilsFruitCount}.");
+        c.Print($"Moedas de Sangue: {RunState.RunBloodCoins}. Ícor: {CharacterSheet.CursedBlood}. Frutas: {RunState.DevilsFruitCount}.");
         if (c.RunManager is { } runManager)
             c.Print($"Inimigos: {runManager.DefeatedEnemies}/{runManager.TotalEnemies}{(runManager.IsRoomCleared ? " (sala limpa)" : "")}.");
         c.Print($"Arma: {WeaponLoadout.EquippedWeapon.DisplayName} ({WeaponLoadout.EquippedWeaponId}).");

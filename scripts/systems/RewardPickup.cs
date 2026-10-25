@@ -29,7 +29,7 @@ public partial class RewardPickup : Area3D
     {
         if (parent == null || door == null || door.Type == RoomRewardType.DevilsFruit)
         {
-            GD.PushError("RewardPickup.Spawn: recebe Bênção, Moedas, Bigorna ou Sangue Amaldiçoado; a Fruta do Diabo usa DevilsFruit.Spawn.");
+            GD.PushError("RewardPickup.Spawn: recebe Bênção, Moedas, Bigorna ou Ícor; a Fruta do Diabo usa DevilsFruit.Spawn.");
             return null;
         }
 

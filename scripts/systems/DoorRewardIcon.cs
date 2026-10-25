@@ -152,7 +152,7 @@ public static class DoorRewardIcon
         var texture = LoadTexture(CursedBloodIconPath);
         if (texture == null)
         {
-            GD.PushWarning($"DoorRewardIcon: ícone do Sangue Amaldiçoado ausente ({CursedBloodIconPath}).");
+            GD.PushWarning($"DoorRewardIcon: ícone do Ícor ausente ({CursedBloodIconPath}).");
             return;
         }
         emblem.AddChild(new Sprite3D

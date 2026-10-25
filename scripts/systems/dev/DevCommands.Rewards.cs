@@ -12,7 +12,7 @@ public static partial class DevCommands
     private static readonly string[] AnvilWords = { "anvil", "bigorna", "forge", "mod" };
     private static readonly string[] FruitWords = { "fruit", "fruta", "fruta do diabo", "devils fruit" };
     private static readonly string[] CoinWords = { "coins", "coin", "moedas", "moeda", "gold", "ouro" };
-    private static readonly string[] CursedBloodWords = { "cursed", "cursedblood", "sangue", "amaldicoado", "blood" };
+    private static readonly string[] CursedBloodWords = { "ichor", "icor", "cursed", "cursedblood", "sangue", "blood" };
     private static readonly string[] EnemyWords = { "enemy", "enemies", "mob", "mobs", "inimigo", "inimigos" };
 
     // Rótulos em pt-BR aceitos além do id/DisplayName da raridade de bênção.

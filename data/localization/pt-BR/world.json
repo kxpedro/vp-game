@@ -67,6 +67,6 @@
   "reward.door.prompt": "Atravessar: {0}",
   "reward.door.anvil.short": "Bigorna",
   "reward.door.anvil.hint": "Bigorna: escolha uma modificação para a arma.",
-  "reward.door.cursed_blood.short": "Sangue Amaldiçoado +{0}",
-  "reward.door.cursed_blood.hint": "Sangue Amaldiçoado: +{0}, permanente (Fonte de Sangue)."
+  "reward.door.cursed_blood.short": "Ícor +{0}",
+  "reward.door.cursed_blood.hint": "Ícor: +{0}, permanente (Fonte de Sangue)."
 }

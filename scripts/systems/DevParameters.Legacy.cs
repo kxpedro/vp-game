@@ -32,9 +32,9 @@ public static partial class DevParameterRegistry
     private static void RegisterEconomyLegacy()
     {
         RegisterPerMap("economy.coins.boss.{m}", "Moedas do boss", GEconomy, new double[] { 100, 130, 160, 0 }, 0, 5000, 10, true);
-        RegisterPerMap("economy.cursed_blood.boss.{m}", "Sangue Amaldiçoado do boss", GEconomy, new double[] { 40, 60, 80, 120 }, 0, 2000, 5, true);
-        P("economy.cursed_blood.legendary_drop_chance", "Chance de Sangue Amaldiçoado (Lendário)", GEconomy, 1.0, 0, 1, 0.05, false);
-        RegisterPerMap("economy.cursed_blood.legendary.{m}", "Sangue Amaldiçoado do Lendário", GEconomy, new double[] { 0, 6, 8, 8 }, 0, 500, 1, true);
+        RegisterPerMap("economy.cursed_blood.boss.{m}", "Ícor do boss", GEconomy, new double[] { 40, 60, 80, 120 }, 0, 2000, 5, true);
+        P("economy.cursed_blood.legendary_drop_chance", "Chance de Ícor (Lendário)", GEconomy, 1.0, 0, 1, 0.05, false);
+        RegisterPerMap("economy.cursed_blood.legendary.{m}", "Ícor do Lendário", GEconomy, new double[] { 0, 6, 8, 8 }, 0, 500, 1, true);
         P("economy.coins.enemy.base_min", "Moedas base do inimigo (mín.)", GEconomy, 3, 0, 200, 1, true);
         P("economy.coins.enemy.base_max", "Moedas base do inimigo (máx.)", GEconomy, 7, 0, 200, 1, true);
         P("economy.coins.archetype.tank", "Multiplicador de Moedas: Tank", GEconomy, 1.5, 0, 20, 0.1, false);
@@ -47,7 +47,7 @@ public static partial class DevParameterRegistry
         RegisterPerMap("economy.coins.map_factor.{m}", "Fator de Moedas do mapa", GEconomy, new[] { 1.0, 0.6, 0.5, 0.5 }, 0, 10, 0.1, false);
         P("economy.coins.blessing_fallback", "Moedas no lugar de Bênção sem opções", GEconomy, 75, 0, 2000, 5, true);
         RegisterPerMap("economy.coins.room_reward_pack.{m}", "Moedas da porta de Moedas", GEconomy, new double[] { 150, 130, 110 }, 0, 5000, 10, true, DevApplyMode.NextRoom);
-        RegisterPerMap("economy.cursed_blood.door.{m}", "Sangue Amaldiçoado da porta", GEconomy, new double[] { 10, 12, 15 }, 0, 500, 1, true, DevApplyMode.NextRoom);
+        RegisterPerMap("economy.cursed_blood.door.{m}", "Ícor da porta", GEconomy, new double[] { 10, 12, 15 }, 0, 500, 1, true, DevApplyMode.NextRoom);
         P("economy.ledger.max_bonus", "Teto do bônus de dano por Moedas (Ledger)", GEconomy, 1.0, 0, 20, 0.1, false);
         P("economy.shop.power_multiplier", "Multiplicador de poder dos artefatos", GEconomy, 1.75, 0, 10, 0.05, false, DevApplyMode.Reapply);
         P("economy.shop.exclude_owned", "Loja exclui artefatos já possuídos (0/1)", GEconomy, 1, 0, 1, 1, true);
@@ -79,7 +79,7 @@ public static partial class DevParameterRegistry
         RegisterPerMap("reward.door_weight.blessing.{m}", "Peso da porta de Bênção", GRewards, new double[] { 70, 58, 62 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
         RegisterPerMap("reward.door_weight.fruit.{m}", "Peso da porta de Fruta", GRewards, new double[] { 8, 12, 12 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
         RegisterPerMap("reward.door_weight.coins.{m}", "Peso da porta de Moedas", GRewards, new double[] { 18, 22, 22 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Só vale para salas ainda não sorteadas. Para testar já: aba Ações > Portas de recompensa > Forçar portas.");
-        RegisterPerMap("reward.door_weight.cursed_blood.{m}", "Peso da porta de Sangue Amaldiçoado", GRewards, new double[] { 5, 5, 5 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Nunca a única porta. Só vale para salas ainda não sorteadas.");
+        RegisterPerMap("reward.door_weight.cursed_blood.{m}", "Peso da porta de Ícor", GRewards, new double[] { 5, 5, 5 }, 0, 200, 1, true, DevApplyMode.NextRoom, "Nunca a única porta. Só vale para salas ainda não sorteadas.");
         P("reward.door.close_seconds", "Tempo de fechamento da porta (s)", GRewards, 0.3, 0, 5, 0.05, false);
         P("reward.door.two_door_offset_cells", "Afastamento das duas portas (células)", GRewards, 1.0, 0, 5, 0.1, false, DevApplyMode.NewObjects);
         P("reward.door.two_door_frame_scale", "Escala do batente (duas portas)", GRewards, 0.6, 0.1, 2, 0.05, false, DevApplyMode.NewObjects);
