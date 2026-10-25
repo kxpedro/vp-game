@@ -678,8 +678,9 @@ public sealed class UiToastStack
             if (!GodotObject.IsInstanceValid(label) || !GodotObject.IsInstanceValid(host) || !GodotObject.IsInstanceValid(Root)) return;
             var hostRect = host.GetGlobalRect();
             var origin = Root.GetGlobalRect().Position;
-            var height = label.GetCombinedMinimumSize().Y;
-            label.Position = new Vector2(hostRect.End.X + UiMetrics.S2, hostRect.Position.Y + (hostRect.Size.Y - height) * 0.5f) - origin;
+            // Logo acima do host, alinhado à direita dele (o painel de recurso fica no canto inferior direito).
+            var size = label.GetCombinedMinimumSize();
+            label.Position = new Vector2(hostRect.End.X - size.X - UiMetrics.S2, hostRect.Position.Y - size.Y - UiMetrics.S1) - origin;
             label.Modulate = Colors.White;
         }));
         tween.TweenProperty(label, "position:y", -16.0f, UiMotion.KillPopup).AsRelative();
@@ -1541,9 +1542,10 @@ public static class UiComponents
         return toasts;
     }
 
-    // Canto inferior direito (−24/−24), 360 x 3 linhas, PanelHud a 0.90.
+    // Canto inferior direito, acima do contador de recurso (que ocupa −24/−24, ~56 de altura), 360 x 3 linhas, PanelHud a 0.90.
     public static UiEventLog EventLog(Control parent)
     {
+        const float aboveResource = UiMetrics.SafeMargin + 56 + UiMetrics.S2;
         var log = new UiEventLog
         {
             Root = new PanelContainer
@@ -1551,7 +1553,7 @@ public static class UiComponents
                 Name = "EventLog", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore,
                 AnchorLeft = 1, AnchorTop = 1, AnchorRight = 1, AnchorBottom = 1,
                 OffsetLeft = -UiMetrics.SafeMargin - 360, OffsetRight = -UiMetrics.SafeMargin,
-                OffsetTop = -UiMetrics.SafeMargin, OffsetBottom = -UiMetrics.SafeMargin,
+                OffsetTop = -aboveResource, OffsetBottom = -aboveResource,
                 GrowHorizontal = Control.GrowDirection.Begin, GrowVertical = Control.GrowDirection.Begin
             }
         };
