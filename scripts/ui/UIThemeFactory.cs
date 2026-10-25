@@ -72,7 +72,7 @@ public static class UiPalette
 public static class UiFont
 {
     public const int Display   = 54; // título do menu, GAME OVER
-    public const int Banner    = 34; // SALA LIMPA, SANGUIS PURGATUS
+    public const int Banner    = 34; // SALA LIMPA (SANGUIS PURGATUS tem banner próprio, HUD.BlessingOffer)
     public const int Title     = 28; // título de tela/janela
     public const int Section   = 22; // título de card, cabeçalho de coluna, nome do chefe, título de confirmação
     public const int Body      = 17; // corpo (= DefaultFontSize atual)

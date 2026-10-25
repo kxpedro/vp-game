@@ -39,12 +39,7 @@ public partial class HUD
 		_bloodAbsorptionOverlay.Visible = true;
 		_bloodAbsorptionOverlay.Modulate = Colors.White;
 		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
-		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
-		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
-		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.4f);
-		screenTween.TweenInterval(2.55f);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.5f);
+		PlaySanguisBanner(0.4f, 2.55f, 0.5f);
 		var vignetteTween = _bloodAbsorptionOverlay.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.11f, 0.5f);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 2.35f);
@@ -93,12 +88,7 @@ public partial class HUD
 		_bloodAbsorptionOverlay.Visible = true;
 		_bloodAbsorptionOverlay.Modulate = Colors.White;
 		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
-		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
-		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
-		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.35f);
-		screenTween.TweenInterval(1.6f);
-		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.45f);
+		PlaySanguisBanner(0.35f, 1.6f, 0.45f);
 		var vignetteTween = _bloodAbsorptionOverlay.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.11f, 0.45f);
 		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 1.5f);
@@ -496,15 +486,137 @@ public partial class HUD
 			AnchorRight = 1, AnchorBottom = 1, Visible = false, ProcessMode = ProcessModeEnum.Always
 		};
 		root.AddChild(_bloodAbsorptionOverlay);
-		// Banner 34 Gold em caixa alta (antes vermelho de perigo, §2.2).
-		_bloodAbsorptionLabel = new Label
+		BuildSanguisBanner(_bloodAbsorptionOverlay);
+	}
+
+	// Banner "Sanguis Purgatus" no estilo Souls: faixa escura atravessando a tela, título serifado dourado com
+	// brilho (contornos empilhados e translúcidos) e eco (cópias que crescem e somem na entrada e na saída).
+	private const float SanguisBannerHeight = 132f;
+	private const int SanguisBannerFontSize = 54;
+	private static readonly Color SanguisGold = new Color(0.96f, 0.80f, 0.42f, 1f);
+	private static readonly Color SanguisGlow = new Color(1.00f, 0.66f, 0.22f, 1f);
+
+	private const string SanguisBandShader = @"
+shader_type canvas_item;
+uniform vec4 band_color : source_color = vec4(0.015, 0.004, 0.006, 0.9);
+uniform float edge_fade = 0.30;
+void fragment() {
+	float v = 1.0 - abs(UV.y * 2.0 - 1.0);
+	float h = 1.0 - abs(UV.x * 2.0 - 1.0);
+	float alpha = smoothstep(0.0, 0.6, v) * smoothstep(0.0, edge_fade, h);
+	COLOR = vec4(band_color.rgb, band_color.a * alpha);
+}";
+
+	private static Font CreateSanguisFont()
+	{
+		// Serifada do sistema (sem fonte embarcada): Trajan/Cinzel se houver; no Windows cai em Palatino ou Book Antiqua.
+		var serif = new SystemFont
 		{
-			AnchorLeft = 0.2f, AnchorTop = 0.43f, AnchorRight = 0.8f, AnchorBottom = 0.57f,
-			Text = Localization.Text("hud.absorption.title"), ThemeTypeVariation = UiVariation.BannerLabel, Uppercase = true,
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center
+			FontNames = new[] { "Trajan Pro", "Cinzel", "Palatino Linotype", "Book Antiqua", "Constantia", "Georgia", "Times New Roman", "serif" },
+			FontWeight = 600
 		};
-		_bloodAbsorptionOverlay.AddChild(_bloodAbsorptionLabel);
+		// Letras espaçadas, como nos títulos dos Souls.
+		return new FontVariation { BaseFont = serif, SpacingGlyph = 4 };
+	}
+
+	private Label CreateSanguisLabel(Control parent, Font font, Color fontColor, int outlineSize, Color outlineColor)
+	{
+		var label = new Label
+		{
+			Text = Localization.Text("hud.absorption.title"), Uppercase = true,
+			AnchorRight = 1, AnchorBottom = 1,
+			HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		label.AddThemeFontOverride("font", font);
+		label.AddThemeFontSizeOverride("font_size", SanguisBannerFontSize);
+		label.AddThemeColorOverride("font_color", fontColor);
+		label.AddThemeConstantOverride("outline_size", outlineSize);
+		label.AddThemeColorOverride("font_outline_color", outlineColor);
+		label.Resized += () => label.PivotOffset = label.Size * 0.5f;
+		parent.AddChild(label);
+		_sanguisBannerLabels.Add(label);
+		return label;
+	}
+
+	private void BuildSanguisBanner(Control overlay)
+	{
+		_sanguisBannerLabels.Clear();
+		_sanguisBanner = new Control
+		{
+			Name = "SanguisBanner",
+			AnchorLeft = 0, AnchorRight = 1, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+			OffsetTop = -SanguisBannerHeight * 0.5f, OffsetBottom = SanguisBannerHeight * 0.5f,
+			MouseFilter = Control.MouseFilterEnum.Ignore, Modulate = Colors.Transparent
+		};
+		overlay.AddChild(_sanguisBanner);
+		var band = new ColorRect
+		{
+			Name = "Band", AnchorRight = 1, AnchorBottom = 1, Color = Colors.White,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Material = new ShaderMaterial { Shader = new Shader { Code = SanguisBandShader } }
+		};
+		_sanguisBanner.AddChild(band);
+
+		var font = CreateSanguisFont();
+		var clear = new Color(SanguisGlow, 0f);
+		// Brilho: só os contornos aparecem (letra transparente), do mais largo e fraco ao mais estreito e forte.
+		CreateSanguisLabel(_sanguisBanner, font, clear, 30, new Color(SanguisGlow, 0.05f));
+		CreateSanguisLabel(_sanguisBanner, font, clear, 18, new Color(SanguisGlow, 0.09f));
+		CreateSanguisLabel(_sanguisBanner, font, clear, 9, new Color(SanguisGlow, 0.16f));
+		_sanguisBannerEchoes = new[]
+		{
+			CreateSanguisLabel(_sanguisBanner, font, new Color(SanguisGold, 0.55f), 4, new Color(SanguisGlow, 0.12f)),
+			CreateSanguisLabel(_sanguisBanner, font, new Color(SanguisGold, 0.40f), 4, new Color(SanguisGlow, 0.10f))
+		};
+		_sanguisBannerText = CreateSanguisLabel(_sanguisBanner, font, SanguisGold, 2, new Color(0.10f, 0.03f, 0.0f, 0.85f));
+	}
+
+	// Entrada: faixa e título surgem com fade, o título assenta (1,08 → 1) e dois ecos crescem e se dissolvem.
+	// Saída: tudo some com fade, o título se afasta levemente e um eco se expande junto.
+	private void PlaySanguisBanner(float fadeIn, float hold, float fadeOut)
+	{
+		if (_sanguisBanner == null || !IsInstanceValid(_sanguisBanner)) return;
+		_sanguisBannerTween?.Kill();
+		var title = Localization.Text("hud.absorption.title");
+		foreach (var label in _sanguisBannerLabels)
+		{
+			label.Text = title;
+			label.PivotOffset = label.Size * 0.5f;
+			label.Scale = Vector2.One;
+		}
+		foreach (var echo in _sanguisBannerEchoes)
+			echo.Modulate = Colors.Transparent;
+		_sanguisBanner.Modulate = Colors.Transparent;
+		_sanguisBannerText.Scale = new Vector2(1.08f, 1.08f);
+
+		var exitAt = fadeIn + hold;
+		var tween = _sanguisBanner.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process).SetParallel();
+		_sanguisBannerTween = tween;
+		tween.TweenProperty(_sanguisBanner, "modulate", Colors.White, fadeIn).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Sine);
+		tween.TweenProperty(_sanguisBannerText, "scale", Vector2.One, fadeIn + 0.5f).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
+
+		for (var i = 0; i < _sanguisBannerEchoes.Length; i++)
+		{
+			var echo = _sanguisBannerEchoes[i];
+			var start = fadeIn * 0.4f + i * 0.2f;
+			var grow = 1.18f - i * 0.06f;
+			tween.TweenProperty(echo, "modulate", Colors.White, 0.12f).SetDelay(start);
+			tween.TweenProperty(echo, "scale", new Vector2(grow, grow), 1.1f).SetDelay(start).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+			tween.TweenProperty(echo, "modulate", Colors.Transparent, 0.95f).SetDelay(start + 0.15f).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Sine);
+		}
+
+		var exitEcho = _sanguisBannerEchoes[0];
+		tween.TweenCallback(Callable.From(() =>
+		{
+			if (!IsInstanceValid(exitEcho)) return;
+			exitEcho.Scale = Vector2.One;
+			exitEcho.Modulate = new Color(1f, 1f, 1f, 0.7f);
+		})).SetDelay(exitAt);
+		tween.TweenProperty(exitEcho, "scale", new Vector2(1.14f, 1.14f), fadeOut + 0.2f).SetDelay(exitAt).SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+		tween.TweenProperty(exitEcho, "modulate", Colors.Transparent, fadeOut + 0.2f).SetDelay(exitAt);
+		tween.TweenProperty(_sanguisBannerText, "scale", new Vector2(1.04f, 1.04f), fadeOut).SetDelay(exitAt).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Sine);
+		tween.TweenProperty(_sanguisBanner, "modulate", Colors.Transparent, fadeOut).SetDelay(exitAt).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Sine);
 	}
 
 	// Margem interna na lista de cards: o anel de foco (expand 3 + brilho) do card não é cortado pelo ScrollContainer.
