@@ -206,9 +206,8 @@ public partial class MainMenu : Control
 	private void BuildMainPage()
 	{
 		_main = CreatePage(MainColumnWidth);
-		// Dois jogos no mesmo projeto (GameMode): cada um com as próprias cenas e os próprios saves.
-		_playButton = AddPageButton(_main, Localization.Text("menu.play_3d"), () => OpenSlotsForMode(GameMode.Kind.ThreeD), ButtonVariant.Primary);
-		AddPageButton(_main, Localization.Text("menu.play_pixel"), () => OpenSlotsForMode(GameMode.Kind.PixelArt), ButtonVariant.Primary);
+		// O 2D (pixel art) é a versão oficial: o menu não oferece mais o 3D (GameMode).
+		_playButton = AddPageButton(_main, Localization.Text("menu.play"), () => OpenSlotsForMode(GameMode.Kind.PixelArt), ButtonVariant.Primary);
 		_optionsButton = AddPageButton(_main, Localization.Text("menu.options"), () => ShowPage(_options, _optionsPanel?.PreferredFocus));
 		_creditsButton = AddPageButton(_main, Localization.Text("menu.credits"), () => ShowPage(_credits, _creditsScroll));
 		_main.AddChild(UiComponents.Separator());

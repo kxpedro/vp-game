@@ -90,18 +90,18 @@ public partial class HUD
 		};
 		root.AddChild(_fpsLabel);
 
-		// Heranças (Bênçãos) na borda esquerda, em coluna centrada na altura da tela.
+		// Slots de herança na borda esquerda: a coluna ocupa a altura toda e centra os slots (Alignment), então trocar o
+		// conteúdo não a desloca. Ignore no contêiner para não segurar o mouse do jogo; os slots têm o próprio tooltip.
 		_blessingHudList = new VBoxContainer
 		{
 			Name = "BlessingHudList",
-			AnchorLeft = 0.0f, AnchorTop = 0.5f, AnchorRight = 0.0f, AnchorBottom = 0.5f,
+			AnchorLeft = 0.0f, AnchorTop = 0.0f, AnchorRight = 0.0f, AnchorBottom = 1.0f,
 			OffsetLeft = UiMetrics.SafeMargin, OffsetTop = 0.0f, OffsetRight = UiMetrics.SafeMargin, OffsetBottom = 0.0f,
 			GrowHorizontal = Control.GrowDirection.End,
-			GrowVertical = Control.GrowDirection.Both,
 			Alignment = BoxContainer.AlignmentMode.Center,
-			MouseFilter = Control.MouseFilterEnum.Pass
+			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
-		_blessingHudList.AddThemeConstantOverride("separation", 8);
+		_blessingHudList.AddThemeConstantOverride("separation", UiMetrics.S1);
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
 
