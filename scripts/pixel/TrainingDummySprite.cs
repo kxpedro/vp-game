@@ -32,7 +32,8 @@ public partial class TrainingDummySprite : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            Shaded = true,
+            // Sem luz da cena, como o Virgil e a sala (ver PlayerSpriteVisual).
+            Shaded = false,
             DoubleSided = true,
             PixelSize = PixelRoom.PixelMeters,
             Offset = new Vector2(0.0f, FeetOffsetPixels),

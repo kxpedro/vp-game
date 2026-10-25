@@ -105,8 +105,9 @@ public partial class PlayerSpriteVisual : Node
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            // Recebe a luz da cena (tochas, portas) em vez de brilho fixo.
-            Shaded = true,
+            // Sem luz da cena, como a sala (que já traz a luz das velas pintada): em pé (billboard só em Y) o quadro
+            // fica vertical e a luz direcional, que vem de cima, quase não o atinge, e o Virgil escurecia.
+            Shaded = false,
             DoubleSided = true,
             PixelSize = VirgilPixelSize,
             Offset = new Vector2(0.0f, FeetOffsetPixels),
@@ -121,7 +122,7 @@ public partial class PlayerSpriteVisual : Node
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
-            Shaded = true,
+            Shaded = false,
             DoubleSided = true,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Visible = false,
