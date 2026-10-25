@@ -55,8 +55,36 @@ recortados ficam em `tools/pixel_art/monsters/source/plant_*/`.
 | `plant_bulb/` | Plant2 | à distância |
 | `plant_purple/` | Plant3 | tanque |
 
+O corpo a corpo do mapa 2 sorteia meio a meio entre `plant_red` e `ghoul` (abaixo).
+
 Arquivos: `idle`, `walk`, `attack`, `hit`, `death` (Idle, Walk, Attack, Hurt, Death do pacote).
 
 - **Autor:** Craftpix (craftpix.net).
 - **Licença:** licença de arquivos da Craftpix (https://craftpix.net/file-licenses/), indicada no `License.txt` do
   pacote: uso em jogos, inclusive comerciais, sem exigir atribuição; não pode redistribuir os arquivos soltos.
+
+## ghoul (zumbi do Jardim Sangrento, mapa 2)
+
+`Ghoul Sprite Sheet.png`, enviada pelo Pedro como exemplo (folha de 256x160, 8 colunas x 5 linhas de quadros de
+32x32, olhando para a direita). Cada linha virou uma faixa ampliada 2x com vizinho mais próximo (quadros de 64x64, pés
+na última linha, `PixelEnemySprite.FeetOffsets` = 31) em `tools/pixel_art/monsters/source/ghoul/`, e depois foi
+remapeada para a AAP-64 como os outros. Por ser ampliado, o pixel do zumbi sai 2x maior que o das outras folhas.
+
+| Linha | Arquivo | Quadros |
+|---|---|---|
+| 1 | `idle` | 4 |
+| 2 | `walk` | 8 |
+| 3 | `attack` | 6 |
+| 4 | `hit` | 4 |
+| 5 | `death` | 6 |
+
+- **Autor e licença:** NÃO REGISTRADOS. Antes de distribuir o jogo, confirmar a origem do pacote e registrar aqui e em
+  `CREDITS.md`.
+
+## Conferência da paleta
+
+    py tools/pixel_art/check_palette.py
+
+Confere se as folhas (cripta, jardim, chãos, efeitos e monstros, menos a Guardiã) usam só cores da AAP-64 e alfa
+0 ou 255. O `recolor_monsters.py` já grava o alfa binário (as sombras translúcidas das plantas somem, como já
+sumiam no corte de alfa do jogo).

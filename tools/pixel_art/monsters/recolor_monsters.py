@@ -10,7 +10,7 @@ Cada cor do original vira a cor da AAP-64 mais próxima em OKLab, com mais peso 
 o volume do sombreado) e menos no croma. Os vermelhos saturados (olhos, sangue) ficam presos à rampa de sangue
 e os cinzas neutros (metal) à rampa fria da pedra da cripta. Duas cores do original que caíssem na mesma cor da paleta são
 separadas pela segunda opção mais próxima quando a diferença de luminosidade entre elas é visível, para não
-apagar detalhes. A transparência é mantida como está.
+apagar detalhes. A transparência vira binária (alfa 0 ou 255, corte em 128), como o corte de alfa do Sprite3D no jogo.
 """
 import argparse
 import pathlib
@@ -147,6 +147,9 @@ def main():
         for f in files:
             src = Image.open(f).convert("RGBA")
             dst = recolor(src, mapping)
+            # Pixel art sem meio-termo: alfa vira 0 ou 255 (sombras translúcidas somem, como no corte de alfa do jogo).
+            alpha = np.array(dst)[:, :, 3]
+            dst.putalpha(Image.fromarray(np.where(alpha >= 128, 255, 0).astype(np.uint8)))
             used = {tuple(int(v) for v in px) for px in np.unique(
                 np.array(dst).reshape(-1, 4)[np.array(dst).reshape(-1, 4)[:, 3] > 0][:, :3], axis=0)}
             assert used <= allowed, (f, used - allowed)
