@@ -59,6 +59,9 @@ public partial class PlayerController : CharacterBody3D
 	private float _dodgeCooldownTimeRemaining;
 	private float _dodgeInputBufferTimer;
 	private float _damageStaggerTimeRemaining;
+	// Passos automáticos ao atravessar um portão (RoomTransition): sem controle do jogador.
+	private Vector3 _scriptedWalkDirection;
+	private float _scriptedWalkTimeRemaining;
 
 	public override void _Ready()
 	{
@@ -108,6 +111,15 @@ public partial class PlayerController : CharacterBody3D
 		if (_health.IsDead)
 		{
 			_animator?.SetMovementState(false, false, 0.0f);
+			return;
+		}
+		if (_scriptedWalkTimeRemaining > 0.0f)
+		{
+			_scriptedWalkTimeRemaining -= (float)delta;
+			Velocity = _scriptedWalkTimeRemaining > 0.0f ? _scriptedWalkDirection * WalkSpeed : Vector3.Zero;
+			UpdateFacing(_scriptedWalkDirection);
+			_animator?.SetMovementState(_scriptedWalkTimeRemaining > 0.0f, false, WalkSpeed);
+			MoveAndSlide();
 			return;
 		}
 		if (GetTree().GetFirstNodeInGroup("hud") is HUD hud && hud.IsGameplayInputBlocked())
@@ -265,6 +277,25 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		MoveAndCollide(direction.Normalized() * distance);
 	}
+
+	/// <summary>Anda sozinho na direção dada (no ritmo de caminhada) por <paramref name="seconds"/>; cancela a esquiva.</summary>
+	public void StartScriptedWalk(Vector3 direction, float seconds)
+	{
+		direction.Y = 0.0f;
+		if (direction.LengthSquared() < 0.001f || seconds <= 0.0f)
+			return;
+		if (_dodgeTimeRemaining > 0.0f)
+		{
+			_dodgeTimeRemaining = 0.0f;
+			EndDodge();
+		}
+		_combat?.CancelCurrentAttack();
+		_scriptedWalkDirection = direction.Normalized();
+		_scriptedWalkTimeRemaining = seconds;
+		_lastMoveDirection = _scriptedWalkDirection;
+	}
+
+	public bool IsScriptedWalking => _scriptedWalkTimeRemaining > 0.0f;
 
 	private void UpdateFacing(Vector3 fallbackDirection)
 	{

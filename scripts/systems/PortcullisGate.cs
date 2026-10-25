@@ -11,6 +11,9 @@ public partial class PortcullisGate : Node3D
     // Vão das barras no 3D.
     [Export] public float OpeningWidth { get; set; } = 1.9f;
     [Export] public float OpeningHeight { get; set; } = 2.5f;
+    // Corpo que fecha o vão enquanto a grade está baixa (portas das salas no 2D, onde o vão é um nicho aberto na
+    // colisão da parede, PixelRoomComposer.AddDoorPocket). Ligar antes do _Ready.
+    [Export] public bool BlocksPassage { get; set; }
 
     public const int PixelFrames = 8;
     // Espessura das paredes do kit (walls.py, T = 22 unidades): a grade fica no vão do arco, no meio dela.
@@ -20,6 +23,8 @@ public partial class PortcullisGate : Node3D
 
     /// <summary>Quanto a grade já subiu: 0 = fechada, 1 = aberta.</summary>
     public float OpenAmount { get; private set; }
+    /// <summary>True no 2D (grade do kit num arco da sala).</summary>
+    public bool IsPixel => _pixelRoom != null;
 
     private PixelRoom _pixelRoom;
     private Vector2I _pixelTile;
@@ -29,6 +34,7 @@ public partial class PortcullisGate : Node3D
     private Node3D _bars;
     private Tween _tween;
     private float _target = -1.0f;
+    private CollisionShape3D _blockShape;
 
     /// <summary>
     /// Ponto do chão no meio do vão do arco da borda <paramref name="side"/> ("ne" ou "nw") do tile (gx, gy), na face
@@ -61,6 +67,8 @@ public partial class PortcullisGate : Node3D
             _pixelGrate = _pixelRoom.AddOverlay($"Portcullis_{_pixelTile.X}_{_pixelTile.Y}_{_pixelSide}", PixelPiece(0), _pixelTile.X, _pixelTile.Y);
         else
             CreateBars();
+        if (BlocksPassage)
+            CreateBlocker();
         SetOpenAmount(OpenAmount);
     }
 
@@ -106,12 +114,30 @@ public partial class PortcullisGate : Node3D
             }
         }
 
+        // O corpo passa quando a grade já subiu acima da cabeça.
+        var blocked = amount < 0.7f;
+        if (_blockShape != null && _blockShape.Disabled == blocked)
+            _blockShape.SetDeferred(CollisionShape3D.PropertyName.Disabled, !blocked);
+
         if (_bars != null)
         {
             // As barras pendem do alto do vão e recolhem para cima.
             _bars.Scale = new Vector3(1.0f, Mathf.Max(1.0f - amount, 0.001f), 1.0f);
             _bars.Visible = amount < 0.99f;
         }
+    }
+
+    private void CreateBlocker()
+    {
+        var body = new StaticBody3D { Name = "GateBlocker" };
+        _blockShape = new CollisionShape3D
+        {
+            Name = "Collision",
+            Position = new Vector3(0.0f, 1.5f, -0.15f),
+            Shape = new BoxShape3D { Size = new Vector3(OpeningWidth + 0.3f, 3.0f, 0.3f) }
+        };
+        body.AddChild(_blockShape);
+        AddChild(body);
     }
 
     private string PixelPiece(int frame) => $"props/portcullis_{_pixelSide}_{frame}";

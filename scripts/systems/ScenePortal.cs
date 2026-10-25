@@ -21,10 +21,13 @@ public partial class ScenePortal : Area3D
     // Portão (PortcullisGate "Gate" irmão deste nó, igual ao do hub): fechado enquanto a porta está travada (itens da sala
     // no chão); liberada, a grade sobe quando o jogador chega a GateOpenRadius, e entrar no vão (até GatePassDepth da face
     // da parede) é a escolha da porta. Sem prompt nem botão: o medalhão já diz o que a porta dá.
+    // No 2D o vão é um nicho na parede (PixelRoomComposer.AddDoorPocket): a escolha só vale com o corpo já dentro do arco
+    // (PixelGatePassDepth atrás da face), então dá para desistir e voltar até o último passo.
     public const string GateName = "Gate";
     private const string ExtraGateName = "GateExtra";
     private const float GateOpenRadius = 2.8f;
     private const float GatePassDepth = 0.75f;
+    private const float PixelGatePassDepth = -0.45f;
     private const float GateOpenSeconds = 0.8f;
     private static readonly StringName PlayerGroup = "player";
 
@@ -111,7 +114,16 @@ public partial class ScenePortal : Area3D
 
         _isLeaving = true;
         ApplyPortalAction();
-        GetTree().ChangeSceneToFile(GameMode.Scene(TargetScenePath));
+        LeaveThroughDoor();
+    }
+
+    // Troca de sala com a tela escurecendo (RoomTransition). Com portão, o jogador segue andando para dentro do arco.
+    private void LeaveThroughDoor()
+    {
+        var walk = Vector3.Zero;
+        if (Gate != null && GetParent() is Node3D root)
+            walk = -root.GlobalBasis.Z;
+        RoomTransition.Start(GetTree(), GameMode.Scene(TargetScenePath), _player as PlayerController, walk);
     }
 
     private PortcullisGate Gate
@@ -152,14 +164,14 @@ public partial class ScenePortal : Area3D
 
     private bool PlayerNearGate()
     {
-        return TryPlayerLocal(out var local) && local.Z > -0.5f && new Vector2(local.X, local.Z).Length() < GateOpenRadius;
+        return TryPlayerLocal(out var local) && local.Z > -2.0f && new Vector2(local.X, local.Z).Length() < GateOpenRadius;
     }
 
     private bool PlayerInDoorway()
     {
         var gate = Gate;
         return gate != null && TryPlayerLocal(out var local)
-            && local.Z > -1.0f && local.Z < GatePassDepth
+            && local.Z > -2.0f && local.Z < (gate.IsPixel ? PixelGatePassDepth : GatePassDepth)
             && Mathf.Abs(local.X) < gate.OpeningWidth * 0.5f + 0.2f;
     }
 
@@ -278,13 +290,8 @@ public partial class ScenePortal : Area3D
                 sibling.CloseDoor(closeSeconds);
         }
         ApplyPortalAction();
-
-        var timer = GetTree().CreateTimer(closeSeconds, false);
-        timer.Timeout += () =>
-        {
-            if (IsInstanceValid(this) && !string.IsNullOrWhiteSpace(TargetScenePath))
-                GetTree().ChangeSceneToFile(GameMode.Scene(TargetScenePath));
-        };
+        // As outras portas fecham enquanto a tela escurece.
+        LeaveThroughDoor();
     }
 
     private void ApplyPortalAction()
@@ -369,8 +376,11 @@ public partial class ScenePortal : Area3D
         template.AddChild(CreatePixelGate(pixelWall, 0, count, GateName));
         if (count > 1)
         {
-            // A grade extra é filha do modelo, mas desenha no seu próprio arco (a posição da peça vem do tile).
-            template.AddChild(CreatePixelGate(pixelWall, 1, count, ExtraGateName));
+            // A grade extra é filha do modelo, mas desenha no seu próprio arco (a posição da peça vem do tile); o nó vai
+            // para o arco também, para o bloqueio do vão ficar no lugar certo.
+            var extra = CreatePixelGate(pixelWall, 1, count, ExtraGateName);
+            extra.Transform = template.Transform.AffineInverse() * pixelWall.DoorTransform(1, count);
+            template.AddChild(extra);
         }
     }
 
@@ -408,7 +418,8 @@ public partial class ScenePortal : Area3D
         {
             Name = name,
             // Vão do arco do kit (walls.py, wall_arch): 40 unidades.
-            OpeningWidth = 40.0f * PixelRoom.UnitMeters
+            OpeningWidth = 40.0f * PixelRoom.UnitMeters,
+            BlocksPassage = true
         };
         gate.ConfigurePixel(wall.Room, tile.X, tile.Y, wall.Side);
         return gate;
