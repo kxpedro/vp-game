@@ -187,6 +187,7 @@
   "hud.blessing_bar.more_other": "{0} more blessings:",
   "hud.blessing_bar.overflow_entry": "• {0} ({1}, Lv{2})",
   "hud.blessing_bar.sheet_hint": "Sheet",
+  "hud.inheritance_slot.empty": "No blood inheritance in this slot yet. Pick one of this type from an offer to fill it.",
   "hud.blessing_choice": "Choose one of three Blood Blessings.",
   "hud.blood_coins_name": "Blood Coins",
   "hud.boss": "BOSS",
