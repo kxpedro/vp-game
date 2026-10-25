@@ -476,10 +476,14 @@ public partial class RoomGenerator : Node3D
     /// </summary>
     public EnemyBasic SpawnBossMinion(Vector3 position)
     {
-        return SpawnActiveEnemy(position, EnemyRarity.Normal, null, "BossMinion");
+        // Lacaio = corpo a corpo comum; o visual vem do boss do mapa (EnemyVisualCatalog.GetBossMinion).
+        var mapIndex = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        return SpawnActiveEnemy(position, EnemyRarity.Normal, EnemyArchetype.Melee, "BossMinion",
+            EnemyVisualCatalog.GetBossMinion(mapIndex, EnemyArchetype.Melee));
     }
 
-    private EnemyBasic SpawnActiveEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype, string namePrefix)
+    private EnemyBasic SpawnActiveEnemy(Vector3 position, EnemyRarity rarity, EnemyArchetype? archetype, string namePrefix,
+        EnemyVisualDefinition visual = null)
     {
         if (EnemyScene == null)
             return null;
@@ -489,7 +493,7 @@ public partial class RoomGenerator : Node3D
         enemy.Position = position;
         AddChild(enemy, true);
         enemy.ConfigureVariant(rarity, resolvedArchetype);
-        enemy.ApplyPlaceholderVisual(EnemyVisualCatalog.GetEnemy(resolvedArchetype));
+        enemy.ApplyPlaceholderVisual(visual ?? EnemyVisualCatalog.GetEnemy(resolvedArchetype));
         return enemy;
     }
 

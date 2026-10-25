@@ -9,6 +9,9 @@ Saída (pasta passada como argumento, padrão assets/pixel_art/effects/ritual_ci
   - 10-15 = pulsar em loop enquanto o monstro não chega (brilho sobe e desce, as runas piscam).
   - 16-23 = estouro quando o monstro surge: clarão, depois as linhas apagam e se desfazem em pontilhado.
 
+- ritual_circle_violet_sheet.png: o mesmo círculo na rampa violeta da Guardiã Invisível (lacaios do boss,
+  BossMinionSummoner.cs), a mesma de BossRuneFx.Violet.
+
     py tools/pixel_art/ritual_circle/generate_ritual_circle.py [pasta] [--gif prévia.gif]
 
 Requer numpy e Pillow.
@@ -20,7 +23,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-AAP64 = set("""060608 141013 3b1725 73172d b4202a df3e23 e86a73 f5a097 5b3138""".split())
+AAP64 = set("""060608 141013 3b1725 73172d b4202a df3e23 e86a73 f5a097 5b3138
+242234 403353 793a80 bc4a9b b9bffb e3e6ff""".split())
 
 
 def C(h):
@@ -29,7 +33,9 @@ def C(h):
 
 
 # Rampa de brilho das linhas, do apagado (0) ao incandescente (5).
-RAMP = [C("3b1725"), C("73172d"), C("b4202a"), C("df3e23"), C("e86a73"), C("f5a097")]
+BLOOD_RAMP = [C("3b1725"), C("73172d"), C("b4202a"), C("df3e23"), C("e86a73"), C("f5a097")]
+VIOLET_RAMP = [C("242234"), C("403353"), C("793a80"), C("bc4a9b"), C("b9bffb"), C("e3e6ff")]
+RAMP = BLOOD_RAMP
 SOOT = C("141013")
 
 CELL_W, CELL_H = 72, 40
@@ -265,9 +271,13 @@ def main():
     root = Path(__file__).resolve().parents[3]
     out = Path(args[0]) if args else root / "assets/pixel_art/effects/ritual_circle"
     out.mkdir(parents=True, exist_ok=True)
+    global RAMP
+    for ramp, name in ((BLOOD_RAMP, "ritual_circle_sheet.png"), (VIOLET_RAMP, "ritual_circle_violet_sheet.png")):
+        RAMP = ramp
+        frames = build_sheet()
+        Image.fromarray(np.concatenate(frames, axis=1), "RGBA").save(out / name)
+    RAMP = BLOOD_RAMP
     frames = build_sheet()
-    sheet = np.concatenate(frames, axis=1)
-    Image.fromarray(sheet, "RGBA").save(out / "ritual_circle_sheet.png")
     if gif:
         save_gif(frames, gif)
     print("ok:", out)

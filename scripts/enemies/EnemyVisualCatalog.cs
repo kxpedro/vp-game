@@ -69,6 +69,11 @@ public static class EnemyVisualCatalog
         _ => new(PixelEnemySprite.PathPrefix + (Godot.GD.Randf() < 0.5f ? "goblin" : "mushroom"), 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
     };
 
+    // Lacaios do boss (BossMinionSummoner): no 2D, os da Guardiã Invisível são esqueletos violeta; o resto usa o visual comum.
+    public static EnemyVisualDefinition GetBossMinion(int mapIndex, EnemyArchetype archetype) => GameMode.IsPixelArt && mapIndex == 0
+        ? new(PixelEnemySprite.PathPrefix + "skeleton_guardian", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
+        : GetEnemy(archetype);
+
     // Modo 2D: a Guardiã Invisível usa o sprite do Mage Guardian; os outros chefes continuam com o modelo 3D.
     public static EnemyVisualDefinition GetBoss(int mapIndex) => GameMode.IsPixelArt && mapIndex == 0
         ? new(PixelEnemySprite.PathPrefix + "mage_guardian", 1.5f, "Idle", 0.95f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")

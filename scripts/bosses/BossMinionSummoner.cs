@@ -8,7 +8,8 @@ public partial class BossMinionSummoner : Node
 {
     private static float G(string key, float defaultValue) => CompendiumTuning.GetFloat(key, defaultValue);
 
-    private static readonly Color WarningColor = new(0.75f, 0.12f, 0.22f);
+    // Rosa da rampa violeta da Guardia (AAP-64 bc4a9b, BossRuneFx.Violet[2]): marca do 3D.
+    private static readonly Color WarningColor = BossRuneFx.Violet[2];
 
     private readonly RandomNumberGenerator _rng = new();
     private EnemyBasic _boss;
@@ -80,7 +81,8 @@ public partial class BossMinionSummoner : Node
         _ = SpawnAfterWarning(positions);
     }
 
-    // Marca vermelha no chao por boss.minions.warning segundos; depois os lacaios surgem nela.
+    // Marca no chao por boss.minions.warning segundos; depois os lacaios surgem nela.
+    // No 2D e o circulo de ritual das waves na rampa violeta (estoura quando o lacaio surge); no 3D, um disco rosa.
     private async Task SpawnAfterWarning(Godot.Collections.Array<Vector3> positions)
     {
         var warning = G("boss.minions.warning", 0.9f);
@@ -94,13 +96,22 @@ public partial class BossMinionSummoner : Node
 
         _pendingSpawns = Mathf.Max(_pendingSpawns - positions.Count, 0);
         foreach (var mark in marks)
-            if (IsInstanceValid(mark)) mark.QueueFree();
+        {
+            if (!IsInstanceValid(mark)) continue;
+            if (mark is SpawnRitualCircle circle) circle.Burst();
+            else mark.QueueFree();
+        }
         if (!IsInsideTree() || !IsInstanceValid(_boss) || _bossHealth.IsDead) return;
         (GetTree().GetFirstNodeInGroup("run_manager") as RunManager)?.SpawnBossMinions(positions);
     }
 
     private Node3D SpawnWarningMark(Vector3 position, float seconds)
     {
+        if (GameMode.IsPixelArt)
+        {
+            var circle = SpawnRitualCircle.Spawn(GetTree().CurrentScene, position, seconds, SpawnRitualCircle.VioletSheetPath);
+            if (circle != null) return circle;
+        }
         var mark = new MeshInstance3D
         {
             Name = "BossMinionWarning",
