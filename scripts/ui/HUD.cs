@@ -27,7 +27,11 @@ public partial class HUD : CanvasLayer
 	private readonly List<Button> _blessingChoiceButtons = new();
 	private int _focusedBlessingChoice;
 	private ColorRect _bloodAbsorptionOverlay;
-	private Label _bloodAbsorptionLabel;
+	private Control _sanguisBanner;
+	private readonly List<Label> _sanguisBannerLabels = new();
+	private Label _sanguisBannerText;
+	private Label[] _sanguisBannerEchoes;
+	private Tween _sanguisBannerTween;
 	private VBoxContainer _blessingHudList;
 	private Control _pauseOverlay;
 	private Control _compendiumOverlay;

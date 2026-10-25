@@ -658,7 +658,7 @@ Formato: **Prioridade** (P0 = bloqueia leitura de combate, controle ou perde pro
 
 - **Tarefa:** hud-overlays T3 (`HUD.BlessingOffer.cs`).
 - **Componentes:** `Window(Large, Mandatory)` "Hereditas Sanguinis", `ChoiceCard` (meta = linhagem · ataque afetado; selo de raridade localizado; aviso "Substitui: X" inline), `HintBar` ("[△] Trocar (N) · [✕] Escolher", sem "Voltar").
-- **Muda:** card inteiro reage ao foco; "Trocar oferta" via `ui_alt` (oculto sem a skill); `ui_cancel` mantém o aviso no status; glossário dos termos presentes nos cards numa linha `Secondary` acima do rodapé (o `[hint]` passa a ser redundante). Título "Sanguis Purgatus" em `Banner 34` `Gold` (hoje vermelho de perigo); animação de absorção preservada. Usa `UiPalette.Rarity` e remove `BlessingRarityColor` local (ou o deixa delegando).
+- **Muda:** card inteiro reage ao foco; "Trocar oferta" via `ui_alt` (oculto sem a skill); `ui_cancel` mantém o aviso no status; glossário dos termos presentes nos cards numa linha `Secondary` acima do rodapé (o `[hint]` passa a ser redundante). Título "Sanguis Purgatus" num banner estilo Souls (faixa escura horizontal no meio da tela, serifada dourada 54 com brilho, fade e eco na entrada e na saída; `HUD.BuildSanguisBanner`/`PlaySanguisBanner`); animação de absorção preservada. Usa `UiPalette.Rarity` e remove `BlessingRarityColor` local (ou o deixa delegando).
 - **Bugs junto:** `await` da absorção sem checagem (`:87-91`: após cada `await`, `if (!IsInstanceValid(this) || !IsInsideTree()) return;`; guarda de reentrada `_absorptionRunning`); pausa direta (`:28,:300,:306,:410`) → `UiModalStack`; "Trocar oferta" inalcançável.
 - **Previews:** `blessing_offer`, `blessing_offer_replace` (um card com substituição).
 
