@@ -184,6 +184,7 @@ public partial class HUD : CanvasLayer
 	public override void _Process(double delta)
 	{
 		UpdateCriticalHealthIndicator((float)delta);
+		UpdateDodgeIndicator((float)delta);
 		UpdateDialogue((float)delta);
 		// Zoom/pan da Fonte de Sangue por controle e teclado (mouse fica no GuiInput da própria tela).
 		ProcessBloodFountainInput((float)delta);
@@ -207,6 +208,7 @@ public partial class HUD : CanvasLayer
 	{
 		// Ofertas, ficha, Fonte, loja e bancada estão na UiModalStack (AnyOpen); aqui só as camadas ainda legadas.
 		return UiModalStack.AnyOpen
+			|| RoomTransition.IsBusy
 			|| IsVisible(_pauseOverlay)
 			|| IsVisible(_compendiumOverlay)
 			|| IsVisible(_gameOverOverlay);

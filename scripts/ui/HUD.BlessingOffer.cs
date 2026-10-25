@@ -28,6 +28,12 @@ public partial class HUD
 			BuildBloodBlessingChoices();
 			return;
 		}
+		// Sangue da sala já sugado ao limpá-la (AbsorbRoomBloodOnClear): a oferta abre direto, sem segunda absorção.
+		if (!HasRoomBloodPools())
+		{
+			BuildBloodBlessingChoices();
+			return;
+		}
 		_blessingAbsorptionRunning = true;
 		UiModalStack.RefreshPause();
 		_bloodAbsorptionOverlay.Visible = true;
@@ -65,6 +71,46 @@ public partial class HUD
 	}
 
 	private bool _roomBloodSuctionRunning;
+
+	private bool HasRoomBloodPools()
+	{
+		foreach (var node in GetTree().GetNodesInGroup(BloodPool.Group))
+			if (node is BloodPool pool && !pool.IsQueuedForDeletion())
+				return true;
+		return false;
+	}
+
+	// Sala limpa (RunManager.AbsorbBloodThenSpawnPickups): o Virgil suga o sangue de todos os inimigos com o título
+	// "Sanguis Purgatus", sem pausar; ao terminar avisa o RunManager, que solta a herança da sala no chão.
+	public async void AbsorbRoomBloodOnClear()
+	{
+		if (_roomBloodSuctionRunning)
+		{
+			GetTree().CallGroup("run_manager", "OnRoomBloodAbsorbed");
+			return;
+		}
+		_roomBloodSuctionRunning = true;
+		_bloodAbsorptionOverlay.Visible = true;
+		_bloodAbsorptionOverlay.Modulate = Colors.White;
+		_bloodAbsorptionOverlay.Color = new Color(0.16f, 0.0f, 0.018f, 0.0f);
+		_bloodAbsorptionLabel.Text = Localization.Text("hud.absorption.title");
+		_bloodAbsorptionLabel.Modulate = Colors.Transparent;
+		var screenTween = _bloodAbsorptionLabel.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.White, 0.35f);
+		screenTween.TweenInterval(1.6f);
+		screenTween.TweenProperty(_bloodAbsorptionLabel, "modulate", Colors.Transparent, 0.45f);
+		var vignetteTween = _bloodAbsorptionOverlay.CreateTween().SetPauseMode(Tween.TweenPauseMode.Process);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.11f, 0.45f);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.035f, 1.5f);
+		vignetteTween.TweenProperty(_bloodAbsorptionOverlay, "color:a", 0.0f, 0.45f);
+		await SuckRoomBlood(2.4f);
+		if (!IsInstanceValid(this) || !IsInsideTree()) return;
+		_roomBloodSuctionRunning = false;
+		if (!_blessingAbsorptionRunning)
+			_bloodAbsorptionOverlay.Visible = false;
+		AppendGameLog("O sangue dos inimigos foi absorvido.");
+		GetTree().CallGroup("run_manager", "OnRoomBloodAbsorbed");
+	}
 
 	// O Virgil suga o sangue da sala: cada poça (BloodPool) seca enquanto um filete contínuo de sangue sobe dela e
 	// escorre em espiral até ele. O filete é uma fita desenhada de frente para a câmera (ImmediateMesh), refeita a cada

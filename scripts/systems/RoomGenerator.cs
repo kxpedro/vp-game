@@ -214,6 +214,7 @@ public partial class RoomGenerator : Node3D
         var layout = UsesGardenKit
             ? BuildGardenLayout(exitTile, extraProps)
             : PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
+        PrepareEntryDoor(layout, exitTile);
         _pixelRoom = new PixelRoom { Name = "PixelRoom" };
         AddChild(_pixelRoom);
         // Arcos da saída: dois quando a sala vai ter conjunto de portas (o caso mais comum); se o sorteio der uma porta
@@ -233,6 +234,7 @@ public partial class RoomGenerator : Node3D
             return;
         }
 
+        PlacePlayerAtEntryDoor();
         if (GetParent().GetNodeOrNull<IsoCamera>("IsoCamera") is { } camera)
             _pixelRoom.ConfigureCamera(camera);
         AddTorchLights();

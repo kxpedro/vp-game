@@ -192,8 +192,41 @@ public partial class RunManager : Node3D
         {
             // As portas nascem travadas: abrem quando o chao da sala estiver limpo (SpawnRoomPickups / UnlockExitAfterReward).
             BuildRewardDoors(mapIndex);
-            SpawnRoomPickups(pending);
+            AbsorbBloodThenSpawnPickups(pending);
         }
+    }
+
+    // Fluxo da sala limpa: todos derrotados -> o Virgil suga o sangue das poças -> a herança (item do chão) aparece ->
+    // ao pegá-la, as portas abrem. Sem poças (ou sem HUD), a herança aparece direto.
+    private RoomRewardDoor _pendingAfterAbsorption;
+    private bool _waitingRoomAbsorption;
+
+    private async void AbsorbBloodThenSpawnPickups(RoomRewardDoor pending)
+    {
+        if (GetTree().GetNodeCountInGroup(BloodPool.Group) == 0 || GetTree().GetNodeCountInGroup("hud") == 0)
+        {
+            _roomBloodAbsorbed = true;
+            SpawnRoomPickups(pending);
+            return;
+        }
+        ShowRewardDoorsLockHint();
+        _pendingAfterAbsorption = pending;
+        _waitingRoomAbsorption = true;
+        // Espera a poça do último inimigo escorrer antes de sugar.
+        await ToSignal(GetTree().CreateTimer(0.7f), SceneTreeTimer.SignalName.Timeout);
+        if (!IsInstanceValid(this) || !IsInsideTree()) return;
+        _roomBloodAbsorbed = true;
+        GetTree().CallGroup("hud", "AbsorbRoomBloodOnClear");
+    }
+
+    // Chamado pelo HUD (CallGroup "run_manager") quando a sucção do sangue da sala limpa termina. Não renomear.
+    public void OnRoomBloodAbsorbed()
+    {
+        if (!_waitingRoomAbsorption)
+            return;
+        _waitingRoomAbsorption = false;
+        SpawnRoomPickups(_pendingAfterAbsorption);
+        _pendingAfterAbsorption = null;
     }
 
     // Sorteia (ou recupera, se a cena foi recarregada) o conjunto de portas da saida desta sala e monta as portas travadas.
@@ -257,14 +290,9 @@ public partial class RunManager : Node3D
         if (isPendingReward)
             RunState.ConsumePendingRoomReward();
         _roomPickupsLeft = Mathf.Max(_roomPickupsLeft - 1, 0);
-        // A Bênção suga o sangue na própria absorção (HUD.OpenBloodBlessingOffer); as outras recompensas, aqui.
-        if (isPendingReward || !_roomHasPendingReward)
-        {
-            if (door.Type == RoomRewardType.Blessing)
-                _roomBloodAbsorbed = true;
-            else
-                AbsorbRoomBlood();
-        }
+        // O sangue já foi sugado ao limpar a sala (AbsorbBloodThenSpawnPickups); aqui só resta o caso sem sucção prévia.
+        if ((isPendingReward || !_roomHasPendingReward) && door.Type != RoomRewardType.Blessing)
+            AbsorbRoomBlood();
 
         switch (door.Type)
         {

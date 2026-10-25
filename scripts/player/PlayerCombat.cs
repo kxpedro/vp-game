@@ -21,6 +21,13 @@ public partial class PlayerCombat : Node
 	[Export] public float FuryEndBurstRadius { get; set; } = 3.5f;
 	[Export] public float FuryDamageMultiplier { get; set; } = 1.75f;
 	[Export] public float AutoAimRadius { get; set; } = 4.25f;
+	public const float DefaultAimPlaneHeight = 0.8f;
+	public const float DefaultEnemyPickHeight = 1.6f;
+	public const float DefaultPlayerHurtRadius = 0.35f;
+
+	/// <summary>Raio do corpo do jogador para os golpes inimigos (igual ao da cápsula): golpes de área, linhas e projéteis
+	/// acertam quando encostam no corpo, não só quando cobrem o centro dos pés.</summary>
+	public static float PlayerHurtRadius => Mathf.Max(CompendiumTuning.GetFloat("combat.player.hurt_radius", DefaultPlayerHurtRadius), 0.0f);
 
 	public float CurrentFury { get; private set; }
 	public bool IsFuryActive { get; private set; }
@@ -108,6 +115,7 @@ public partial class PlayerCombat : Node
 		_specialAttackCooldownTimer = Mathf.Max(_specialAttackCooldownTimer - elapsed, 0.0f);
 		if (CurrentAttackPhase != PlayerAttackPhase.None)
 			_attackPhaseElapsed += elapsed;
+		UpdateDevHitboxOverlay();
 		RefreshFuryLockState();
 		TickBestialFury(elapsed);
 		TickAmmo(elapsed);
@@ -713,6 +721,7 @@ public partial class PlayerCombat : Node
 
 	private void ConfigureAttackArea(WeaponAttackDefinition attack)
 	{
+		_lastDevAttack = attack;
 		_attackArea.Position = new Vector3(0.0f, 0.75f, -0.45f - attack.Range * 0.5f);
 
 		if (_attackBox != null)
@@ -1227,13 +1236,25 @@ void fragment() {
 			return NormalizeFallback(fallbackDirection);
 
 		var mousePosition = GetViewport().GetMousePosition();
+		// Cursor em cima do corpo de um inimigo: mira nos pés dele. Com a câmera baixa do 2D (30°), projetar o cursor no
+		// chão jogava a mira ~1,5 m para trás do alvo quando se clicava no tronco do sprite.
+		if (FindEnemyUnderCursor(camera, mousePosition) is { } hovered)
+		{
+			var toHovered = hovered.GlobalPosition - player.GlobalPosition;
+			toHovered.Y = 0.0f;
+			if (toHovered.LengthSquared() > 0.001f)
+				return toHovered.Normalized();
+		}
+
 		var rayOrigin = camera.ProjectRayOrigin(mousePosition);
 		var rayDirection = camera.ProjectRayNormal(mousePosition);
 
 		if (Mathf.Abs(rayDirection.Y) <= 0.001f)
 			return NormalizeFallback(fallbackDirection);
 
-		var t = (player.GlobalPosition.Y - rayOrigin.Y) / rayDirection.Y;
+		// Plano da mira na altura do tronco (combat.aim.plane_height), onde o olho lê a posição dos personagens.
+		var planeY = player.GlobalPosition.Y + CompendiumTuning.GetFloat("combat.aim.plane_height", DefaultAimPlaneHeight);
+		var t = (planeY - rayOrigin.Y) / rayDirection.Y;
 		if (t <= 0.0f)
 			return NormalizeFallback(fallbackDirection);
 
@@ -1244,6 +1265,155 @@ void fragment() {
 		return direction.LengthSquared() > 0.001f
 			? direction.Normalized()
 			: NormalizeFallback(fallbackDirection);
+	}
+
+	// Inimigo vivo cujo corpo (pés até ~altura do sprite, largura do raio de acerto) contém o cursor na tela; o mais à
+	// frente da câmera vence.
+	private EnemyBasic FindEnemyUnderCursor(Camera3D camera, Vector2 mousePosition)
+	{
+		var height = CompendiumTuning.GetFloat("combat.aim.enemy_pick_height", DefaultEnemyPickHeight);
+		if (height <= 0.0f)
+			return null;
+		var right = camera.GlobalBasis.X;
+		EnemyBasic best = null;
+		var bestDepth = float.PositiveInfinity;
+		foreach (var node in GetTree().GetNodesInGroup("enemies"))
+		{
+			if (node is not EnemyBasic enemy || !enemy.Visible || enemy.GetNodeOrNull<Health>("Health") is not { IsDead: false })
+				continue;
+			var feet = enemy.GlobalPosition;
+			if (camera.IsPositionBehind(feet))
+				continue;
+			var feetScreen = camera.UnprojectPosition(feet);
+			var headScreen = camera.UnprojectPosition(feet + Vector3.Up * height);
+			var halfWidth = (camera.UnprojectPosition(feet + right * enemy.HitTargetRadius) - feetScreen).Length();
+			if (DistanceToSegment(mousePosition, feetScreen, headScreen) > halfWidth)
+				continue;
+			var depth = camera.GlobalPosition.DistanceSquaredTo(feet);
+			if (depth >= bestDepth)
+				continue;
+			bestDepth = depth;
+			best = enemy;
+		}
+		return best;
+	}
+
+	// ---------- Hitboxes (só debug: comando "hitbox" do console) ----------
+
+	/// <summary>Desenha no chão as áreas usadas no teste de acerto. Só em build de debug.</summary>
+	public static bool DevShowHitboxes { get; set; }
+
+	private WeaponAttackDefinition _lastDevAttack;
+	private MeshInstance3D _devHitboxMesh;
+	private ImmediateMesh _devHitboxLines;
+
+	private void UpdateDevHitboxOverlay()
+	{
+		if (!DevShowHitboxes || !OS.IsDebugBuild())
+		{
+			if (_devHitboxMesh != null)
+				_devHitboxMesh.Visible = false;
+			return;
+		}
+
+		var player = GetParent<Node3D>();
+		if (_devHitboxMesh == null)
+		{
+			_devHitboxLines = new ImmediateMesh();
+			_devHitboxMesh = new MeshInstance3D
+			{
+				Name = "DevHitboxOverlay",
+				TopLevel = true,
+				Mesh = _devHitboxLines,
+				CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+				MaterialOverride = new StandardMaterial3D
+				{
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+					VertexColorUseAsAlbedo = true,
+					NoDepthTest = true,
+					RenderPriority = 10
+				}
+			};
+			player.AddChild(_devHitboxMesh);
+		}
+		_devHitboxMesh.Visible = true;
+		_devHitboxMesh.GlobalTransform = Transform3D.Identity;
+
+		var lines = _devHitboxLines;
+		lines.ClearSurfaces();
+		lines.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		var origin = player.GlobalPosition + Vector3.Up * 0.05f;
+		DevCircle(lines, origin, PlayerHurtRadius, new Color(0.3f, 1.0f, 0.4f));
+		var aim = GetMouseAttackDirection(_attackDirection);
+		DevLine(lines, origin, origin + aim * 2.5f, new Color(1.0f, 1.0f, 1.0f));
+
+		foreach (var node in GetTree().GetNodesInGroup("enemies"))
+		{
+			if (node is not EnemyBasic enemy || enemy.GetNodeOrNull<Health>("Health") is not { IsDead: false })
+				continue;
+			DevCircle(lines, enemy.GlobalPosition + Vector3.Up * 0.05f, enemy.HitTargetRadius, new Color(1.0f, 0.85f, 0.2f));
+		}
+
+		// Golpe atual: a área sem o raio dos alvos (o inimigo é acertado quando o círculo amarelo encosta nela).
+		if (_isAttacking && _lastDevAttack is { } attack)
+		{
+			var color = new Color(0.3f, 0.9f, 1.0f);
+			var reach = attack.Range + GetEdgeForgiveness(CurrentAttackType);
+			var forward = _attackDirection;
+			var side = new Vector3(-forward.Z, 0.0f, forward.X);
+			if (attack.Shape == WeaponAttackShape.Radial)
+				DevCircle(lines, origin, reach, color);
+			else if (attack.Shape == WeaponAttackShape.Line)
+			{
+				var half = side * attack.Width * 0.5f;
+				var tip = forward * reach;
+				DevLine(lines, origin - half, origin + half, color);
+				DevLine(lines, origin + half, origin + half + tip, color);
+				DevLine(lines, origin + half + tip, origin - half + tip, color);
+				DevLine(lines, origin - half + tip, origin - half, color);
+			}
+			else
+			{
+				var halfArc = Mathf.DegToRad(EquippedWeapon.TunedAttackArcDegrees * 0.5f);
+				const int segments = 20;
+				var previous = origin;
+				for (var i = 0; i <= segments; i++)
+				{
+					var point = origin + forward.Rotated(Vector3.Up, Mathf.Lerp(-halfArc, halfArc, i / (float)segments)) * reach;
+					DevLine(lines, previous, point, color);
+					previous = point;
+				}
+				DevLine(lines, previous, origin, color);
+			}
+		}
+		lines.SurfaceEnd();
+	}
+
+	private static void DevCircle(ImmediateMesh lines, Vector3 center, float radius, Color color)
+	{
+		const int segments = 28;
+		for (var i = 0; i < segments; i++)
+		{
+			var a0 = Mathf.Tau * i / segments;
+			var a1 = Mathf.Tau * (i + 1) / segments;
+			DevLine(lines, center + new Vector3(Mathf.Cos(a0), 0.0f, Mathf.Sin(a0)) * radius, center + new Vector3(Mathf.Cos(a1), 0.0f, Mathf.Sin(a1)) * radius, color);
+		}
+	}
+
+	private static void DevLine(ImmediateMesh lines, Vector3 from, Vector3 to, Color color)
+	{
+		lines.SurfaceSetColor(color);
+		lines.SurfaceAddVertex(from);
+		lines.SurfaceSetColor(color);
+		lines.SurfaceAddVertex(to);
+	}
+
+	private static float DistanceToSegment(Vector2 point, Vector2 a, Vector2 b)
+	{
+		var segment = b - a;
+		var lengthSquared = segment.LengthSquared();
+		var progress = lengthSquared > 0.0001f ? Mathf.Clamp((point - a).Dot(segment) / lengthSquared, 0.0f, 1.0f) : 0.0f;
+		return point.DistanceTo(a + segment * progress);
 	}
 
 	private static Vector3 GetControllerMoveAim()

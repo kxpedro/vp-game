@@ -452,8 +452,13 @@ public static class PixelRoomComposer
                 ("sw", gx, gy + 1, (new Vector2(x0, y1), new Vector2(x1, y1), new Vector2(0, 1)))
             })
             {
-                var closed = layout.Edges.TryGetValue((gx, gy, side), out var kind) && WallEdges.Contains(kind);
-                if (!layout.HasTile(nbx, nby) || closed)
+                var hasKind = layout.Edges.TryGetValue((gx, gy, side), out var kind);
+                var closed = hasKind && WallEdges.Contains(kind);
+                if (layout.HasTile(nbx, nby) && !closed)
+                    continue;
+                if (hasKind && kind is "arch" or "gap")
+                    AddDoorPocket(walls, seg.Item1, seg.Item2, seg.Item3);
+                else
                     walls.Add(seg);
             }
         }
@@ -468,6 +473,24 @@ public static class PixelRoomComposer
         }
 
         return (walls, blockers);
+    }
+
+    // Vão de porta (arco ou vão sem parede vizinha atrás): a parede fica só nos batentes e o vão vira um nicho de
+    // DoorPocketDepth unidades para fora, para o corpo entrar no portão antes de atravessar (ScenePortal.PlayerInDoorway).
+    public const float DoorJamb = 12.0f;
+    public const float DoorPocketDepth = 30.0f;
+
+    private static void AddDoorPocket(List<(Vector2, Vector2, Vector2)> walls, Vector2 a, Vector2 b, Vector2 outward)
+    {
+        var along = (b - a) / 64.0f;
+        var left = a + along * DoorJamb;
+        var right = b - along * DoorJamb;
+        var depth = outward * DoorPocketDepth;
+        walls.Add((a, left, outward));
+        walls.Add((right, b, outward));
+        walls.Add((left, left + depth, -along));
+        walls.Add((right, right + depth, along));
+        walls.Add((left + depth, right + depth, outward));
     }
 
     private static void Relight(byte[] rgba, float[] darkmap, int width, int height, List<(float X, float Y, float Power, float Radius)> lights, float ambient)

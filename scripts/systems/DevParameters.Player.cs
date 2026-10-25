@@ -36,6 +36,9 @@ public static partial class DevParameterRegistry
         P("combat.combo.reset_time", "Combo básico: tempo para zerar (s)", GCombat, 1.0, 0.1, 10, 0.05, false);
         P("combat.quick.buffer", "Golpe rápido: buffer de input (s)", GCombat, 0.32, 0, 3, 0.01, false);
         P("combat.aim.radius", "Mira assistida: raio", GCombat, 4.25, 0, 20, 0.05, false, DevApplyMode.Live, "Quando editado, substitui o raio do perfil de controle do golpe.");
+        P("combat.aim.plane_height", "Mira do mouse: altura do plano (m acima dos pés)", GCombat, PlayerCombat.DefaultAimPlaneHeight, 0, 3, 0.05, false, DevApplyMode.Live, "O cursor é projetado nesta altura (tronco); 0 = chão.");
+        P("combat.aim.enemy_pick_height", "Mira do mouse: altura do corpo do inimigo sob o cursor", GCombat, PlayerCombat.DefaultEnemyPickHeight, 0, 6, 0.05, false, DevApplyMode.Live, "Cursor sobre o corpo do inimigo mira nos pés dele; 0 desliga.");
+        P("combat.player.hurt_radius", "Raio do corpo do jogador (golpes inimigos)", GCombat, PlayerCombat.DefaultPlayerHurtRadius, 0, 2, 0.01, false, DevApplyMode.Live, "Somado às áreas dos inimigos, dos chefes e à linha dos projéteis.");
         P("combat.crit.base_multiplier", "Crítico: multiplicador base", GCombat, 1.5, 1, 20, 0.05, false);
         P("combat.knockback.tank_mult", "Knockback básico vs Tank (x)", GCombat, 0.5, 0, 5, 0.05, false);
         P("combat.knockback.finisher_mult", "Knockback do finalizador do combo (x)", GCombat, 1.2, 0, 10, 0.05, false);

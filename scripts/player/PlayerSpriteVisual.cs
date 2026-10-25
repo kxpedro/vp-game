@@ -113,6 +113,7 @@ public partial class PlayerSpriteVisual : Node
             // Sombra de billboard sai torta; a sombra fica por conta da mancha no chao.
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
+        PixelRoom.StandUpright(_sprite);
         _player.AddChild(_sprite);
         _previewSprite = new Sprite3D
         {
@@ -125,6 +126,7 @@ public partial class PlayerSpriteVisual : Node
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Visible = false,
         };
+        PixelRoom.StandUpright(_previewSprite);
         _player.AddChild(_previewSprite);
         _blobShadow = BuildBlobShadow();
         _player.AddChild(_blobShadow);
@@ -491,6 +493,7 @@ public partial class PlayerSpriteVisual : Node
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             TopLevel = true,
         };
+        PixelRoom.StandUpright(ghost);
         _player.GetParent().AddChild(ghost);
         ghost.GlobalPosition = _sprite.GlobalPosition;
         var tween = ghost.CreateTween();

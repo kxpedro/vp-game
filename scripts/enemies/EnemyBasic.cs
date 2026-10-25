@@ -91,6 +91,7 @@ public partial class EnemyBasic : CharacterBody3D
     public float DamageTakenMultiplier => 1.0f + _damageTakenBonus
         + (_pestilenceStacks + _bleedingStacks) * DamageTakenPerStatusStack;
     public float HitTargetRadius { get; private set; } = 0.35f;
+    private float? _bodyBaseRadius;
     private Node3D _importedVisual;
     private Vector3 _importedVisualBaseScale = Vector3.One;
     private readonly Dictionary<MeshInstance3D, Material> _importedBaseMaterials = new();
@@ -325,7 +326,24 @@ public partial class EnemyBasic : CharacterBody3D
             _ => new CylinderMesh { TopRadius = 0.42f, BottomRadius = 0.42f, Height = 1.35f, RadialSegments = 24 }
         };
         HitTargetRadius = archetype == EnemyArchetype.Tank ? G("enemy.tank.hit_radius", 0.68f) : archetype == EnemyArchetype.Ranged ? G("enemy.ranged.hit_radius", 0.48f) : G("enemy.melee.hit_radius", 0.48f);
+        FitBodyToVisual();
         if (GetNodeOrNull<Node3D>("Eye") is { } eye) eye.Visible = false;
+    }
+
+    // A cápsula da cena tem raio 0,32 para todo inimigo; Tank e chefes são bem mais largos e afundavam o corpo nas
+    // paredes e nos objetos. O raio passa a acompanhar o tamanho visual (HitTargetRadius), nunca abaixo do da cena.
+    private void FitBodyToVisual()
+    {
+        if (GetNodeOrNull<CollisionShape3D>("CollisionShape3D") is not { Shape: CapsuleShape3D capsule } body) return;
+        _bodyBaseRadius ??= capsule.Radius;
+        var radius = Mathf.Max(_bodyBaseRadius.Value, HitTargetRadius * G("enemy.base.body_radius_ratio", 0.8f));
+        if (Mathf.IsEqualApprox(radius, capsule.Radius)) return;
+        // A forma vem da cena e é compartilhada entre os inimigos: cada um mexe na sua cópia.
+        capsule = (CapsuleShape3D)capsule.Duplicate();
+        capsule.Radius = radius;
+        capsule.Height = Mathf.Max(capsule.Height, radius * 2.0f);
+        body.Shape = capsule;
+        body.Position = new Vector3(body.Position.X, capsule.Height * 0.5f, body.Position.Z);
     }
 
     private void UpdateAttackTelegraphGeometry()
@@ -435,6 +453,7 @@ public partial class EnemyBasic : CharacterBody3D
         if (definition.MatchPlayerHeight && !pixelSprite)
             MatchImportedVisualToPlayerHeight(definition.PlayerHeightMultiplier);
         HitTargetRadius = definition.CombatRadius;
+        FitBodyToVisual();
         if (_visual != null) _visual.Visible = false;
         if (GetNodeOrNull<Node3D>("Eye") is { } eye) eye.Visible = false;
         _importedIdleAnimation = definition.IdleAnimation;
@@ -1825,13 +1844,15 @@ public partial class EnemyBasic : CharacterBody3D
         var toPlayer = _player.GlobalPosition - GlobalPosition;
         toPlayer.Y = 0.0f;
 
+        // O retângulo é o do telegraph; o jogador conta com o raio do corpo (encostar na borda já acerta).
+        var hurtRadius = PlayerCombat.PlayerHurtRadius;
         var forwardDistance = toPlayer.Dot(_lockedAttackDirection);
-        if (forwardDistance < 0.0f || forwardDistance > AttackRange + AttackDepthBonus)
+        if (forwardDistance < -hurtRadius || forwardDistance > AttackRange + AttackDepthBonus + hurtRadius)
             return false;
 
         var lateralDirection = new Vector3(-_lockedAttackDirection.Z, 0.0f, _lockedAttackDirection.X);
         var lateralDistance = Mathf.Abs(toPlayer.Dot(lateralDirection));
-        return lateralDistance <= AttackWidth * 0.5f;
+        return lateralDistance <= AttackWidth * 0.5f + hurtRadius;
     }
 
     private void ShowAttackTelegraph()

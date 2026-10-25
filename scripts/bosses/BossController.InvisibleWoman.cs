@@ -160,7 +160,8 @@ public partial class BossController
         var delta = target.GlobalPosition - center;
         delta.Y = 0.0f;
         var distance = delta.Length();
-        if (distance <= outer && distance >= inner)
+        var hurtRadius = PlayerCombat.PlayerHurtRadius;
+        if (distance <= outer + hurtRadius && distance >= inner - hurtRadius)
             target.GetNodeOrNull<Health>("Health")?.ApplyDamage(damage, false, source);
     }
 
