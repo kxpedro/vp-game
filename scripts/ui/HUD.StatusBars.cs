@@ -29,10 +29,8 @@ public partial class HUD
 	private PanelContainer _resourceFrame;
 	// Canto inferior esquerdo: painel do jogador (vida/fúria/munição).
 	private HBoxContainer _bottomLeftHud;
-	// Canto inferior direito: contador de recurso (Moedas na run, Ícor no hub).
+	// Canto inferior direito: recursos empilhados (Moedas na run, Ícor sempre).
 	private HBoxContainer _bottomRightHud;
-	private Control _coinGlyph;
-	private Control _cursedBloodGlyph;
 	// Debug (previews): congela o painel do jogador com dados fictícios; critical < 0 = sem vida crítica forçada.
 	private bool _statusPreviewActive;
 	private float _previewHealthRatio = -1.0f;
@@ -122,7 +120,7 @@ public partial class HUD
 		BuildCompendiumOverlay(root);
 		BuildShopOverlay(root);
 		BuildDialogueOverlay(root);
-		// Indicador do HUD: Moedas de Sangue da RUN (RunState.RunBloodCoins) na run; Sangue Amaldiçoado permanente no hub.
+		// Indicador do HUD: Moedas de Sangue da run (RunState.RunBloodCoins) e Ícor permanente; no hub só o Ícor.
 		RefreshResourceIndicator();
 		// 2D: molduras e barras em pixel art (UiPixelKit) sem borrar (o filtro padrão do projeto é linear).
 		if (UiPixelKit.Enabled)
@@ -192,9 +190,9 @@ public partial class HUD
 		}
 	}
 
-	// §8.2: um recurso só (glifo + número + rótulo). Na run são as Moedas de Sangue (gota dourada); no hub é o Sangue
-	// Amaldiçoado (losango violeta), ver RefreshResourceIndicator. A arma fica na ficha e na bancada; o progresso vai para o título da sala.
-	// Fica sozinho no canto inferior direito, na run e no hub; no hub (Ícor) mostra só o glifo e o número.
+	// §8.2: os recursos que o jogador tem, empilhados no canto inferior direito (glifo + número). Na run: Moedas de Sangue
+	// (gota dourada) em cima e Ícor (frasco violeta) embaixo; no hub só o Ícor (as Moedas só existem na run). O nome de
+	// cada recurso só aparece com o mouse sobre a linha (UpdateResourceIndicator). A arma fica na ficha e na bancada.
 	private void BuildResourcePanel(Control parent, Control root)
 	{
 		var panel = new PanelContainer
@@ -206,39 +204,13 @@ public partial class HUD
 		};
 		parent.AddChild(panel);
 		_resourceFrame = panel;
-		var row = new HBoxContainer { Name = "ResourcePanel", MouseFilter = Control.MouseFilterEnum.Ignore };
-		row.AddThemeConstantOverride("separation", UiMetrics.S2);
-		panel.AddChild(row);
-		var coin = UiComponents.CoinGlyph(24);
-		coin.TooltipText = Localization.Text("hud.blood_coins_name");
-		_coinGlyph = coin;
-		row.AddChild(coin);
-		_cursedBloodGlyph = UiComponents.CursedBloodGlyph(24);
-		_cursedBloodGlyph.TooltipText = Localization.Text("hud.cursed_blood_name");
-		_cursedBloodGlyph.Visible = false;
-		row.AddChild(_cursedBloodGlyph);
-		_coinsLabel = new Label
-		{
-			Name = "BloodCoinsLabel",
-			Text = "0",
-			ThemeTypeVariation = UiVariation.SectionGoldLabel,
-			VerticalAlignment = VerticalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		_coinsLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
-		row.AddChild(_coinsLabel);
-		// Rótulo "Moedas": o saldo é o da run (perde-se ao fim dela), distinto do Sangue Amaldiçoado permanente.
-		_coinsNameLabel = new Label
-		{
-			Name = "BloodCoinsNameLabel",
-			Text = Localization.Text("hud.coins_label"),
-			ThemeTypeVariation = UiVariation.SecondaryLabel,
-			VerticalAlignment = VerticalAlignment.Center,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
-		_coinsNameLabel.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
-		row.AddChild(_coinsNameLabel);
+		var stack = new VBoxContainer { Name = "ResourcePanel", MouseFilter = Control.MouseFilterEnum.Ignore };
+		stack.AddThemeConstantOverride("separation", UiMetrics.S1);
+		panel.AddChild(stack);
+
+		_coinsRow = BuildResourceRow(stack, "BloodCoins", UiComponents.CoinGlyph(24), out _coinsLabel, out _coinsNameLabel);
+		_cursedBloodRow = BuildResourceRow(stack, "CursedBlood", UiComponents.CursedBloodGlyph(24), out _cursedBloodLabel, out _cursedBloodNameLabel);
+		_cursedBloodLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
 
 		// Fora do HUD (§8.2). Continua existindo, escondido, porque HUD.WeaponBench.cs ainda escreve nele.
 		_weaponLabel = new Label
@@ -575,8 +547,7 @@ public partial class HUD
 		FitPlayerPanel();
 	}
 
-	// `runCoins` = saldo de Moedas da run (sinais do RunManager / CallGroup do HUD). No hub o indicador mostra o Sangue
-	// Amaldiçoado e ignora esse valor.
+	// `runCoins` = saldo de Moedas da run (sinais do RunManager / CallGroup do HUD). No hub a linha das Moedas some.
 	private void OnBloodCoinsChanged(int runCoins)
 	{
 		ApplyResourceIndicator(runCoins);
@@ -594,26 +565,75 @@ public partial class HUD
 	{
 		if (_coinsLabel == null)
 			return;
-		var cursed = ShowsCursedBloodIndicator();
-		_coinsLabel.Text = (cursed ? CharacterSheet.CursedBlood : runCoins).ToString();
-		if (cursed)
-		{
-			// Ícor: só o frasco e a quantidade; o nome fica no tooltip do ícone.
-			_coinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
-			_coinsNameLabel.Visible = false;
-		}
-		else
-		{
-			_coinsLabel.RemoveThemeColorOverride("font_color");
-			_coinsNameLabel.Visible = true;
-			_coinsNameLabel.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
-			_coinsNameLabel.Text = Localization.Text("hud.coins_label");
-		}
-		if (_coinGlyph != null)
-			_coinGlyph.Visible = !cursed;
-		if (_cursedBloodGlyph != null)
-			_cursedBloodGlyph.Visible = cursed;
+		// No hub não há run: as Moedas somem e fica só o Ícor.
+		_coinsRow.Visible = !ShowsCursedBloodIndicator();
+		_coinsLabel.Text = runCoins.ToString();
+		_coinsNameLabel.Text = Localization.Text("hud.blood_coins_name");
+		_shownCursedBlood = CharacterSheet.CursedBlood;
+		_cursedBloodLabel.Text = _shownCursedBlood.ToString();
+		_cursedBloodNameLabel.Text = Localization.Text("hud.cursed_blood_name");
 		FitPlayerPanel();
+	}
+
+	// Linha de um recurso: glifo + número + nome (oculto até o mouse passar por cima). Cresce para a esquerda,
+	// encostada na borda direita da moldura.
+	private static HBoxContainer BuildResourceRow(Control parent, string name, Control glyph, out Label amount, out Label resourceName)
+	{
+		var row = new HBoxContainer
+		{
+			Name = name + "Row",
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
+		};
+		row.AddThemeConstantOverride("separation", UiMetrics.S2);
+		parent.AddChild(row);
+		row.AddChild(glyph);
+		amount = new Label
+		{
+			Name = name + "Label",
+			Text = "0",
+			ThemeTypeVariation = UiVariation.SectionGoldLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		amount.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		row.AddChild(amount);
+		resourceName = new Label
+		{
+			Name = name + "NameLabel",
+			ThemeTypeVariation = UiVariation.SecondaryLabel,
+			VerticalAlignment = VerticalAlignment.Center,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Visible = false
+		};
+		resourceName.AddThemeColorOverride("font_color", UiPalette.TextPrimary);
+		resourceName.AddThemeConstantOverride("outline_size", UiFont.OutlineHud);
+		row.AddChild(resourceName);
+		return row;
+	}
+
+	// Chamado todo quadro por HUD._Process. O nome do recurso aparece enquanto o mouse está sobre a linha dele; a linha
+	// cresce para a esquerda com o nome, então continua sob o mouse (sem piscar). As linhas ignoram o mouse (por
+	// posição, sem tooltip) para não tomar cliques do jogo. Também acompanha o Ícor, que muda por vários caminhos (boss, Fonte, porta rara, console).
+	private void UpdateResourceIndicator()
+	{
+		if (_cursedBloodLabel == null || !_resourceFrame.IsVisibleInTree())
+			return;
+		if (_shownCursedBlood != CharacterSheet.CursedBlood)
+		{
+			_shownCursedBlood = CharacterSheet.CursedBlood;
+			_cursedBloodLabel.Text = _shownCursedBlood.ToString();
+		}
+		var mouse = _resourceFrame.GetGlobalMousePosition();
+		SetResourceNameVisible(_coinsRow, _coinsNameLabel, mouse);
+		SetResourceNameVisible(_cursedBloodRow, _cursedBloodNameLabel, mouse);
+	}
+
+	private static void SetResourceNameVisible(Control row, Label resourceName, Vector2 mouse)
+	{
+		var hovered = row.Visible && row.GetGlobalRect().HasPoint(mouse);
+		if (resourceName.Visible != hovered)
+			resourceName.Visible = hovered;
 	}
 
 	// Ficha e Fonte sao reconstruidas ao abrir; enquanto fechadas nao precisam refazer a arvore a cada kill.
