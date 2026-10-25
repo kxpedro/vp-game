@@ -40,7 +40,6 @@ public partial class EnemyBasic : CharacterBody3D
     private Node3D _player;
     private Health _health;
     private MeshInstance3D _visual;
-    private MeshInstance3D _archetypeGlow;
     private bool _isAttacking;
     private bool _hasDetectedPlayer;
     private Vector3 _lockedAttackDirection = Vector3.Forward;
@@ -67,9 +66,7 @@ public partial class EnemyBasic : CharacterBody3D
     private static float G(string key, float defaultValue) => CompendiumTuning.GetFloat(key, defaultValue);
     private readonly List<(int Id, Vector3 Center, Vector3 End, float Radius, bool IsSegment)> _bossThreats = new();
     private int _bossThreatCounter;
-    private MeshInstance3D _healthBarFill;
-    private MeshInstance3D _rarityIcon;
-    private float _healthBarWidth = 1.55f;
+    private EnemyOverheadBar _overheadBar;
     private float _overheadHeight = 2.12f;
     private bool _overheadHealthEnabled = true;
     private bool _overheadHealthRevealed;
@@ -265,12 +262,7 @@ public partial class EnemyBasic : CharacterBody3D
         UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
         if (_visual != null)
         {
-            var archetypeColor = archetype switch
-            {
-                EnemyArchetype.Ranged => PixelTint("e86a73", new Color(1.0f, 0.02f, 0.48f)),
-                EnemyArchetype.Tank => PixelTint("f9a31b", new Color(1.0f, 0.78f, 0.04f)),
-                _ => PixelTint("588dbe", new Color(0.0f, 0.86f, 0.96f))
-            };
+            var archetypeColor = EnemyOverheadBar.ArchetypeColor(archetype);
             _baseMaterial = new StandardMaterial3D
             {
                 AlbedoColor = archetypeColor.Darkened(0.12f),
@@ -280,43 +272,7 @@ public partial class EnemyBasic : CharacterBody3D
                 Roughness = 0.72f
             };
             _visual.MaterialOverride = _baseMaterial;
-            ConfigureArchetypeGlow(archetypeColor);
         }
-    }
-
-    private void ConfigureArchetypeGlow(Color color)
-    {
-        if (Name.ToString().Contains("Boss") || Name.ToString().Contains("TrainingDummy"))
-            return;
-
-        _archetypeGlow?.QueueFree();
-        _archetypeGlow = new MeshInstance3D
-        {
-            Name = "ArchetypeGlow",
-            Position = new Vector3(0.0f, 0.04f, 0.0f),
-            Mesh = new TorusMesh
-            {
-                InnerRadius = Archetype == EnemyArchetype.Tank ? 0.72f : 0.58f,
-                OuterRadius = Archetype == EnemyArchetype.Tank ? 0.91f : 0.75f,
-                Rings = 32,
-                RingSegments = 12
-            },
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(color.R, color.G, color.B, 0.72f),
-                // No 2D sem emissão: o brilho e o bloom tirariam a cor da AAP-64 (material já é sem sombreamento).
-                EmissionEnabled = !GameMode.IsPixelArt,
-                Emission = color,
-                EmissionEnergyMultiplier = 2.2f,
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha
-            }
-        };
-        AddChild(_archetypeGlow);
-
-        var pulse = CreateTween().SetLoops();
-        pulse.TweenProperty(_archetypeGlow, "scale", Vector3.One * 1.06f, 0.65f).SetTrans(Tween.TransitionType.Sine);
-        pulse.TweenProperty(_archetypeGlow, "scale", Vector3.One * 0.96f, 0.65f).SetTrans(Tween.TransitionType.Sine);
     }
 
     private void ConfigureGeometricVisual(EnemyArchetype archetype)
@@ -1598,23 +1554,12 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void CreateHealthBar()
     {
-        _healthBarFill = new MeshInstance3D
+        _overheadBar = new EnemyOverheadBar
         {
-            Name = "EnemyHealthBarFill",
-            Mesh = new QuadMesh { Size = new Vector2(_healthBarWidth, 0.13f) },
-            MaterialOverride = CreateBillboardMaterial(new Color(0.82f, 0.025f, 0.045f), 2),
+            Name = "EnemyOverheadBar",
             Position = new Vector3(0.0f, _overheadHeight, 0.0f)
         };
-        AddChild(_healthBarFill);
-        _rarityIcon = new MeshInstance3D
-        {
-            Name = "EnemyRarityIcon",
-            Mesh = new QuadMesh { Size = new Vector2(0.18f, 0.18f) },
-            MaterialOverride = CreateBillboardMaterial(Colors.White, 3),
-            Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f),
-            Rotation = new Vector3(0.0f, 0.0f, Mathf.Pi * 0.25f)
-        };
-        AddChild(_rarityIcon);
+        AddChild(_overheadBar);
     }
 
     private static StandardMaterial3D CreateBillboardMaterial(Color color, int renderPriority = 0) => new()
@@ -1750,23 +1695,13 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void UpdateRarityVisual(EnemyRarityDefinition tuning)
     {
-        _healthBarWidth = Rarity == EnemyRarity.Legendary ? 2.15f : 1.55f;
-        if (_healthBarFill?.Mesh is QuadMesh fill) fill.Size = new Vector2(_healthBarWidth, Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
-        if (_rarityIcon != null)
-        {
-            _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f);
-            _rarityIcon.MaterialOverride = CreateBillboardMaterial(tuning.Color, 3);
-        }
+        _overheadBar?.Configure(Rarity, tuning.Color, Archetype);
     }
 
     private void UpdateHealthBar(float currentHealth, float maxHealth)
     {
-        if (_healthBarFill == null) return;
-        var ratio = maxHealth > 0.0f ? Mathf.Clamp(currentHealth / maxHealth, 0.0f, 1.0f) : 0.0f;
-        if (_healthBarFill.Mesh is QuadMesh fill)
-            fill.Size = new Vector2(Mathf.Max(_healthBarWidth * ratio, 0.001f), Rarity == EnemyRarity.Legendary ? 0.17f : 0.13f);
-        _healthBarFill.Scale = Vector3.One;
-        _healthBarFill.Position = new Vector3(-_healthBarWidth * (1.0f - ratio) * 0.5f, _overheadHeight, 0.0f);
+        if (_overheadBar == null) return;
+        _overheadBar.SetRatio(maxHealth > 0.0f ? currentHealth / maxHealth : 0.0f);
     }
 
     public void SetOverheadHealthVisible(bool visible)
@@ -1778,8 +1713,7 @@ public partial class EnemyBasic : CharacterBody3D
 
     private void SetHealthBarMeshesVisible(bool visible)
     {
-        if (_healthBarFill != null) _healthBarFill.Visible = visible;
-        if (_rarityIcon != null) _rarityIcon.Visible = visible;
+        if (_overheadBar != null) _overheadBar.Visible = visible;
     }
 
     private void UpdateOverheadHeight()
@@ -1792,8 +1726,7 @@ public partial class EnemyBasic : CharacterBody3D
     private void UpdateOverheadLayout()
     {
         _statusVisuals?.Configure(PixelVisual, _overheadHeight);
-        if (_healthBarFill != null) _healthBarFill.Position = new Vector3(_healthBarFill.Position.X, _overheadHeight, 0.0f);
-        if (_rarityIcon != null) _rarityIcon.Position = new Vector3(-_healthBarWidth * 0.5f - 0.18f, _overheadHeight, 0.0f);
+        if (_overheadBar != null) _overheadBar.Position = new Vector3(0.0f, _overheadHeight, 0.0f);
         if (_bleedingStatusIcon != null) _bleedingStatusIcon.Position = new Vector3(-0.319f, _overheadHeight + 0.28f, 0.0f);
         if (_pestilenceStatusIcon != null) _pestilenceStatusIcon.Position = new Vector3(0.0f, _overheadHeight + 0.28f, 0.0f);
         if (_charmedStatusIcon != null) _charmedStatusIcon.Position = new Vector3(0.319f, _overheadHeight + 0.28f, 0.0f);
