@@ -21,7 +21,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "tools" / "pixel_art" / "enemy_fx" / "source"
 TARGET = ROOT / "assets" / "pixel_art" / "effects" / "enemy_attacks"
 sys.path.insert(0, str(ROOT / "tools" / "pixel_art" / "monsters"))
-from recolor_monsters import AAP64, build_mapping, build_tint_mapping, monster_colors, recolor  # noqa: E402
+from recolor_monsters import PALETTE, build_mapping, build_tint_mapping, monster_colors, recolor  # noqa: E402
 
 CELL = 64
 
@@ -40,12 +40,13 @@ EFFECTS = {
     "thorn_burst": ("527", 1),       # espinhos violeta que brotam do chão (planta roxa)
 }
 
-# Efeitos de luz: a paleta inteira (os laranjas e verdes vivos dão o brilho que as cores apagadas dos monstros não dão).
-PALETTE = AAP64
-
-# Efeitos tingidos numa rampa pela luminosidade (do escuro ao claro): o violeta do pacote cai na rampa de sangue
-# pelo mapeamento comum (matiz perto do vermelho), então os espinhos da planta roxa vão direto para a rampa violeta.
-TINTED = {"thorn_burst": ["141013", "242234", "403353", "793a80", "bc4a9b"]}
+# Mesma AAP-64 restrita dos monstros (recolor_monsters.PALETTE): sem os neons, o ciano, o rosa e o verde-limão.
+# Efeitos tingidos numa rampa pela luminosidade (do escuro ao claro). O violeta do pacote cairia na rampa de sangue
+# pelo mapeamento comum (matiz perto do vermelho) e os verdes claros puxariam para o amarelo: espinhos e esporos vão
+# direto para a rampa violeta e a verde da AAP-64.
+VIOLET = ["141013", "242234", "403353", "5b3138", "793a80", "793a80", "b9bffb"]
+GREEN = ["122020", "24523b", "1a7a3e", "14a02e", "5daf8d", "92dcba"]
+TINTED = {"thorn_burst": VIOLET, "spore_orb": GREEN, "spore_burst": GREEN}
 
 
 def extract(packs):
