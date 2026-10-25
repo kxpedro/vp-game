@@ -707,7 +707,7 @@ public partial class HUD
 	// ---------- Portas de recompensa (forçar o que aparece nas próximas portas) ----------
 
 	private static readonly string[] DevDoorCountNames = { "Auto", "1 porta", "2 portas" };
-	private static readonly string[] DevDoorTypeNames = { "Auto", "Bênção", "Bigorna", "Fruta do Diabo", "Moedas" };
+	private static readonly string[] DevDoorTypeNames = { "Auto", "Bênção", "Bigorna", "Fruta do Diabo", "Moedas", "Sangue Amaldiçoado" };
 	private CheckBox _devDoorsCheck;
 	private OptionButton _devDoorsCountPick;
 	private readonly OptionButton[] _devDoorsTypePicks = new OptionButton[2];
@@ -719,6 +719,7 @@ public partial class HUD
 		2 => RoomRewardType.Anvil,
 		3 => RoomRewardType.DevilsFruit,
 		4 => RoomRewardType.Coins,
+		5 => RoomRewardType.CursedBlood,
 		_ => null
 	};
 
@@ -728,6 +729,7 @@ public partial class HUD
 		RoomRewardType.Anvil => 2,
 		RoomRewardType.DevilsFruit => 3,
 		RoomRewardType.Coins => 4,
+		RoomRewardType.CursedBlood => 5,
 		_ => 0
 	};
 
@@ -780,6 +782,7 @@ public partial class HUD
 		DevButton(presetRow, "Bênção + Bigorna", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.Anvil));
 		DevButton(presetRow, "Bênção + Fruta", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.DevilsFruit));
 		DevButton(presetRow, "Bênção + Moedas", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.Coins));
+		DevButton(presetRow, "Bênção + Sangue", () => DevApplyDoorPreset(2, RoomRewardType.Blessing, RoomRewardType.CursedBlood));
 		DevButton(presetRow, "Só Bênção", () => DevApplyDoorPreset(1, RoomRewardType.Blessing, null));
 
 		var actionRow = DevRow(parent, "Agora");

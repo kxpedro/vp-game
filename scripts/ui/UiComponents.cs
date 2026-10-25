@@ -1962,8 +1962,8 @@ public static class UiComponents
     // das Moedas de Sangue (forma própria além da cor). Mesmo glifo do aviso de recompensa (HUD.Notifications).
     public static Control CursedBloodGlyph(int size = 24)
     {
-        // No 2D, a gema violeta em pixel art (UiPixelKit).
-        if (UiPixelKit.Icon("gem_cursed.png", size) is { } pixelGem)
+        // No 2D, a gota de sangue corrompido em pixel art (UiPixelKit; desenho em tools/pixel_art/hud/draw_cursed_blood.py).
+        if (UiPixelKit.Icon("cursed_blood.png", size) is { } pixelGem)
             return pixelGem;
         var node = new Control { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
         var scale = size / 24.0f;

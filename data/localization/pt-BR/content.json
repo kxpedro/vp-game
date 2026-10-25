@@ -481,6 +481,8 @@
   "weapon.whip.name": "Chicote",
   "reward.type.anvil.name": "Bigorna",
   "reward.type.anvil.desc": "Forja uma modificação para a arma equipada: escolha entre as oferecidas. Vale até o fim da run.",
+  "reward.type.cursed_blood.name": "Sangue Amaldiçoado",
+  "reward.type.cursed_blood.desc": "+{0} Sangue Amaldiçoado, o sangue corrompido que Virgil purifica. É permanente: fica no save mesmo se a run acabar e é gasto na Fonte de Sangue do Ninho.",
   "weaponmod.longsword_reach.name": "Lâmina Alongada",
   "weaponmod.longsword_reach.desc": "Aumenta o alcance de todos os ataques em {0}.",
   "weaponmod.longsword_reach.flavor": "Mais aço entre você e o perigo.",

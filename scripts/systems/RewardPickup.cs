@@ -1,6 +1,7 @@
 using Godot;
 
-// Recompensa de sala no chão (estilo Hades; docs/design/portas-recompensas.md): Bênção de Sangue ou pilha de Moedas de Sangue.
+// Recompensa de sala no chão (estilo Hades; docs/design/portas-recompensas.md): Bênção de Sangue, pilha de Moedas de Sangue,
+// Bigorna ou Sangue Amaldiçoado.
 // Ao se aproximar, aparece o prompt "Pegar: <tipo>" (InteractPrompt); ao interagir, emite Claimed uma única vez e some.
 // Quem recebe o sinal (RunManager) paga a recompensa e libera as portas. A Fruta do Diabo não passa por aqui:
 // é o DevilsFruit, que também coleta por interação.
@@ -14,7 +15,7 @@ public partial class RewardPickup : Area3D
     private const float HoverHeight = 0.9f;
     private const float PromptHeight = 1.9f;
 
-    /// <summary>Recompensa representada pelo item (Bênção ou Moedas; a quantidade vem de CoinAmount).</summary>
+    /// <summary>Recompensa representada pelo item (a quantidade de Moedas ou de Sangue Amaldiçoado vem de CoinAmount).</summary>
     public RoomRewardDoor Door { get; private set; }
 
     private Node3D _visual;
@@ -28,7 +29,7 @@ public partial class RewardPickup : Area3D
     {
         if (parent == null || door == null || door.Type == RoomRewardType.DevilsFruit)
         {
-            GD.PushError("RewardPickup.Spawn: recebe Bênção, Moedas ou Bigorna; a Fruta do Diabo usa DevilsFruit.Spawn.");
+            GD.PushError("RewardPickup.Spawn: recebe Bênção, Moedas, Bigorna ou Sangue Amaldiçoado; a Fruta do Diabo usa DevilsFruit.Spawn.");
             return null;
         }
 
@@ -87,7 +88,7 @@ public partial class RewardPickup : Area3D
     private void Claim()
     {
         _claimed = true;
-        if (Door.Type == RoomRewardType.Coins)
+        if (Door.Type is RoomRewardType.Coins or RoomRewardType.CursedBlood)
             GetTree().CallGroup("audio_manager", "PlayEffect", "treasure");
         EmitSignal(SignalName.Claimed);
         QueueFree();

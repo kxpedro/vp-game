@@ -27,11 +27,9 @@ import recolor_monsters as recolor  # noqa: E402
 # com a espessura das molduras do HUD (a janela usa 3x); os ícones de recurso usam 1x (32 px, reduzidos pelo TextureRect
 # para o tamanho do glifo).
 # rampa: em vez do remapeamento geral, as cores do original vão por ordem de luminosidade para esta rampa da AAP-64
-#        (o violeta do Sangue Amaldiçoado cairia no azul-lavanda e a moeda no salmão pelo remapeamento geral).
+#        (a moeda cairia no salmão pelo remapeamento geral).
 # miolo: a cor mais frequente (o fundo do quadro) vira esta cor com este alfa, escura como os painéis do HUD;
 #        CLEAR = transparente (o fundo é desenhado pelo PixelFrameBox).
-# Uma cor da rampa por cor do original (5 -> 5), sem o preto do fundo do painel, para o ícone não sumir nele.
-CURSED_RAMP = ["242234", "793a80", "bc4a9b", "b9bffb", "e3e6ff"]
 # Moeda de Sangue: rampa de sangue da poça, deslocada para o claro (a moeda do pacote é vermelho-alaranjada).
 BLOOD_RAMP = ["3b1725", "b4202a", "e86a73", "f5a097", "fef3c0"]
 # Moldura neutra (contorno escuro + dois tons claros): o PixelFrameBox tinge com a cor da raridade ou do estado.
@@ -46,7 +44,6 @@ PIECES = {
     "window_frame.png": ("panel_frame.png", 3, None, WINDOW_FILL),
     "frame.png": ("frame.png", 2, LIGHT_RAMP, CLEAR),
     "coin_blood.png": ("coin_blood.png", 1, BLOOD_RAMP, None),
-    "gem_cursed.png": ("gem_cursed.png", 1, CURSED_RAMP, None),
 }
 
 

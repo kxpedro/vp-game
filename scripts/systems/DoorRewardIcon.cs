@@ -8,7 +8,8 @@ using System;
 //   Bênção de Sangue: ícone da família sorteada (ou losango dourado claro, se faltar arte);
 //   Fruta do Diabo: esfera vermelho-escuro com haste (emissiva, para não sumir no disco escuro);
 //   Moedas de Sangue: pilha de três discos bronze;
-//   Bigorna: silhueta de bigorna em aço claro (base larga, cintura, tampo e chifre).
+//   Bigorna: silhueta de bigorna em aço claro (base larga, cintura, tampo e chifre);
+//   Sangue Amaldiçoado: a gota em pixel art do HUD (assets/pixel_art/hud/cursed_blood.png), vermelha com a base violeta.
 // Tudo fica de frente para a câmera (billboard), para ler igual de qualquer ponto da sala.
 // Quem chama: ScenePortal.AddRewardIcon (porta, medalhão a 3,5 m do piso, acima do lintel) e RewardPickup (item no chão).
 public static class DoorRewardIcon
@@ -37,6 +38,8 @@ public static class DoorRewardIcon
     private const string RingHex = "F3D27A";
     private const string GlowHex = "F0C860";
 
+    private const string CursedBloodIconPath = "res://assets/pixel_art/hud/cursed_blood.png";
+
     // Texturas geradas por código, uma vez (medalhão e losango de fallback).
     private static ImageTexture _medallionTexture;
     private static ImageTexture _diamondTexture;
@@ -55,6 +58,7 @@ public static class DoorRewardIcon
             RoomRewardType.Blessing => BlessingLabel(door),
             RoomRewardType.DevilsFruit => Localization.Text("reward.door.fruit.short"),
             RoomRewardType.Anvil => Localization.Text("reward.door.anvil.short"),
+            RoomRewardType.CursedBlood => Localization.TextFormat("reward.door.cursed_blood.short", door.CoinAmount),
             _ => Localization.TextFormat("reward.door.coins.short", door.CoinAmount),
         };
     }
@@ -78,6 +82,9 @@ public static class DoorRewardIcon
                 break;
             case RoomRewardType.Anvil:
                 AddAnvil(GeometryShape(emblem));
+                break;
+            case RoomRewardType.CursedBlood:
+                AddCursedBloodEmblem(emblem);
                 break;
             default:
                 AddCoins(GeometryShape(emblem));
@@ -135,6 +142,26 @@ public static class DoorRewardIcon
             Texture = DiamondTexture(),
             PixelSize = EmblemSize / DiamondTextureSize,
             Shaded = false,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
+        });
+    }
+
+    // Sangue Amaldiçoado: a gota do HUD em pixel art, sem filtro (pixels nítidos). Sem o arquivo, fica só o disco.
+    private static void AddCursedBloodEmblem(Node3D emblem)
+    {
+        var texture = LoadTexture(CursedBloodIconPath);
+        if (texture == null)
+        {
+            GD.PushWarning($"DoorRewardIcon: ícone do Sangue Amaldiçoado ausente ({CursedBloodIconPath}).");
+            return;
+        }
+        emblem.AddChild(new Sprite3D
+        {
+            Name = "CursedBloodIcon",
+            Texture = texture,
+            PixelSize = EmblemSize / Mathf.Max(Mathf.Max(texture.GetWidth(), texture.GetHeight()), 1),
+            Shaded = false,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
         });
     }

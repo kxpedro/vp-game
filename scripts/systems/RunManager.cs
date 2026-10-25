@@ -307,6 +307,10 @@ public partial class RunManager : Node3D
             case RoomRewardType.Anvil:
                 PayAnvilReward();
                 break;
+            case RoomRewardType.CursedBlood:
+                AddCursedBlood(door.CoinAmount);
+                UnlockExitAfterRewardDeferred();
+                break;
             default:
                 // Fruta: libera as portas quando o item for pego.
                 UnlockExitAfterRewardDeferred();
