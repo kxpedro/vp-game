@@ -395,13 +395,10 @@ public partial class RoomGenerator : Node3D
         if (!HasExitOnWall && !_exitHasDoors && !RunState.IsBossRoom)
             CreatePointOfInterest("Exit", CellToWorld(_exitCell), new Color(0.85f, 0.02f, 0.04f));
 
+        // A sala do boss não tem marcador no centro (era um disco vermelho solto no chão da arena).
         if (!RunState.IsBossRoom)
         {
             CreatePointOfInterest("CentralChamber", CellToWorld(_focusCell), new Color(0.28f, 0.28f, 0.32f));
-        }
-        else
-        {
-            CreatePointOfInterest("BossArena", Vector3.Zero, new Color(0.85f, 0.02f, 0.04f));
         }
     }
 
