@@ -102,6 +102,8 @@ public partial class HUD
 			MouseFilter = Control.MouseFilterEnum.Ignore
 		};
 		_blessingHudList.AddThemeConstantOverride("separation", UiMetrics.S1);
+		// No hub não há run em andamento: os slots só aparecem nas salas da run.
+		_blessingHudList.Visible = !IsHubScene();
 		root.AddChild(_blessingHudList);
 		RefreshBlessingHud();
 
