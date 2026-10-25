@@ -539,7 +539,7 @@ public partial class HUD
 			choices = BloodBlessingCatalog.RollOffers(rng, CompendiumTuning.GetInt("reward.blessing.choices", 3), out family, guaranteeBasicAttack);
 		if (choices.Count == 0)
 		{
-			// Sem bênção nova para oferecer: o sangue vira Moedas no SALDO DA RUN (economy.coins.blessing_fallback, padrão 75).
+			// Sem bênção nova para oferecer: o sangue vira Moedas no SALDO DA RUN (economy.coins.blessing_fallback, padrão 25).
 			var fallbackCoins = CompendiumTuning.GetInt("economy.coins.blessing_fallback", EconomyDefaults.BlessingFallbackCoins);
 			if (GetTree().GetFirstNodeInGroup("run_manager") is RunManager runManager)
 				runManager.AddBloodCoins(fallbackCoins);

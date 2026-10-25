@@ -6,6 +6,20 @@ Documento de design da tarefa T1 do plano `20261011-0550-economia-recompensas`. 
 
 As decisões D1 a D6 do usuário (Moedas só na run, Sangue Amaldiçoado permanente, Fruta de +15, boss entrega Sangue + Fruta, artefatos vendidos sem limite, saves v1 excluídos) são premissas fixas e não são reabertas aqui.
 
+> **Rebalanceamento de 2026-10-25 (substitui os números de Moedas e preços das seções 2, 6 e 9).** Pedido do Pedro: chegava à primeira Câmara com ~5.000 moedas e comprava a loja inteira; o alvo agora é **no máximo 2 artefatos por visita**. A causa principal era um valor promovido no F1 (`economy.coins.boss.0` = 4.390 em `data/tuning/tuning_overrides.json`), removido; além disso a escala inteira caiu ~4×:
+>
+> | Parâmetro | Antes | Agora |
+> |---|---|---|
+> | `economy.coins.enemy.base_min` / `base_max` | 3 / 7 | 1 / 1 (inimigo Normal = 1 moeda; os multiplicadores de arquétipo e raridade continuam) |
+> | `economy.coins.map_factor.{0..3}` | 1,0 / 0,6 / 0,5 / 0,5 | 1,0 / 0,6 / 0,6 / 0,6 |
+> | `economy.coins.boss.{0..3}` | 100 / 130 / 160 / 0 | 20 / 30 / 40 / 0 |
+> | `economy.coins.room_reward_pack.{0..2}` (porta de Moedas) | 150 / 130 / 110 | 40 / 45 / 50 |
+> | `economy.coins.blessing_fallback` | 75 | 25 |
+> | `economy.shop.price.*` (Common … Mythic) | 250 / 420 / 700 / 1.100 / 1.700 / 2.400 | 110 / 150 / 200 / 270 / 360 / 480 |
+> | `ledger_of_unpaid_blood` (`DamagePerCurrencyHeld`) | 0,001 por moeda | 0,003 por moeda (mantém o teto de +100% alcançável na nova escala) |
+>
+> Renda simulada (3.000 runs, limpando o mapa inteiro, porta de Moedas em ~18% das salas): mapa 1 ≈ **250** (p10 210, p90 300), mapa 2 ≈ 320, mapa 3 ≈ 410. Preço médio de um slot: visita 1 ≈ 149, visita 2 ≈ 172, visita 3 ≈ 192, ou seja **≈ 1,7 a 2 compras por visita**. Os três artefatos mais baratos da visita 1 custam 370 (só há 2 Common), acima do p90 da renda: comprar 3 só guardando de uma visita para a outra. Tudo continua ajustável no F1 (grupo Economia). **[VALIDAR]** jogando.
+
 ---
 
 ## 1. Levantamento do estado atual (base das contas)

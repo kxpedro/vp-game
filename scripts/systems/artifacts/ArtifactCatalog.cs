@@ -16,7 +16,7 @@ public static class ArtifactCatalog
 
     // Loja (docs/design/economia-v2.md, secoes 6 e 9.4). Ordem = raridade crescente; indices alinhados com as tabelas abaixo.
     private static readonly string[] ShopRarities = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" };
-    private static readonly int[] DefaultShopPrices = { 250, 420, 700, 1100, 1700, 2400 };
+    private static readonly int[] DefaultShopPrices = EconomyDefaults.ShopPrices;
     // [raridade][visita 0..2]
     private static readonly float[][] DefaultShopRarityWeights =
     {

@@ -6,14 +6,15 @@
 // ainda repetem estes literais e podem passar a ler daqui (valores identicos aos registrados em DevParameters.Legacy.cs).
 public static class EconomyDefaults
 {
-    public static readonly int[] BossCoins = { 100, 130, 160, 0 };            // economy.coins.boss.{m}
+    public static readonly int[] BossCoins = { 20, 30, 40, 0 };               // economy.coins.boss.{m}
     public static readonly int[] BossCursedBlood = { 40, 60, 80, 120 };       // economy.cursed_blood.boss.{m}
     public static readonly int[] LegendaryCursedBlood = { 0, 6, 8, 8 };       // economy.cursed_blood.legendary.{m}
-    public static readonly float[] CoinMapFactor = { 1.0f, 0.6f, 0.5f, 0.5f }; // economy.coins.map_factor.{m}
-    public static readonly int[] RoomCoinPack = { 150, 130, 110 };            // economy.coins.room_reward_pack.{m}
-    public const int EnemyCoinsMin = 3;                                       // economy.coins.enemy.base_min
-    public const int EnemyCoinsMax = 7;                                       // economy.coins.enemy.base_max
-    public const int BlessingFallbackCoins = 75;                              // economy.coins.blessing_fallback
+    public static readonly float[] CoinMapFactor = { 1.0f, 0.6f, 0.6f, 0.6f }; // economy.coins.map_factor.{m}
+    public static readonly int[] RoomCoinPack = { 40, 45, 50 };               // economy.coins.room_reward_pack.{m}
+    public const int EnemyCoinsMin = 1;                                       // economy.coins.enemy.base_min
+    public const int EnemyCoinsMax = 1;                                       // economy.coins.enemy.base_max
+    public const int BlessingFallbackCoins = 25;                              // economy.coins.blessing_fallback
+    public static readonly int[] ShopPrices = { 110, 150, 200, 270, 360, 480 }; // economy.shop.price.{raridade}
     public const float FountainCostStep = 0.5f;                               // fountain.cost_step
 }
 

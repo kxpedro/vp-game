@@ -25,7 +25,7 @@ public partial class HUD
 	private readonly HashSet<string> _shopPreviewPurchased = new();
 	private int _shopPreviewCoins;
 
-	private const int ShopPreviewStartCoins = 1000;
+	private const int ShopPreviewStartCoins = 260; // ~ renda do mapa 1 (economia de out/2026): 2 compras baratas, nem todas
 
 	private List<ShopOffer> ActiveShopStock => _shopPreviewMode ? _shopPreviewStock : _shopStock;
 

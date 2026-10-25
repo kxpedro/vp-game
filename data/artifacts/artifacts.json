@@ -486,7 +486,7 @@
                                           {
                                               "type":  "DamagePerCurrencyHeld",
                                               "operation":  "ScaleMultiplier",
-                                              "value":  0.001
+                                              "value":  0.003
                                           },
                                           {
                                               "type":  "DamagePenaltyOnHeal",
