@@ -37,8 +37,8 @@ public partial class PixelEnemySprite : Node3D
         ["plant_red"] = Clips("idle", "walk"),
         ["plant_bulb"] = Clips("idle", "walk"),
         ["plant_purple"] = Clips("idle", "walk"),
-        // Zumbi (ghoul) do Jardim Sangrento: quadros de 32 px ampliados 2x (tools/pixel_art/monsters/source/ghoul/).
-        ["ghoul"] = Clips("idle", "walk"),
+        // Zumbi do Jardim Sangrento: desenhado por código no padrão das plantas (tools/pixel_art/monsters/zombie/).
+        ["zombie"] = Clips("idle", "walk"),
     };
 
     // Quadro quadrado de cada folha (padrão: 150 px do Monsters Creatures Fantasy). Os pés ficam em y≈FrameSize-49
@@ -49,17 +49,17 @@ public partial class PixelEnemySprite : Node3D
         ["plant_red"] = 64,
         ["plant_bulb"] = 64,
         ["plant_purple"] = 64,
-        ["ghoul"] = 64,
+        ["zombie"] = 64,
     };
 
-    // Pés abaixo do centro do quadro, quando não são os 26 px padrão (plantas: pés em y≈51 do quadro de 64; zumbi: na
-    // última linha do quadro).
+    // Pés abaixo do centro do quadro, quando não são os 26 px padrão (plantas e zumbi: pés em y≈51 do quadro de
+    // 64).
     private static readonly Dictionary<string, float> FeetOffsets = new()
     {
         ["plant_red"] = 19.0f,
         ["plant_bulb"] = 19.0f,
         ["plant_purple"] = 19.0f,
-        ["ghoul"] = 31.0f,
+        ["zombie"] = 19.0f,
     };
 
     private static readonly Dictionary<string, Texture2D> TextureCache = new();

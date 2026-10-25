@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0o6wpo3s22a6"
-path="res://.godot/imported/death.png-c544ad33f22e2d82226626a2541e6446.ctex"
+uid="uid://xepukcgjnnji"
+path="res://.godot/imported/attack.png-14646f0dd96ba22e41dec8b1c0570c19.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pixel_art/monsters/ghoul/death.png"
-dest_files=["res://.godot/imported/death.png-c544ad33f22e2d82226626a2541e6446.ctex"]
+source_file="res://assets/pixel_art/monsters/zombie/attack.png"
+dest_files=["res://.godot/imported/attack.png-14646f0dd96ba22e41dec8b1c0570c19.ctex"]
 
 [params]
 

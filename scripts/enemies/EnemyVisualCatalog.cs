@@ -69,7 +69,7 @@ public static class EnemyVisualCatalog
     {
         EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "plant_bulb", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
         EnemyArchetype.Tank => new(PixelEnemySprite.PathPrefix + "plant_purple", 1.0f, "Idle", 0.68f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
-        _ => new(PixelEnemySprite.PathPrefix + (Godot.GD.Randf() < 0.5f ? "plant_red" : "ghoul"), 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
+        _ => new(PixelEnemySprite.PathPrefix + (Godot.GD.Randf() < 0.5f ? "plant_red" : "zombie"), 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
     } : archetype switch
     {
         EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "flying_eye", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),

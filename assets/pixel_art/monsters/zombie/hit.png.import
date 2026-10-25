@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d1dakrag73s1e"
-path="res://.godot/imported/idle.png-93e4ec6b3d6cdb7819aeea2446a42e9c.ctex"
+uid="uid://dtnpy3j0p7ywu"
+path="res://.godot/imported/hit.png-83f65518a04855797df4f4bc4d618174.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pixel_art/monsters/ghoul/idle.png"
-dest_files=["res://.godot/imported/idle.png-93e4ec6b3d6cdb7819aeea2446a42e9c.ctex"]
+source_file="res://assets/pixel_art/monsters/zombie/hit.png"
+dest_files=["res://.godot/imported/hit.png-83f65518a04855797df4f4bc4d618174.ctex"]
 
 [params]
 

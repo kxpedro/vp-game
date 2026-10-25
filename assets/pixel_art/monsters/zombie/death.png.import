@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dce8wnnu7dfcu"
-path="res://.godot/imported/walk.png-2a44e012c23a29efcc54ab0720208f08.ctex"
+uid="uid://d3t3gl5mwt8ur"
+path="res://.godot/imported/death.png-378f82b7e3ae92b80b1fa5a1fcbee68b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pixel_art/monsters/ghoul/walk.png"
-dest_files=["res://.godot/imported/walk.png-2a44e012c23a29efcc54ab0720208f08.ctex"]
+source_file="res://assets/pixel_art/monsters/zombie/death.png"
+dest_files=["res://.godot/imported/death.png-378f82b7e3ae92b80b1fa5a1fcbee68b.ctex"]
 
 [params]
 

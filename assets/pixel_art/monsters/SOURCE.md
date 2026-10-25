@@ -55,7 +55,7 @@ recortados ficam em `tools/pixel_art/monsters/source/plant_*/`.
 | `plant_bulb/` | Plant2 | à distância |
 | `plant_purple/` | Plant3 | tanque |
 
-O corpo a corpo do mapa 2 sorteia meio a meio entre `plant_red` e `ghoul` (abaixo).
+O corpo a corpo do mapa 2 sorteia meio a meio entre `plant_red` e `zombie` (abaixo).
 
 Arquivos: `idle`, `walk`, `attack`, `hit`, `death` (Idle, Walk, Attack, Hurt, Death do pacote).
 
@@ -63,23 +63,22 @@ Arquivos: `idle`, `walk`, `attack`, `hit`, `death` (Idle, Walk, Attack, Hurt, De
 - **Licença:** licença de arquivos da Craftpix (https://craftpix.net/file-licenses/), indicada no `License.txt` do
   pacote: uso em jogos, inclusive comerciais, sem exigir atribuição; não pode redistribuir os arquivos soltos.
 
-## ghoul (zumbi do Jardim Sangrento, mapa 2)
+## zombie (zumbi do Jardim Sangrento, mapa 2)
 
-`Ghoul Sprite Sheet.png`, enviada pelo Pedro como exemplo (folha de 256x160, 8 colunas x 5 linhas de quadros de
-32x32, olhando para a direita). Cada linha virou uma faixa ampliada 2x com vizinho mais próximo (quadros de 64x64, pés
-na última linha, `PixelEnemySprite.FeetOffsets` = 31) em `tools/pixel_art/monsters/source/ghoul/`, e depois foi
-remapeada para a AAP-64 como os outros. Por ser ampliado, o pixel do zumbi sai 2x maior que o das outras folhas.
+Desenhado por código em `tools/pixel_art/monsters/zombie/draw_zombie.py` (sem pixels de terceiros), no padrão das
+plantas: quadros de 64x64 olhando para a direita, pés em y=51, 1 pixel de arte por pixel da folha, paleta AAP-64 e
+alfa binário. A `Ghoul Sprite Sheet.png` que o Pedro mandou serviu só de referência de pose e de clima (curvado,
+braços à frente, boca ensanguentada). Para regerar:
 
-| Linha | Arquivo | Quadros |
-|---|---|---|
-| 1 | `idle` | 4 |
-| 2 | `walk` | 8 |
-| 3 | `attack` | 6 |
-| 4 | `hit` | 4 |
-| 5 | `death` | 6 |
+    py tools/pixel_art/monsters/zombie/draw_zombie.py [--preview prancha.png]
 
-- **Autor e licença:** NÃO REGISTRADOS. Antes de distribuir o jogo, confirmar a origem do pacote e registrar aqui e em
-  `CREDITS.md`.
+| Arquivo | Quadros |
+|---|---|
+| `idle` | 4 |
+| `walk` | 8 |
+| `attack` | 6 |
+| `hit` | 4 |
+| `death` | 6 |
 
 ## Conferência da paleta
 
