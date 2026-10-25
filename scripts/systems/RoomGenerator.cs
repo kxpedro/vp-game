@@ -455,14 +455,18 @@ public partial class RoomGenerator : Node3D
 
     private EnemyArchetype RollEnemyArchetype()
     {
-        // Ranged used to be one third of the pool. Twenty percent fewer yields 26.67%,
-        // with the freed weight shared evenly between melee and tank enemies.
-        var roll = _rng.Randf();
-        var rangedChance = CompendiumTuning.GetFloat("room.archetype.ranged_chance", 0.266667f);
-        var meleeChance = CompendiumTuning.GetFloat("room.archetype.melee_chance", 0.366666f);
-        if (roll < rangedChance)
+        // Pesos relativos por mapa (painel F1 > Salas e waves): 36.67 / 26.67 / 36.67 por padrao.
+        var map = Mathf.Clamp(RunState.CurrentMapIndex, 0, 3);
+        var melee = Mathf.Max(CompendiumTuning.GetFloat($"room.archetype.melee_weight.{map}", 36.67f), 0.0f);
+        var ranged = Mathf.Max(CompendiumTuning.GetFloat($"room.archetype.ranged_weight.{map}", 26.67f), 0.0f);
+        var tank = Mathf.Max(CompendiumTuning.GetFloat($"room.archetype.tank_weight.{map}", 36.67f), 0.0f);
+        var total = melee + ranged + tank;
+        if (total <= 0.0f)
+            return EnemyArchetype.Melee;
+        var roll = _rng.Randf() * total;
+        if (roll < ranged)
             return EnemyArchetype.Ranged;
-        return roll < rangedChance + meleeChance ? EnemyArchetype.Melee : EnemyArchetype.Tank;
+        return roll < ranged + melee ? EnemyArchetype.Melee : EnemyArchetype.Tank;
     }
 
     /// <summary>
