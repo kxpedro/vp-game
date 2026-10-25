@@ -12,6 +12,9 @@ public sealed record EnemyVisualDefinition(
 
 public static class EnemyVisualCatalog
 {
+    // Indice do Jardim Sangrento em CampaignCatalog (plantas no 2D).
+    public const int GardenMapIndex = 1;
+
     private static readonly System.Collections.Generic.Dictionary<string, Godot.PackedScene> SceneCache = new();
 
     public static void BeginWarmup(bool isBoss, int mapIndex)
@@ -61,8 +64,13 @@ public static class EnemyVisualCatalog
     };
 
     // Modo 2D: monstros em pixel art (PixelEnemySprite). Corpo a corpo = goblin ou cogumelo, a distancia = olho voador,
-    // tanque = esqueleto. Chefes: GetBoss.
-    private static EnemyVisualDefinition GetPixelEnemy(EnemyArchetype archetype) => archetype switch
+    // tanque = esqueleto. No Jardim Sangrento (mapa 2), plantas predadoras e, no corpo a corpo, metade zumbis. Chefes: GetBoss.
+    private static EnemyVisualDefinition GetPixelEnemy(EnemyArchetype archetype) => RunState.CurrentMapIndex == GardenMapIndex ? archetype switch
+    {
+        EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "plant_bulb", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
+        EnemyArchetype.Tank => new(PixelEnemySprite.PathPrefix + "plant_purple", 1.0f, "Idle", 0.68f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
+        _ => new(PixelEnemySprite.PathPrefix + (Godot.GD.Randf() < 0.5f ? "plant_red" : "zombie"), 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact")
+    } : archetype switch
     {
         EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "flying_eye", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
         EnemyArchetype.Tank => new(PixelEnemySprite.PathPrefix + "skeleton", 1.0f, "Idle", 0.68f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),

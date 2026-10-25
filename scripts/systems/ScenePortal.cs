@@ -450,7 +450,7 @@ public partial class ScenePortal : Area3D
         var basis = template.Transform.Basis.Orthonormalized();
         var twoDoors = set.TwoDoors;
         var offset = CompendiumTuning.GetFloat("reward.door.two_door_offset_cells", 1.0f) * DoorCellSize;
-        var frameScale = twoDoors ? CompendiumTuning.GetFloat("reward.door.two_door_frame_scale", 0.6f) : 1.0f;
+        var frameScale = twoDoors ? CompendiumTuning.GetFloat("reward.door.two_door_frame_scale", 0.6f) * (set.Doors.Count > 2 ? 0.67f : 1.0f) : 1.0f;
         pixelWall?.SetDoorCount(set.Doors.Count);
         // As grades do modelo dão lugar às das portas (no 2D elas ocupam os mesmos arcos).
         foreach (var name in new[] { GateName, ExtraGateName })
@@ -464,7 +464,8 @@ public partial class ScenePortal : Area3D
 
         for (var i = 0; i < set.Doors.Count; i++)
         {
-            var lateral = twoDoors ? (i == 0 ? -offset : offset) : 0.0f;
+            // Portas lado a lado e centradas: duas em -1 e +1, tres em -1, 0 e +1 (x afastamento).
+            var lateral = twoDoors ? (set.Doors.Count == 2 ? (i == 0 ? -offset : offset) : (i - (set.Doors.Count - 1) * 0.5f) * offset) : 0.0f;
             var root = new Node3D
             {
                 Name = $"RewardDoor_{i}",

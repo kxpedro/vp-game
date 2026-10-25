@@ -34,6 +34,13 @@ public partial class PixelEnemySprite : Node3D
             new Clip("HitReact", "idle", 18.0f, false),
             new Clip("Death", "idle", 10.0f, false),
         },
+        // Plantas predadoras do Jardim Sangrento (mapa 2; pacote da Craftpix): vermelha = corpo a corpo,
+        // bulbo = a distância, roxa = tanque.
+        ["plant_red"] = Clips("idle", "walk"),
+        ["plant_bulb"] = Clips("idle", "walk"),
+        ["plant_purple"] = Clips("idle", "walk"),
+        // Zumbi do Jardim Sangrento: desenhado por código no padrão das plantas (tools/pixel_art/monsters/zombie/).
+        ["zombie"] = Clips("idle", "walk"),
     };
 
     // Quadro quadrado de cada folha (padrão: 150 px do Monsters Creatures Fantasy). Os pés ficam em y≈FrameSize-49
@@ -41,6 +48,20 @@ public partial class PixelEnemySprite : Node3D
     private static readonly Dictionary<string, int> FrameSizes = new()
     {
         ["mage_guardian"] = 64,
+        ["plant_red"] = 64,
+        ["plant_bulb"] = 64,
+        ["plant_purple"] = 64,
+        ["zombie"] = 64,
+    };
+
+    // Pés abaixo do centro do quadro, quando não são os 26 px padrão (plantas e zumbi: pés em y≈51 do quadro de
+    // 64).
+    private static readonly Dictionary<string, float> FeetOffsets = new()
+    {
+        ["plant_red"] = 19.0f,
+        ["plant_bulb"] = 19.0f,
+        ["plant_purple"] = 19.0f,
+        ["zombie"] = 19.0f,
     };
 
     private static readonly Dictionary<string, Texture2D> TextureCache = new();
@@ -80,7 +101,7 @@ public partial class PixelEnemySprite : Node3D
             Shaded = true,
             DoubleSided = true,
             PixelSize = PlayerSpriteVisual.PixelSize,
-            Offset = new Vector2(0.0f, FeetOffsetPixels),
+            Offset = new Vector2(0.0f, FeetOffsets.TryGetValue(monster, out var feet) ? feet : FeetOffsetPixels),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         visual.AddChild(visual._sprite);

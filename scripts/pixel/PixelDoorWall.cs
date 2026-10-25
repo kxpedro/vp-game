@@ -1,7 +1,7 @@
 using Godot;
 
 // Modo 2D: a parede de saída de uma sala, onde ficam os arcos das portas. Uma porta usa o arco do tile do meio; duas
-// usam os tiles vizinhos dele (um de cada lado, com o do meio liso entre os dois). O arco é uma borda "arch" do layout,
+// usam os tiles vizinhos dele (um de cada lado, com o do meio liso entre os dois); três usam os três tiles. O arco é uma borda "arch" do layout,
 // então trocar o número de portas redesenha a sala (PixelRoom.RecomposeAsync). Só paredes do fundo (ne e nw), que
 // são as que têm arco e grade no kit.
 public sealed class PixelDoorWall
@@ -36,11 +36,16 @@ public sealed class PixelDoorWall
     /// <summary>True se a parede comporta duas portas: os dois vizinhos do meio são chão com parede atrás.</summary>
     public bool FitsTwoDoors => IsWallTile(Center - Along) && IsWallTile(Center + Along);
 
+    /// <summary>True se a parede comporta três portas: o meio e os dois vizinhos são chão com parede atrás.</summary>
+    public bool FitsThreeDoors => FitsTwoDoors && IsWallTile(Center);
+
     /// <summary>Tile do arco da porta <paramref name="index"/> num conjunto de <paramref name="count"/> portas.</summary>
     public Vector2I DoorTile(int index, int count)
     {
         if (count < 2 || !FitsTwoDoors)
             return Center;
+        if (count >= 3 && FitsThreeDoors)
+            return Center + Along * (Mathf.Clamp(index, 0, 2) - 1);
         return index == 0 ? Center - Along : Center + Along;
     }
 
@@ -57,7 +62,7 @@ public sealed class PixelDoorWall
     /// </summary>
     public void SetDoorCount(int count)
     {
-        count = count >= 2 && FitsTwoDoors ? 2 : 1;
+        count = count >= 3 && FitsThreeDoors ? 3 : count >= 2 && FitsTwoDoors ? 2 : 1;
         if (count == DoorCount)
             return;
         DoorCount = count;

@@ -41,6 +41,23 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
   `PointLight2D` no jogo. A luz das velas não vem "assada": as peças só têm a penumbra base (ambient -0.6).
 - Escala: Virgil com ~49px de altura e parede de 76px (ele fica com ~65% da parede).
 
+## garden (kit do Jardim Sangrento, mapa 2)
+
+Kit no mesmo formato do da cripta (peças de 224x208 com o vértice de cima do tile em (112, 116), `heights/` e
+`manifest.json`), desenhado por código em `tools/pixel_art/garden_kit/` (sem pixels de terceiros; os pacotes
+NatureTiles, Flowers e PixelBushes do `F:\ASSETS` serviram só de referência visual). Para regerar:
+
+    py tools/pixel_art/garden_kit/export_garden.py
+    py tools/pixel_art/garden_kit/preview_rooms.py <pasta>   (prévia das duas salas)
+
+- `walls/`: mesmos nomes do kit da cripta, com sebe alta no lugar da pedra (`_niche` = sebe com rosas; o `_arch`
+  tem o mesmo vão do da cripta, então a grade do portão é a mesma).
+- `props/`: `hedge_block_a/b/c` (bloco de sebe do labirinto, 1 tile), `parterre` (canteiro 2x2), `topiary_center`,
+  `topiary_ball`, `rose_bush`, `lantern` (com luz) e `dead_tree_a/b`.
+- O `manifest.json` traz o chão do kit (`floor`): `tiles/garden_floor/garden_floor_128_<base|dark|moss|blood>_flat.png`.
+
+O `PixelRoomComposer` escolhe o kit pelo `PixelRoomLayout.Kit` (`crypt` por padrão; `garden` nas salas do mapa 2).
+
 ## characters/virgil
 
 Sprite do Virgil (idle de 8 quadros, 3/4 sudoeste, com e sem arma), gerado por `tools/pixel_art/virgil/`.

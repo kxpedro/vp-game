@@ -143,9 +143,16 @@ public partial class RoomGenerator : Node3D
         _roomCells.Clear();
         _exitWallDirection = Vector2I.Zero;
         _exitHasDoors = false;
+        _gardenPlan = null;
 
         if (RunState.IsBossRoom)
             BuildBossMap();
+        else if (UsesGardenKit)
+        {
+            // Jardim Sangrento (2D): planta própria em tiles, já alinhada (RoomGenerator.Garden.cs).
+            BuildGardenMap();
+            return;
+        }
         else
             BuildCompactLinearMap();
 
@@ -188,7 +195,7 @@ public partial class RoomGenerator : Node3D
     // Com 1 tile = 2x2 células, a célula (0, 0) fica no centro do primeiro quarto do tile (0, 0): origem do kit em (16, 16).
     private void GeneratePixelRoom()
     {
-        var tiles = CellsToPixelTiles(_walkableCells);
+        var tiles = _gardenPlan?.Tiles ?? CellsToPixelTiles(_walkableCells);
         Vector2I? exitTile = HasExitOnWall ? CellToPixelTile(_exitCell) : (Vector2I?)null;
         var extraProps = new List<PixelRoomProp>();
         if (RunState.IsBossRoom)
@@ -204,7 +211,9 @@ public partial class RoomGenerator : Node3D
             }
         }
 
-        var layout = PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
+        var layout = UsesGardenKit
+            ? BuildGardenLayout(exitTile, extraProps)
+            : PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
         _pixelRoom = new PixelRoom { Name = "PixelRoom" };
         AddChild(_pixelRoom);
         // Arcos da saída: dois quando a sala vai ter conjunto de portas (o caso mais comum); se o sorteio der uma porta

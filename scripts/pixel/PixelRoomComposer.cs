@@ -20,6 +20,8 @@ public sealed class PixelRoomLayout
     public List<PixelRoomProp> Props { get; } = new();
     public float Ambient { get; set; } = -0.6f;
     public int Seed { get; set; } = 3;
+    // Pasta do kit em assets/pixel_art/ (crypt = cripta; garden = Jardim Sangrento, mesmas peças de parede).
+    public string Kit { get; set; } = PixelRoomComposer.DefaultKit;
 
     public bool HasTile(int gx, int gy) => Tiles.ContainsKey(new Vector2I(gx, gy));
 
@@ -62,6 +64,7 @@ public sealed class PixelRoomLayout
                 case "settings" when parts.Length >= 2:
                     if (parts[0] == "ambient") layout.Ambient = ParseFloat(parts[1]);
                     else if (parts[0] == "seed") layout.Seed = (int)ParseFloat(parts[1]);
+                    else if (parts[0] == "kit") layout.Kit = parts[1];
                     break;
             }
         }
@@ -114,10 +117,15 @@ public sealed class PixelRoomAnimation
 
 public static class PixelRoomComposer
 {
+    public const string DefaultKit = "crypt";
+    // Kit da cripta: a grade do portão e as peças avulsas (PixelRoom.AddOverlay) vêm sempre dele.
     public const string KitRoot = "res://assets/pixel_art/crypt/";
     public const string FloorRoot = "res://assets/pixel_art/tiles/dungeon_floor/dungeon_floor_128_";
+
+    public static string KitRootOf(string kit) => $"res://assets/pixel_art/{(string.IsNullOrEmpty(kit) ? DefaultKit : kit)}/";
     public const float HeightScale = 100.0f;
 
+    // Chão padrão (cripta); outro kit pode trazer o seu no manifest ("floor": root, variants, weights).
     private static readonly string[] FloorNames = { "base", "cracked", "blood", "missing_stone", "wet" };
     private static readonly float[] FloorWeights = { 0.5f, 0.22f, 0.05f, 0.05f, 0.18f };
     private static readonly string[] WallEdges = { "plain", "niche", "low" };
@@ -134,7 +142,12 @@ public static class PixelRoomComposer
         // Altar do sacrifício (estela + altar; o estrado é pisável) e bancada de artefatos (armário + balcão, de x -36
         // a 100 e y 0 a 46 do tile).
         ("sacrifice_altar", new Vector2(22, 24), new Vector2(-5, 0)),
-        ("artifact_counter", new Vector2(68, 23), new Vector2(0, -9))
+        ("artifact_counter", new Vector2(68, 23), new Vector2(0, -9)),
+        // Jardim Sangrento: bloco de sebe do labirinto (tile inteiro), canteiro 2x2 (a peça começa no tile da âncora),
+        // canteiro redondo com topiaria, topiaria pequena, lanterna e árvore seca. Roseiras são decoração.
+        ("hedge_block", new Vector2(32, 32), Vector2.Zero), ("parterre", new Vector2(62, 62), new Vector2(32, 32)),
+        ("topiary_center", new Vector2(36, 36), Vector2.Zero), ("topiary_ball", new Vector2(11, 11), Vector2.Zero),
+        ("lantern", new Vector2(5, 5), Vector2.Zero), ("dead_tree", new Vector2(7, 7), Vector2.Zero)
     };
 
     // Paleta AAP-64 em famílias (mesma ordem de tools/pixel_art/crypt_kit/iso.py).
@@ -149,6 +162,8 @@ public static class PixelRoomComposer
         ("wood", new[] { "060608", "141013", "221c1a", "422433", "5b3138", "71413b", "8e5252" }),
         ("iron", new[] { "060608", "141013", "242234", "333941", "4a5462", "6d758d" }),
         ("flame", new[] { "fa6a0a", "f9a31b", "ffd541", "fffc40", "ffffff" }),
+        // Sebe do Jardim: as cores comuns já caem na "moss"; aqui entra só o verde claro do topo (5daf8d).
+        ("hedge", new[] { "060608", "141013", "122020", "24523b", "23674e", "328464", "5daf8d" }),
     };
 
     /// <summary>Deslocamento do centro e meia-extensão (unidades do kit) do obstáculo de uma peça; zero se ela não bloqueia.</summary>
@@ -177,13 +192,24 @@ public static class PixelRoomComposer
         public List<(float X, float Y, float Power, float Radius)> Lights = new();
     }
 
-    // Vértice de cima do tile dentro de cada peça do kit (manifest.json, tile_top_vertex).
-    public static int TileTopX => EnsureManifest() ? _topX : 112;
-    public static int TileTopY => EnsureManifest() ? _topY : 116;
+    // Manifest de um kit (manifest.json): vértice de cima do tile, luz base assada e o chão do kit.
+    private sealed class KitInfo
+    {
+        public string Root;
+        public JsonDocument Manifest;
+        public int TopX = 112;
+        public int TopY = 116;
+        public float BakedAmbient = -0.6f;
+        public string FloorRoot = PixelRoomComposer.FloorRoot;
+        public string[] FloorNames = PixelRoomComposer.FloorNames;
+        public float[] FloorWeights = PixelRoomComposer.FloorWeights;
+    }
 
-    private static JsonDocument _manifest;
-    private static int _canvasW = 224, _canvasH = 208, _topX = 112, _topY = 116;
-    private static float _bakedAmbient = -0.6f;
+    // Vértice de cima do tile dentro de cada peça do kit da cripta (manifest.json, tile_top_vertex).
+    public static int TileTopX => EnsureManifest(DefaultKit) is { } kit ? kit.TopX : 112;
+    public static int TileTopY => EnsureManifest(DefaultKit) is { } kit ? kit.TopY : 116;
+
+    private static readonly Dictionary<string, KitInfo> Kits = new();
     private static readonly Dictionary<string, Piece> PieceCache = new();
     private static readonly Dictionary<string, Piece> FloorCache = new();
     private static Dictionary<int, (int Family, int Index)> _lut;
@@ -202,7 +228,7 @@ public static class PixelRoomComposer
 
     public static PixelRoomPicture Compose(PixelRoomLayout layout)
     {
-        if (layout == null || layout.Tiles.Count == 0 || !EnsureManifest())
+        if (layout == null || layout.Tiles.Count == 0 || EnsureManifest(layout.Kit) is not { } kit)
             return null;
 
         var tiles = layout.Tiles;
@@ -231,7 +257,7 @@ public static class PixelRoomComposer
         foreach (var tile in tiles.Keys.OrderBy(t => t.X + t.Y).ThenBy(t => t.X))
         {
             var (sx, sy) = Scr(tile.X, tile.Y);
-            var floor = LoadFloor(FloorNames[PickWeighted(rng)]);
+            var floor = LoadFloor(kit, kit.FloorNames[PickWeighted(rng, kit.FloorWeights)]);
             if (floor != null)
                 Blit(floor, rgba, null, null, width, height, sx - 64, sy, 0.0f, false);
             var dark = tiles[tile];
@@ -303,7 +329,7 @@ public static class PixelRoomComposer
 
         foreach (var prop in layout.Props)
         {
-            var piece = LoadPiece("props/" + prop.Name);
+            var piece = LoadPiece(kit, "props/" + prop.Name);
             if (piece == null) continue;
             var order = piece.Kind switch { "decal" => -0.5f, "wall_prop" => -0.55f, _ => (prop.Dx + prop.Dy) / 64.0f };
             Put("props/" + prop.Name, prop.Gx, prop.Gy, (prop.Gx + prop.Gy + order, 1, prop.Gx), prop.Dx, prop.Dy);
@@ -313,7 +339,7 @@ public static class PixelRoomComposer
         var animated = new List<(string Name, int Gx, int Gy, float Dx, float Dy, int X0, int Y0, float Dark)>();
         foreach (var item in items.OrderBy(i => i.Order.D).ThenBy(i => i.Order.Layer).ThenBy(i => i.Order.Gx))
         {
-            var piece = LoadPiece(item.Name);
+            var piece = LoadPiece(kit, item.Name);
             if (piece == null) continue;
             var (sx, sy) = Scr(item.Gx, item.Gy, item.Dx, item.Dy);
             Blit(piece, rgba, zmap, darkmap, width, height, sx - piece.TopX, sy - piece.TopY, Dark(item.Gx, item.Gy), true);
@@ -323,8 +349,8 @@ public static class PixelRoomComposer
                 animated.Add((item.Name, item.Gx, item.Gy, item.Dx, item.Dy, sx - piece.TopX, sy - piece.TopY, Dark(item.Gx, item.Gy)));
         }
 
-        Relight(rgba, darkmap, width, height, lights, layout.Ambient - _bakedAmbient);
-        var animations = animated.Select(a => ComposeFrames(a.Name, a.Gx, a.Gy, a.Dx, a.Dy, a.X0, a.Y0, a.Dark, lights, layout.Ambient - _bakedAmbient))
+        Relight(rgba, darkmap, width, height, lights, layout.Ambient - kit.BakedAmbient);
+        var animations = animated.Select(a => ComposeFrames(kit, a.Name, a.Gx, a.Gy, a.Dx, a.Dy, a.X0, a.Y0, a.Dark, lights, layout.Ambient - kit.BakedAmbient))
             .Where(a => a != null).ToList();
 
         // Recorte com margem de 12 px e fundo opaco, como no build_room.py.
@@ -376,15 +402,15 @@ public static class PixelRoomComposer
 
     // Cada quadro da peça animada (<nome>, <nome>_1 .. _N-1) recebe a mesma luz da sala; a peça ocupa o retângulo
     // (x0, y0) da imagem da sala, então as luzes são transladadas para a peça.
-    private static PixelRoomAnimation ComposeFrames(string name, int gx, int gy, float dx, float dy, int x0, int y0, float dark,
+    private static PixelRoomAnimation ComposeFrames(KitInfo kit, string name, int gx, int gy, float dx, float dy, int x0, int y0, float dark,
         List<(float X, float Y, float Power, float Radius)> roomLights, float ambient)
     {
-        var first = LoadPiece(name);
+        var first = LoadPiece(kit, name);
         var lights = roomLights.Select(l => (l.X - x0, l.Y - y0, l.Power, l.Radius)).ToList();
         var animation = new PixelRoomAnimation { Name = name, Gx = gx, Gy = gy, Dx = dx, Dy = dy, TileTop = new Vector2I(first.TopX, first.TopY) };
         for (var k = 0; k < first.Frames; k++)
         {
-            var piece = k == 0 ? first : LoadPiece($"{name}_{k}");
+            var piece = k == 0 ? first : LoadPiece(kit, $"{name}_{k}");
             if (piece == null || piece.Width != first.Width || piece.Height != first.Height)
             {
                 GD.PushWarning($"PixelRoomComposer: quadro {k} da peca animada {name} ausente ou com outro tamanho.");
@@ -515,12 +541,12 @@ public static class PixelRoomComposer
         }
     }
 
-    private static int PickWeighted(RandomNumberGenerator rng)
+    private static int PickWeighted(RandomNumberGenerator rng, float[] weights)
     {
         var roll = rng.Randf();
-        for (var i = 0; i < FloorWeights.Length; i++)
+        for (var i = 0; i < weights.Length; i++)
         {
-            roll -= FloorWeights[i];
+            roll -= weights[i];
             if (roll < 0) return i;
         }
         return 0;
@@ -535,45 +561,63 @@ public static class PixelRoomComposer
         return h;
     }
 
-    private static bool EnsureManifest()
+    private static KitInfo EnsureManifest(string kitName)
     {
-        if (_manifest != null) return true;
-        var path = KitRoot + "manifest.json";
-        if (!FileAccess.FileExists(path))
+        kitName = string.IsNullOrEmpty(kitName) ? DefaultKit : kitName;
+        lock (Kits)
         {
-            GD.PushError($"PixelRoomComposer: manifest do kit nao encontrado: {path}");
-            return false;
-        }
-        try
-        {
-            _manifest = JsonDocument.Parse(FileAccess.GetFileAsString(path));
-            var root = _manifest.RootElement;
-            _canvasW = root.GetProperty("canvas")[0].GetInt32();
-            _canvasH = root.GetProperty("canvas")[1].GetInt32();
-            _topX = root.GetProperty("tile_top_vertex")[0].GetInt32();
-            _topY = root.GetProperty("tile_top_vertex")[1].GetInt32();
-            _bakedAmbient = root.GetProperty("baked_ambient").GetSingle();
-            return true;
-        }
-        catch (JsonException exception)
-        {
-            GD.PushError($"PixelRoomComposer: manifest invalido: {exception.Message}");
-            _manifest = null;
-            return false;
+            if (Kits.TryGetValue(kitName, out var cached)) return cached;
+            var root = KitRootOf(kitName);
+            var path = root + "manifest.json";
+            if (!FileAccess.FileExists(path))
+            {
+                GD.PushError($"PixelRoomComposer: manifest do kit nao encontrado: {path}");
+                return null;
+            }
+            try
+            {
+                var manifest = JsonDocument.Parse(FileAccess.GetFileAsString(path));
+                var json = manifest.RootElement;
+                var kit = new KitInfo
+                {
+                    Root = root,
+                    Manifest = manifest,
+                    TopX = json.GetProperty("tile_top_vertex")[0].GetInt32(),
+                    TopY = json.GetProperty("tile_top_vertex")[1].GetInt32(),
+                    BakedAmbient = json.GetProperty("baked_ambient").GetSingle()
+                };
+                if (json.TryGetProperty("floor", out var floor))
+                {
+                    kit.FloorRoot = floor.GetProperty("root").GetString();
+                    kit.FloorNames = floor.GetProperty("variants").EnumerateArray().Select(v => v.GetString()).ToArray();
+                    kit.FloorWeights = floor.GetProperty("weights").EnumerateArray().Select(v => v.GetSingle()).ToArray();
+                }
+                Kits[kitName] = kit;
+                return kit;
+            }
+            catch (Exception exception) when (exception is JsonException or KeyNotFoundException or InvalidOperationException)
+            {
+                GD.PushError($"PixelRoomComposer: manifest invalido ({kitName}): {exception.Message}");
+                return null;
+            }
         }
     }
 
-    private static Piece LoadPiece(string name)
+    private static Piece LoadPiece(KitInfo kit, string name)
     {
-        if (PieceCache.TryGetValue(name, out var cached)) return cached;
-        Piece piece = null;
-        if (_manifest.RootElement.GetProperty("pieces").TryGetProperty(name, out var info))
+        var key = kit.Root + name;
+        lock (PieceCache)
         {
-            var image = LoadImage(KitRoot + name + ".png");
-            var heights = LoadImage(KitRoot + "heights/" + name + ".png");
+            if (PieceCache.TryGetValue(key, out var cached)) return cached;
+        }
+        Piece piece = null;
+        if (kit.Manifest.RootElement.GetProperty("pieces").TryGetProperty(name, out var info))
+        {
+            var image = LoadImage(kit.Root + name + ".png");
+            var heights = LoadImage(kit.Root + "heights/" + name + ".png");
             if (image != null)
             {
-                piece = new Piece { Width = image.GetWidth(), Height = image.GetHeight(), Rgba = image.GetData(), Kind = info.GetProperty("kind").GetString(), TopX = _topX, TopY = _topY };
+                piece = new Piece { Width = image.GetWidth(), Height = image.GetHeight(), Rgba = image.GetData(), Kind = info.GetProperty("kind").GetString(), TopX = kit.TopX, TopY = kit.TopY };
                 if (info.TryGetProperty("tile_top_vertex", out var top))
                 {
                     piece.TopX = top[0].GetInt32();
@@ -595,18 +639,24 @@ public static class PixelRoomComposer
         }
         else
         {
-            GD.PushWarning($"PixelRoomComposer: peca fora do kit: {name}");
+            GD.PushWarning($"PixelRoomComposer: peca fora do kit: {kit.Root}{name}");
         }
-        PieceCache[name] = piece;
+        lock (PieceCache)
+            PieceCache[key] = piece;
         return piece;
     }
 
-    private static Piece LoadFloor(string variant)
+    private static Piece LoadFloor(KitInfo kit, string variant)
     {
-        if (FloorCache.TryGetValue(variant, out var cached)) return cached;
-        var image = LoadImage(FloorRoot + variant + "_flat.png");
+        var key = kit.FloorRoot + variant;
+        lock (FloorCache)
+        {
+            if (FloorCache.TryGetValue(key, out var cached)) return cached;
+        }
+        var image = LoadImage(key + "_flat.png");
         var piece = image == null ? null : new Piece { Width = image.GetWidth(), Height = image.GetHeight(), Rgba = image.GetData() };
-        FloorCache[variant] = piece;
+        lock (FloorCache)
+            FloorCache[key] = piece;
         return piece;
     }
 
