@@ -17,7 +17,8 @@ public partial class PixelRoom : Node3D
     public const float CameraYawDegrees = 45.0f;
     public const float CameraDistance = 80.0f;
     private const float WallHeight = 3.2f;
-    private const float WallThickness = 0.35f;
+    // Espessura das paredes do kit (T = 22 unidades em tools/pixel_art/crypt_kit/walls.py), da borda do tile para fora.
+    private static readonly float WallThickness = 22.0f * UnitMeters;
 
     // Pixels da tela por pixel da arte; 0 = automático (2 até 1080p, 3 acima).
     [Export] public int PixelScale { get; set; }
@@ -40,6 +41,20 @@ public partial class PixelRoom : Node3D
     private readonly List<(MeshInstance3D Mesh, ImageTexture[] Colors, ImageTexture[] Heights)> _animations = new();
     private double _animationTime;
     private int _animationFrame = -1;
+
+    /// <summary>
+    /// Deixa um sprite de personagem em pé na vertical (billboard só no eixo Y) e estica a altura para compensar o
+    /// ângulo da câmera, então ele sai na tela do mesmo tamanho. Com o billboard comum o quadro deita para trás junto
+    /// com a câmera: a cabeça fica até ~0,6 m atrás dos pés e some dentro das paredes do fundo e dos objetos altos,
+    /// como se o personagem entrasse neles.
+    /// </summary>
+    public static void StandUpright(SpriteBase3D sprite)
+    {
+        if (sprite == null)
+            return;
+        sprite.Billboard = BaseMaterial3D.BillboardModeEnum.FixedY;
+        sprite.Scale = new Vector3(1.0f, 1.0f / Mathf.Cos(Mathf.DegToRad(CameraPitchDegrees)), 1.0f);
+    }
 
     public Vector3 KitToWorld(float wx, float wy, float height = 0.0f)
     {
