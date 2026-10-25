@@ -71,6 +71,10 @@ def pieces():
     for side in ("ne", "nw"):
         for k in range(GATE_FRAMES):
             P[f"props/portcullis_{side}_{k}"] = ("overlay", lambda cv, L, s=side, k=k: W.portcullis(cv, s, GATE_LIFT * k / (GATE_FRAMES - 1)))
+    # Grade da frente (vão wall_<lado>_gap das paredes cortadas): mesmos quadros, cortada na altura das ombreiras.
+    for side in ("se", "sw"):
+        for k in range(GATE_FRAMES):
+            P[f"props/portcullis_{side}_{k}"] = ("overlay", lambda cv, L, s=side, k=k: W.portcullis_front(cv, s, (W.GATE_FRONT_TOP + 1) * k / (GATE_FRAMES - 1)))
     # Fonte de sangue animada: o quadro 0 entra no layout como peça comum (com "frames" no manifest) e os quadros
     # 1..N-1 (tipo "frame") são trocados pelo jogo por cima da sala (PixelRoomComposer + PixelRoom).
     P["props/blood_fountain"] = ("prop", lambda cv, L: Pr.blood_fountain(cv, L, 0.0))

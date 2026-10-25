@@ -37,28 +37,37 @@ public partial class PortcullisGate : Node3D
     private CollisionShape3D _blockShape;
 
     /// <summary>
-    /// Ponto do chão no meio do vão do arco da borda <paramref name="side"/> ("ne" ou "nw") do tile (gx, gy), na face
-    /// da parede que olha para a sala, com +Z local para dentro da sala, +Y para cima e +X ao longo da parede (mesma
-    /// base de ScenePortal.WallBasis). <paramref name="depth"/> recua a origem para dentro da parede (unidades do kit).
+    /// Ponto do chão no meio do vão da borda <paramref name="side"/> do tile (gx, gy), na face da parede que olha para a
+    /// sala, com +Z local para dentro da sala, +Y para cima e +X ao longo da parede (mesma base de ScenePortal.WallBasis).
+    /// "ne"/"nw" = arco das paredes do fundo; "se"/"sw" = vão das paredes cortadas da frente. <paramref name="depth"/>
+    /// recua a origem para dentro da parede (unidades do kit).
     /// </summary>
     public static Transform3D PixelWallTransform(PixelRoom room, int gx, int gy, string side, float depth = 0.0f)
     {
-        if (side == "nw")
+        float x0 = gx * 64.0f, y0 = gy * 64.0f;
+        var (mid, inwardKit) = side switch
         {
-            // Parede no plano x = gx * 64, sala do lado +x: +Z local vira +X do mundo.
-            var origin = room.KitToWorld(gx * 64.0f - depth, gy * 64.0f + 32.0f);
-            return new Transform3D(new Basis(Vector3.Up, Mathf.Pi * 0.5f), origin);
-        }
-        // Parede no plano y = gy * 64, sala do lado +y (= +Z no mundo).
-        return new Transform3D(Basis.Identity, room.KitToWorld(gx * 64.0f + 32.0f, gy * 64.0f - depth));
+            // Parede no plano x = gx * 64, sala do lado +x.
+            "nw" => (new Vector2(x0 - depth, y0 + 32.0f), new Vector2(1.0f, 0.0f)),
+            "se" => (new Vector2(x0 + 64.0f + depth, y0 + 32.0f), new Vector2(-1.0f, 0.0f)),
+            "sw" => (new Vector2(x0 + 32.0f, y0 + 64.0f + depth), new Vector2(0.0f, -1.0f)),
+            // Parede no plano y = gy * 64, sala do lado +y.
+            _ => (new Vector2(x0 + 32.0f, y0 - depth), new Vector2(0.0f, 1.0f))
+        };
+        var origin = room.KitToWorld(mid.X, mid.Y);
+        var inward = room.KitToWorld(mid.X + inwardKit.X, mid.Y + inwardKit.Y) - origin;
+        return new Transform3D(ScenePortal.WallBasis(inward), origin);
     }
 
-    /// <summary>Modo 2D: a grade vai para o arco da borda <paramref name="side"/> do tile (gx, gy). Chamar antes do _Ready.</summary>
+    /// <summary>
+    /// Modo 2D: a grade vai para o vão da borda <paramref name="side"/> do tile (gx, gy): arco do fundo ("ne"/"nw") ou
+    /// vão da parede cortada da frente ("se"/"sw", grade cortada na altura das ombreiras). Chamar antes do _Ready.
+    /// </summary>
     public void ConfigurePixel(PixelRoom room, int gx, int gy, string side)
     {
         _pixelRoom = room;
         _pixelTile = new Vector2I(gx, gy);
-        _pixelSide = side == "nw" ? "nw" : "ne";
+        _pixelSide = side is "nw" or "se" or "sw" ? side : "ne";
     }
 
     public override void _Ready()
