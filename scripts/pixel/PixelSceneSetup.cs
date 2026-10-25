@@ -24,6 +24,11 @@ public partial class PixelSceneSetup : Node3D
     private const float BenchReachX = 1.25f;
     private const float BenchReachZ = 0.8f;
     private const float KitTitleHeight = 3.5f;
+    // Câmara de Hemomancia (camara_intervalo.txt): altar do sacrifício (estela de 98 de z) e bancada de artefatos.
+    private const float AltarReach = 1.3f;
+    private const float AltarTitleHeight = 4.2f;
+    private const float CounterReachZ = 1.2f;
+    private const float CounterReachX = 0.4f;
 
     // Caixões dos personagens futuros na sala da direita do hub (centros em 2212 x 860/992/1124 do kit): peças do
     // kit desenhadas e com colisão pelo PixelRoom; o CharacterPlaceholder fica só com título e aviso.
@@ -37,6 +42,7 @@ public partial class PixelSceneSetup : Node3D
     [Export] public RoomKind Kind { get; set; } = RoomKind.RunRoom;
 
     private PixelRoom _room;
+    private PixelRoomLayout _layout;
 
     /// <summary>Salas fixas da run (bênção e câmara): parede do arco de saída do layout, onde ficam as portas.</summary>
     public PixelDoorWall ExitWall { get; private set; }
@@ -63,6 +69,7 @@ public partial class PixelSceneSetup : Node3D
             _ => "camara_intervalo.txt"
         };
         var layout = PixelRoomComposer.LoadLayout(RoomsRoot + file);
+        _layout = layout;
         if (Kind == RoomKind.Hub && layout != null)
             layout.Props.AddRange(CharacterCoffins);
         _room = new PixelRoom { Name = "PixelRoom" };
@@ -86,6 +93,8 @@ public partial class PixelSceneSetup : Node3D
         }
 
         AlignShellWalls(scene);
+        if (Kind == RoomKind.Intermission)
+            PlaceIntermission(scene);
         // O arco de saída do layout (borda "arch" do fundo) é o centro da parede das portas; com duas portas a sala é
         // redesenhada com os arcos dos lados (PixelDoorWall).
         foreach (var edge in layout.Edges)
@@ -114,6 +123,18 @@ public partial class PixelSceneSetup : Node3D
             RaiseTitles(fountain, basin != null ? BasinTitleHeight : KitTitleHeight);
         }
 
+        if (FindProp(layout, "sacrifice_altar") is { } altarProp && scene.GetNodeOrNull<Node3D>("SacrificeAltar") is { } altar)
+        {
+            var (offset, half) = PixelRoomComposer.BlockerOf(altarProp.Name);
+            altar.Position = PropCenter(altarProp, offset);
+            HideMeshes(altar);
+            if (altar.GetNodeOrNull<Node3D>("AltarBook") is { } book)
+                book.Visible = false;
+            var radius = Mathf.Max(half.X, half.Y) * PixelRoom.UnitMeters + AltarReach;
+            ReplaceAreaShape(altar, new CylinderShape3D { Radius = radius, Height = 3.0f });
+            RaiseTitles(altar, AltarTitleHeight);
+        }
+
         if (FindProp(layout, "weapon_bench") is { } benchProp && scene.GetNodeOrNull<Node3D>("WeaponBench") is { } bench)
         {
             var (offset, half) = PixelRoomComposer.BlockerOf(benchProp.Name);
@@ -124,6 +145,30 @@ public partial class PixelSceneSetup : Node3D
             ReplaceAreaShape(bench, new BoxShape3D { Size = size });
             RaiseTitles(bench, KitTitleHeight);
         }
+    }
+
+    // Câmara de Hemomancia: o jogador entra pelo braço sul da cruz (tile 6,11 do camara_intervalo.txt).
+    private void PlaceIntermission(Node scene)
+    {
+        if (scene.GetNodeOrNull<Node3D>("Player") is { } player)
+            player.Position = _room.KitToWorld(6 * 64.0f + 32.0f, 11 * 64.0f + 32.0f, 0.2f);
+    }
+
+    /// <summary>
+    /// Bancada de artefatos da Câmara: o balcão é criado em código pela IntermissionChamber (depois deste _Ready), então
+    /// ela pede aqui para ir ao lugar da peça artifact_counter do layout. A área de interação cobre a frente do balcão.
+    /// </summary>
+    public void PlaceArtifactShop(Node3D shop)
+    {
+        if (shop == null || _room == null || _layout == null || FindProp(_layout, "artifact_counter") is not { } prop)
+            return;
+        var (offset, half) = PixelRoomComposer.BlockerOf(prop.Name);
+        shop.Position = PropCenter(prop, offset);
+        shop.Rotation = Vector3.Zero;
+        HideMeshes(shop);
+        var size = new Vector3((half.X * PixelRoom.UnitMeters + CounterReachX) * 2.0f, 2.0f, (half.Y * PixelRoom.UnitMeters + CounterReachZ) * 2.0f);
+        ReplaceAreaShape(shop, new BoxShape3D { Size = size });
+        RaiseTitles(shop, KitTitleHeight);
     }
 
     private static PixelRoomProp FindProp(PixelRoomLayout layout, string name) => layout.Props.FirstOrDefault(p => p.Name == name);
@@ -150,6 +195,7 @@ public partial class PixelSceneSetup : Node3D
     {
         foreach (var area in node.GetChildren().OfType<Area3D>())
         {
+            area.Position = Vector3.Zero;
             foreach (var collision in area.GetChildren().OfType<CollisionShape3D>())
             {
                 collision.Shape = shape;

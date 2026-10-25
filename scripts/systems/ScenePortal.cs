@@ -37,6 +37,8 @@ public partial class ScenePortal : Area3D
 
     /// <summary>Porta de recompensa (docs/design/portas-recompensas.md). Null nos portais comuns (hub, boss, saída sem conjunto).</summary>
     public RoomRewardDoor RewardDoor { get; private set; }
+    /// <summary>Porta de recompensa sem revelar o bônus (Câmara entre mapas): sem medalhão e com o prompt do portal comum.</summary>
+    public bool HideReward { get; private set; }
     /// <summary>Demais portas do mesmo conjunto: ao escolher uma, as outras fecham antes da troca de cena.</summary>
     public List<ScenePortal> RewardDoorSiblings { get; private set; } = new();
 
@@ -77,7 +79,7 @@ public partial class ScenePortal : Area3D
 
     private string ResolvePromptText()
     {
-        if (RewardDoor != null)
+        if (RewardDoor != null && !HideReward)
             return RewardDoorPromptText(RewardDoor);
         if (string.IsNullOrEmpty(PromptText))
             return Localization.Text("portal.default");
@@ -221,7 +223,7 @@ public partial class ScenePortal : Area3D
         // Sem título no portal (salas da run): prompt acima do lintel (~2,9 m). No hub, ancora no título irmão.
         _promptLabel = InteractPrompt.CreatePrompt(this, ResolvePromptText(), 3.2f);
         // Porta de recompensa: o prompt (uma ou duas linhas) fica acima do medalhão (RewardIcon, centro a 3,5 m; topo do brilho ~4,1 m).
-        if (RewardDoor != null)
+        if (RewardDoor != null && !HideReward)
             _promptLabel.Position = Vector3.Up * 4.45f;
         InteractPrompt.StyleSiblingTitlesAndAnchor(this, _promptLabel);
     }
@@ -437,7 +439,7 @@ public partial class ScenePortal : Area3D
     /// Cada porta tem o portão do hub (PortcullisGate "Gate"). No 2D (<paramref name="pixelWall"/>) as portas vão para os
     /// arcos da parede da sala do kit (a sala é redesenhada se o número de arcos mudar), sem a moldura 3D.
     /// </summary>
-    public static List<ScenePortal> BuildRewardDoors(Node3D template, RoomRewardSet set, string targetScenePath, RunPortalAction action, bool startEnabled, PixelDoorWall pixelWall = null)
+    public static List<ScenePortal> BuildRewardDoors(Node3D template, RoomRewardSet set, string targetScenePath, RunPortalAction action, bool startEnabled, PixelDoorWall pixelWall = null, bool hideReward = false)
     {
         var doors = new List<ScenePortal>();
         var parent = template?.GetParent();
@@ -480,8 +482,9 @@ public partial class ScenePortal : Area3D
                 CopyDoorFrame(template, root, frameScale);
                 root.AddChild(CreateFrameGate(root));
             }
-            AddRewardIcon(root, set.Doors[i]);
-            doors.Add(CreateDoorArea(templatePortal, root, set.Doors[i], targetScenePath, action, startEnabled));
+            if (!hideReward)
+                AddRewardIcon(root, set.Doors[i]);
+            doors.Add(CreateDoorArea(templatePortal, root, set.Doors[i], targetScenePath, action, startEnabled, hideReward));
         }
 
         foreach (var door in doors)
@@ -513,16 +516,18 @@ public partial class ScenePortal : Area3D
         }
     }
 
-    private static ScenePortal CreateDoorArea(ScenePortal templatePortal, Node3D root, RoomRewardDoor door, string targetScenePath, RunPortalAction action, bool startEnabled)
+    private static ScenePortal CreateDoorArea(ScenePortal templatePortal, Node3D root, RoomRewardDoor door, string targetScenePath, RunPortalAction action, bool startEnabled, bool hideReward)
     {
         var area = new ScenePortal
         {
             Name = "PortalArea",
             TargetScenePath = targetScenePath,
             PortalAction = action,
-            StartsEnabled = startEnabled
+            StartsEnabled = startEnabled,
+            PromptText = templatePortal?.PromptText ?? ""
         };
         area.RewardDoor = door;
+        area.HideReward = hideReward;
         if (templatePortal != null)
         {
             area.Position = templatePortal.Position;

@@ -31,6 +31,8 @@ Paredes, cantos, arcos e objetos da cripta, todos desenhados por código em
 - `props/`: caixões (`coffin_virgil`, `coffin_stone_closed/broken`, `coffin_wood_closed/open/broken`, cada um em
   `_sw` e `_se`), velas (`candles_small/medium/large_a/b`, `candle_tall`), arandelas (`sconce_ne/nw`),
   tapete (`carpet_sw/se`), `bones`, `rubble_a/b`.
+- `props/sacrifice_altar` e `props/artifact_counter` (tela 256x224, vértice do tile em 120, 136): altar do sacrifício
+  e bancada de artefatos da Câmara de Hemomancia (`rooms/camara_intervalo.txt`, planta em cruz).
 - `props/portcullis_<ne|nw>_0..7`: grade de ferro do vão do arco (`wall_<lado>_arch`), da fechada (0) à aberta (7).
   Não entra em layout: o portão do início da run (`RunStartGate.cs`) a desenha por cima do hub e troca o quadro ao abrir.
 - Toda peça é um PNG 224x208 com o vértice de cima do tile em (112, 116) e o centro do tile em (112, 148).

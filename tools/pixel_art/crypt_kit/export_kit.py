@@ -81,6 +81,9 @@ def pieces():
     for k in range(1, Pr.FOUNTAIN_FRAMES):
         P[f"props/blood_basin_{k}"] = ("frame", lambda cv, L, k=k: Pr.blood_basin(cv, L, k / Pr.FOUNTAIN_FRAMES))
     P["props/weapon_bench"] = ("prop", lambda cv, L: Pr.weapon_bench(cv, L), BENCH_CANVAS)
+    # Câmara de Hemomancia: altar do sacrifício (braço oeste) e bancada de artefatos (parede NE do braço leste).
+    P["props/sacrifice_altar"] = ("prop", lambda cv, L: Pr.sacrifice_altar(cv, L))
+    P["props/artifact_counter"] = ("prop", lambda cv, L: Pr.artifact_counter(cv, L), Pr.ARTIFACT_COUNTER_CANVAS)
     return P
 
 FRAMES = {"props/blood_fountain": Pr.FOUNTAIN_FRAMES, "props/blood_basin": Pr.FOUNTAIN_FRAMES}

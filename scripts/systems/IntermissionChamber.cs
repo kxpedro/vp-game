@@ -75,8 +75,9 @@ public partial class IntermissionChamber : Node3D
         UiPreview.Attach(this);
     }
 
-    // Portas da entrada do mapa seguinte (origem 0, docs/design/portas-recompensas.md, 7.3). Não há recompensa pendente
-    // na Câmara (o boss não tem porta), então as portas já nascem abertas. Antes do mapa 4 não há conjunto: a saída é única.
+    // Portão da entrada do mapa seguinte (origem 0, docs/design/portas-recompensas.md, 7.3): sempre um só, e o bônus
+    // sorteado não aparece (sem medalhão, prompt do portal comum); ele é pago ao limpar a primeira sala do mapa. Não há
+    // recompensa pendente na Câmara (o boss não tem porta), então o portão já nasce aberto.
     private void BuildRewardDoors()
     {
         var exit = GetNodeOrNull<Node3D>("ExitPortal");
@@ -89,9 +90,9 @@ public partial class IntermissionChamber : Node3D
         ScenePortal.PlaceOnWall(exit, new Vector3(0.0f, 0.18f, wall.Position.Z), new Vector3(0.0f, 0.0f, 1.0f), thickness);
         var pixelWall = PixelSceneSetup.ExitWallOf(this);
         ScenePortal.SetupExitGate(exit, pixelWall);
-        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0);
+        var set = RunState.GetOrRollRoomRewardSet(Mathf.Clamp(RunState.CurrentMapIndex, 0, 3), 0, singleDoor: true);
         if (set != null)
-            ScenePortal.BuildRewardDoors(exit, set, RoomScenePath, ScenePortal.RunPortalAction.None, true, pixelWall);
+            ScenePortal.BuildRewardDoors(exit, set, RoomScenePath, ScenePortal.RunPortalAction.None, true, pixelWall, hideReward: true);
     }
 
     // Troca de idioma (pausa): reescreve título, rodapé do altar, estado e rótulos 3D. O altar aberto refaz os cards.
@@ -708,6 +709,8 @@ public partial class IntermissionChamber : Node3D
             Shape = new CylinderShape3D { Height = 2.4f, Radius = 2.2f }
         });
         stand.AddChild(_shopArea);
+        // Modo 2D: o balcão vira a peça artifact_counter da sala do kit.
+        GetNodeOrNull<PixelSceneSetup>("PixelSetup")?.PlaceArtifactShop(stand);
     }
 
     private static void AddShopPart(Node3D parent, string name, Mesh mesh, Material material, Vector3 position, Vector3 rotationDegrees = default)
