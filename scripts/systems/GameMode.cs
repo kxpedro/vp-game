@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 
-// Dois jogos no mesmo projeto, escolhidos no menu: o 3D original e o 2D em pixel art (kit da cripta, sprite do Virgil).
-// Cada modo tem as próprias cenas (scenes/game e scenes/pixel) e os próprios saves; as regras de jogo são as mesmas.
+// O 2D em pixel art (kit da cripta, sprite do Virgil) é a versão oficial do jogo: o menu sempre abre nele.
+// O 3D original continua no projeto (scenes/game), mas não é mais oferecido no menu; só as ferramentas de debug o usam
+// (--ui-mode=3d no UiPreview). Cada modo tem as próprias cenas (scenes/game e scenes/pixel) e os próprios saves.
 public static class GameMode
 {
     public enum Kind
@@ -10,7 +11,7 @@ public static class GameMode
         PixelArt
     }
 
-    public static Kind Current { get; set; } = Kind.ThreeD;
+    public static Kind Current { get; set; } = Kind.PixelArt;
     public static bool IsPixelArt => Current == Kind.PixelArt;
 
     // As cenas 2D têm o mesmo nome de arquivo das 3D (HUD e áudio reconhecem a cena pelo nome).
