@@ -361,7 +361,7 @@ public partial class PixelRoom : Node3D
     {
         var merged = new List<(Vector2 A, Vector2 B, Vector2 Outward)>();
         var ordered = walls
-            .Select(w => w.A.X + w.A.Y <= w.B.X + w.B.Y ? w : (w.B, w.A, w.Outward))
+            .Select(w => w.A.X + w.A.Y <= w.B.X + w.B.Y ? w : (A: w.B, B: w.A, Outward: w.Outward))
             .OrderBy(w => w.Outward.X).ThenBy(w => w.Outward.Y)
             .ThenBy(w => w.Outward.Y != 0.0f ? w.A.Y : w.A.X)
             .ThenBy(w => w.Outward.Y != 0.0f ? w.A.X : w.A.Y);
