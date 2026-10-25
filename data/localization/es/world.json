@@ -66,5 +66,7 @@
   "reward.door.fruit.short": "Fruta",
   "reward.door.prompt": "Cruzar: {0}",
   "reward.door.anvil.short": "Yunque",
-  "reward.door.anvil.hint": "Yunque: elige una modificación para el arma."
+  "reward.door.anvil.hint": "Yunque: elige una modificación para el arma.",
+  "reward.door.cursed_blood.short": "Icor +{0}",
+  "reward.door.cursed_blood.hint": "Icor: +{0}, permanente (Fuente de Sangre)."
 }

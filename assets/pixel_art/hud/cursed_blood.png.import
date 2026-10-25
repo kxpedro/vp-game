@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b34ggeu8744yi"
-path="res://.godot/imported/gem_cursed.png-5594f277bd0d8ed144fb129ccab2437f.ctex"
+uid="uid://dgl60q4y4sjri"
+path="res://.godot/imported/cursed_blood.png-68e049b7e9a22bcf1eb3a40279f6a765.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pixel_art/hud/gem_cursed.png"
-dest_files=["res://.godot/imported/gem_cursed.png-5594f277bd0d8ed144fb129ccab2437f.ctex"]
+source_file="res://assets/pixel_art/hud/cursed_blood.png"
+dest_files=["res://.godot/imported/cursed_blood.png-68e049b7e9a22bcf1eb3a40279f6a765.ctex"]
 
 [params]
 

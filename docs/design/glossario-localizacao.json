@@ -1,7 +1,7 @@
 {
   "glossary": {
     "description": "Termos-chave de localização para Vampire's Prey (pt-BR, en, es)",
-    "last_updated": "2026-10-12",
+    "last_updated": "2026-10-25",
     "terms": [
       {
         "id": "blessing",
@@ -142,6 +142,13 @@
         "en": "Blood Coins",
         "es": "Monedas de Sangre",
         "context": "In-run currency"
+      },
+      {
+        "id": "ichor",
+        "pt-BR": "Ícor",
+        "en": "Ichor",
+        "es": "Icor",
+        "context": "Recurso permanente (antes 'Sangue Amaldiçoado'): sangue corrompido que Virgil purifica de chefes, Lendários e da porta rara; gasto na Fonte de Sangue. No código continua CursedBlood"
       },
       {
         "id": "lineage",

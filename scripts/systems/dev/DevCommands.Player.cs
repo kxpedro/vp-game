@@ -108,7 +108,7 @@ public static partial class DevCommands
             case DevResource.CursedBlood:
                 CharacterSheet.AddCursedBlood(Math.Max((int)Math.Round(amount), -CharacterSheet.CursedBlood));
                 c.Hud?.DevConsoleRefreshRun();
-                c.Ok($"Sangue Amaldiçoado: {CharacterSheet.CursedBlood} (permanente, vai ao save).");
+                c.Ok($"Ícor: {CharacterSheet.CursedBlood} (permanente, vai ao save).");
                 break;
             case DevResource.Fury:
                 AddFury(c, (float)amount, false);
@@ -143,7 +143,7 @@ public static partial class DevCommands
             case DevResource.CursedBlood:
                 CharacterSheet.AddCursedBlood(Math.Max((int)Math.Round(value), 0) - CharacterSheet.CursedBlood);
                 c.Hud?.DevConsoleRefreshRun();
-                c.Ok($"Sangue Amaldiçoado: {CharacterSheet.CursedBlood} (permanente, vai ao save).");
+                c.Ok($"Ícor: {CharacterSheet.CursedBlood} (permanente, vai ao save).");
                 break;
             case DevResource.Fury:
                 AddFury(c, (float)value, true);
