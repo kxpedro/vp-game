@@ -1600,6 +1600,7 @@ public static class UiComponents
         public string Text;
         public PadShape Shape;
         public bool Keycap;
+        public Texture2D Texture;
         public float Width = UiMetrics.IconGlyph;
         public Action<InputDevice> Handler;
         public bool Subscribed;
@@ -1613,7 +1614,7 @@ public static class UiComponents
         {
             Action = action,
             Device = device,
-            Node = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Name = "Glyph" + action }
+            Node = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Name = "Glyph" + action, TextureFilter = CanvasItem.TextureFilterEnum.Nearest }
         };
         ResolveGlyph(state);
         state.Node.Draw += () => DrawGlyph(state);
@@ -1696,6 +1697,15 @@ public static class UiComponents
                 UiAction.Alt => PadShape.Triangle,
                 _ => PadShape.Square
             };
+        state.Texture = PadTexture(state.Action, state.Device);
+        if (state.Texture != null)
+        {
+            // Pixel art do pacote gdb-gamepad-2 em 2x inteiro; sem a peça, vale o desenho por código abaixo.
+            state.Width = state.Texture.GetWidth() * PadTextureScale;
+            state.Node.CustomMinimumSize = new Vector2(state.Width, Mathf.Max(UiMetrics.IconGlyph, state.Texture.GetHeight() * PadTextureScale));
+            state.Node.QueueRedraw();
+            return;
+        }
         state.Width = UiMetrics.IconGlyph;
         if (state.Shape == PadShape.None && !string.IsNullOrEmpty(state.Text))
         {
@@ -1706,9 +1716,56 @@ public static class UiComponents
         state.Node.QueueRedraw();
     }
 
+    private const int PadTextureScale = 2;
+
+    // Peça de assets/pixel_art/hud/gamepad (tools/pixel_art/hud/build_gamepad_glyphs.py) para a ação no controle; null no teclado.
+    private static Texture2D PadTexture(UiAction action, InputDevice device)
+    {
+        string name;
+        if (device == InputDevice.Xbox)
+            name = action switch
+            {
+                UiAction.Accept or UiAction.Interact => "xbox_a",
+                UiAction.Cancel => "xbox_b",
+                UiAction.Alt => "xbox_y",
+                UiAction.TabPrev => "xbox_lb",
+                UiAction.TabNext or UiAction.Fury => "xbox_rb",
+                UiAction.ZoomOut => "xbox_lt",
+                UiAction.ZoomIn => "xbox_rt",
+                UiAction.Scroll => "xbox_rs",
+                UiAction.CharacterSheet => "xbox_view",
+                UiAction.Pause => "xbox_menu",
+                _ => null
+            };
+        else if (device == InputDevice.PlayStation)
+            name = action switch
+            {
+                UiAction.Accept or UiAction.Interact => "ps_cross",
+                UiAction.Cancel => "ps_circle",
+                UiAction.Alt => "ps_triangle",
+                UiAction.TabPrev => "ps_l1",
+                UiAction.TabNext or UiAction.Fury => "ps_r1",
+                UiAction.ZoomOut => "ps_l2",
+                UiAction.ZoomIn => "ps_r2",
+                UiAction.Scroll => "ps_rs",
+                UiAction.CharacterSheet => "ps_create",
+                UiAction.Pause => "ps_options",
+                _ => null
+            };
+        else
+            return null;
+        return name == null ? null : UiPixelKit.Texture("gamepad/" + name + ".png");
+    }
+
     private static void DrawGlyph(GlyphState state)
     {
         var node = state.Node;
+        if (state.Texture != null)
+        {
+            var textureSize = state.Texture.GetSize() * PadTextureScale;
+            node.DrawTextureRect(state.Texture, new Rect2(((node.Size - textureSize) * 0.5f).Floor(), textureSize), false);
+            return;
+        }
         var size = (float)UiMetrics.IconGlyph;
         var origin = new Vector2(Mathf.Floor((node.Size.X - state.Width) * 0.5f), Mathf.Floor((node.Size.Y - size) * 0.5f));
         var rect = new Rect2(origin, new Vector2(state.Width, size));
