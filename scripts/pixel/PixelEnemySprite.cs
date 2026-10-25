@@ -77,6 +77,9 @@ public partial class PixelEnemySprite : Node3D
 
     public static bool IsPixelPath(string scenePath) => scenePath != null && scenePath.StartsWith(PathPrefix);
 
+    // Nome do monstro ("goblin", "flying_eye"...): escolhe os efeitos do ataque (EnemyAttackFx).
+    public string Monster { get; private set; }
+
     private Sprite3D _sprite;
     private AnimationPlayer _player;
     // Cor final = tinta do estado (pulsando) por baixo do flash; a transparência fica à parte.
@@ -97,7 +100,7 @@ public partial class PixelEnemySprite : Node3D
             return null;
         }
 
-        var visual = new PixelEnemySprite { Name = "ImportedVisual" };
+        var visual = new PixelEnemySprite { Name = "ImportedVisual", Monster = monster };
         visual._sprite = new Sprite3D
         {
             Name = "Sprite",

@@ -1369,7 +1369,8 @@ public partial class EnemyBasic : CharacterBody3D
             Speed = G("enemy.projectile.speed", 5.2f),
             Damage = AttackDamage,
             SourceName = GetDisplayName(),
-            OwnerRid = GetRid()
+            OwnerRid = GetRid(),
+            PixelStyle = EnemyAttackFx.For(PixelVisual?.Monster)
         };
         GetTree().CurrentScene.AddChild(projectile);
     }
@@ -1978,6 +1979,19 @@ public partial class EnemyBasic : CharacterBody3D
     private async void SpawnAttackImpact()
     {
         var attackDepth = AttackRange + AttackDepthBonus;
+        // Modo 2D: cada monstro tem o seu golpe em pixel art (corte, mordida, garras, esporos, poeira, espinhos).
+        if (EnemyAttackFx.For(PixelVisual?.Monster) is { Attack: not null } style)
+        {
+            var direction = _lockedAttackDirection.LengthSquared() > 0.001f ? _lockedAttackDirection.Normalized() : -GlobalTransform.Basis.Z;
+            direction.Y = 0.0f;
+            // Pancada no chão um pouco antes do meio da área; golpe no ar na altura do peito, mais perto do monstro.
+            var position = style.Grounded
+                ? GlobalPosition + direction * attackDepth * 0.45f
+                : GlobalPosition + direction * Mathf.Min(attackDepth * 0.4f, 1.1f) + Vector3.Up * 0.75f;
+            var scale = style.AttackScale * (Archetype == EnemyArchetype.Tank ? Mathf.Clamp(AttackWidth / 1.4f, 0.9f, 1.8f) : 1.0f);
+            EnemyAttackFx.Play(GetTree().CurrentScene, style.Attack, position, direction, scale, style.Grounded);
+            return;
+        }
         var material = new StandardMaterial3D
         {
             AlbedoColor = new Color(1.0f, 0.22f, 0.03f, 0.82f),
