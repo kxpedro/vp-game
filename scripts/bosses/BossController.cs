@@ -54,6 +54,10 @@ public partial class BossController : Node
         // O boss ja esta na sala, parado, esperando o jogador chegar perto (BossController.Encounter.cs).
         EnterDormant();
         _moveTimer = G("boss.first_move_delay", 1.1f);
+        // Lacaios: no separado (BossMinionSummoner.cs), para a sala de boss ter abates que carregam a Furia Bestial.
+        var summoner = new BossMinionSummoner { Name = "BossMinionSummoner" };
+        AddChild(summoner);
+        summoner.Configure(enemy, this);
     }
 
     public override void _ExitTree()

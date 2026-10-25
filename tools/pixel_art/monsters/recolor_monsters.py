@@ -11,6 +11,12 @@ o volume do sombreado) e menos no croma. Os vermelhos saturados (olhos, sangue) 
 e os cinzas neutros (metal) à rampa fria da pedra da cripta. Duas cores do original que caíssem na mesma cor da paleta são
 separadas pela segunda opção mais próxima quando a diferença de luminosidade entre elas é visível, para não
 apagar detalhes. A transparência vira binária (alfa 0 ou 255, corte em 128), como o corte de alfa do Sprite3D no jogo.
+
+Exceções:
+- `mage_guardian` (Guardiã Invisível) pode usar o rosa bc4a9b e os azuis vivos da AAP-64, que são a cor dela e
+  dos efeitos dela (`BossRuneFx.Violet`).
+- `skeleton_guardian` (lacaios da Guardiã) não tem original próprio: sai do `skeleton` tingido na rampa violeta
+  da Guardiã, pela luminosidade (o sombreado é mantido, as cores viram roxo e rosa).
 """
 import argparse
 import pathlib
@@ -39,6 +45,14 @@ BLOOD = ["3b1725", "73172d", "b4202a", "e86a73", "f5a097"]
 # Rampa fria da pedra da cripta: destino dos cinzas neutros (metal, escudo, elmo), que senão caem nos marrons.
 STONE = ["060608", "141013", "242234", "333941", "4a5462", "6d758d", "8b93af", "b3b9d1", "dae0ea", "e3e6ff", "ffffff"]
 NEUTRAL_CHROMA = 0.02
+
+# Cores extras permitidas por monstro (além de PALETTE).
+EXTRA_COLORS = {"mage_guardian": ["bc4a9b", "249fde", "285cc4"]}
+
+# Monstros derivados: pasta nova = original de outro monstro tingido numa rampa (do escuro ao claro).
+GUARDIAN_RAMP = ["060608", "141013", "242234", "403353", "793a80", "bc4a9b", "e9b5a3", "fad6b8"]
+TINT_GAMMA = 0.7
+DERIVED = {"skeleton_guardian": ("skeleton", GUARDIAN_RAMP)}
 
 LIGHTNESS_WEIGHT = 1.6
 CHROMA_WEIGHT = 0.8
@@ -77,9 +91,22 @@ def candidates_for(lab, pal):
     return np.arange(len(pal))
 
 
-def build_mapping(colors):
+def build_tint_mapping(colors, ramp):
+    """Tinge pela luminosidade: a faixa de luminosidade do original é esticada sobre a da rampa."""
+    ramp_l = srgb_to_oklab([hex_to_rgb(h) for h in ramp])[:, 0]
+    ls = {rgb: srgb_to_oklab(rgb)[0] for rgb in colors}
+    lo, hi = min(ls.values()), max(ls.values())
+    mapping = {}
+    for rgb, l in ls.items():
+        # Gama < 1 clareia os meios-tons: os ossos do esqueleto são escuros no original e sumiriam no roxo.
+        t = ((l - lo) / max(hi - lo, 1e-6)) ** TINT_GAMMA
+        target = ramp_l[0] + t * (ramp_l[-1] - ramp_l[0])
+        mapping[rgb] = tuple(hex_to_rgb(ramp[int(np.argmin(np.abs(ramp_l - target)))]))
+    return mapping
+
+
+def build_mapping(colors, pal=PALETTE):
     """colors: lista de tuplas RGB do monstro inteiro (todas as folhas). Retorna {rgb: rgb da paleta}."""
-    pal = PALETTE
     pal_lab = srgb_to_oklab([hex_to_rgb(h) for h in pal])
     mapping = {}
     choices = {}
@@ -138,12 +165,19 @@ def main():
     parser.add_argument("--preview", help="grava uma comparação antes/depois (1º quadro de cada folha)")
     args = parser.parse_args()
 
-    allowed = {tuple(hex_to_rgb(h)) for h in PALETTE}
-    rows = []
+    jobs = []
     for folder in sorted(p for p in SOURCE.iterdir() if p.is_dir()):
         files = sorted(folder.glob("*.png"))
-        mapping = build_mapping(monster_colors(files))
-        (TARGET / folder.name).mkdir(parents=True, exist_ok=True)
+        pal = PALETTE + EXTRA_COLORS.get(folder.name, [])
+        jobs.append((folder.name, files, build_mapping(monster_colors(files), pal), pal))
+    for name, (source, ramp) in DERIVED.items():
+        files = sorted((SOURCE / source).glob("*.png"))
+        jobs.append((name, files, build_tint_mapping(monster_colors(files), ramp), ramp))
+
+    rows = []
+    for name, files, mapping, pal in jobs:
+        allowed = {tuple(hex_to_rgb(h)) for h in pal}
+        (TARGET / name).mkdir(parents=True, exist_ok=True)
         for f in files:
             src = Image.open(f).convert("RGBA")
             dst = recolor(src, mapping)
@@ -153,16 +187,16 @@ def main():
             used = {tuple(int(v) for v in px) for px in np.unique(
                 np.array(dst).reshape(-1, 4)[np.array(dst).reshape(-1, 4)[:, 3] > 0][:, :3], axis=0)}
             assert used <= allowed, (f, used - allowed)
-            dst.save(TARGET / folder.name / f.name)
+            dst.save(TARGET / name / f.name)
             rows.append((src, dst))
-        print(f"{folder.name}: {len(files)} folhas, {len(mapping)} cores -> {len(set(mapping.values()))} da AAP-64")
+        print(f"{name}: {len(files)} folhas, {len(mapping)} cores -> {len(set(mapping.values()))} da AAP-64")
 
     if args.preview:
         scale, size = 2, 150
         sheet = Image.new("RGBA", (len(rows) * size * scale, 2 * size * scale), (36, 34, 52, 255))
         for i, (src, dst) in enumerate(rows):
             for j, im in enumerate((src, dst)):
-                frame = im.crop((0, 0, size, size)).resize((size * scale, size * scale), Image.NEAREST)
+                frame = im.crop((0, 0, min(size, im.height), min(size, im.height))).resize((size * scale, size * scale), Image.NEAREST)
                 sheet.alpha_composite(frame, (i * size * scale, j * size * scale))
         sheet.save(args.preview)
 

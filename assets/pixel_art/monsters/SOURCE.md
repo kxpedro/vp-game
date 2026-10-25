@@ -32,15 +32,23 @@ rosa, verde-limão) ficam de fora.
 
 ## mage_guardian (Guardiã Invisível, boss do mapa 1)
 
-`mage_guardian/idle.png` é o `mage_guardian-magenta.png` do pacote **Mage Guardian (free)**, copiado sem alteração de
-`F:\ASSETS\mage_guardian_free_creativekind` no PC do Pedro: faixa horizontal de 14 quadros de 64x64, olhando para a
-direita, pés em y≈58. Não foi remapeado para a AAP-64 de propósito: o magenta do núcleo é a cor da Guardiã e casa
-com a rampa violeta dos efeitos dela (`BossRuneFx.Violet`). O pacote só tem a flutuação parada; as outras animações
-do `PixelEnemySprite` reaproveitam a mesma folha.
+`mage_guardian/idle.png` é o `mage_guardian-magenta.png` do pacote **Mage Guardian (free)**, copiado de
+`F:\ASSETS\mage_guardian_free_creativekind` no PC do Pedro (original intocado em
+`tools/pixel_art/monsters/source/mage_guardian/`): faixa horizontal de 14 quadros de 64x64, olhando para a direita,
+pés em y≈58. Remapeado para a AAP-64 pelo `recolor_monsters.py`, que para ela libera também o rosa `bc4a9b` e os
+azuis vivos: o magenta do núcleo continua sendo a cor da Guardiã e casa com a rampa violeta dos efeitos dela
+(`BossRuneFx.Violet`). O pacote só tem a flutuação parada; as outras animações do `PixelEnemySprite` reaproveitam
+a mesma folha.
 
 - **Autor:** creativekind (creativekind.itch.io), pelo nome da pasta do pacote.
 - **Licença:** NÃO REGISTRADA. O pacote veio sem licença nem readme. Antes de distribuir o jogo, confirmar os termos
   na página do pacote e registrar aqui e em `CREDITS.md`.
+
+## skeleton_guardian (lacaios da Guardiã Invisível)
+
+Gerado pelo `recolor_monsters.py` a partir do `skeleton` original: cada cor é tingida pela luminosidade na rampa
+violeta da Guardiã (`060608 141013 242234 403353 793a80 bc4a9b e9b5a3 fad6b8`, todas da AAP-64). Mesma origem e
+licença do `skeleton`. Usado pelos lacaios que ela invoca (`BossMinionSummoner.cs`, `EnemyVisualCatalog.GetBossMinion`).
 
 ## plant_red, plant_bulb, plant_purple (plantas carnívoras do Jardim Sangrento, mapa 2)
 

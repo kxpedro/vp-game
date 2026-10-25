@@ -8,6 +8,8 @@ using Godot;
 public partial class SpawnRitualCircle : Node3D
 {
     private const string SheetPath = "res://assets/pixel_art/effects/ritual_circle/ritual_circle_sheet.png";
+    // Rampa violeta da Guardiã Invisível: marca os lacaios dela (BossMinionSummoner).
+    public const string VioletSheetPath = "res://assets/pixel_art/effects/ritual_circle/ritual_circle_violet_sheet.png";
     private const int IgniteFrames = 10;
     private const int PulseFrames = 6;
     private const int BurstFrames = 8;
@@ -20,21 +22,24 @@ public partial class SpawnRitualCircle : Node3D
 
     private enum State { Igniting, Pulsing, Bursting }
 
-    private static Texture2D _sheet;
+    private static readonly System.Collections.Generic.Dictionary<string, Texture2D> Sheets = new();
 
+    private Texture2D _sheet;
     private Sprite3D _sprite;
     private State _state = State.Igniting;
     private float _timer;
     private float _igniteSeconds = MaxIgniteSeconds;
 
     // leadTime: tempo até o monstro surgir; o acender cabe na primeira metade dele.
-    public static SpawnRitualCircle Spawn(Node parent, Vector3 position, float leadTime)
+    public static SpawnRitualCircle Spawn(Node parent, Vector3 position, float leadTime, string sheetPath = SheetPath)
     {
-        if (parent == null || LoadSheet() == null)
+        var sheet = parent == null ? null : LoadSheet(sheetPath);
+        if (sheet == null)
             return null;
         var circle = new SpawnRitualCircle
         {
             Name = "SpawnRitualCircle",
+            _sheet = sheet,
             Position = new Vector3(position.X, GroundHeight, position.Z),
             _igniteSeconds = Mathf.Clamp(leadTime * 0.5f, 0.1f, MaxIgniteSeconds),
         };
@@ -118,12 +123,13 @@ public partial class SpawnRitualCircle : Node3D
             _sprite.Frame = Mathf.Clamp(column, 0, Columns - 1);
     }
 
-    private static Texture2D LoadSheet()
+    private static Texture2D LoadSheet(string path)
     {
-        if (_sheet != null)
-            return _sheet;
-        var image = PixelRoomComposer.LoadImage(SheetPath);
-        _sheet = image == null ? null : ImageTexture.CreateFromImage(image);
-        return _sheet;
+        if (Sheets.TryGetValue(path, out var cached))
+            return cached;
+        var image = PixelRoomComposer.LoadImage(path);
+        var sheet = image == null ? null : ImageTexture.CreateFromImage(image);
+        Sheets[path] = sheet;
+        return sheet;
     }
 }

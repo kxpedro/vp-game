@@ -151,6 +151,16 @@ public static partial class DevParameterRegistry
         P("boss.phase_speed_multiplier", "Multiplicador de velocidade a cada fase", G, 1.12, 0.5, 3, 0.02, false);
         P("boss.phase_move_delay", "Atraso do golpe após trocar de fase (máx. s)", G, 0.45, 0, 10, 0.05, false);
         P("boss.phase_break_seconds", "Pausa na transição de fase (s, invulnerável)", G, 0.5, 0, 5, 0.05, false);
+        P("boss.minions.first_delay", "Lacaios: 1ª invocação após o boss acordar (s)", G, 5, 0, 120, 0.5, false);
+        P("boss.minions.interval", "Lacaios: intervalo entre invocações (s, cai 15% por fase)", G, 12, 1, 120, 0.5, false);
+        P("boss.minions.count_base", "Lacaios por invocação (fase 1; +1 por fase)", G, 2, 0, 10, 1, false);
+        P("boss.minions.max_alive", "Lacaios vivos ao mesmo tempo (máx.)", G, 4, 0, 20, 1, false);
+        P("boss.minions.on_phase", "Lacaios: invocar na troca de fase (1 = sim)", G, 1, 0, 1, 1, false);
+        P("boss.minions.distance_min", "Lacaios: distância mínima do boss ao surgir (m)", G, 6, 0, 30, 0.5, false);
+        P("boss.minions.distance_max", "Lacaios: distância máxima do boss ao surgir (m)", G, 8.5, 0, 30, 0.5, false);
+        P("boss.minions.warning", "Lacaios: aviso no chão antes de surgir (s)", G, 0.9, 0.1, 5, 0.05, false);
+        P("boss.minions.fury_on_death", "Lacaios: Fúria do jogador por abate", G, 20, 0, 200, 1, false, DevApplyMode.NewObjects, "20 = barra cheia (100) a cada 5 lacaios.");
+        P("boss.minions.health_mult", "Lacaios: multiplicador de vida (sobre o inimigo comum da sala)", G, 0.7, 0.05, 5, 0.05, false, DevApplyMode.NewObjects);
         P("boss.warning.single_circle", "Aviso mínimo: círculo isolado (s)", G, 0.5, 0.05, 5, 0.05, false);
         P("boss.warning.sequence_first", "Aviso mínimo: 1º círculo de sequência (s)", G, 0.6, 0.05, 5, 0.05, false);
         P("boss.warning.line", "Aviso mínimo: carga/linha (s)", G, 0.6, 0.05, 5, 0.05, false);
