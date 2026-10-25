@@ -449,9 +449,9 @@ public partial class HUD
 	private bool _blessingOfferPreview;
 
 	private const string BlessingVirgilPath = "res://assets/ui/virgil_oferta/virgil_espada.png";
-	private const float BlessingVirgilSize = 520.0f
+	private const float BlessingVirgilSize = 520.0f;
 	// Fim do desenho (espada incluída) dentro do quadro 256x256: 176/256. Alinha a ponta direita com a borda da janela.
-	private const float BlessingVirgilRightEdge = 176.0f / 256.0f;;
+	private const float BlessingVirgilRightEdge = 176.0f / 256.0f;
 
 	// Virgil de pé à esquerda da janela, olhando as opções (estilo Hades): fora da moldura, encostado na borda inferior.
 	private void AddBlessingVirgil()
