@@ -123,7 +123,14 @@ public partial class HUD
 		if (amount <= 0)
 			return;
 		AppendGameLog(Localization.TextFormat("hud.cursed_blood.reward", amount));
-		ShowCursedBloodPopup(amount, total);
+		// O contador some com o Ícor zerado: se estava escondido, mostra a linha e só posiciona o aviso depois do
+		// relayout da moldura (o sort do container já está na fila de chamadas adiadas).
+		var wasHidden = _cursedBloodRow != null && !_cursedBloodRow.Visible;
+		RefreshResourceIndicator();
+		if (wasHidden)
+			Callable.From(() => ShowCursedBloodPopup(amount, total)).CallDeferred();
+		else
+			ShowCursedBloodPopup(amount, total);
 	}
 
 	private void ShowCursedBloodPopup(int amount, int total)

@@ -18,6 +18,10 @@ echo Compilando scripts C#...
 dotnet build "VP0.1.csproj" --nologo
 if errorlevel 1 goto build_failed
 
+rem Importa imagens novas ou alteradas (ex.: depois de um merge); sem isso o jogo cai no desenho antigo.
+echo Importando recursos...
+"%GODOT_EXE%" --headless --path "%CD%" --import
+
 "%GODOT_EXE%" --path "%CD%"
 set "EXIT_CODE=%ERRORLEVEL%"
 popd
