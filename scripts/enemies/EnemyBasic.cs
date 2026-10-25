@@ -457,6 +457,22 @@ public partial class EnemyBasic : CharacterBody3D
         _bossActionAnimationTimer = 0.7f;
     }
 
+    // Animacao especifica de um golpe (ex.: "Cast" da Guardia); sem ela no visual, nada muda.
+    public bool PlayBossAnimation(string animation, float speed = 1.0f)
+    {
+        if (_importedAnimationPlayer == null || !_importedAnimationPlayer.HasAnimation(animation)) return false;
+        _importedAnimationPlayer.Play(animation, 0.05, speed);
+        _bossActionAnimationTimer = (float)_importedAnimationPlayer.GetAnimation(animation).Length / Mathf.Max(speed, 0.01f);
+        return true;
+    }
+
+    // Invisibilidade do boss: o sprite (2D) esmaece; o modelo 3D so some e volta.
+    public void SetBossVisibility(float alpha, float seconds)
+    {
+        if (_importedVisual is PixelEnemySprite sprite) sprite.FadeTo(alpha, seconds);
+        else if (_importedVisual != null) _importedVisual.Visible = alpha > 0.3f;
+    }
+
     private void OnImportedAnimationFinished(StringName animation)
     {
         if (_health?.IsDead == true || _importedAnimationPlayer == null || string.IsNullOrWhiteSpace(_importedIdleAnimation)) return;

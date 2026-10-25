@@ -156,6 +156,16 @@ public static partial class DevParameterRegistry
         P("boss.warning.claw_first", "Aviso mínimo: 1º golpe do claw_combo (s)", G, 0.45, 0.05, 5, 0.05, false);
         P("boss.warning.claw_follow", "Aviso mínimo: golpes 2+ do claw_combo (s)", G, 0.35, 0.05, 5, 0.05, false);
         P("boss.warning.teleport", "Aviso do teleporte (s)", G, 0.4, 0.05, 5, 0.05, false);
+        // Encontro: o boss espera na sala; a conversa (boss_pre) abre quando o jogador chega perto e a luta comeca depois dela.
+        P("boss.encounter.trigger_distance", "Encontro: distância que inicia a conversa (m)", G, 6.0, 1, 30, 0.25, false);
+        P("boss.encounter.max_wait", "Encontro: espera máxima antes de começar mesmo longe (s)", G, 25.0, 1, 300, 1, false);
+        P("boss.encounter.reveal_seconds", "Encontro: tempo da revelação antes da conversa (s)", G, 0.7, 0, 5, 0.05, false);
+        P("boss.encounter.dialogue_retry_seconds", "Encontro: insistir na conversa se outra janela estiver aberta (s)", G, 5.0, 0, 30, 0.5, false);
+        P("boss.encounter.wait_offset", "Encontro: distância do boss ao centro, longe da entrada (m)", G, 2.5, 0, 10, 0.25, false, N);
+        // Guardia Invisivel (InvisibleWomanStyle): so apresentacao, sem efeito no dano.
+        P("boss.invisible_woman.dormant_alpha", "Guardiã: opacidade enquanto espera", G, 0.2, 0, 1, 0.05, false, N);
+        P("boss.invisible_woman.fade_alpha", "Guardiã: opacidade entre golpes (fase 2+)", G, 0.28, 0, 1, 0.02, false);
+        P("boss.invisible_woman.orb_arc", "Guardiã: altura do arco dos orbes (m)", G, 2.2, 0, 8, 0.1, false);
         P("boss.damage_map_scale", "Dano do boss: acréscimo por mapa", G, 0.22, 0, 3, 0.01, false, DevApplyMode.Live, "Dano = enemy.blood_mage.damage x (1 + mapa x este valor) x golpe x fase x final.");
         P("boss.damage_phase_scale", "Dano do boss: acréscimo por fase", G, 0.18, 0, 3, 0.01, false);
         P("boss.damage_final_multiplier", "Dano do boss: multiplicador final", G, 0.9, 0, 5, 0.05, false);

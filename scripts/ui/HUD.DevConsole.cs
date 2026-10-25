@@ -102,6 +102,45 @@ public partial class HUD
 			DevConsole.LineAdded -= OnDevConsoleLine;
 			DevConsole.Cleared -= RedrawDevConsole;
 		};
+		CallDeferred(nameof(StartDevRun));
+	}
+
+	// ---------- Linha de comando (só debug) ----------
+	// --dev-run="give boon x; jump boss": roda os comandos na primeira cena que abrir (uma vez por processo).
+	// Enquanto vale, a saída do console, o log de eventos e as falas vão para o stdout ("[dev] ...").
+	// --dev-auto-dialogue: as conversas avançam sozinhas (testes em headless, onde ninguém aperta o botão).
+
+	private static bool _devRunConsumed;
+	private static bool _devEcho;
+	private static bool _devAutoDialogue;
+	private float _devAutoDialogueTimer;
+
+	private static void DevEcho(string text)
+	{
+		if (_devEcho) GD.Print("[dev] " + text);
+	}
+
+	private async void StartDevRun()
+	{
+		if (_devRunConsumed || !OS.IsDebugBuild())
+			return;
+		_devRunConsumed = true;
+		string commands = null;
+		foreach (var argument in OS.GetCmdlineUserArgs())
+		{
+			if (argument.StartsWith("--dev-run="))
+				commands = argument.Substring("--dev-run=".Length).Trim('"');
+			else if (argument == "--dev-auto-dialogue")
+				_devAutoDialogue = true;
+		}
+		if (string.IsNullOrWhiteSpace(commands))
+			return;
+		_devEcho = true;
+		DevConsole.LineAdded += (_, text) => DevEcho(text);
+		// Espera a cena terminar de montar (sala, jogador, HUD).
+		await ToSignal(GetTree().CreateTimer(0.5, true, false, true), SceneTreeTimer.SignalName.Timeout);
+		DevEcho($"--dev-run: {commands}");
+		DevConsole.Execute(commands, GetTree(), this);
 	}
 
 	// No _Input (antes do LineEdit): a tecla do console não pode virar caractere digitado. Com Shift/Ctrl/Alt

@@ -1,30 +1,46 @@
 using Godot;
 using System.Collections.Generic;
 
-// Modo 2D: visual de inimigo em pixel art (pacote Monsters Creatures Fantasy, assets/pixel_art/monsters/).
-// Entra no lugar do modelo 3D importado (EnemyBasic.ApplyPlaceholderVisual): um Sprite3D em billboard com um
-// AnimationPlayer de animações Idle/Walk/Attack/HitReact/Death, os mesmos nomes que o EnemyBasic já toca.
-// As folhas são faixas horizontais de quadros de 150x150 olhando para a direita; o lado vem da frente do inimigo.
+// Modo 2D: visual de inimigo em pixel art (pacote Monsters Creatures Fantasy, assets/pixel_art/monsters/, e os
+// chefes em assets/pixel_art/bosses/). Entra no lugar do modelo 3D importado (EnemyBasic.ApplyPlaceholderVisual):
+// um Sprite3D em billboard com um AnimationPlayer de animações Idle/Walk/Attack/HitReact/Death, os mesmos nomes
+// que o EnemyBasic já toca (os chefes têm também Cast). As folhas são faixas horizontais de quadros olhando para
+// a direita; o lado vem da frente do inimigo.
 public partial class PixelEnemySprite : Node3D
 {
     public const string PathPrefix = "pixel:";
     private const string MonstersRoot = "res://assets/pixel_art/monsters/";
-    private const int FrameSize = 150;
-    // Pés na linha y≈101 do quadro de 150 px: 26 px abaixo do centro.
-    private const float FeetOffsetPixels = 26.0f;
+    private const string BossesRoot = "res://assets/pixel_art/bosses/";
 
     private sealed record Clip(string Name, string File, float Fps, bool Loop);
 
-    private static readonly Dictionary<string, Clip[]> Monsters = new()
+    // Folhas de um monstro: pasta, largura do quadro e distância dos pés ao centro do quadro (px).
+    private sealed record SheetSet(string Folder, int FrameWidth, float FeetOffsetPixels, Clip[] Clips);
+
+    private static readonly Dictionary<string, SheetSet> Monsters = new()
     {
-        ["skeleton"] = Clips("idle", "walk"),
-        ["goblin"] = Clips("idle", "walk"),
-        ["mushroom"] = Clips("idle", "walk"),
+        // Quadros de 150x150 com os pés na linha y≈101: 26 px abaixo do centro.
+        ["skeleton"] = new(MonstersRoot + "skeleton/", 150, 26.0f, Clips("idle", "walk")),
+        ["goblin"] = new(MonstersRoot + "goblin/", 150, 26.0f, Clips("idle", "walk")),
+        ["mushroom"] = new(MonstersRoot + "mushroom/", 150, 26.0f, Clips("idle", "walk")),
         // O olho voador só tem o voo: serve de idle e de movimento.
-        ["flying_eye"] = Clips("flight", "flight"),
+        ["flying_eye"] = new(MonstersRoot + "flying_eye/", 150, 26.0f, Clips("flight", "flight")),
+        // Guardiã Invisível (pacote Blue Witch, tools/pixel_art/bosses/build_invisible_woman.py): quadros de 176x52,
+        // pés em y = 45.
+        ["invisible_woman"] = new(BossesRoot + "invisible_woman/", 176, 19.0f, new[]
+        {
+            new Clip("Idle", "idle", 8.0f, true),
+            new Clip("Walk", "walk", 10.0f, true),
+            new Clip("Attack", "attack", 14.0f, false),
+            new Clip("Cast", "cast", 10.0f, false),
+            new Clip("HitReact", "hit", 12.0f, false),
+            new Clip("Death", "death", 9.0f, false),
+        }),
     };
 
     private static readonly Dictionary<string, Texture2D> TextureCache = new();
+    // Largura com desenho de cada folha (px), para descontar os quadros vazios do fim.
+    private static readonly Dictionary<Texture2D, int> UsedWidth = new();
 
     private static Clip[] Clips(string idle, string walk) => new[]
     {
@@ -45,7 +61,7 @@ public partial class PixelEnemySprite : Node3D
     public static PixelEnemySprite Create(string scenePath)
     {
         var monster = scenePath.Substring(PathPrefix.Length);
-        if (!Monsters.TryGetValue(monster, out var clips))
+        if (!Monsters.TryGetValue(monster, out var sheets))
         {
             GD.PushWarning($"PixelEnemySprite: monstro desconhecido: {monster}");
             return null;
@@ -61,18 +77,18 @@ public partial class PixelEnemySprite : Node3D
             Shaded = true,
             DoubleSided = true,
             PixelSize = PlayerSpriteVisual.PixelSize,
-            Offset = new Vector2(0.0f, FeetOffsetPixels),
+            Offset = new Vector2(0.0f, sheets.FeetOffsetPixels),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         visual.AddChild(visual._sprite);
 
         var library = new AnimationLibrary();
-        foreach (var clip in clips)
+        foreach (var clip in sheets.Clips)
         {
-            var texture = LoadSheet(monster, clip.File);
+            var texture = LoadSheet(sheets.Folder + clip.File + ".png");
             if (texture == null)
                 return null;
-            library.AddAnimation(clip.Name, BuildAnimation(texture, clip));
+            library.AddAnimation(clip.Name, BuildAnimation(texture, clip, sheets.FrameWidth));
         }
         visual._player = new AnimationPlayer { Name = "AnimationPlayer" };
         visual._player.AddAnimationLibrary("", library);
@@ -80,9 +96,8 @@ public partial class PixelEnemySprite : Node3D
         return visual;
     }
 
-    private static Texture2D LoadSheet(string monster, string file)
+    private static Texture2D LoadSheet(string path)
     {
-        var path = MonstersRoot + monster + "/" + file + ".png";
         if (TextureCache.TryGetValue(path, out var cached))
             return cached;
         var image = PixelRoomComposer.LoadImage(path);
@@ -90,13 +105,19 @@ public partial class PixelEnemySprite : Node3D
             return null;
         var texture = ImageTexture.CreateFromImage(image);
         TextureCache[path] = texture;
+        var usedRect = image.GetUsedRect();
+        UsedWidth[texture] = usedRect.Position.X + usedRect.Size.X;
         return texture;
     }
 
     // Trilhas da animação: textura e número de quadros no início, depois o quadro a cada passo.
-    private static Animation BuildAnimation(Texture2D texture, Clip clip)
+    private static Animation BuildAnimation(Texture2D texture, Clip clip, int frameWidth)
     {
-        var frames = Mathf.Max(texture.GetWidth() / FrameSize, 1);
+        // hframes = a faixa inteira; a animação percorre só os quadros com desenho (as folhas dos chefes vêm
+        // completadas com quadros vazios para todas terem o mesmo hframes).
+        var hframes = Mathf.Max(texture.GetWidth() / frameWidth, 1);
+        var used = UsedWidth.TryGetValue(texture, out var width) ? width : texture.GetWidth();
+        var frames = Mathf.Clamp(Mathf.CeilToInt(used / (float)frameWidth), 1, hframes);
         var step = 1.0f / clip.Fps;
         var animation = new Animation
         {
@@ -112,7 +133,7 @@ public partial class PixelEnemySprite : Node3D
         var hframesTrack = animation.AddTrack(Animation.TrackType.Value);
         animation.TrackSetPath(hframesTrack, "Sprite:hframes");
         animation.ValueTrackSetUpdateMode(hframesTrack, Animation.UpdateMode.Discrete);
-        animation.TrackInsertKey(hframesTrack, 0.0f, frames);
+        animation.TrackInsertKey(hframesTrack, 0.0f, hframes);
 
         var frameTrack = animation.AddTrack(Animation.TrackType.Value);
         animation.TrackSetPath(frameTrack, "Sprite:frame");
@@ -134,15 +155,34 @@ public partial class PixelEnemySprite : Node3D
             _sprite.FlipH = side < 0.0f;
     }
 
-    // Pisca o sprite numa cor (dano, início do golpe) e volta ao normal.
+    // Pisca o sprite numa cor (dano, início do golpe) e volta ao normal (mantendo a transparência atual).
     public void Flash(Color color, float seconds)
     {
         if (_sprite == null)
             return;
         _flashTween?.Kill();
-        _sprite.Modulate = color;
+        _sprite.Modulate = new Color(color.R, color.G, color.B, _alpha);
         _flashTween = CreateTween();
-        _flashTween.TweenProperty(_sprite, "modulate", Colors.White, seconds);
+        _flashTween.TweenProperty(_sprite, "modulate", new Color(1.0f, 1.0f, 1.0f, _alpha), seconds);
+    }
+
+    private float _alpha = 1.0f;
+    private Tween _fadeTween;
+
+    // Some/reaparece (Guardiã Invisível). O recorte de alfa não deixa esmaecer: troca para mistura enquanto o
+    // sprite não estiver opaco e volta ao recorte (que ordena melhor com o cenário) quando fica opaco de novo.
+    public void FadeTo(float alpha, float seconds)
+    {
+        if (_sprite == null)
+            return;
+        _fadeTween?.Kill();
+        _flashTween?.Kill();
+        _sprite.AlphaCut = SpriteBase3D.AlphaCutMode.Disabled;
+        _alpha = alpha;
+        _fadeTween = CreateTween();
+        _fadeTween.TweenProperty(_sprite, "modulate", new Color(1.0f, 1.0f, 1.0f, alpha), Mathf.Max(seconds, 0.01f));
+        if (alpha >= 0.999f)
+            _fadeTween.TweenCallback(Callable.From(() => _sprite.AlphaCut = SpriteBase3D.AlphaCutMode.Discard));
     }
 
     // Morte: o sprite sai do inimigo (que é liberado na hora), toca a animação de morte no lugar e some.
@@ -154,6 +194,7 @@ public partial class PixelEnemySprite : Node3D
         Reparent(scene);
         SetProcess(false);
         _flashTween?.Kill();
+        _fadeTween?.Kill();
         _sprite.Modulate = Colors.White;
         _player.Play("Death");
         var length = (float)_player.GetAnimation("Death").Length;

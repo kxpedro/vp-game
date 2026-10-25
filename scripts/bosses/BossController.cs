@@ -40,6 +40,17 @@ public partial class BossController : Node
     private readonly List<Node3D> _activeTelegraphs = new();
     private string _lastMoveId = "";
     private float CastTimeMultiplier => G($"boss.{Definition?.Id}.cast_multiplier", Definition?.Id == "silver_dragonkin" ? 1.3f : 1.0f);
+    // Apresentacao propria dos golpes (por enquanto so a Guardia Invisivel); null = so os telegraphs genericos.
+    private InvisibleWomanStyle _style;
+
+    // ---- Encontro: o boss ja esta na sala, parado e intocavel, ate o jogador chegar perto e a conversa terminar. ----
+    private enum EncounterState { Waiting, Revealing, Talking, Fighting }
+    private EncounterState _encounter = EncounterState.Fighting;
+    private float _encounterClock;
+    private float _encounterRetryUntil;
+    private string _encounterConversationId = "";
+    // Lido pelo AudioManager: a musica de boss so entra quando a luta comeca.
+    public static bool EncounterPending { get; private set; }
 
     public void Configure(EnemyBasic enemy, BossDefinition definition)
     {
@@ -52,16 +63,124 @@ public partial class BossController : Node
         _health.HealthChanged += OnHealthChanged;
         _enemy.EnableBossMoves();
         _moveTimer = G("boss.first_move_delay", 1.1f);
+        if (definition.Id == "invisible_woman")
+        {
+            _style = new InvisibleWomanStyle { Name = "InvisibleWomanStyle" };
+            AddChild(_style);
+            _style.Configure(enemy);
+        }
+        BeginWaiting();
     }
 
     public override void _ExitTree()
     {
         if (_health != null) _health.HealthChanged -= OnHealthChanged;
+        StopListeningConversation();
+        EncounterPending = false;
     }
+
+    private void BeginWaiting()
+    {
+        _encounter = EncounterState.Waiting;
+        EncounterPending = true;
+        _encounterClock = 0.0f;
+        _health.SetInvincible(true);
+        _enemy.SetBossActionLocked(true);
+        _style?.OnDormant();
+    }
+
+    private void TickEncounter(float delta)
+    {
+        _encounterClock += delta;
+        var target = _enemy.GetCombatTarget();
+        switch (_encounter)
+        {
+            case EncounterState.Waiting:
+                if (target != null) _enemy.FaceCombatTarget();
+                var near = target != null && FlatDistance(target.GlobalPosition, _enemy.GlobalPosition) <= G("boss.encounter.trigger_distance", 6.0f);
+                // Rede de seguranca: quem ficar longe (arma a distancia, travado num canto) nao fica preso na sala.
+                if (!near && _encounterClock < G("boss.encounter.max_wait", 25.0f)) return;
+                _encounter = EncounterState.Revealing;
+                _encounterClock = 0.0f;
+                _style?.OnReveal();
+                // Log de debug (literal).
+                GetTree().CallGroup("hud", "AppendGameLog", near ? "Encontro: o jogador chegou perto do boss." : "Encontro: tempo de espera esgotado.");
+                return;
+            case EncounterState.Revealing:
+                // Da tempo de ver quem fala antes de a conversa pausar o jogo.
+                if (_encounterClock < (_style != null ? G("boss.encounter.reveal_seconds", 0.7f) : 0.0f)) return;
+                _encounter = EncounterState.Talking;
+                _encounterRetryUntil = _encounterClock + G("boss.encounter.dialogue_retry_seconds", 5.0f);
+                TryOpenEncounterDialogue();
+                return;
+            case EncounterState.Talking:
+                if (string.IsNullOrEmpty(_encounterConversationId)) TryOpenEncounterDialogue();
+                return;
+        }
+    }
+
+    private void TryOpenEncounterDialogue()
+    {
+        var conversation = DialogueManager.Instance?.TryStartBossEncounter() ?? "";
+        if (conversation == null)
+        {
+            // Outra janela aberta: tenta de novo ate o prazo, depois luta sem conversa.
+            if (_encounterClock >= _encounterRetryUntil) Awaken();
+            return;
+        }
+        if (conversation.Length == 0)
+        {
+            Awaken();
+            return;
+        }
+        _encounterConversationId = conversation;
+        DialogueManager.Instance.ConversationEnded += OnConversationEnded;
+        _listeningConversation = true;
+    }
+
+    private bool _listeningConversation;
+
+    private void OnConversationEnded(string conversationId, string choiceId)
+    {
+        if (conversationId != _encounterConversationId) return;
+        StopListeningConversation();
+        // Adiado: o fim da conversa tambem chega com a cena sendo desmontada (HUD saindo da arvore).
+        CallDeferred(nameof(Awaken));
+    }
+
+    private void StopListeningConversation()
+    {
+        if (!_listeningConversation) return;
+        _listeningConversation = false;
+        if (DialogueManager.Instance != null) DialogueManager.Instance.ConversationEnded -= OnConversationEnded;
+    }
+
+    // Comeca a luta: barra de vida, musica e o primeiro golpe depois de boss.first_move_delay.
+    private void Awaken()
+    {
+        if (_encounter == EncounterState.Fighting || !IsInsideTree() || !IsInstanceValid(_enemy) || _health.IsDead) return;
+        _encounter = EncounterState.Fighting;
+        EncounterPending = false;
+        _health.SetInvincible(false);
+        _enemy.SetBossActionLocked(false);
+        _moveTimer = G("boss.first_move_delay", 1.1f);
+        GetTree().CallGroup("hud", "BindBoss", _enemy, Definition.DisplayName);   // nao renomear (HUD.Notifications.cs)
+        GetTree().CallGroup("hud", "AppendGameLog", $"Encontro: a luta com {Definition.DisplayName} comecou.");
+        PlayCue("boss_phase");
+        if (_style != null) _style.OnAwaken();
+        else SpawnRing(_enemy.GlobalPosition, 1.0f, 5.0f, 0.5f, new Color(1.0f, 0.85f, 0.4f));
+    }
+
+    private static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.X - b.X, a.Z - b.Z).Length();
 
     public override void _Process(double delta)
     {
         if (_enemy == null || _health == null || _health.IsDead) return;
+        if (_encounter != EncounterState.Fighting)
+        {
+            TickEncounter((float)delta);
+            return;
+        }
         if (_phaseBreakRemaining > 0.0f)
         {
             _phaseBreakRemaining -= (float)delta;
@@ -82,7 +201,8 @@ public partial class BossController : Node
         _lastMoveId = move.Id;
         _circlesInMove = 0;
         _enemy.ApplyBossMoveTuning(move, CurrentPhase);
-        _enemy.PlayBossMoveAnimation(move.Id, CurrentPhase);
+        if (_style == null || !_style.OnMoveStart(move.Id))
+            _enemy.PlayBossMoveAnimation(move.Id, CurrentPhase);
         _enemy.SetBossActionLocked(true);
         // Aviso de inicio de golpe: som + flash no corpo + anel no chao.
         PlayCue("boss_windup");
@@ -93,6 +213,7 @@ public partial class BossController : Node
 
         await ExecuteMove(move);
 
+        if (IsInstanceValid(_style)) _style.OnMoveEnd(move.Id);
         if (IsInstanceValid(_enemy) && !_health.IsDead)
             _enemy.SetBossActionLocked(false);
         _actionInProgress = false;
@@ -102,17 +223,22 @@ public partial class BossController : Node
     private BossMoveDefinition SelectMove()
     {
         if (Definition?.Moves == null || Definition.Moves.Length == 0) return null;
-        var available = new List<BossMoveDefinition>();
-        foreach (var move in Definition.Moves)
-            if (move.TunedMinimumPhase <= CurrentPhase && (move.Id != _lastMoveId || Definition.Moves.Length == 1))
-                available.Add(move);
-        if (available.Count == 0)
-            foreach (var move in Definition.Moves)
-                if (move.TunedMinimumPhase <= CurrentPhase) available.Add(move);
-        if (available.Count == 0) return null;
-        var selected = available[_moveIndex % available.Count];
-        _moveIndex++;
-        return selected;
+        // Rodizio na ordem do catalogo a partir do proximo da vez, pulando os bloqueados pela fase e o que acabou de
+        // ser usado (so repete se for o unico liberado). Antes o indice corria sobre uma lista que mudava de tamanho
+        // e, na fase 1, um dos tres golpes nunca saia.
+        var moves = Definition.Moves;
+        for (var pass = 0; pass < 2; pass++)
+        {
+            for (var step = 0; step < moves.Length; step++)
+            {
+                var index = (_moveIndex + step) % moves.Length;
+                var move = moves[index];
+                if (move.TunedMinimumPhase > CurrentPhase || (pass == 0 && move.Id == _lastMoveId)) continue;
+                _moveIndex = index + 1;
+                return move;
+            }
+        }
+        return null;
     }
 
     private Task ExecuteMove(BossMoveDefinition move) => move.Id switch
@@ -189,6 +315,7 @@ public partial class BossController : Node
         ReleaseTelegraph(telegraph, true);
         PlayCue("boss_impact");
         _enemy.MoveBoss(direction * distance);
+        _style?.OnCharge(origin, _enemy.GlobalPosition);
         DealDamageAlongSegment(origin, _enemy.GlobalPosition, chargeWidth * 0.5f, _enemy.AttackDamage, move.DisplayName);
         await WaitSeconds(G("boss.charge.recovery", 0.18f));
     }
@@ -205,7 +332,7 @@ public partial class BossController : Node
         var destination = ClampBossDestination(target.GlobalPosition + offset);
         await WarnTeleport(destination);
         if (!CanContinue()) return;
-        _enemy.TeleportBoss(destination);
+        TeleportTo(destination);
         _enemy.FaceCombatTarget();
         await StrikeAt(target.GlobalPosition, G("boss.kinetic_shift.strike_radius", 1.55f), _enemy.AttackDamage * G("boss.kinetic_shift.strike_damage", 0.65f), G("boss.kinetic_shift.strike_windup", 0.35f), move.DisplayName, MinSingleCircleWarning);
     }
@@ -220,7 +347,7 @@ public partial class BossController : Node
         var destination = ClampBossDestination(target.GlobalPosition + side * G("boss.mirror_dash.teleport_distance", 4.8f));
         await WarnTeleport(destination);
         if (!CanContinue()) return;
-        _enemy.TeleportBoss(destination);
+        TeleportTo(destination);
         await StrikeAt(origin, G("boss.mirror_dash.radius", 1.8f), _enemy.AttackDamage * G("boss.mirror_dash.damage", 0.55f), G("boss.mirror_dash.windup", 0.38f), move.DisplayName, MinSingleCircleWarning);
         if (!CanContinue()) return;
         await ExecuteCharge(move, G("boss.mirror_dash.charge_distance", 7.0f), G("boss.mirror_dash.charge_windup", 0.38f));
@@ -271,6 +398,8 @@ public partial class BossController : Node
     {
         var castTime = Mathf.Max(windup * CastTimeMultiplier, minCast);
         var telegraph = CreateCircleTelegraph(center, radius, castTime);
+        var moveId = _lastMoveId;
+        _style?.OnStrikeTelegraph(moveId, center, radius, castTime, _circlesInMove);
         // Tick por circulo de sequencia (o primeiro ja tem o som de inicio do golpe).
         if (_circlesInMove++ > 0) PlayCue("boss_tick");
         var threat = AddThreat(center, radius);
@@ -281,8 +410,15 @@ public partial class BossController : Node
         if (canContinue)
         {
             PlayCue("boss_impact");
+            if (IsInstanceValid(_style)) _style.OnStrikeImpact(moveId, center, radius);
             DealDamageIfWithin(center, radius, damage, source);
         }
+    }
+
+    private void TeleportTo(Vector3 destination)
+    {
+        _enemy.TeleportBoss(destination);
+        _style?.OnTeleported();
     }
 
     // ---- Telegraphs ----
@@ -491,6 +627,7 @@ public partial class BossController : Node
         if (!CanContinue()) return;
         PlayCue("boss_teleport");
         _enemy.FlashWindup();
+        _style?.OnTeleportWarning(_lastMoveId, destination, TeleportWarningSeconds);
         var violet = new Color(0.78f, 0.3f, 1.0f);
         SpawnRing(_enemy.GlobalPosition, 1.2f, 0.4f, TeleportWarningSeconds, violet);
         SpawnRing(destination, 2.4f, 1.0f, TeleportWarningSeconds, violet, true);
@@ -603,6 +740,7 @@ public partial class BossController : Node
             if (IsInstanceValid(telegraph)) telegraph.QueueFree();
         _activeTelegraphs.Clear();
         if (IsInstanceValid(_enemy)) _enemy.ClearBossThreats();
+        if (IsInstanceValid(_style)) _style.OnCancel();
     }
 
     // Pausa curta com flash e anel na troca de fase. Invulnerabilidade apenas durante PhaseBreakSeconds.
@@ -613,6 +751,7 @@ public partial class BossController : Node
         _health.SetInvincible(true);
         PlayCue("boss_phase");
         SpawnRing(_enemy.GlobalPosition, 1.0f, 7.0f, PhaseBreakSeconds, new Color(1.0f, 0.85f, 0.4f));
+        _style?.OnPhaseChanged(CurrentPhase, PhaseBreakSeconds);
         for (var flash = 0; flash < 3; flash++)
         {
             if (!IsInstanceValid(_enemy)) break;

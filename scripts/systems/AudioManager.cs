@@ -26,7 +26,8 @@ public partial class AudioManager : Node
             ? "res://audio/ambience/Main Menu Theme.mp3"
             : sceneName == "CrowsNest"
                 ? "res://audio/ambience/Hub.mp3"
-            : RunState.IsBossRoom
+            // Boss esperando na sala (antes da conversa): segue a musica do mapa; o tema de boss entra com a luta.
+            : RunState.IsBossRoom && !BossController.EncounterPending
                 ? RunState.CurrentMapIndex == 1 ? "res://audio/boss/Floor 2 - Boss Theme.mp3" : "res://audio/boss/Floor 1 - Boss Theme.mp3"
                 : RunState.CurrentMapIndex switch
                 {
@@ -107,6 +108,23 @@ public partial class AudioManager : Node
             "boss_teleport" => new[] { "res://audio/effects/combat/Dodge Swish.wav" },
             "boss_impact" => new[] { "res://audio/effects/combat/flesh/Armor Impact 1.wav" },
             "boss_phase" => new[] { "res://audio/effects/combat/Sword Hit Heavy.ogg" },
+            // Guardia Invisivel (InvisibleWomanStyle): sons arcanos do pacote Magic Attacks (tools/convert_boss_sfx.py).
+            "iw_cast" => new[]
+            {
+                "res://audio/effects/boss/invisible_woman/cast_1.wav",
+                "res://audio/effects/boss/invisible_woman/cast_2.wav"
+            },
+            "iw_impact" => new[]
+            {
+                "res://audio/effects/boss/invisible_woman/impact_1.wav",
+                "res://audio/effects/boss/invisible_woman/impact_2.wav",
+                "res://audio/effects/boss/invisible_woman/impact_3.wav"
+            },
+            "iw_vanish" => new[]
+            {
+                "res://audio/effects/boss/invisible_woman/vanish_1.wav",
+                "res://audio/effects/boss/invisible_woman/vanish_2.wav"
+            },
             _ => System.Array.Empty<string>()
         };
         if (paths.Length == 0) return;
@@ -122,6 +140,9 @@ public partial class AudioManager : Node
             "boss_teleport" => (0.5f, 0.0f),
             "boss_impact" => (0.7f, 0.0f),
             "boss_phase" => (0.6f, 2.0f),
+            "iw_cast" => (1.15f, -7.0f),
+            "iw_impact" => (1.0f, -3.0f),
+            "iw_vanish" => (0.9f, -6.0f),
             "gun_fire" => (1.0f, -5.0f),
             "gun_reload" => (1.0f, -3.0f),
             _ => (1.0f, 0.0f)

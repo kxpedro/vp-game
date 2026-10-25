@@ -37,6 +37,7 @@ public partial class HUD
 	public void AppendGameLog(string message)
 	{
 		if (string.IsNullOrWhiteSpace(message)) return;
+		DevEcho(message);
 		// Sem horário (Aud §5). No release só guarda as últimas entradas em memória, sem UI (decisão D4).
 		_gameLogEntries.Enqueue(message);
 		while (_gameLogEntries.Count > GameLogMemoryEntries) _gameLogEntries.Dequeue();

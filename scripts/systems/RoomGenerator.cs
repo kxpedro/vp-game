@@ -506,13 +506,17 @@ public partial class RoomGenerator : Node3D
         if (_isSpawningWave || _nextWaveEnemyIndex >= _pendingEnemyWaves.Count) return;
         _isSpawningWave = true;
         AddToGroup("enemy_spawn_pending");
-        var spawnDelay = CompendiumTuning.GetFloat("room.spawn.delay", EnemySpawnDelaySeconds);
+        // O boss nao e invocado: ja esta na sala esperando o jogador (BossController.BeginDormant), sem ritual nem espera.
+        var spawnDelay = RunState.IsBossRoom ? 0.0f : CompendiumTuning.GetFloat("room.spawn.delay", EnemySpawnDelaySeconds);
         var wave = _pendingEnemyWaves.GetRange(_nextWaveEnemyIndex, Mathf.Min(EnemiesPerWave, _pendingEnemyWaves.Count - _nextWaveEnemyIndex));
         _nextWaveEnemyIndex += wave.Count;
         var markers = new List<Node3D>();
-        foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
-        GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
-        await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
+        if (!RunState.IsBossRoom)
+        {
+            foreach (var spawn in wave) markers.Add(CreateSpawnMarker(spawn.Position, spawnDelay));
+            GetTree().CallGroup("hud", "AppendGameLog", $"Wave com {wave.Count} inimigos chega em {spawnDelay:0} segundos.");
+            await ToSignal(GetTree().CreateTimer(spawnDelay), SceneTreeTimer.SignalName.Timeout);
+        }
 
         if (RunState.IsBossRoom)
         {
@@ -537,7 +541,7 @@ public partial class RoomGenerator : Node3D
         {
             var enemy = EnemyScene.Instantiate<EnemyBasic>();
             enemy.Name = spawn.Name;
-            enemy.Position = spawn.Position;
+            enemy.Position = RunState.IsBossRoom ? BossWaitPosition() : spawn.Position;
             AddChild(enemy);
             enemy.ConfigureVariant(spawn.Rarity, spawn.Archetype);
             if (RunState.IsBossRoom)
@@ -559,6 +563,14 @@ public partial class RoomGenerator : Node3D
         _isSpawningWave = false;
         _waveCountdown = Mathf.Max(CompendiumTuning.GetFloat("room.waves.interval", WaveIntervalSeconds) - spawnDelay, 0.1f);
         GetTree().CallGroup("run_manager", "NotifyWaveSpawned", wave.Count, _pendingEnemyWaves.Count);
+    }
+
+    // Onde o boss espera: alem do centro da arena, do lado oposto a entrada (o jogador o ve ao entrar e caminha ate ele).
+    private Vector3 BossWaitPosition()
+    {
+        var away = new Vector3(-PlayerSpawnPosition.X, 0.0f, -PlayerSpawnPosition.Z);
+        var offset = away.LengthSquared() > 0.01f ? away.Normalized() * CompendiumTuning.GetFloat("boss.encounter.wait_offset", 2.5f) : Vector3.Zero;
+        return ClampToWalkableArea(offset, 2);
     }
 
     private Node3D CreateSpawnMarker(Vector3 position, float leadTime)

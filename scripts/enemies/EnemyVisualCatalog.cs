@@ -18,7 +18,9 @@ public static class EnemyVisualCatalog
     {
         if (isBoss)
         {
-            Godot.ResourceLoader.LoadThreadedRequest(GetBoss(mapIndex).ScenePath);
+            var bossPath = GetBoss(mapIndex).ScenePath;
+            if (!PixelEnemySprite.IsPixelPath(bossPath))
+                Godot.ResourceLoader.LoadThreadedRequest(bossPath);
             return;
         }
 
@@ -59,7 +61,7 @@ public static class EnemyVisualCatalog
     };
 
     // Modo 2D: monstros em pixel art (PixelEnemySprite). Corpo a corpo = goblin ou cogumelo, a distancia = olho voador,
-    // tanque = esqueleto. Os chefes continuam com o modelo 3D.
+    // tanque = esqueleto. Dos chefes, so a Guardia Invisivel tem sprite (GetBoss); os outros continuam com o modelo 3D.
     private static EnemyVisualDefinition GetPixelEnemy(EnemyArchetype archetype) => archetype switch
     {
         EnemyArchetype.Ranged => new(PixelEnemySprite.PathPrefix + "flying_eye", 1.0f, "Idle", 0.48f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
@@ -70,6 +72,10 @@ public static class EnemyVisualCatalog
     public static EnemyVisualDefinition GetBoss(int mapIndex) => mapIndex switch
     {
         // Indice do mapa = boss: 0 invisible_woman, 1 labyrinth_keeper, 2 silver_dragonkin, 3 armand.
+        // 2D: a bruxa (176x52, ~40 px de corpo) em 2x fica mais alta que o Virgil, como chefe.
+        0 when GameMode.IsPixelArt => new(
+            PixelEnemySprite.PathPrefix + "invisible_woman",
+            2.0f, "Idle", 0.8f, false, 1.0f, 0.0f, "Walk", "Attack", "HitReact"),
         0 => new(
             "res://assets/enemies/quaternius_ultimate_monsters/Ghost_Skull.gltf",
             1.0f, "Flying_Idle", 0.95f, true, 1.85f, 180.0f, "Fast_Flying", "Punch", "HitReact"),

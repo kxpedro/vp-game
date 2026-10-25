@@ -78,16 +78,84 @@
       "lines": [ { "text_key": "dlg.bark_low_health_2.1", "emotion": "grim" } ]
     },
     {
-      "id": "boss_pre_invisible_woman",
-      "speaker": "virgil",
+      "id": "boss_pre_invisible_woman_meet",
+      "speaker": "invisible_woman",
       "category": "boss_pre",
       "priority_class": "specific",
       "priority": 50,
       "repeatable": false,
       "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" } ],
       "lines": [
-        { "text_key": "dlg.boss_pre_invisible_woman.1", "emotion": "grim" },
-        { "text_key": "dlg.boss_pre_invisible_woman.2", "speaker": "odalric" }
+        { "text_key": "dlg.boss_pre_invisible_woman_meet.1", "emotion": "amused" },
+        { "text_key": "dlg.boss_pre_invisible_woman_meet.2", "speaker": "virgil", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_invisible_woman_meet.3" },
+        { "text_key": "dlg.boss_pre_invisible_woman_meet.4", "speaker": "virgil" },
+        { "text_key": "dlg.boss_pre_invisible_woman_meet.5", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_after_death",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "specific",
+      "priority": 60,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [
+        { "type": "boss_in_room", "id": "invisible_woman" },
+        { "type": "seen", "id": "boss_pre_invisible_woman_meet" },
+        { "type": "last_run_outcome", "value": "died" },
+        { "type": "died_at_boss", "id": "invisible_woman" }
+      ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_after_death.1", "emotion": "amused" },
+        { "text_key": "dlg.boss_pre_invisible_woman_after_death.2", "speaker": "virgil", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_return_1",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "evergreen",
+      "priority": 10,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" }, { "type": "seen", "id": "boss_pre_invisible_woman_meet" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_return_1.1" },
+        { "text_key": "dlg.boss_pre_invisible_woman_return_1.2", "speaker": "virgil", "emotion": "grim" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_return_2",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "evergreen",
+      "priority": 10,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [ { "type": "boss_in_room", "id": "invisible_woman" }, { "type": "seen", "id": "boss_pre_invisible_woman_meet" } ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_return_2.1", "emotion": "amused" },
+        { "text_key": "dlg.boss_pre_invisible_woman_return_2.2", "speaker": "virgil" }
+      ]
+    },
+    {
+      "id": "boss_pre_invisible_woman_after_defeat",
+      "speaker": "invisible_woman",
+      "category": "boss_pre",
+      "priority_class": "evergreen",
+      "priority": 10,
+      "repeatable": true,
+      "cooldown_visits": 0,
+      "requirements": [
+        { "type": "boss_in_room", "id": "invisible_woman" },
+        { "type": "seen", "id": "boss_pre_invisible_woman_meet" },
+        { "type": "boss_defeated", "id": "invisible_woman" }
+      ],
+      "lines": [
+        { "text_key": "dlg.boss_pre_invisible_woman_after_defeat.1", "emotion": "grim" },
+        { "text_key": "dlg.boss_pre_invisible_woman_after_defeat.2", "speaker": "virgil", "emotion": "grim" }
       ]
     },
     {

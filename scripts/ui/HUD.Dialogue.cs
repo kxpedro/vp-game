@@ -322,6 +322,7 @@ public partial class HUD
 			_dialogueSkipHint.Root.Visible = true;
 			_dialogueAcceptHint.SetLabel(Localization.Text("ui.dialogue.continue"));
 			_dialogueTextLabel.Text = frame.Text ?? "";
+			DevEcho($"{frame.SpeakerName}: {frame.Text}");
 			var instant = revealAll || _dialoguePreviewMode || string.IsNullOrEmpty(frame.Text);
 			_dialogueTextLabel.VisibleCharacters = instant ? -1 : 0;
 			_dialogueReveal = 0.0f;
@@ -364,6 +365,13 @@ public partial class HUD
 		{
 			var pulse = 0.5f + 0.5f * Mathf.Sin(_hudClock * 6.0f);
 			_dialogueArrow.Modulate = new Color(1, 1, 1, 0.4f + 0.6f * pulse);
+			// Teste pela linha de comando (--dev-auto-dialogue, só debug): avança sozinho.
+			if (_devAutoDialogue && !_dialoguePreviewMode && (_devAutoDialogueTimer += delta) > 0.8f)
+			{
+				_devAutoDialogueTimer = 0.0f;
+				_dialoguePlayback.Advance();
+				AfterDialogueStep();
+			}
 			return;
 		}
 		_dialogueArrow.Modulate = new Color(1, 1, 1, 0);
