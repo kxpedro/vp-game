@@ -35,11 +35,12 @@ public partial class EnemyOverheadBar : Node3D
     private float _trailRatio = 1.0f;
     private float _trailDelay;
 
+    // Modo 2D: cores da paleta AAP-64, as mesmas do corpo e do aviso do golpe.
     public static Color ArchetypeColor(EnemyArchetype archetype) => archetype switch
     {
-        EnemyArchetype.Ranged => new Color(1.0f, 0.02f, 0.48f),
-        EnemyArchetype.Tank => new Color(1.0f, 0.78f, 0.04f),
-        _ => new Color(0.0f, 0.86f, 0.96f)
+        EnemyArchetype.Ranged => GameMode.IsPixelArt ? Color.FromHtml("e86a73") : new Color(1.0f, 0.02f, 0.48f),
+        EnemyArchetype.Tank => GameMode.IsPixelArt ? Color.FromHtml("f9a31b") : new Color(1.0f, 0.78f, 0.04f),
+        _ => GameMode.IsPixelArt ? Color.FromHtml("588dbe") : new Color(0.0f, 0.86f, 0.96f)
     };
 
     public override void _Ready()

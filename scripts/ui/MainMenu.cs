@@ -595,7 +595,7 @@ public partial class MainMenu : Control
 
 	private void LoadSlot(int slot)
 	{
-		SaveGameManager.Instance.StartSlot(slot); RunState.FailRun(); GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
+		SaveGameManager.Instance.StartSlot(slot); RunState.FailRun(); CoffinRise.Pending = false; GetTree().ChangeSceneToFile(GameMode.Scene("res://scenes/game/CrowsNest.tscn"));
 	}
 
 	// ---------- Idioma ----------

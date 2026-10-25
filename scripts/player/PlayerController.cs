@@ -65,6 +65,9 @@ public partial class PlayerController : CharacterBody3D
 	// Passos automáticos ao atravessar um portão (RoomTransition): sem controle do jogador.
 	private Vector3 _scriptedWalkDirection;
 	private float _scriptedWalkTimeRemaining;
+	// Cena curta (CoffinRise): quem a conduz move o jogador direto pela posição, sem física nem controle.
+	private bool _cutsceneHeld;
+	private bool _cutsceneMoving;
 
 	public override void _Ready()
 	{
@@ -114,6 +117,12 @@ public partial class PlayerController : CharacterBody3D
 		if (_health.IsDead)
 		{
 			_animator?.SetMovementState(false, false, 0.0f);
+			return;
+		}
+		if (_cutsceneHeld)
+		{
+			Velocity = Vector3.Zero;
+			_animator?.SetMovementState(_cutsceneMoving, false, WalkSpeed);
 			return;
 		}
 		if (_scriptedWalkTimeRemaining > 0.0f)
@@ -300,6 +309,28 @@ public partial class PlayerController : CharacterBody3D
 	}
 
 	public bool IsScriptedWalking => _scriptedWalkTimeRemaining > 0.0f;
+
+	/// <summary>
+	/// Prende o jogador para uma cena curta: sem física, gravidade nem controle; quem conduz a cena muda a posição
+	/// direto. <paramref name="moving"/> toca a caminhada no lugar do idle.
+	/// </summary>
+	public void SetCutsceneHold(bool held, bool moving = false)
+	{
+		if (held && !_cutsceneHeld)
+		{
+			if (_dodgeTimeRemaining > 0.0f)
+			{
+				_dodgeTimeRemaining = 0.0f;
+				EndDodge();
+			}
+			_combat?.CancelCurrentAttack();
+			_scriptedWalkTimeRemaining = 0.0f;
+		}
+		_cutsceneHeld = held;
+		_cutsceneMoving = held && moving;
+	}
+
+	public bool IsCutsceneHeld => _cutsceneHeld;
 
 	private void UpdateFacing(Vector3 fallbackDirection)
 	{

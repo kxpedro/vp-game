@@ -1542,10 +1542,11 @@ public static class UiComponents
         return toasts;
     }
 
-    // Canto inferior direito, acima do contador de recurso (que ocupa −24/−24, ~56 de altura), 360 x 3 linhas, PanelHud a 0.90.
+    // Canto inferior direito, acima dos recursos empilhados (−24/−24; ~56 de altura com uma linha, + 24 + S1 com as duas
+    // da run), 360 x 3 linhas, PanelHud a 0.90.
     public static UiEventLog EventLog(Control parent)
     {
-        const float aboveResource = UiMetrics.SafeMargin + 56 + UiMetrics.S2;
+        const float aboveResource = UiMetrics.SafeMargin + 56 + 24 + UiMetrics.S1 + UiMetrics.S2;
         var log = new UiEventLog
         {
             Root = new PanelContainer

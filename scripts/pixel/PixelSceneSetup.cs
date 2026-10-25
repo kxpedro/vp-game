@@ -74,6 +74,18 @@ public partial class PixelSceneSetup : Node3D
         _layout = layout;
         if (Kind == RoomKind.Hub && layout != null)
             layout.Props.AddRange(CharacterCoffins);
+        // Renascer: o caixão do Virgil vira a peça da cena (sem tampa no fundo; a tampa é a animação por cima).
+        PixelRoomProp risingCoffin = null;
+        if (Kind == RoomKind.Hub && layout != null && CoffinRise.Pending)
+        {
+            CoffinRise.Pending = false;
+            var index = layout.Props.FindIndex(p => p.Name.StartsWith("coffin_virgil_"));
+            if (index >= 0)
+            {
+                risingCoffin = layout.Props[index] with { Name = CoffinRise.RisePiece(layout.Props[index].Name) };
+                layout.Props[index] = risingCoffin;
+            }
+        }
         _room = new PixelRoom { Name = "PixelRoom" };
         AddChild(_room);
         // O centro de cada sala fixa é a origem da cena (onde fica a fonte no hub e na sala de bênção).
@@ -84,13 +96,16 @@ public partial class PixelSceneSetup : Node3D
         }
 
         // A IsoCamera vem depois deste nó na cena: a configuração entra antes do _Ready dela.
-        if (scene.GetNodeOrNull<IsoCamera>("IsoCamera") is { } camera)
+        var camera = scene.GetNodeOrNull<IsoCamera>("IsoCamera");
+        if (camera != null)
             _room.ConfigureCamera(camera);
 
         PlaceKitInteractives(scene, layout);
         if (Kind == RoomKind.Hub)
         {
             PlaceHub(scene);
+            if (risingCoffin != null && scene.GetNodeOrNull<PlayerController>("Player") is { } player)
+                CoffinRise.Play(this, _room, risingCoffin, player, camera);
             return;
         }
 

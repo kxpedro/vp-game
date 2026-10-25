@@ -181,7 +181,7 @@ public partial class HUD
 		RefreshCompendium();
 
 		Control initialFocus = _compendiumRows.Count > 0 ? _compendiumRows[0] : _compendiumTabs.Buttons[tabIndex];
-		UiModalStack.Push(_compendiumOverlay, true, initialFocus, CloseCompendium);
+		UiModalStack.Push(_compendiumOverlay, true, initialFocus, CloseCompendium, pausesAudio: false);
 		_compendiumTabs.Arm();
 		_compendiumWindow.FadeIn();
 	}
@@ -1062,7 +1062,7 @@ public partial class HUD
 			"Todos os valores customizados no Dicionário voltam ao original. Isto também apaga TODOS os valores do painel de dev (F1).", "Redefinir",
 			() => { SetCompendiumFooterInert(false); ResetCompendiumValues(); },
 			ConfirmKind.Destructive, () => SetCompendiumFooterInert(false));
-		UiModalStack.Push(confirm.Window.Root, true, confirm.CancelButton, confirm.Cancel);
+		UiModalStack.Push(confirm.Window.Root, true, confirm.CancelButton, confirm.Cancel, pausesAudio: false);
 	}
 
 	private void SetCompendiumFooterInert(bool inert)

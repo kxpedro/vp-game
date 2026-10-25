@@ -92,7 +92,7 @@ public partial class HUD
 		_shopWindow.SetStatus(_shopPreviewMode ? Localization.Text("shop.preview_status") : Localization.Text("shop.status"));
 		RebuildShopCards();
 		// Foco inicial: primeiro cartão comprável (ou o primeiro cartão, se nenhum for).
-		UiModalStack.Push(_shopOverlay, pauses: true, initialFocus: PickShopFocus(0), onCancel: CloseShop);
+		UiModalStack.Push(_shopOverlay, pauses: true, initialFocus: PickShopFocus(0), onCancel: CloseShop, pausesAudio: false);
 		_shopWindow.FadeIn();
 	}
 

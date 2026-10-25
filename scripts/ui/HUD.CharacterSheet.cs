@@ -37,8 +37,9 @@ public partial class HUD
 	// Dados exibidos (reais ou fictícios do preview).
 	private sealed class CharacterSheetData
 	{
-		public int Balance;               // Moedas da run, ou Sangue Amaldiçoado quando CursedBalance
-		public bool CursedBalance;        // hub: o saldo do cabeçalho é o permanente
+		public int Balance;               // Moedas da run
+		public int CursedBlood;           // Ícor (permanente)
+		public bool CursedBalance;        // hub: sem run, o cabeçalho mostra só o Ícor
 		public List<BloodBlessingRecord> Blessings = new();
 		public List<ArtifactRecord> RunArtifacts = new();   // artefatos comprados na Loja nesta run (não há coleção nem slots)
 		public List<(string Id, int Rank)> Skills = new();
@@ -51,9 +52,8 @@ public partial class HUD
 	private UiDetailPanel _characterSheetDetail;
 	private VBoxContainer _characterSheetList;
 	private Label _characterSheetCoinsLabel;
-	private Label _characterSheetCurrencyName;
-	private Control _characterSheetCoinGlyph;
-	private Control _characterSheetCursedGlyph;
+	private Label _characterSheetCursedLabel;
+	private Control _characterSheetCoinsGroup;
 	private readonly List<CharacterSheetEntry> _characterSheetEntries = new();
 	private readonly List<CharacterSheetEntry> _characterSheetRowEntries = new();
 	private readonly List<Button> _characterSheetRows = new();
@@ -70,21 +70,13 @@ public partial class HUD
 		_characterSheetOverlay = _characterSheetWindow.Root;
 		_characterSheetOverlay.Visible = false;
 
-		// Saldo no cabeçalho (§3.1 HeaderRight): Moedas de Sangue da run (gota dourada) ou, no hub, Sangue Amaldiçoado
-		// (losango violeta). O par glifo/rótulo é alternado em RebuildCharacterSheet.
+		// Saldos no cabeçalho (§3.1 HeaderRight): Moedas de Sangue da run (gota dourada) e Ícor (frasco violeta), com o
+		// nome. É aqui que o jogador vê os recursos zerados, que o HUD esconde. No hub só o Ícor (RebuildCharacterSheet).
 		var coins = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-		coins.AddThemeConstantOverride("separation", UiMetrics.S2);
-		_characterSheetCoinGlyph = UiComponents.CoinGlyph(UiMetrics.IconGlyph);
-		coins.AddChild(_characterSheetCoinGlyph);
-		_characterSheetCursedGlyph = UiComponents.CursedBloodGlyph(UiMetrics.IconGlyph);
-		_characterSheetCursedGlyph.Visible = false;
-		coins.AddChild(_characterSheetCursedGlyph);
-		_characterSheetCoinsLabel = UiComponents.MakeLabel("0", UiVariation.SectionGoldLabel);
+		coins.AddThemeConstantOverride("separation", UiMetrics.S4);
+		_characterSheetCoinsGroup = BuildCharacterSheetBalance(coins, UiComponents.CoinGlyph(UiMetrics.IconGlyph), "hud.coins_label", null, out _characterSheetCoinsLabel);
 		_characterSheetCoinsLabel.Name = "CharacterSheetCoins";
-		coins.AddChild(_characterSheetCoinsLabel);
-		_characterSheetCurrencyName = UiComponents.MakeLabel(Localization.Text("hud.coins_label"), UiVariation.SecondaryLabel);
-		_characterSheetCurrencyName.VerticalAlignment = VerticalAlignment.Center;
-		coins.AddChild(_characterSheetCurrencyName);
+		BuildCharacterSheetBalance(coins, UiComponents.CursedBloodGlyph(UiMetrics.IconGlyph), "hud.cursed_blood_name", UiPalette.CursedBlood, out _characterSheetCursedLabel);
 		_characterSheetWindow.HeaderRight.AddChild(coins);
 
 		var body = _characterSheetWindow.Body;
@@ -177,7 +169,7 @@ public partial class HUD
 		Control initialFocus = _characterSheetRows.Count > 0
 			? _characterSheetRows[Mathf.Clamp(_characterSheetSelected[tab], 0, _characterSheetRows.Count - 1)]
 			: _characterSheetTabs.Buttons[tab - CharacterSheetTabOffset];
-		UiModalStack.Push(_characterSheetOverlay, true, initialFocus, CloseCharacterSheet);
+		UiModalStack.Push(_characterSheetOverlay, true, initialFocus, CloseCharacterSheet, pausesAudio: false);
 		_characterSheetTabs.Arm();
 		_characterSheetWindow.FadeIn();
 	}
@@ -279,24 +271,33 @@ public partial class HUD
 		return false;
 	}
 
+	// Um saldo do cabeçalho: glifo + número + nome (cor própria opcional no número e no nome).
+	private static HBoxContainer BuildCharacterSheetBalance(Control parent, Control glyph, string nameKey, Color? color, out Label amount)
+	{
+		var group = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+		group.AddThemeConstantOverride("separation", UiMetrics.S2);
+		parent.AddChild(group);
+		group.AddChild(glyph);
+		amount = UiComponents.MakeLabel("0", UiVariation.SectionGoldLabel);
+		group.AddChild(amount);
+		var name = UiComponents.MakeLabel(Localization.Text(nameKey), UiVariation.SecondaryLabel);
+		name.VerticalAlignment = VerticalAlignment.Center;
+		group.AddChild(name);
+		if (color is { } tint)
+		{
+			amount.AddThemeColorOverride("font_color", tint);
+			name.AddThemeColorOverride("font_color", tint);
+		}
+		return group;
+	}
+
 	// ---------- Lista ----------
 
 	private void RebuildCharacterSheet(CharacterSheetData data, bool keepFocus)
 	{
 		_characterSheetCoinsLabel.Text = data.Balance.ToString();
-		_characterSheetCoinGlyph.Visible = !data.CursedBalance;
-		_characterSheetCursedGlyph.Visible = data.CursedBalance;
-		_characterSheetCurrencyName.Text = Localization.Text(data.CursedBalance ? "hud.cursed_blood_name" : "hud.coins_label");
-		if (data.CursedBalance)
-		{
-			_characterSheetCoinsLabel.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
-			_characterSheetCurrencyName.AddThemeColorOverride("font_color", UiPalette.CursedBlood);
-		}
-		else
-		{
-			_characterSheetCoinsLabel.RemoveThemeColorOverride("font_color");
-			_characterSheetCurrencyName.RemoveThemeColorOverride("font_color");
-		}
+		_characterSheetCoinsGroup.Visible = !data.CursedBalance;
+		_characterSheetCursedLabel.Text = data.CursedBlood.ToString();
 
 		var hadFocus = keepFocus && ControllerUiSupport.IsFocusInside(_characterSheetList);
 		foreach (var child in _characterSheetList.GetChildren())
@@ -812,7 +813,8 @@ public partial class HUD
 			WeaponMods = RunState.GetActiveWeaponMods(),
 			ShowWeaponMods = RunState.IsRunActive
 		};
-		data.Balance = data.CursedBalance ? CharacterSheet.CursedBlood : RunState.RunBloodCoins;
+		data.Balance = RunState.RunBloodCoins;
+		data.CursedBlood = CharacterSheet.CursedBlood;
 		foreach (var skillId in CharacterSheet.AcquiredSkills)
 			data.Skills.Add((skillId, CharacterSheet.GetSkillRank(skillId)));
 		return data;
@@ -823,7 +825,8 @@ public partial class HUD
 	private CharacterSheetData BuildCharacterSheetPreviewData()
 	{
 		var data = new CharacterSheetData { CursedBalance = ShowsCursedBloodIndicator() };
-		data.Balance = data.CursedBalance ? Math.Max(CharacterSheet.CursedBlood, 120) : 500;
+		data.Balance = 500;
+		data.CursedBlood = Math.Max(CharacterSheet.CursedBlood, 120);
 
 		var rarities = new[] { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Stirps", "Common", "Rare" };
 		var levels = new[] { 1, 2, 3, 1, 2, 1, 3, 2 };

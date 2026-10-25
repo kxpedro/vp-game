@@ -12,6 +12,11 @@ public partial class HUD : CanvasLayer
 	private readonly Queue<string> _gameLogEntries = new();
 	private Label _coinsLabel;
 	private Label _coinsNameLabel;
+	private HBoxContainer _coinsRow;
+	private HBoxContainer _cursedBloodRow;
+	private Label _cursedBloodLabel;
+	private Label _cursedBloodNameLabel;
+	private int _shownCursedBlood;
 	private Label _weaponLabel;
 	private Control _weaponBenchOverlay;
 	private Label _enemyProgressLabel;
@@ -27,7 +32,11 @@ public partial class HUD : CanvasLayer
 	private readonly List<Button> _blessingChoiceButtons = new();
 	private int _focusedBlessingChoice;
 	private ColorRect _bloodAbsorptionOverlay;
-	private Label _bloodAbsorptionLabel;
+	private Control _sanguisBanner;
+	private readonly List<Label> _sanguisBannerLabels = new();
+	private Label _sanguisBannerText;
+	private Label[] _sanguisBannerEchoes;
+	private Tween _sanguisBannerTween;
 	private VBoxContainer _blessingHudList;
 	private Control _pauseOverlay;
 	private Control _compendiumOverlay;
@@ -185,6 +194,7 @@ public partial class HUD : CanvasLayer
 	{
 		UpdateCriticalHealthIndicator((float)delta);
 		UpdateDodgeIndicator((float)delta);
+		UpdateResourceIndicator();
 		UpdateDialogue((float)delta);
 		// Zoom/pan da Fonte de Sangue por controle e teclado (mouse fica no GuiInput da própria tela).
 		ProcessBloodFountainInput((float)delta);
@@ -209,6 +219,7 @@ public partial class HUD : CanvasLayer
 		// Ofertas, ficha, Fonte, loja e bancada estão na UiModalStack (AnyOpen); aqui só as camadas ainda legadas.
 		return UiModalStack.AnyOpen
 			|| RoomTransition.IsBusy
+			|| CoffinRise.IsBusy
 			|| IsVisible(_pauseOverlay)
 			|| IsVisible(_compendiumOverlay)
 			|| IsVisible(_gameOverOverlay);
@@ -222,10 +233,10 @@ public partial class HUD : CanvasLayer
 			|| IsVisible(_compendiumOverlay);
 	}
 
-	// Música: mesmas telas, mas o game over pausa só a árvore (a música de game over continua).
+	// Música: só a pausa para a música. Game over e Compêndio pausam só a árvore (a música continua).
 	private bool IsLegacyAudioPauseRequested()
 	{
-		return !_isGameOver && IsLegacyPauseRequested();
+		return !_isGameOver && IsVisible(_pauseOverlay);
 	}
 
 	private static bool IsVisible(Control control) => control != null && control.Visible;
@@ -252,10 +263,6 @@ public partial class HUD : CanvasLayer
 		}
 		if (_roomLabel != null && !string.IsNullOrEmpty(_roomLabel.Text) && RunState.IsRunActive)
 			SyncRoomInformation();
-		if (_coinGlyph != null)
-			_coinGlyph.TooltipText = Localization.Text("hud.blood_coins_name");
-		if (_cursedBloodGlyph != null)
-			_cursedBloodGlyph.TooltipText = Localization.Text("hud.cursed_blood_name");
 		RefreshResourceIndicator();
 		if (_furyResourceBar != null && _furyResourceBar.Bar != null)
 			_furyResourceBar.Bar.TooltipText = Localization.Text("hud.fury.tooltip_ready");
