@@ -86,7 +86,8 @@ public partial class HUD
 		}
 
 		_anvilFocused = 0;
-		UiModalStack.Push(_anvilOverlay, true, _anvilButtons[0], WarnAnvilOfferMandatory, mandatory: true);
+		// Pausa a árvore, mas a música da sala continua tocando durante a escolha.
+		UiModalStack.Push(_anvilOverlay, true, _anvilButtons[0], WarnAnvilOfferMandatory, mandatory: true, pausesAudio: false);
 		_anvilWindow.FadeIn();
 	}
 
