@@ -123,6 +123,8 @@ public partial class HUD
 		if (amount <= 0)
 			return;
 		AppendGameLog(Localization.TextFormat("hud.cursed_blood.reward", amount));
+		// O contador some com o Ícor zerado: mostra a linha antes de posicionar o aviso sobre a moldura.
+		RefreshResourceIndicator();
 		ShowCursedBloodPopup(amount, total);
 	}
 

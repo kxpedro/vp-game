@@ -190,7 +190,7 @@ public partial class HUD
 		}
 	}
 
-	// §8.2: os recursos que o jogador tem, empilhados no canto inferior direito (glifo + número). Na run: Moedas de Sangue
+	// §8.2: os recursos que o jogador tem (só os maiores que 0), empilhados no canto inferior direito (glifo + número). Na run: Moedas de Sangue
 	// (gota dourada) em cima e Ícor (frasco violeta) embaixo; no hub só o Ícor (as Moedas só existem na run). O nome de
 	// cada recurso só aparece com o mouse sobre a linha (UpdateResourceIndicator). A arma fica na ficha e na bancada.
 	private void BuildResourcePanel(Control parent, Control root)
@@ -565,13 +565,16 @@ public partial class HUD
 	{
 		if (_coinsLabel == null)
 			return;
-		// No hub não há run: as Moedas somem e fica só o Ícor.
-		_coinsRow.Visible = !ShowsCursedBloodIndicator();
+		// Recurso zerado não aparece (a ficha, tecla C, mostra os saldos mesmo zerados); sem nenhum, a moldura some.
+		// No hub não há run: as Moedas nunca aparecem.
+		_coinsRow.Visible = runCoins > 0 && !ShowsCursedBloodIndicator();
 		_coinsLabel.Text = runCoins.ToString();
 		_coinsNameLabel.Text = Localization.Text("hud.blood_coins_name");
 		_shownCursedBlood = CharacterSheet.CursedBlood;
+		_cursedBloodRow.Visible = _shownCursedBlood > 0;
 		_cursedBloodLabel.Text = _shownCursedBlood.ToString();
 		_cursedBloodNameLabel.Text = Localization.Text("hud.cursed_blood_name");
+		_resourceFrame.Visible = _coinsRow.Visible || _cursedBloodRow.Visible;
 		FitPlayerPanel();
 	}
 
@@ -617,13 +620,12 @@ public partial class HUD
 	// posição, sem tooltip) para não tomar cliques do jogo. Também acompanha o Ícor, que muda por vários caminhos (boss, Fonte, porta rara, console).
 	private void UpdateResourceIndicator()
 	{
-		if (_cursedBloodLabel == null || !_resourceFrame.IsVisibleInTree())
+		if (_cursedBloodLabel == null)
 			return;
 		if (_shownCursedBlood != CharacterSheet.CursedBlood)
-		{
-			_shownCursedBlood = CharacterSheet.CursedBlood;
-			_cursedBloodLabel.Text = _shownCursedBlood.ToString();
-		}
+			RefreshResourceIndicator();
+		if (!_resourceFrame.IsVisibleInTree())
+			return;
 		var mouse = _resourceFrame.GetGlobalMousePosition();
 		SetResourceNameVisible(_coinsRow, _coinsNameLabel, mouse);
 		SetResourceNameVisible(_cursedBloodRow, _cursedBloodNameLabel, mouse);
@@ -798,6 +800,8 @@ public partial class HUD
 		_furyResourceBar.SetFuryState(true, false);
 		FitPlayerPanel();
 		_coinsLabel.Text = "500";
+		_coinsRow.Visible = true;
+		_resourceFrame.Visible = true;
 		_dodgeCooldownShown = 0.5f;
 	}
 
