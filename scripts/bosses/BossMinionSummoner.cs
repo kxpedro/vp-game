@@ -70,16 +70,29 @@ public partial class BossMinionSummoner : Node
         if (runManager == null) return;
         var positions = new Godot.Collections.Array<Vector3>();
         var center = _boss.GlobalPosition;
+        var minDistance = G("boss.minions.distance_min", 6.0f);
+        var maxDistance = Mathf.Max(G("boss.minions.distance_max", 8.5f), minDistance);
         var offset = _rng.Randf() * Mathf.Tau;
         for (var i = 0; i < count; i++)
         {
-            var angle = offset + Mathf.Tau * i / count + _rng.RandfRange(-0.3f, 0.3f);
-            positions.Add(runManager.ClampToRoom(center + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * _rng.RandfRange(2.8f, 4.5f)));
+            // Longe do boss: perto da parede o ponto e puxado para dentro da sala, entao tenta outros angulos
+            // e fica com o mais distante se nenhum alcancar a distancia minima.
+            var best = center;
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                var angle = offset + Mathf.Tau * i / count + (attempt == 0 ? _rng.RandfRange(-0.3f, 0.3f) : _rng.Randf() * Mathf.Tau);
+                var point = runManager.ClampToRoom(center + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * _rng.RandfRange(minDistance, maxDistance));
+                if (FlatDistance(point, center) > FlatDistance(best, center)) best = point;
+                if (FlatDistance(best, center) >= minDistance) break;
+            }
+            positions.Add(best);
         }
         // Log de debug (literal).
         GetTree().CallGroup("hud", "AppendGameLog", $"{_controller?.Definition?.DisplayName} invoca {count} lacaio(s).");
         _ = SpawnAfterWarning(positions);
     }
+
+    private static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.X - b.X, a.Z - b.Z).Length();
 
     // Marca no chao por boss.minions.warning segundos; depois os lacaios surgem nela.
     // No 2D e o circulo de ritual das waves na rampa violeta (estoura quando o lacaio surge); no 3D, um disco rosa.

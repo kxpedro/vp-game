@@ -156,6 +156,8 @@ public static partial class DevParameterRegistry
         P("boss.minions.count_base", "Lacaios por invocação (fase 1; +1 por fase)", G, 2, 0, 10, 1, false);
         P("boss.minions.max_alive", "Lacaios vivos ao mesmo tempo (máx.)", G, 4, 0, 20, 1, false);
         P("boss.minions.on_phase", "Lacaios: invocar na troca de fase (1 = sim)", G, 1, 0, 1, 1, false);
+        P("boss.minions.distance_min", "Lacaios: distância mínima do boss ao surgir (m)", G, 6, 0, 30, 0.5, false);
+        P("boss.minions.distance_max", "Lacaios: distância máxima do boss ao surgir (m)", G, 8.5, 0, 30, 0.5, false);
         P("boss.minions.warning", "Lacaios: aviso no chão antes de surgir (s)", G, 0.9, 0.1, 5, 0.05, false);
         P("boss.minions.fury_on_death", "Lacaios: Fúria do jogador por abate", G, 20, 0, 200, 1, false, DevApplyMode.NewObjects, "20 = barra cheia (100) a cada 5 lacaios.");
         P("boss.minions.health_mult", "Lacaios: multiplicador de vida (sobre o inimigo comum da sala)", G, 0.7, 0.05, 5, 0.05, false, DevApplyMode.NewObjects);
