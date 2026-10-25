@@ -29,6 +29,8 @@ public partial class PixelSceneSetup : Node3D
     private const float AltarTitleHeight = 4.2f;
     private const float CounterReachZ = 1.2f;
     private const float CounterReachX = 0.4f;
+    // Atraso dos passos para fora do portão de entrada: a RunLoadingScreen espera 0,15 s e clareia em 0,45 s.
+    private const float EntryWalkDelay = 0.3f;
 
     // Caixões dos personagens futuros na sala da direita do hub (centros em 2212 x 860/992/1124 do kit): peças do
     // kit desenhadas e com colisão pelo PixelRoom; o CharacterPlaceholder fica só com título e aviso.
@@ -95,6 +97,7 @@ public partial class PixelSceneSetup : Node3D
         AlignShellWalls(scene);
         if (Kind == RoomKind.Intermission)
             PlaceIntermission(scene);
+        PlaceEntryDoor(scene, layout);
         // O arco de saída do layout (borda "arch" do fundo) é o centro da parede das portas; com duas portas a sala é
         // redesenhada com os arcos dos lados (PixelDoorWall).
         foreach (var edge in layout.Edges)
@@ -152,6 +155,25 @@ public partial class PixelSceneSetup : Node3D
     {
         if (scene.GetNodeOrNull<Node3D>("Player") is { } player)
             player.Position = _room.KitToWorld(6 * 64.0f + 32.0f, 11 * 64.0f + 32.0f, 0.2f);
+    }
+
+    // Salas fixas com vão de entrada (borda "gap" de uma parede da frente sem chão atrás, como a sw 3 6 do
+    // sala_bencao.txt): o jogador chega por ele, saindo do portão com a grade descendo atrás (PixelEntryDoor). Espera a
+    // tela de carregamento do início da run começar a clarear antes dos passos.
+    private void PlaceEntryDoor(Node scene, PixelRoomLayout layout)
+    {
+        if (scene.GetNodeOrNull<PlayerController>("Player") is not { } player)
+            return;
+        foreach (var edge in layout.Edges)
+        {
+            var (gx, gy, side) = edge.Key;
+            if (edge.Value != "gap" || side is not ("se" or "sw"))
+                continue;
+            if (side == "se" ? layout.HasTile(gx + 1, gy) : layout.HasTile(gx, gy + 1))
+                continue;
+            PixelEntryDoor.Place(this, _room, new Vector2I(gx, gy), side, player, player.GlobalPosition.Y, EntryWalkDelay);
+            return;
+        }
     }
 
     /// <summary>

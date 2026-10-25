@@ -523,6 +523,70 @@
    "kind": "overlay",
    "lights": []
   },
+  "props/portcullis_se_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_se_7": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_0": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_1": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_2": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_3": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_4": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_5": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_6": {
+   "kind": "overlay",
+   "lights": []
+  },
+  "props/portcullis_sw_7": {
+   "kind": "overlay",
+   "lights": []
+  },
   "props/blood_fountain": {
    "kind": "prop",
    "lights": [

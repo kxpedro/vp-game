@@ -179,3 +179,24 @@ def portcullis(cv, side, lift=0.0, X0=0, Y0=0, half=20, post=32, bar=2.5, pitch=
             if z + 1.5 <= top(pp + .25 - c):
                 _box(cv, side, pp, pp + .5, z, z + 1.5, gate_iron, t0 - .5, t1 + .5, X0, Y0)
         z += rail
+
+GATE_FRONT_TOP = FH + 16    # altura das ombreiras do wall_gap: a grade da frente fica cortada nela, como a parede
+
+def portcullis_front(cv, side, lift=0.0, X0=0, Y0=0, half=22, bar=2.5, pitch=6.5, rail=12.0):
+    """grade de ferro no vão da parede cortada da frente (wall_gap), entre as ombreiras.
+    Segue o corte da parede: só aparece até GATE_FRONT_TOP; ao subir (lift), some de baixo para cima"""
+    c = P / 2
+    t0, t1 = -6.0, -3.0
+    top = GATE_FRONT_TOP
+    if lift >= top: return
+    n = int((2 * half) // pitch)
+    first = c - (n - 1) * pitch / 2
+    for k in range(n):
+        p0 = first + k * pitch - bar / 2
+        _box(cv, side, p0, p0 + bar, lift, top, gate_iron, t0, t1, X0, Y0)
+    z = lift + 5
+    while z + 1.5 <= top:
+        _box(cv, side, c - half, c + half, z, z + 1.5, gate_iron, t0 - .5, t1 + .5, X0, Y0)
+        z += rail
+    # travessa do corte, presa ao topo da grade enquanto ela não sai de vista
+    _box(cv, side, c - half, c + half, top - 1.5, top, gate_iron, t0 - .5, t1 + .5, X0, Y0)
