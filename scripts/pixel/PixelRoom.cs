@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using System.Linq;
 
 // Modo 2D: mostra uma sala montada pelo PixelRoomComposer dentro da cena 3D.
 // A imagem fica num quadrilátero no chão, vista por uma câmera ortográfica 2:1 (yaw 45, pitch 30). O mapa de altura
@@ -324,18 +325,20 @@ public partial class PixelRoom : Node3D
         });
 
         var index = 0;
-        foreach (var (a, b, outward) in Picture.Walls)
+        foreach (var (a, b, outward) in MergeWalls(Picture.Walls))
         {
-            float x0 = a.X, y0 = a.Y, x1 = b.X, y1 = b.Y;
-            // A face da parede fica na borda do tile; o corpo cresce para fora.
-            var shift = new Vector3(outward.X, 0.0f, outward.Y) * (WallThickness * 0.5f);
+            // A face da parede fica na borda do tile e o corpo cresce só para fora. O comprimento é o do trecho, sem
+            // sobra nas pontas: nos cantos internos a sobra entrava no chão e o personagem enganchava nela.
+            var center = KitToWorld((a.X + b.X) * 0.5f, (a.Y + b.Y) * 0.5f, WallHeight * 0.5f)
+                + new Vector3(outward.X, 0.0f, outward.Y) * (WallThickness * 0.5f);
+            var length = a.DistanceTo(b) * UnitMeters;
             body.AddChild(new CollisionShape3D
             {
                 Name = $"Wall{index++}",
-                Position = KitToWorld((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, WallHeight * 0.5f) + shift,
+                Position = center,
                 Shape = new BoxShape3D
                 {
-                    Size = new Vector3(Mathf.Abs(x1 - x0) * UnitMeters + WallThickness, WallHeight, Mathf.Abs(y1 - y0) * UnitMeters + WallThickness)
+                    Size = outward.Y != 0.0f ? new Vector3(length, WallHeight, WallThickness) : new Vector3(WallThickness, WallHeight, length)
                 }
             });
         }
@@ -350,6 +353,32 @@ public partial class PixelRoom : Node3D
                 Shape = new BoxShape3D { Size = new Vector3(half.X * 2.0f * UnitMeters, 1.6f, half.Y * 2.0f * UnitMeters) }
             });
         }
+    }
+
+    // Junta as bordas de tile vizinhas na mesma linha e virada para o mesmo lado num trecho só: uma caixa por parede
+    // reta, sem emendas onde o personagem possa prender ao deslizar.
+    private static List<(Vector2 A, Vector2 B, Vector2 Outward)> MergeWalls(List<(Vector2 A, Vector2 B, Vector2 Outward)> walls)
+    {
+        var merged = new List<(Vector2 A, Vector2 B, Vector2 Outward)>();
+        var ordered = walls
+            .Select(w => w.A.X + w.A.Y <= w.B.X + w.B.Y ? w : (w.B, w.A, w.Outward))
+            .OrderBy(w => w.Outward.X).ThenBy(w => w.Outward.Y)
+            .ThenBy(w => w.Outward.Y != 0.0f ? w.A.Y : w.A.X)
+            .ThenBy(w => w.Outward.Y != 0.0f ? w.A.X : w.A.Y);
+        foreach (var wall in ordered)
+        {
+            if (merged.Count > 0)
+            {
+                var last = merged[^1];
+                if (last.Outward == wall.Outward && last.B.IsEqualApprox(wall.A))
+                {
+                    merged[^1] = (last.A, wall.B, last.Outward);
+                    continue;
+                }
+            }
+            merged.Add(wall);
+        }
+        return merged;
     }
 
     // Cor sem luz da cena; a profundidade vem da altura de cada pixel: o pixel está no mesmo raio da câmera que o
