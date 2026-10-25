@@ -233,10 +233,10 @@ public partial class HUD : CanvasLayer
 			|| IsVisible(_compendiumOverlay);
 	}
 
-	// Música: mesmas telas, mas o game over pausa só a árvore (a música de game over continua).
+	// Música: só a pausa para a música. Game over e Compêndio pausam só a árvore (a música continua).
 	private bool IsLegacyAudioPauseRequested()
 	{
-		return !_isGameOver && IsLegacyPauseRequested();
+		return !_isGameOver && IsVisible(_pauseOverlay);
 	}
 
 	private static bool IsVisible(Control control) => control != null && control.Visible;

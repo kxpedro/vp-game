@@ -169,7 +169,7 @@ public partial class HUD
 		Control initialFocus = _characterSheetRows.Count > 0
 			? _characterSheetRows[Mathf.Clamp(_characterSheetSelected[tab], 0, _characterSheetRows.Count - 1)]
 			: _characterSheetTabs.Buttons[tab - CharacterSheetTabOffset];
-		UiModalStack.Push(_characterSheetOverlay, true, initialFocus, CloseCharacterSheet);
+		UiModalStack.Push(_characterSheetOverlay, true, initialFocus, CloseCharacterSheet, pausesAudio: false);
 		_characterSheetTabs.Arm();
 		_characterSheetWindow.FadeIn();
 	}

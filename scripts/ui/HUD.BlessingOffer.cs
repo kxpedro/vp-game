@@ -671,7 +671,7 @@ void fragment() {
 		PresentBlessingOffers(choices, family);
 	}
 
-	// Monta os cards; na primeira vez abre a janela (pausa, obrigatória), no reroll só troca os cards e refoca o mesmo índice.
+	// Monta os cards; na primeira vez abre a janela (pausa sem parar a música, obrigatória), no reroll só troca os cards e refoca o mesmo índice.
 	private void PresentBlessingOffers(IReadOnlyList<BloodBlessingOffer> choices, string family)
 	{
 		var wasOpen = UiModalStack.IsOpen(_bloodBlessingOverlay);
@@ -709,7 +709,8 @@ void fragment() {
 			FocusBlessingChoice(_focusedBlessingChoice);
 			return;
 		}
-		UiModalStack.Push(_bloodBlessingOverlay, true, _blessingChoiceButtons[_focusedBlessingChoice], WarnBlessingOfferMandatory, mandatory: true);
+		// Pausa a árvore, mas a música da sala continua tocando durante a escolha.
+		UiModalStack.Push(_bloodBlessingOverlay, true, _blessingChoiceButtons[_focusedBlessingChoice], WarnBlessingOfferMandatory, mandatory: true, pausesAudio: false);
 		_blessingWindow.FadeIn();
 	}
 
