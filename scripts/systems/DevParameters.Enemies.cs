@@ -40,6 +40,7 @@ public static partial class DevParameterRegistry
         P("enemy.base.contact_damage", "Dano de contato (fração do dano de ataque)", G, 0.05, 0, 1, 0.01, false, N, "Zero no TrainingDummy.");
         P("enemy.base.contact_range", "Alcance do dano de contato", G, 0.95, 0, 5, 0.05, false, N);
         P("enemy.base.contact_cooldown", "Cooldown do dano de contato (s)", G, 0.8, 0.1, 10, 0.05, false, N);
+        P("enemy.base.body_radius_ratio", "Raio do corpo (colisão com paredes) x raio do alvo", G, 0.8, 0.3, 1.5, 0.05, false, N, "A cápsula nunca fica menor que a da cena (0,32); vale para Tank e chefes, que são mais largos.");
         P("enemy.base.knockback_resistance", "Resistência a knockback (fator aplicado à força)", G, 0.45, 0, 2, 0.05, false, N);
         P("enemy.base.max_pestilence_stacks", "Máx. de acúmulos de pestilência", G, 5, 1, 20, 1, true, N);
         P("enemy.base.damage_per_status_stack", "Dano extra recebido por acúmulo de status", G, 0.05, 0, 1, 0.01, false, N);

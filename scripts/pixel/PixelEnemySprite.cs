@@ -104,6 +104,7 @@ public partial class PixelEnemySprite : Node3D
             Offset = new Vector2(0.0f, FeetOffsets.TryGetValue(monster, out var feet) ? feet : FeetOffsetPixels),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
+        PixelRoom.StandUpright(visual._sprite);
         visual.AddChild(visual._sprite);
 
         var library = new AnimationLibrary();

@@ -38,6 +38,7 @@ public partial class TrainingDummySprite : Node3D
             Offset = new Vector2(0.0f, FeetOffsetPixels),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
+        PixelRoom.StandUpright(_sprite);
         AddChild(_sprite);
     }
 
