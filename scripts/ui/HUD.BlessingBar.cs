@@ -62,11 +62,6 @@ public partial class HUD
 	private void RenderBlessingBar(IReadOnlyList<BloodBlessingRecord> blessings)
 	{
 		ClearBlessingBar();
-		// A coluna cresce para cima e para baixo e continua centrada na altura; zerar os offsets a recolhe ao conteúdo novo.
-		_blessingHudList.GrowVertical = Control.GrowDirection.Both;
-		_blessingHudList.OffsetTop = 0.0f;
-		_blessingHudList.OffsetBottom = 0.0f;
-		_blessingHudList.AddThemeConstantOverride("separation", UiMetrics.S1);
 
 		var filled = new BloodBlessingRecord[InheritanceSlots.Length];
 		var others = new List<BloodBlessingRecord>();
