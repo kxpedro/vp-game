@@ -449,7 +449,9 @@ public partial class HUD
 	private bool _blessingOfferPreview;
 
 	private const string BlessingVirgilPath = "res://assets/ui/virgil_oferta/virgil_espada.png";
-	private const float BlessingVirgilSize = 560.0f;
+	private const float BlessingVirgilSize = 520.0f
+	// Fim do desenho (espada incluída) dentro do quadro 256x256: 176/256. Alinha a ponta direita com a borda da janela.
+	private const float BlessingVirgilRightEdge = 176.0f / 256.0f;;
 
 	// Virgil de pé à esquerda da janela, olhando as opções (estilo Hades): fora da moldura, encostado na borda inferior.
 	private void AddBlessingVirgil()
@@ -461,9 +463,9 @@ public partial class HUD
 			ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
 			TextureFilter = CanvasItem.TextureFilterEnum.Nearest, MouseFilter = Control.MouseFilterEnum.Ignore,
 			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
-			// Sobrepõe 24 px da moldura; a base alinha com a base da janela (720 px de altura, centrada).
-			OffsetLeft = -BlessingWindowWidth * 0.5f + 24 - BlessingVirgilSize,
-			OffsetRight = -BlessingWindowWidth * 0.5f + 24,
+			// Sobrepõe 20 px da moldura; a base alinha com a base da janela (720 px de altura, centrada).
+			OffsetLeft = -BlessingWindowWidth * 0.5f + 20 - BlessingVirgilSize * BlessingVirgilRightEdge,
+			OffsetRight = -BlessingWindowWidth * 0.5f + 20 + BlessingVirgilSize * (1.0f - BlessingVirgilRightEdge),
 			OffsetTop = 360 - BlessingVirgilSize, OffsetBottom = 360
 		};
 		_blessingWindow.Root.AddChild(virgil);
