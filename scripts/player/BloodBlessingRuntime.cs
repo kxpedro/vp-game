@@ -572,8 +572,6 @@ public partial class BloodBlessingRuntime : Node
     {
         var orb = new BloodOrbPickup { HealMaxHealthRatio = RunState.GetEffectTotal("BloodOrbHealMaxHealth.Flat"), Position = position + Vector3.Up * 0.35f };
         GetTree().CurrentScene.AddChild(orb);
-        orb.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.18f, Height = 0.36f }, MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.95f, 0.03f, 0.08f), EmissionEnabled = true, Emission = Colors.Red, EmissionEnergyMultiplier = 2 } });
-        orb.AddChild(new CollisionShape3D { Shape = new SphereShape3D { Radius = 0.65f } });
     }
 
     private void SpreadPestilence(EnemyBasic source, int targets, float radius = 7.0f, bool allowExistingStacks = false)
