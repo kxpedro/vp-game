@@ -9,6 +9,9 @@ conceitual do projeto. Gerado por `tools/pixel_art/virgil/` (modelo 3D por SDF r
 - `virgil_combat.png`: golpes, 4960x1024, células de 160x128 (pés também 40 px abaixo do centro). Linhas = as mesmas 8
   direções; colunas = corte (6), corte de volta (6), estocada (6), giro do ataque rápido (8) e dash (5). Gerada por
   `combat.py` + `combat_sheet.py`. Só com espada.
+- `virgil_death.png`: morte, 1920x1024, células de 160x128 como a folha de combate. Linhas = as mesmas 8 direções; 12 quadros
+  (golpe fatal, recuo, joelhos no chão, tomba de costas e fica caído). Gerada por `death.py` + `death_sheet.py` (usa a queda
+  `pitch`/`shift` de `virgil3d.py`). Só com espada. Toca como `death_<dir>` no `PlayerSpriteVisual`.
 - `virgil_sheet_no_weapon.png`: a mesma folha sem arma, para a arma virar camada separada no futuro.
 - `virgil_idle_sw.png` (conceito, câmera de 35°): idle, 8 quadros de 64x104 lado a lado (512x104; pés em y≈100), virado para sudoeste (3/4, baixo-esquerda), com espada longa.
 - `virgil_idle_sw_no_weapon.png`: o mesmo idle sem arma (mesmo quadro de 64x104, alinhado com o de cima), para a arma entrar como camada separada.

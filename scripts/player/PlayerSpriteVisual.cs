@@ -18,6 +18,11 @@ public partial class PlayerSpriteVisual : Node
     // Folha de combate (tools/pixel_art/virgil/combat.py): celula maior, porque a espada estendida passa dos 80 px.
     // Mesma ordem de linhas; colunas = golpes em sequencia (CombatAnims). Pes tambem 40 px abaixo do centro.
     private const string CombatSheetFile = "virgil_combat.png";
+    // Folha da morte (tools/pixel_art/virgil/death.py): mesma celula e mesmas linhas da folha de combate, 12 quadros por
+    // direcao (golpe fatal, recuo, joelhos no chao, tomba de costas). Termina no corpo caido, que fica ate o renascer.
+    private const string DeathSheetFile = "virgil_death.png";
+    private const int DeathFrames = 12;
+    private const float DeathFps = 10.0f;
     private const int CombatCellWidth = 160;
     private const int CombatCellHeight = 128;
     // Nome, quadros e quadro do impacto (o que cai no instante do dano; -1 = sem golpe, toca linear).
@@ -417,11 +422,12 @@ public partial class PlayerSpriteVisual : Node
 
     private void OnDied()
     {
-        if (_sprite == null || !_sprite.SpriteFrames.HasAnimation("death"))
+        var animation = "death_" + _direction;
+        if (_sprite == null || !_sprite.SpriteFrames.HasAnimation(animation))
             return;
         _mode = Mode.Dead;
         _sprite.SpeedScale = 1.0f;
-        _sprite.Play("death");
+        _sprite.Play(animation);
     }
 
     private void PlayLoop()
@@ -743,7 +749,7 @@ public partial class PlayerSpriteVisual : Node
         if (sheet == null)
             return null;
 
-        // Dano e morte ainda nao tem quadros: sem a animacao, PlayOneShot mantem o idle/corrida.
+        // Dano ainda nao tem quadros: sem a animacao, PlayOneShot mantem o idle/corrida.
         var frames = new SpriteFrames();
         frames.RemoveAnimation("default");
         for (var row = 0; row < Directions.Length; row++)
@@ -767,6 +773,13 @@ public partial class PlayerSpriteVisual : Node
                 column += anim.Frames;
             }
         }
+
+        // Sem a folha da morte o Virgil fica no ultimo quadro que estiver tocando (OnDied nao troca de animacao).
+        var death = LoadSheet(DeathSheetFile);
+        if (death == null)
+            GD.PushWarning("PlayerSpriteVisual: folha da morte nao encontrada: " + DeathSheetFile);
+        for (var row = 0; death != null && row < Directions.Length; row++)
+            AddAnimation(frames, "death_" + Directions[row], death, row, 0, DeathFrames, DeathFps, false, CombatCellWidth, CombatCellHeight);
         return frames;
     }
 

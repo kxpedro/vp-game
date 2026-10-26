@@ -105,8 +105,21 @@ public partial class HUD
 		if (source == AbandonRunDeathSource)
 			DialogueProgress.FlagAbandon();
 		AppendGameLog($"Virgil recebeu {Mathf.RoundToInt(finalDamage)} de dano fatal de {source}.");
+		// No 2D o Virgil toca a animação de morte antes da tela (ela pausa o jogo ao abrir).
+		if (GameMode.IsPixelArt && source != AbandonRunDeathSource)
+		{
+			GetTree().CreateTimer(GameOverDelaySeconds).Timeout += () =>
+			{
+				if (IsInstanceValid(this) && _isGameOver)
+					ShowGameOver(source, finalDamage);
+			};
+			return;
+		}
 		ShowGameOver(source, finalDamage);
 	}
+
+	// Segundos entre o golpe fatal e a tela de derrota: 12 quadros a 10 fps do PlayerSpriteVisual + um respiro no chão.
+	private const float GameOverDelaySeconds = 1.7f;
 
 	// Igual a OnPlayerDied, sem áudio, log nem jogador real (causa e números fictícios).
 	private void ShowPreviewGameOver()
