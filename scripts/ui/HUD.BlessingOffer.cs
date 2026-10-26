@@ -182,12 +182,16 @@ public partial class HUD
 					stream.Head.GlobalPosition = StreamPoint(stream, destination, headProgress);
 				if (headProgress <= 0.0f || tailProgress >= 1.0f)
 					continue;
+				var points = BuildStreamPoints(stream, destination, tailProgress, headProgress);
+				// Filete curto demais (todos os segmentos degenerados) não gera vértice: não abre superfície vazia.
+				if (!HasStreamLength(points))
+					continue;
 				if (!drawing)
 				{
 					streamMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
 					drawing = true;
 				}
-				DrawBloodStream(streamMesh, stream, destination, tailProgress, headProgress, toCamera);
+				DrawBloodStream(streamMesh, points, toCamera);
 			}
 			if (drawing)
 				streamMesh.SurfaceEnd();
@@ -256,13 +260,27 @@ public partial class HUD
 		return start.Lerp(destination, progress) + spiralOffset + lift;
 	}
 
-	// Fita do filete entre tail e head, virada para a câmera, em três camadas. Mais grossa junto da poça, afina na ponta
-	// e engrossa de leve na própria ponta (a "cabeça" do líquido).
-	private static void DrawBloodStream(ImmediateMesh mesh, BloodStream stream, Vector3 destination, float tail, float head, Vector3 toCamera)
+	private static Vector3[] BuildStreamPoints(BloodStream stream, Vector3 destination, float tail, float head)
 	{
 		var points = new Vector3[StreamSegments + 1];
 		for (var k = 0; k <= StreamSegments; k++)
 			points[k] = StreamPoint(stream, destination, Mathf.Lerp(tail, head, k / (float)StreamSegments));
+		return points;
+	}
+
+	// Mesmo limite de DrawStreamLayer: só desenha segmento com comprimento.
+	private static bool HasStreamLength(Vector3[] points)
+	{
+		for (var k = 0; k < points.Length - 1; k++)
+			if ((points[k + 1] - points[k]).LengthSquared() >= 0.000001f)
+				return true;
+		return false;
+	}
+
+	// Fita do filete entre tail e head, virada para a câmera, em três camadas. Mais grossa junto da poça, afina na ponta
+	// e engrossa de leve na própria ponta (a "cabeça" do líquido).
+	private static void DrawBloodStream(ImmediateMesh mesh, Vector3[] points, Vector3 toCamera)
+	{
 		DrawStreamLayer(mesh, points, toCamera, 1.0f, 0.0f, StreamRim);
 		DrawStreamLayer(mesh, points, toCamera, 0.62f, 0.01f, StreamBody);
 		DrawStreamLayer(mesh, points, toCamera, 0.18f, 0.02f, StreamShine, 0.04f);
