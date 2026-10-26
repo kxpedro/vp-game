@@ -28,3 +28,10 @@ Golpes (combo de 3, giro do ataque rápido e dash), câmera de 30°:
 
 Células de 160x128 (a espada estendida passa dos 80 px), pés 40 px abaixo do centro como na outra folha.
 Colunas: corte (6), corte de volta (6), estocada (6), giro (8), dash (5). `virgil3d.ANIM["yaw"]` gira o corpo inteiro.
+
+Morte (golpe fatal, recuo, ajoelha, tomba de costas), 12 quadros, câmera de 30°:
+
+      py death.py <dir> [quadro ...]   # -> out/death_<dir>_<n>.png (cerca de 30 s por quadro)
+      py death_sheet.py                # monta virgil_death.png (precisa das 8 direções)
+
+Usa `virgil3d.ANIM["pitch"]` (queda em torno dos pés) e `["shift"]` (altura do corpo deitado).

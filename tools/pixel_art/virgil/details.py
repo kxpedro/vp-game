@@ -38,7 +38,7 @@ def paint(img, M, D, with_sword=True, face=True, **kw):
     b2 = pr(V.to_world([0.12, 0.985, 0.08])); put(b2, "dba463", need=(V.LEATHER,))
     # cruz no peito, com corrente
     c = pr(V.to_world([0.0, 1.36 + V.ANIM['up'], 0.13]))
-    if not front or M[c[1], c[0]] not in (V.CLOTH, V.LINING): c = (-99, -99)
+    if not front or not (0 <= c[0] < M.shape[1] and 0 <= c[1] < M.shape[0]) or M[c[1], c[0]] not in (V.CLOTH, V.LINING): c = (-99, -99)
     for dx, dy in ((0, 0), (0, 1), (0, 2), (0, -1), (-1, 0), (1, 0)):
         put((c[0] + dx, c[1] + dy), "dba463")
     put((c[0], c[1] - 1), "f3d6a0")

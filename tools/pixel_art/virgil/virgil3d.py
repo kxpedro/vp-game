@@ -82,15 +82,28 @@ def _rot_y(p, a):
     p[..., 0] = x * c + z * s; p[..., 2] = -x * s + z * c
     return p
 
+PITCH_PIVOT = np.array([0.0, 0.0, 0.0])
+def _rot_x(p, a):
+    """Gira em torno do eixo x (esquerda-direita do corpo); a < 0 derruba o corpo para trás (queda do Virgil)."""
+    c, s = np.cos(a), np.sin(a); p = np.array(p, float)
+    y, z = p[..., 1].copy(), p[..., 2].copy()
+    p[..., 1] = y * c - z * s; p[..., 2] = y * s + z * c
+    return p
+
 def to_world(q):
     q = np.array(q, float); dy = ANIM["dy"]; lean = ANIM["lean"]
     w = np.array([q[0], q[1] + dy, q[2] + lean * (q[1] - 1.0) + ANIM.get("fwd", 0.0)])
+    if ANIM.get("pitch", 0.0):
+        w = _rot_x(w - PITCH_PIVOT, ANIM["pitch"]) + PITCH_PIVOT + ANIM.get("shift", 0.0)
     return _rot_y(w, ANIM.get("yaw", 0.0)) if ANIM.get("yaw", 0.0) else w
 
 def scene(p, with_sword=True, want_mat=False):
     pw = p
     if ANIM.get("yaw", 0.0):
         pw = _rot_y(pw, -ANIM["yaw"])   # corpo inteiro girado (giro do ataque rápido, torção dos golpes)
+    if ANIM.get("pitch", 0.0):
+        # corpo inteiro tombado em torno dos pés (queda da morte); "shift" ergue/desloca o corpo deitado
+        pw = _rot_x(pw - PITCH_PIVOT - ANIM.get("shift", 0.0), -ANIM["pitch"]) + PITCH_PIVOT
     if ANIM.get("fwd", 0.0):
         pw = pw.copy(); pw[:, 2] -= ANIM["fwd"]   # corpo inteiro deslocado para a frente (passo do golpe)
     p = pw
