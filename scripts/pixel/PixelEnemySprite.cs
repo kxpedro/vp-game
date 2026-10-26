@@ -104,6 +104,7 @@ public partial class PixelEnemySprite : Node3D
         visual._sprite = new Sprite3D
         {
             Name = "Sprite",
+            RegionEnabled = true,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
@@ -160,16 +161,14 @@ public partial class PixelEnemySprite : Node3D
         animation.ValueTrackSetUpdateMode(textureTrack, Animation.UpdateMode.Discrete);
         animation.TrackInsertKey(textureTrack, 0.0f, texture);
 
-        var hframesTrack = animation.AddTrack(Animation.TrackType.Value);
-        animation.TrackSetPath(hframesTrack, "Sprite:hframes");
-        animation.ValueTrackSetUpdateMode(hframesTrack, Animation.UpdateMode.Discrete);
-        animation.TrackInsertKey(hframesTrack, 0.0f, frames);
-
-        var frameTrack = animation.AddTrack(Animation.TrackType.Value);
-        animation.TrackSetPath(frameTrack, "Sprite:frame");
-        animation.ValueTrackSetUpdateMode(frameTrack, Animation.UpdateMode.Discrete);
+        // Região em vez de hframes+frame: duas propriedades dependentes davam "p_frame fora do limite" quando o
+        // frame era aplicado antes do hframes (primeira vez que o clipe toca e troca de clipe).
+        var regionTrack = animation.AddTrack(Animation.TrackType.Value);
+        animation.TrackSetPath(regionTrack, "Sprite:region_rect");
+        animation.ValueTrackSetUpdateMode(regionTrack, Animation.UpdateMode.Discrete);
+        var height = texture.GetHeight();
         for (var i = 0; i < frames; i++)
-            animation.TrackInsertKey(frameTrack, i * step, i);
+            animation.TrackInsertKey(regionTrack, i * step, new Rect2(i * frameSize, 0.0f, frameSize, height));
         return animation;
     }
 
@@ -240,8 +239,8 @@ public partial class PixelEnemySprite : Node3D
         {
             Name = "Afterimage",
             Texture = _sprite.Texture,
-            Hframes = _sprite.Hframes,
-            Frame = _sprite.Frame,
+            RegionEnabled = true,
+            RegionRect = _sprite.RegionRect,
             FlipH = _sprite.FlipH,
             Billboard = _sprite.Billboard,
             TextureFilter = _sprite.TextureFilter,
