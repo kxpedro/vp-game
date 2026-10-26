@@ -320,9 +320,9 @@ public partial class EnemyBasic : CharacterBody3D
         // Alinhado ao teste de acerto (IsPlayerInsideLockedAttack): da origem do inimigo ate AttackRange + AttackDepthBonus.
         var depth = ranged ? AttackRange * ProjectileRangeMultiplier : AttackRange + AttackDepthBonus;
         var width = ranged ? 0.38f : AttackWidth;
-        // Indicador discreto: vermelho (AAP-64 b4202a) de baixa opacidade, sem borda amarela/laranja; so o ranged mantem o roxo.
-        var fillColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : PixelTint("b4202a", new Color(0.8f, 0.1f, 0.05f));
-        var borderColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : fillColor;
+        // Indicador discreto: vermelho (AAP-64 b4202a) de baixa opacidade para todos os arquétipos, sem borda amarela/laranja.
+        var fillColor = PixelTint("b4202a", new Color(0.8f, 0.1f, 0.05f));
+        var borderColor = fillColor;
         _telegraphFillMaterial = CreateTelegraphMaterial(fillColor, TelegraphFillAlpha, 0.5f, 6);
         _telegraphBorderMaterial = CreateTelegraphMaterial(borderColor, 0.3f, 0.6f, 7);
         var frameMaterial = CreateTelegraphMaterial(fillColor, 0.08f, 0.3f, 5);
