@@ -54,6 +54,12 @@ public static partial class DevParameterRegistry
         P("enemy.status.bleeding_refresh_seconds", "Sangramento: duração mínima ao ser acertado (s)", G, 2.0, 0, 30, 0.5, false);
         P("enemy.status.pestilence_tick_seconds", "Pestilência: intervalo do tick (s)", G, 1.0, 0.1, 10, 0.1, false);
         P("enemy.status.bleeding_tick_seconds", "Sangramento: intervalo do tick (s)", G, 1.0, 0.1, 10, 0.1, false);
+        P("enemy.status.bleeding_damage_multiplier", "Sangramento: multiplicador global do dano por tick", G, 1.0, 0, 20, 0.05, false, DevApplyMode.Live, "Multiplica o dano por segundo de todo sangramento (tick = dano/s x acúmulos). Pestilência não causa dano por tick: ela só soma enemy.base.damage_per_status_stack.");
+        P("enemy.status.bleeding.BasicAttackBleed.damage_multiplier", "Sangramento (ataque básico): mult. do dano/s", G, 1.0, 0, 20, 0.05, false);
+        P("enemy.status.bleeding.QuickAttackBleedChance.damage_multiplier", "Sangramento (ataque rápido): mult. do dano/s", G, 1.0, 0, 20, 0.05, false);
+        P("enemy.status.bleeding.PestilenceAlsoBleeds.damage_multiplier", "Sangramento (pestilência sangra): mult. do dano/s", G, 1.0, 0, 20, 0.05, false);
+        P("enemy.status.bleeding.CharmedTargetBleed.damage_multiplier", "Sangramento (alvo enfeitiçado): mult. do dano/s", G, 1.0, 0, 20, 0.05, false);
+        P("enemy.status.bleeding.PestilenceExplosionBloodPool.damage_multiplier", "Sangramento (poça da explosão): mult. do dano/s", G, 1.0, 0, 20, 0.05, false);
         P("enemy.status.pestilence_spread_radius", "Pestilência infinita: raio de contágio", G, 6.0, 0, 30, 0.5, false);
         P("enemy.projectile.speed", "Projétil: velocidade", G, 5.2, 0.5, 40, 0.1, false);
         P("enemy.projectile.hit_radius", "Projétil: raio de acerto no jogador (centro do jogador)", G, 0.55, 0.1, 5, 0.02, false);
