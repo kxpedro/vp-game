@@ -50,6 +50,7 @@ public partial class BossController : Node
         AddToGroup("boss_controller");
         _health.SetMaxHealth(Mathf.Max(definition.EstimatedMaxHealth, G("boss.hp.min", 1000.0f)), true);
         _health.HealthChanged += OnHealthChanged;
+        _health.Died += OnBossDied;
         _enemy.EnableBossMoves();
         // O boss ja esta na sala, parado, esperando o jogador chegar perto (BossController.Encounter.cs).
         EnterDormant();
@@ -62,8 +63,16 @@ public partial class BossController : Node
 
     public override void _ExitTree()
     {
-        if (_health != null) _health.HealthChanged -= OnHealthChanged;
+        if (_health != null)
+        {
+            _health.HealthChanged -= OnHealthChanged;
+            _health.Died -= OnBossDied;
+        }
+        ClearActiveTelegraphs();
     }
+
+    // O boss caiu: telegraphs e areas de ameaca em andamento somem sem impacto.
+    private void OnBossDied() => CancelCurrentMove();
 
     public override void _Process(double delta)
     {
@@ -632,10 +641,15 @@ public partial class BossController : Node
     private void CancelCurrentMove()
     {
         _cancelEpoch++;
+        ClearActiveTelegraphs();
+        if (IsInstanceValid(_enemy)) _enemy.ClearBossThreats();
+    }
+
+    private void ClearActiveTelegraphs()
+    {
         foreach (var telegraph in _activeTelegraphs.ToArray())
             if (IsInstanceValid(telegraph)) telegraph.QueueFree();
         _activeTelegraphs.Clear();
-        if (IsInstanceValid(_enemy)) _enemy.ClearBossThreats();
     }
 
     // Pausa curta com flash e anel na troca de fase. Invulnerabilidade apenas durante PhaseBreakSeconds.
