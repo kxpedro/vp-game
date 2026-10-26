@@ -320,11 +320,12 @@ public partial class EnemyBasic : CharacterBody3D
         // Alinhado ao teste de acerto (IsPlayerInsideLockedAttack): da origem do inimigo ate AttackRange + AttackDepthBonus.
         var depth = ranged ? AttackRange * ProjectileRangeMultiplier : AttackRange + AttackDepthBonus;
         var width = ranged ? 0.38f : AttackWidth;
-        var fillColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : tank ? PixelTint("df3e23", new Color(1.0f, 0.22f, 0.02f)) : PixelTint("b4202a", new Color(1.0f, 0.18f, 0.02f));
-        var borderColor = ranged ? PixelTint("b9bffb", new Color(0.82f, 0.62f, 1.0f)) : tank ? PixelTint("ffd541", new Color(1.0f, 0.84f, 0.12f)) : PixelTint("f9a31b", new Color(1.0f, 0.55f, 0.12f));
-        _telegraphFillMaterial = CreateTelegraphMaterial(fillColor, 0.55f, 2.4f, 6);
-        _telegraphBorderMaterial = CreateTelegraphMaterial(borderColor, 0.95f, 3.4f, 7);
-        var frameMaterial = CreateTelegraphMaterial(fillColor, 0.17f, 1.2f, 5);
+        // Indicador discreto: vermelho (AAP-64 b4202a) de baixa opacidade, sem borda amarela/laranja; so o ranged mantem o roxo.
+        var fillColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : PixelTint("b4202a", new Color(0.8f, 0.1f, 0.05f));
+        var borderColor = ranged ? PixelTint("793a80", new Color(0.62f, 0.12f, 1.0f)) : fillColor;
+        _telegraphFillMaterial = CreateTelegraphMaterial(fillColor, TelegraphFillAlpha, 0.5f, 6);
+        _telegraphBorderMaterial = CreateTelegraphMaterial(borderColor, 0.3f, 0.6f, 7);
+        var frameMaterial = CreateTelegraphMaterial(fillColor, 0.08f, 0.3f, 5);
 
         _attackTelegraph.AddChild(new MeshInstance3D
         {
@@ -374,6 +375,8 @@ public partial class EnemyBasic : CharacterBody3D
     // Modo 2D: cor da paleta AAP-64 (a da pixel art) no lugar da cor livre do 3D, para o anel do arquétipo, o aviso
     // do golpe e o "!" não destoarem dos sprites e dos efeitos.
     private static Color PixelTint(string aapHex, Color color3D) => GameMode.IsPixelArt ? Color.FromHtml(aapHex) : color3D;
+
+    private const float TelegraphFillAlpha = 0.2f;
 
     private static StandardMaterial3D CreateTelegraphMaterial(Color color, float alpha, float energy, int renderPriority) => new()
     {
@@ -1853,22 +1856,22 @@ public partial class EnemyBasic : CharacterBody3D
             _attackTelegraph.Visible = true;
             _telegraphFillPivot.Scale = new Vector3(1.0f, 1.0f, 0.001f);
             var fillColor = _telegraphFillMaterial.Emission;
-            _telegraphFillMaterial.AlbedoColor = new Color(fillColor.R, fillColor.G, fillColor.B, 0.55f);
-            _telegraphFillMaterial.EmissionEnergyMultiplier = 2.4f;
-            _telegraphBorderMaterial.EmissionEnergyMultiplier = 3.4f;
+            _telegraphFillMaterial.AlbedoColor = new Color(fillColor.R, fillColor.G, fillColor.B, TelegraphFillAlpha);
+            _telegraphFillMaterial.EmissionEnergyMultiplier = 0.5f;
+            _telegraphBorderMaterial.EmissionEnergyMultiplier = 0.6f;
             // Preenchimento cresce da base (origem do inimigo) para a ponta; o contorno ja esta no tamanho final.
             tween.Parallel().TweenProperty(_telegraphFillPivot, "scale", new Vector3(1.0f, 1.0f, depth), windup);
             // Pulso de brilho nos ultimos ~0,1 s.
             var pulseDelay = Mathf.Max(windup - WindupFlashSeconds, 0.0f);
-            tween.Parallel().TweenProperty(_telegraphFillMaterial, "albedo_color:a", 0.95f, WindupFlashSeconds).SetDelay(pulseDelay);
-            tween.Parallel().TweenProperty(_telegraphFillMaterial, "emission_energy_multiplier", 6.0f, WindupFlashSeconds).SetDelay(pulseDelay);
-            tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 8.0f, WindupFlashSeconds).SetDelay(pulseDelay);
+            tween.Parallel().TweenProperty(_telegraphFillMaterial, "albedo_color:a", 0.38f, WindupFlashSeconds).SetDelay(pulseDelay);
+            tween.Parallel().TweenProperty(_telegraphFillMaterial, "emission_energy_multiplier", 1.2f, WindupFlashSeconds).SetDelay(pulseDelay);
+            tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 1.5f, WindupFlashSeconds).SetDelay(pulseDelay);
             if (ranged)
             {
                 // Aviso de travamento da mira.
                 var lockDelay = Mathf.Max(windup - AimLockSeconds, 0.0f);
-                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 9.0f, 0.06f).SetDelay(lockDelay);
-                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 3.4f, 0.09f).SetDelay(lockDelay + 0.06f);
+                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 1.8f, 0.06f).SetDelay(lockDelay);
+                tween.Parallel().TweenProperty(_telegraphBorderMaterial, "emission_energy_multiplier", 0.6f, 0.09f).SetDelay(lockDelay + 0.06f);
             }
         }
 
