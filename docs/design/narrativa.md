@@ -82,10 +82,36 @@ Esta seção é um espaço reservado para o roteiro completo, ainda sem conteúd
 - **Elenco jogável futuro** (Selina, Magdalena, Dominicus) já tem esboço em `personagens-futuros.md`; falta integrá-lo ao novo roteiro de abertura.
 - **[EM ABERTO]** Todo o resto: elenco de NPCs, arcos, finais, motivação de Armand e a origem da maldição.
 
-## 7. Implementação (não planejada)
+## 7. Referência: como o Hades organiza diálogos e história
+
+Fontes públicas achadas: palestra da GDC 2021 "Breathing Life into Greek Myth: The Dialogue of Hades" (Darren Korb e Greg Kasavin, só no [GDC Vault](https://gdcvault.com/play/1026975/Breathing-Life-into-Greek-Myth), não consegui ler o conteúdo), entrevistas com Kasavin ([ScreenHub](https://www.screenhub.com.au/news-article/features/digital/jini-maxwell/hades-greg-kasavin-breaks-down-supergiants-unique-approach-to-narrative-262459), [Game Developer](https://www.gamedeveloper.com/design/roguelikes-and-narrative-design-with-i-hades-i-creative-director-greg-kasavin)). Elas explicam a filosofia, mas não o formato dos dados.
+
+Confirmado nas fontes:
+- A narrativa persiste e avança a cada morte; os personagens têm consciência do ciclo, então morrer vira parte da história.
+- Foco em poucos personagens com personalidade clara, em vez de um enredo largo.
+- Reatividade a pequenos comportamentos do jogador (arma escolhida, recursos que tem, onde morreu).
+- Toda a fala é dublada, e o roteiro é escrito pensando na produção de áudio.
+
+Do meu conhecimento da comunidade de mods do Hades (**não verificado nesta pesquisa**): cada fala é uma entrada em tabelas Lua, com requisitos de estado de jogo (runs, bosses derrotados, falas já vistas, itens), prioridade para decidir qual toca primeiro, flag de tocar uma vez e cooldown nas repetíveis. O jogo avalia o que está elegível e escolhe uma por interação.
+
+## 8. O jogo já tem esse sistema
+
+Já existe um sistema de diálogos com a mesma ideia, documentado em [`dialogos-arquitetura.md`](dialogos-arquitetura.md) e com dados em `data/dialogue/*.json`:
+- **Resource/JSON:** conversas com `requirements` (lista fechada de condições: `runs_started`, `deaths`, `boss_defeated`, `seen`, `flag`, `last_run_outcome`, `died_at_boss`, `weapon`, `map` etc.), `category`, `priority`, `play_once`, `cooldown_visits`, `chance` e `sets_flags`. Textos ficam em `data/localization/<idioma>/dialogue.json`.
+- **Seleção:** filtra por requisitos, ordena por classe (essencial > específica > evergreen), "não vista primeiro", prioridade e sorteio; uma conversa por NPC por visita ao hub.
+- **Persistência:** progresso (vistas, flags, contadores) no save.
+
+Para o roteiro novo, o que **falta** (a decidir com o Pedro):
+- Condições de **estágio da história**: um contador/flag de "ato" ou "capítulo" e condições para o fluxo de save novo (por exemplo `intro_done`, `tutorial_done`).
+- **Vários NPCs**: hoje só Odalric; falta o elenco e uma forma de organizar conversas por NPC em arquivos separados.
+- **Cutscenes** como conteúdo de dados (hoje o sistema cobre conversa de NPC, boss e barks, não cenas).
+- **Gatilhos do spoiler**: flags para pistas e revelação do NPC.
+- **Ferramenta de autoria**: validador (`tools/validate_dialogue.py` está previsto) e, mais adiante, um jeito de ver a "árvore" de quais falas liberam quais.
+
+## 9. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
 - detectar "save novo" (slot vazio) e encaminhar o `StartSlot` ao fluxo de abertura em vez de direto ao hub;
-- persistir no save o progresso da abertura e o das revelações do NPC (mudança aditiva; ver os cuidados de versão do save no `perfil.md`);
+- persistir no save o progresso da abertura e o das revelações do NPC (mudança aditiva; ver os cuidados de versão do save no `perfil.md`), reaproveitando as flags do `DialogueProgress`;
 - cenas de tutorial e sala do trono, e as duas cutscenes;
 - textos novos em `data/localization/<idioma>/*.json`, nos três idiomas.
