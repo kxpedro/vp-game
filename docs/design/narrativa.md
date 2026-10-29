@@ -92,6 +92,13 @@ Confirmado nas fontes:
 - Reatividade a pequenos comportamentos do jogador (arma escolhida, recursos que tem, onde morreu).
 - Toda a fala é dublada, e o roteiro é escrito pensando na produção de áudio.
 
+Sobre os **deuses do Hades**, que é o análogo direto das vozes do sangue (relatos de jogadores, não fonte oficial: [discussão na Steam](https://steamcommunity.com/app/1145360/discussions/0/3005549744941536780)):
+- Cada deus fala **uma vez por run**, na primeira vez que o jogador o encontra naquela run. É a mesma regra que o Pedro definiu.
+- Há **pools separados** por tipo de encontro: o encontro normal em câmara, a loja e as bênçãos duplas (duo) têm cada um o seu.
+- Cumprir um objetivo de história **coloca a conversa no pool de não ouvidas**, mas ela pode não tocar logo: conversas anteriores do pool tocam primeiro. Ou seja, o pool é uma **fila em ordem**, não um sorteio.
+
+Sobre o ritmo de história, a [revisão de narrativa da GDC 2021](https://media.gdcvault.com/GDC+2021/Scott+Parker+GDC+Narrative+Review+2021.pdf) (de Scott Parker, não da Supergiant) cita que as histórias dos personagens vizinhos costumam abrir depois de **5 a 10 runs**, e que a volta de Perséfone exige 10 runs de sucesso. Serve como ordem de grandeza para as fatias de história, não como regra.
+
 Do meu conhecimento da comunidade de mods do Hades (**não verificado nesta pesquisa**): cada fala é uma entrada em tabelas Lua, com requisitos de estado de jogo (runs, bosses derrotados, falas já vistas, itens), prioridade para decidir qual toca primeiro, flag de tocar uma vez e cooldown nas repetíveis. O jogo avalia o que está elegível e escolhe uma por interação.
 
 ## 8. O jogo já tem esse sistema
@@ -142,11 +149,12 @@ Proposta, não implementada:
 - **Camadas de fala**, da mais geral à mais específica: (a) fala da família, (b) fala da bênção específica (essencial/específica), (c) fala de **primeira vez** com a família, que vira a apresentação daquele sangue.
 - **Uso da narrativa profunda**: as vozes podem revelar aos poucos a história do castelo (por exemplo: quem foi cada vampiro, o que Armand fez com a memória deles), usando `seen` e `runs_started` como nas falas do Odalric.
 - **Frequência e pool (decidido):** o diálogo toca **só na primeira vez** que o jogador interage com uma Herança daquela família **naquela run**: um diálogo por herança por run. Cada conversa tem um **pool** por instância (família, ou par de famílias nas Stirps). Quando uma conversa é lida, é marcada como **lida (done)** e **nunca mais se repete**; na próxima run entra a **próxima** do pool. Assim o pool demora a esgotar. Os pools são separados por **instância** (cada família e cada par de Stirps) e por **momento da história** (ver abaixo). Isso é parecido com o `play_once` e o "não vista primeiro" já existentes no sistema, só que com o limite de uma por família por run.
+- **Pool esgotado (decidido):** silêncio. Sem diálogo antes da escolha; a fala de conclusão continua tocando.
+- **Ordem do pool (sugestão a partir do Hades):** o pool é uma **fila**: se várias conversas estão liberadas, tocam na ordem em que foram escritas/liberadas, uma por run, em vez de sortear. **[EM ABERTO]** fila ou sorteio.
 - **Momento da história (a definir):** cada pool é fatiado por estágio (por exemplo antes/depois da luta contra Armand no tutorial, bosses derrotados, número de runs), usando as mesmas condições do sistema atual (`boss_defeated`, `runs_started`, `seen`) e as novas de estágio. **[EM ABERTO]** quais estágios e quantas conversas por fatia.
 
 ### 9.3 Pontos em aberto
 
-- **Pool esgotado:** o que acontece quando todas as conversas de uma família/fatia já foram lidas (silêncio, repetir a mais antiga, ou só a fala de conclusão).
 - **Stirps:** o par de famílias de cada híbrida e se cada par tem pool próprio (hoje são 4 bênçãos Stirps).
 
 - Se as vozes são só texto ou também têm retrato e som.
