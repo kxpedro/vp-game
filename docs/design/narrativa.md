@@ -136,14 +136,18 @@ Proposta, não implementada:
 - **Fala de conclusão (decidido):** toca **sempre**, é bem simples e dita pela personalidade da família da bênção escolhida (por exemplo "Ainda bem que me escolheu" ou um "entendido"). Vale uma ou duas variações por família na primeira versão.
 - **Quando toca (decidido):** ao interagir com a Herança no chão, o diálogo toca **antes** de o jogador escolher a bênção. Quando ele conclui, o jogador escolhe. Depois da escolha toca uma **fala de conclusão** curta, que **não interrompe a gameplay** (estilo bark, legenda não modal).
 - **Sem escolhas (decidido):** é só diálogo narrativo; o jogador assiste e não escolhe opções. Na prática, `choices` fica vazio nessas conversas.
-- **Stirps:** a conversa tem **as duas famílias envolvidas** como falantes (**[EM ABERTO]** se o Virgil também participa), em diálogo entre si (por exemplo Dracul e Báthory, conforme a híbrida). Precisa saber quais duas famílias compõem cada Stirps (hoje o JSON só marca `family: Stirps`; **[EM ABERTO]** de onde vem o par, p. ex. um campo novo `families` na bênção).
+- **Stirps:** a conversa tem **as duas famílias envolvidas** como falantes (e o **Virgil também participa**: são três falantes na mesma conversa, decidido), em diálogo entre si (por exemplo Dracul e Báthory, conforme a híbrida). Precisa saber quais duas famílias compõem cada Stirps (hoje o JSON só marca `family: Stirps`; **[EM ABERTO]** de onde vem o par, p. ex. um campo novo `families` na bênção).
 - **Falante por família**: entradas novas em `speakers.json` (`dracul`, `bathory`, `orlok`, `karnstein`), usando a cor da própria família (`color` do JSON) no retrato e no nome.
 - **Condições novas**: `blessing_family` (família da bênção pega) e `blessing_picked` (id específico), além das já existentes (`seen`, `flag`, `runs_started`, `map`).
 - **Camadas de fala**, da mais geral à mais específica: (a) fala da família, (b) fala da bênção específica (essencial/específica), (c) fala de **primeira vez** com a família, que vira a apresentação daquele sangue.
 - **Uso da narrativa profunda**: as vozes podem revelar aos poucos a história do castelo (por exemplo: quem foi cada vampiro, o que Armand fez com a memória deles), usando `seen` e `runs_started` como nas falas do Odalric.
-- **Frequência**: **[EM ABERTO]** como o diálogo antes da escolha pausa a ação, esta decisão pesa mais: se toca em toda Bênção, só na primeira de cada família na run, ou com chance e cooldown, para não cansar.
+- **Frequência e pool (decidido):** o diálogo toca **só na primeira vez** que o jogador interage com uma Herança daquela família **naquela run**: um diálogo por herança por run. Cada conversa tem um **pool** por instância (família, ou par de famílias nas Stirps). Quando uma conversa é lida, é marcada como **lida (done)** e **nunca mais se repete**; na próxima run entra a **próxima** do pool. Assim o pool demora a esgotar. Os pools são separados por **instância** (cada família e cada par de Stirps) e por **momento da história** (ver abaixo). Isso é parecido com o `play_once` e o "não vista primeiro" já existentes no sistema, só que com o limite de uma por família por run.
+- **Momento da história (a definir):** cada pool é fatiado por estágio (por exemplo antes/depois da luta contra Armand no tutorial, bosses derrotados, número de runs), usando as mesmas condições do sistema atual (`boss_defeated`, `runs_started`, `seen`) e as novas de estágio. **[EM ABERTO]** quais estágios e quantas conversas por fatia.
 
 ### 9.3 Pontos em aberto
+
+- **Pool esgotado:** o que acontece quando todas as conversas de uma família/fatia já foram lidas (silêncio, repetir a mais antiga, ou só a fala de conclusão).
+- **Stirps:** o par de famílias de cada híbrida e se cada par tem pool próprio (hoje são 4 bênçãos Stirps).
 
 - Se as vozes são só texto ou também têm retrato e som.
 - Se o Odalric comenta (por exemplo, no hub, sobre as vozes que Virgil ouviu).
