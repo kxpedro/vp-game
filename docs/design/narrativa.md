@@ -132,9 +132,11 @@ Os nomes de bênçãos também carregam a mesma pista (`dracul_first_vampire_blo
 
 Proposta, não implementada:
 - **Nova categoria** (por exemplo `blessing_pickup`) para o gatilho "interagiu com Bênção no chão" (`RewardPickup`). A fala é curta, ao estilo dos barks, para não travar o ritmo da run.
-- **Quando toca (decidido):** ao interagir com a Herança no chão, o diálogo toca **antes** de o jogador escolher a bênção. Quando ele conclui, o jogador escolhe. Depois da escolha pode haver uma **fala de conclusão** curta, que **não interrompe a gameplay** (estilo bark, legenda não modal).
+- **Sequência exata (decidido):** (1) Virgil interage com a Herança no chão; (2) abre o **painel de diálogo** entre Virgil e a personalidade do sangue; (3) ao concluir, o painel fecha; (4) abre o **painel de escolha das 3 bênçãos**; (5) o jogador escolhe; (6) toca a **fala de conclusão**, sempre, curta e sem interromper a gameplay.
+- **Fala de conclusão (decidido):** toca **sempre**, é bem simples e dita pela personalidade da família da bênção escolhida (por exemplo "Ainda bem que me escolheu" ou um "entendido"). Vale uma ou duas variações por família na primeira versão.
+- **Quando toca (decidido):** ao interagir com a Herança no chão, o diálogo toca **antes** de o jogador escolher a bênção. Quando ele conclui, o jogador escolhe. Depois da escolha toca uma **fala de conclusão** curta, que **não interrompe a gameplay** (estilo bark, legenda não modal).
 - **Sem escolhas (decidido):** é só diálogo narrativo; o jogador assiste e não escolhe opções. Na prática, `choices` fica vazio nessas conversas.
-- **Stirps:** a conversa tem **as duas famílias envolvidas** como falantes, em diálogo entre si (por exemplo Dracul e Báthory, conforme a híbrida). Precisa saber quais duas famílias compõem cada Stirps (hoje o JSON só marca `family: Stirps`; **[EM ABERTO]** de onde vem o par, p. ex. um campo novo `families` na bênção).
+- **Stirps:** a conversa tem **as duas famílias envolvidas** como falantes (**[EM ABERTO]** se o Virgil também participa), em diálogo entre si (por exemplo Dracul e Báthory, conforme a híbrida). Precisa saber quais duas famílias compõem cada Stirps (hoje o JSON só marca `family: Stirps`; **[EM ABERTO]** de onde vem o par, p. ex. um campo novo `families` na bênção).
 - **Falante por família**: entradas novas em `speakers.json` (`dracul`, `bathory`, `orlok`, `karnstein`), usando a cor da própria família (`color` do JSON) no retrato e no nome.
 - **Condições novas**: `blessing_family` (família da bênção pega) e `blessing_picked` (id específico), além das já existentes (`seen`, `flag`, `runs_started`, `map`).
 - **Camadas de fala**, da mais geral à mais específica: (a) fala da família, (b) fala da bênção específica (essencial/específica), (c) fala de **primeira vez** com a família, que vira a apresentação daquele sangue.
@@ -143,7 +145,6 @@ Proposta, não implementada:
 
 ### 9.3 Pontos em aberto
 
-- A fala de conclusão é obrigatória ou opcional (por chance)?
 - Se as vozes são só texto ou também têm retrato e som.
 - Se o Odalric comenta (por exemplo, no hub, sobre as vozes que Virgil ouviu).
 - Ligação com o spoiler: o NPC do mal pode ter interesse nessas memórias (poder de tomar o lugar de Armand).
