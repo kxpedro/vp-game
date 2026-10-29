@@ -108,7 +108,42 @@ Para o roteiro novo, o que **falta** (a decidir com o Pedro):
 - **Gatilhos do spoiler**: flags para pistas e revelação do NPC.
 - **Ferramenta de autoria**: validador (`tools/validate_dialogue.py` está previsto) e, mais adiante, um jeito de ver a "árvore" de quais falas liberam quais.
 
-## 9. Implementação (não planejada)
+## 9. Vozes do sangue: diálogo ao pegar uma Herança
+
+Ideia do Pedro: o castelo é tão antigo que todos os grandes vampiros passaram por ele, ou é a **origem de todos os vampiros**. Ele guarda a **memória em sangue** de cada um. Quando Virgil interage com uma Bênção/Herança no chão, aparece um diálogo com a **personalidade daquele sangue**.
+
+### 9.1 As cinco famílias e a referência de cada uma
+
+Os nomes das famílias vêm de `data/blessings/blood_blessings.json` (`families`). As referências abaixo são minha leitura dos nomes e dos temas; **[EM ABERTO] confirmar com o Pedro**.
+
+| Família | Referência provável | Tema mecânico atual | Personalidade sugerida (rascunho) |
+|---|---|---|---|
+| Dracul (15 bênçãos) | Drácula / Vlad Dracul | Domínio, roubo de vida, poder permanente | Soberano, cortês e cruel; fala como quem governa |
+| Báthory (15) | Elizabeth Báthory | Poças de sangue, regeneração, sacrifício | Vaidosa, sensual e cruel; obcecada por juventude e beleza |
+| Orlok (14) | Conde Orlok (Nosferatu) | Pestilência, contágio, cadáveres | Sussurrante, faminto, ligado a peste e ratos |
+| Karnstein (15) | Carmilla (Karnstein) | Encanto, aliados, mobilidade | Sedutora e possessiva; fala de desejo e devoção |
+| Stirps (4) | Herança híbrida, sem figura própria | Despertada por combinação de famílias | **[EM ABERTO]** quem fala quando duas linhagens se misturam |
+
+Os nomes de bênçãos também carregam a mesma pista (`dracul_first_vampire_blood`, `bathory_bath_of_immortality`, `orlok_rats_blessing`, `karnstein_lovers_quarrel`), o que ajuda a escrever cada voz.
+
+### 9.2 Como encaixa no sistema de diálogos
+
+Proposta, não implementada:
+- **Nova categoria** (por exemplo `blessing_pickup`) para o gatilho "interagiu com Bênção no chão" (`RewardPickup`). A fala é curta, ao estilo dos barks, para não travar o ritmo da run.
+- **Falante por família**: entradas novas em `speakers.json` (`dracul`, `bathory`, `orlok`, `karnstein`), usando a cor da própria família (`color` do JSON) no retrato e no nome.
+- **Condições novas**: `blessing_family` (família da bênção pega) e `blessing_picked` (id específico), além das já existentes (`seen`, `flag`, `runs_started`, `map`).
+- **Camadas de fala**, da mais geral à mais específica: (a) fala da família, (b) fala da bênção específica (essencial/específica), (c) fala de **primeira vez** com a família, que vira a apresentação daquele sangue.
+- **Uso da narrativa profunda**: as vozes podem revelar aos poucos a história do castelo (por exemplo: quem foi cada vampiro, o que Armand fez com a memória deles), usando `seen` e `runs_started` como nas falas do Odalric.
+- **Frequência**: **[EM ABERTO]** se toca em toda Bênção, só na primeira de cada família na run, ou com chance e cooldown, para não cansar.
+
+### 9.3 Pontos em aberto
+
+- Se as vozes são só texto ou também têm retrato e som.
+- Se o Odalric comenta (por exemplo, no hub, sobre as vozes que Virgil ouviu).
+- Ligação com o spoiler: o NPC do mal pode ter interesse nessas memórias (poder de tomar o lugar de Armand).
+- Quantas falas por família para a primeira versão.
+
+## 10. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
 - detectar "save novo" (slot vazio) e encaminhar o `StartSlot` ao fluxo de abertura em vez de direto ao hub;
