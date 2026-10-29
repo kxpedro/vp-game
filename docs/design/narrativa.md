@@ -114,6 +114,8 @@ Ideia do Pedro: o castelo é tão antigo que todos os grandes vampiros passaram 
 
 ### 9.1 As cinco famílias e a referência de cada uma
 
+Stirps é um conceito de gameplay, não uma linhagem: o jogador pode achar uma herança que junta duas famílias. O Pedro quer revisar esse conceito no jogo depois; por ora vale a regra acima.
+
 Os nomes das famílias vêm de `data/blessings/blood_blessings.json` (`families`). As referências abaixo são minha leitura dos nomes e dos temas; **[EM ABERTO] confirmar com o Pedro**.
 
 | Família | Referência provável | Tema mecânico atual | Personalidade sugerida (rascunho) |
@@ -122,7 +124,7 @@ Os nomes das famílias vêm de `data/blessings/blood_blessings.json` (`families`
 | Báthory (15) | Elizabeth Báthory | Poças de sangue, regeneração, sacrifício | Vaidosa, sensual e cruel; obcecada por juventude e beleza |
 | Orlok (14) | Conde Orlok (Nosferatu) | Pestilência, contágio, cadáveres | Sussurrante, faminto, ligado a peste e ratos |
 | Karnstein (15) | Carmilla (Karnstein) | Encanto, aliados, mobilidade | Sedutora e possessiva; fala de desejo e devoção |
-| Stirps (4) | Herança híbrida, sem figura própria | Despertada por combinação de famílias | **[EM ABERTO]** quem fala quando duas linhagens se misturam |
+| Stirps (4) | **Não é família.** Conceito de herança híbrida de duas famílias | Despertada por combinação de famílias de bênçãos | Sem voz própria: falam as **duas famílias envolvidas**, uma com a outra |
 
 Os nomes de bênçãos também carregam a mesma pista (`dracul_first_vampire_blood`, `bathory_bath_of_immortality`, `orlok_rats_blessing`, `karnstein_lovers_quarrel`), o que ajuda a escrever cada voz.
 
@@ -130,14 +132,18 @@ Os nomes de bênçãos também carregam a mesma pista (`dracul_first_vampire_blo
 
 Proposta, não implementada:
 - **Nova categoria** (por exemplo `blessing_pickup`) para o gatilho "interagiu com Bênção no chão" (`RewardPickup`). A fala é curta, ao estilo dos barks, para não travar o ritmo da run.
+- **Quando toca (decidido):** ao interagir com a Herança no chão, o diálogo toca **antes** de o jogador escolher a bênção. Quando ele conclui, o jogador escolhe. Depois da escolha pode haver uma **fala de conclusão** curta, que **não interrompe a gameplay** (estilo bark, legenda não modal).
+- **Sem escolhas (decidido):** é só diálogo narrativo; o jogador assiste e não escolhe opções. Na prática, `choices` fica vazio nessas conversas.
+- **Stirps:** a conversa tem **as duas famílias envolvidas** como falantes, em diálogo entre si (por exemplo Dracul e Báthory, conforme a híbrida). Precisa saber quais duas famílias compõem cada Stirps (hoje o JSON só marca `family: Stirps`; **[EM ABERTO]** de onde vem o par, p. ex. um campo novo `families` na bênção).
 - **Falante por família**: entradas novas em `speakers.json` (`dracul`, `bathory`, `orlok`, `karnstein`), usando a cor da própria família (`color` do JSON) no retrato e no nome.
 - **Condições novas**: `blessing_family` (família da bênção pega) e `blessing_picked` (id específico), além das já existentes (`seen`, `flag`, `runs_started`, `map`).
 - **Camadas de fala**, da mais geral à mais específica: (a) fala da família, (b) fala da bênção específica (essencial/específica), (c) fala de **primeira vez** com a família, que vira a apresentação daquele sangue.
 - **Uso da narrativa profunda**: as vozes podem revelar aos poucos a história do castelo (por exemplo: quem foi cada vampiro, o que Armand fez com a memória deles), usando `seen` e `runs_started` como nas falas do Odalric.
-- **Frequência**: **[EM ABERTO]** se toca em toda Bênção, só na primeira de cada família na run, ou com chance e cooldown, para não cansar.
+- **Frequência**: **[EM ABERTO]** como o diálogo antes da escolha pausa a ação, esta decisão pesa mais: se toca em toda Bênção, só na primeira de cada família na run, ou com chance e cooldown, para não cansar.
 
 ### 9.3 Pontos em aberto
 
+- A fala de conclusão é obrigatória ou opcional (por chance)?
 - Se as vozes são só texto ou também têm retrato e som.
 - Se o Odalric comenta (por exemplo, no hub, sobre as vozes que Virgil ouviu).
 - Ligação com o spoiler: o NPC do mal pode ter interesse nessas memórias (poder de tomar o lugar de Armand).
