@@ -214,6 +214,7 @@ Mais detalhes em [`docs/build_and_export.md`](docs/build_and_export.md).
 - [`docs/design/portas-recompensas.md`](docs/design/portas-recompensas.md): portas com recompensa visível;
 - [`docs/design/personagens-futuros.md`](docs/design/personagens-futuros.md): elenco jogável futuro (3 desbloqueáveis, ainda não implementados), decisões e perguntas em aberto;
 - [`docs/design/narrativa.md`](docs/design/narrativa.md): fluxo de abertura do save novo (cutscenes, tutorial, luta no trono, hub) e esqueleto da narrativa profunda, com pontos em aberto;
+- [`docs/design/dialogos-e-gatilhos.md`](docs/design/dialogos-e-gatilhos.md): retrato gerado de todas as falas atuais (texto pt-BR) com o gatilho de cada uma;
 - [`docs/room_generation.md`](docs/room_generation.md): campanha, geração procedural e waves;
 - [`docs/character_asset.md`](docs/character_asset.md): estado do visual provisório e catálogo do asset arquivado;
 - [`docs/build_and_export.md`](docs/build_and_export.md): build e exportação;
