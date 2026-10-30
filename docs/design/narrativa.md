@@ -205,20 +205,28 @@ Regras já definidas:
 - Juramento no hub (b) ou personagem mais jogado (a)?
 - Quantas runs consecutivas por rota, e o que acontece se o jogador falha no meio?
 - Os personagens se encontram e se atrapalham no mesmo hub (como em `personagens-futuros.md`), ou cada rota é isolada?
-- Como desbloquear personagens (ver 10.6).
+- Ordem e ganchos do desbloqueio de personagens (ver 10.6).
 
-### 10.6 Desbloqueio de personagens (revisão pedida pelo Pedro)
+### 10.6 Desbloqueio de personagens (decidido)
 
-Problema levantado pelo Pedro: se o jogador começa com o Virgil, ele presume que a história é do Virgil, e ter vários personagens disponíveis ao mesmo tempo pode confundir. Isso também **conflita com `personagens-futuros.md`**, que hoje prevê desbloquear os 3 extras por side quests nos bosses, com progressão compartilhada por slot e todos convivendo no hub. Esse documento precisa ser revisado depois de decidir.
+Problema levantado pelo Pedro: se o jogador começa com o Virgil, ele presume que a história é do Virgil, e ter vários personagens ao mesmo tempo pode confundir.
 
-Opções:
-- **A. Virgil protagonista, os outros são "resgatados" (mantém o esboço atual).** O tutorial e o ato 1 são do Virgil. Os três extras surgem como outros presos de Armand, libertados nas side quests dos bosses. Vantagem: a história justifica ter vários personagens. Risco: o jogador ainda pode achar que o final é sempre o do Virgil.
-- **B. Escolha de personagem só no save novo.** Cada save é "a história de um personagem": o jogador escolhe quem é no começo, e o tutorial muda por personagem. Vantagem: zero confusão, combina com "final encerra o save". Custo: 4 aberturas e 4 tutoriais.
-- **C. Híbrido:** o primeiro save é obrigatoriamente do Virgil (a abertura canônica). Ao zerar o jogo, **novos saves** podem começar com um dos personagens já conhecidos (desbloqueio fora do save).
+**Decisão:** o jogo começa **só com o Virgil**. Quando o jogador **encerra a história do Virgil** (mata o boss final e quebra a maldição), o jogo acaba naquele save e **desbloqueia outro personagem** para jogar. Isso se repete a cada final, até os **quatro personagens** estarem desbloqueados. Cada nova história é um **save novo** (o save do final fica encerrado).
 
-**Minha recomendação: C.** A abertura é contada uma vez, com o Virgil, o que é barato e dá identidade ao jogo; o juramento só aparece quando o jogador já conhece o elenco; zerar abre uma segunda partida sem multiplicar a abertura.
+Consequências a tratar quando for implementar:
+- Precisa de um **registro fora do slot** (global, compartilhado entre os saves) para guardar "personagem X desbloqueado". Hoje o save é por slot (`save_slot_N.json`), então é um arquivo novo. Cuidado com as regras de versão do save no `perfil.md`.
+- **Substitui** o desbloqueio por side quest dos bosses de `personagens-futuros.md` (seção 3.4) e o conceito de todos os personagens convivendo no hub. Esse documento precisa ser revisado.
+- O personagem escolhido define a história daquele save (atos, NPCs e vozes do sangue reagem a ele, ver 10.4).
 
-**[EM ABERTO]** Qual das três; e, em C, o que o desbloqueio fora do save guarda.
+Minha opinião: funciona bem, porque cada save vira uma história fechada e o jogador sempre sabe de quem ela é. Dois cuidados:
+1. **Tela de escolha no save novo** só com os personagens já liberados, e com o aviso "esta história termina quando você concluir o final".
+2. **Cada personagem precisa de um prólogo curto próprio** (cutscene e, se possível, reaproveitando o tutorial). Se todos começarem com a abertura do Virgil, a história deles perde sentido.
+
+**[EM ABERTO]**
+- Ordem de desbloqueio: fixa (por exemplo na ordem dos bosses: Selina, Magdalena, Dominicus) ou o jogador escolhe qual libertar?
+- O final de cada personagem deve apresentar o próximo (gancho narrativo)?
+- Depois de zerar com os quatro, algo mais (modo livre, final verdadeiro)?
+- Quanto o save novo herda (nada, ou só o desbloqueio de personagens e as entradas do compêndio).
 
 ## 11. Implementação (não planejada)
 
