@@ -284,6 +284,32 @@ Cada arma nova exige golpes, visual e encaixe com os grupos exclusivos das bên�
 - Se o romance é exclusivo (um NPC só) ou acumulável, e se tem consequência no final.
 - Se a afinidade define o final (ver acima).
 
+### 10.8 Amuletos (charms) no início da run (brainstorm)
+
+Referência do Hades: antes de cada run o jogador escolhe **um item de lembrança (keepsake)** que dá um benefício durante a run toda (por exemplo, uma vida extra). No jogo o Pedro chamou de **charm**. O conceito é ligado à relação com NPCs: o Hades entrega a lembrança quando o jogador avança a relação com um personagem (informação do meu conhecimento do jogo, não verificada nas fontes desta pesquisa).
+
+O que existe hoje: os **20 artefatos** em `data/artifacts/artifacts.json` são passivos, comprados na Loja da Câmara de Hemomancia com Moedas de Sangue depois de cada boss não final. Não há nada que o jogador leve **desde o início** da run.
+
+Minha opinião: **vale a pena e se encaixa**, por três motivos:
+- dá uma escolha de estratégia antes da primeira sala, sem poder extra em excesso;
+- o amuleto pode ser a **recompensa de afinidade** de um NPC (o NPC entrega um amuleto ao atingir um marco), o que dá peso narrativo ao sistema de presentes (10.7);
+- cada amuleto pode carregar a personalidade do NPC que o deu (Selina: algo lunar; Magdalena: algo de penitência; Odalric: algo de tinta).
+
+Como distinguir de artefato, para não virar a mesma coisa:
+- **Artefato:** comprado durante a run, vários por run, poder que cresce.
+- **Amuleto:** escolhido **antes** da run, **um** só (talvez mais slots por progressão), benefício menor e estável, com identidade de NPC.
+- Reaproveitar o motor de efeitos dos artefatos (`ArtifactEffectRegistry`) reduz o custo técnico.
+- Evitar duplicar o que já existe: a "vida extra" do Hades já tem equivalente no artefato `nail_from_the_vampires_coffin` (Prego do Caixão do Vampiro), então um amuleto de ressurreição repetiria a ideia. Melhor outro tipo de benefício.
+
+Ideia opcional do Hades: o amuleto **sobe de nível com o uso**, com bônus crescente, o que recompensa usar o mesmo.
+
+**[EM ABERTO]**
+- Quantos amuletos e de onde vêm (todos de NPCs ou alguns da Fonte/loja do hub).
+- Quantos slots e se crescem por progressão.
+- Se sobem de nível com o uso.
+- Onde o jogador escolhe: na saída do hub, antes da sala de bênção inicial.
+- Lista inicial de efeitos (sem repetir artefatos).
+
 ## 11. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
