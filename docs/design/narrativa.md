@@ -241,6 +241,29 @@ Minha leitura de B:
 - Em A: ordem de desbloqueio, ganchos entre finais, o que o save novo herda, e o registro de desbloqueio fora do slot.
 - Em B: quais NPCs são romanciáveis, como se escolhe o final (vínculo/juramento), e se o final continua encerrando o save.
 
+### 10.7 Afinidade com NPCs (brainstorm, dentro da ideia B)
+
+Ideia do Pedro: uma **barra de afinidade** por NPC.
+- O jogador **entrega itens** ao NPC para desenvolver o relacionamento.
+- Em um marco intermediário (**por volta de 60%**), o NPC **libera uma arma nova** (ou algo equivalente).
+- No **máximo (100%)**, abre-se um **diálogo de romance**, possivelmente com uma **cutscene especial**.
+
+Referência do Hades (da [revisão de narrativa da GDC 2021](https://media.gdcvault.com/GDC+2021/Scott+Parker+GDC+Narrative+Review+2021.pdf)): as relações evoluem entregando presentes (néctar e ambrosia), e para maximizar a relação com cada olimpiano são precisos no mínimo 7 presentes, com **um presente por run**. O ritmo lento é proposital e distribui a história pelas runs.
+
+Como encaixa no jogo, minha leitura:
+- **Item de presente novo.** Hoje a economia tem Moedas de Sangue (só na run) e Ícor (permanente, para skills). Presente não deveria ser nenhum dos dois, para não misturar sistemas. Precisa de uma fonte (drop de sala, boss, porta de recompensa) e de um destino (entregar no hub).
+- **Um presente por NPC por run** (como no Hades) mantém o ritmo e liga com o pool de diálogos: cada presente pode liberar a próxima conversa do NPC.
+- **Marcos em vez de só uma barra:** 60% = arma, 100% = romance, e talvez marcos menores para falas. As armas atuais ficam em `WeaponCatalog` (hoje só a espada longa está ativa); armas novas ligadas a NPC exigiriam arte e golpes novos, o que pesa no escopo da ideia B.
+- **Persistência:** afinidade é permanente por save, como os contadores de `DialogueProgress`. Novas condições de diálogo (`affinity` com `min`/`max` por NPC) entram no sistema atual sem mudar o resto.
+- **Ligação com o final:** a afinidade pode ser o que decide qual dos 4 finais o jogador alcança (o NPC com maior vínculo no momento do juramento). Isso dá ao presente um peso narrativo, não só de recompensa.
+
+**[EM ABERTO]**
+- Que itens são presentes e de onde vêm.
+- Valores: quantos presentes até 60% e 100%, limite por run, se há decaimento.
+- Qual arma cada NPC libera, e se arma nova entra no escopo.
+- Se o romance é exclusivo (um NPC só) ou acumulável, e se tem consequência no final.
+- Se a afinidade define o final (ver acima).
+
 ## 11. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
