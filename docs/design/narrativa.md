@@ -162,7 +162,50 @@ Proposta, não implementada:
 - Ligação com o spoiler: o NPC do mal pode ter interesse nessas memórias (poder de tomar o lugar de Armand).
 - Quantas falas por família para a primeira versão.
 
-## 10. Implementação (não planejada)
+## 10. Atos, tom e finais por personagem
+
+### 10.1 Tom (decidido)
+História **sombria**, com uma pitada de **humor negro**: sarcasmo e ironia à vontade. Não seguimos o desfecho do Hades (a família reunida e os deuses ajudando): aqui ninguém é salvo de graça. A premissa é a de um personagem amaldiçoado que quer se livrar da maldição, e a jornada pode carregar **metáforas** disso (a maldição como dívida, fome, herança que não se escolhe).
+
+### 10.2 Atos (decidido que o pool se separa por atos; o fim de cada ato está em aberto)
+A [revisão de narrativa da GDC 2021](https://media.gdcvault.com/GDC+2021/Scott+Parker+GDC+Narrative+Review+2021.pdf) descreve o Hades em atos (1 Encontro, 2 Retorno, 3 Reencontro, depois a conclusão como epílogo). Usamos a ideia de **atos como fatias do pool de diálogos**, mas com conteúdo próprio.
+
+Rascunho de atos (**sugestão, não decidido**), só para dar nome ao que as fatias significam:
+1. **Cativeiro:** Virgil descobre que está preso e aprende o hub; o NPC se apresenta como aliado.
+2. **Dívida:** os bosses caem, a memória dos vampiros no sangue começa a falar e as pistas do NPC se acumulam.
+3. **Herdeiros:** a cobiça pelo trono aparece (NPC, aliados, Armand) e cada personagem mostra o que quer.
+4. **Epílogo:** o final do personagem escolhido.
+
+**[EM ABERTO]** O que encerra cada ato (boss derrotado, nº de runs, flag de história) e quantos atos há. Ordem de grandeza do Hades: 5 a 10 runs para abrir histórias vizinhas.
+
+### 10.3 Finais por personagem
+Leitura que fiz da sua mensagem: **4 finais, um para cada personagem jogável** (Virgil + 3), cada um com um objetivo diferente. Isso casa com a tabela de `personagens-futuros.md` (cura, destruir o castelo, fim da maldição, assumir o trono). Se a ideia era 4 finais **por personagem** (16 no total), avise: muda bastante o escopo.
+
+Regras já definidas:
+- Cada personagem interage de forma diferente com as Heranças, os NPCs, os bosses e Armand.
+- O jogador precisa **escolher ativamente** qual final perseguir.
+- Cada rota exige **várias runs consecutivas** para ser concluída.
+- Ao concluir, a história **trava naquele personagem** e o final é definitivo para ele.
+
+**[EM ABERTO]** Como o jogador escolhe a rota. Duas opções levantadas pelo Pedro: (a) o personagem que ele mais jogou; (b) uma side quest que, ao ser concluída, trava a história naquele personagem.
+
+### 10.4 Minha opinião (sugestões para decidir)
+
+1. **Escolha ativa, não "o mais jogado".** O mais jogado é invisível para o jogador e pode surpreender. Prefiro a opção (b), como um **juramento** feito no hub, com aviso claro de que é definitivo. Combina com o tom sombrio: o jogador assume o pacto.
+2. **Travar não precisa ser punição.** Depois do final, o personagem fecha a história, mas o jogo segue jogável (runs livres, ou "novo ciclo" com outro personagem). Senão o jogador sente que "acabou" cedo.
+3. **Camadas para não multiplicar o texto.** Escrever 4 histórias completas é caro. Sugiro: um **tronco comum** (atos 1 e 2, o mesmo para todos, com o spoiler do NPC) e **camadas por personagem** nos atos 3 e 4. O sistema de diálogos ganharia uma condição `character` para que a mesma situação (herança, boss, NPC) tenha falas diferentes por personagem, só onde importa.
+4. **Cada final responde à mesma pergunta**: "o que fazer com uma maldição herdada?" (curar, destruir, acabar com tudo, assumir). Isso dá coesão temática entre rotas e liga com as vozes do sangue como memória.
+5. **O NPC do spoiler cruza todos os finais.** A traição dele pode mudar de forma em cada rota (aliado, rival, vítima), o que dá rejogabilidade sem escrever mais um personagem.
+6. **Escopo por etapas.** Primeiro a rota do Virgil completa (abertura, atos, final), usando os personagens futuros como esboço. As outras três entram depois, reaproveitando o tronco comum.
+
+### 10.5 Perguntas para o Pedro
+- 4 finais no total ou 4 por personagem?
+- Juramento no hub (b) ou personagem mais jogado (a)?
+- O jogo continua depois do final de um personagem?
+- Quantas runs consecutivas por rota, e o que acontece se o jogador falha no meio?
+- Os personagens se encontram e se atrapalham no mesmo hub (como em `personagens-futuros.md`), ou cada rota é isolada?
+
+## 11. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
 - detectar "save novo" (slot vazio) e encaminhar o `StartSlot` ao fluxo de abertura em vez de direto ao hub;
