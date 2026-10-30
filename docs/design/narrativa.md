@@ -164,6 +164,8 @@ Proposta, não implementada:
 
 ## 10. Atos, tom e finais por personagem
 
+> **Status desta seção:** parte é decisão (tom, atos como fatias do pool) e parte é **brainstorm, nada definitivo** (finais por personagem, desbloqueio, personagens jogáveis). O Pedro pediu para deixar em aberto tudo que envolve os personagens extras. Os itens marcados "(brainstorm)" abaixo **não** são decisão.
+
 ### 10.1 Tom (decidido)
 História **sombria**, com uma pitada de **humor negro**: sarcasmo e ironia à vontade. Não seguimos o desfecho do Hades (a família reunida e os deuses ajudando): aqui ninguém é salvo de graça. A premissa é a de um personagem amaldiçoado que quer se livrar da maldição, e a jornada pode carregar **metáforas** disso (a maldição como dívida, fome, herança que não se escolhe).
 
@@ -178,12 +180,12 @@ Rascunho de atos (**sugestão, não decidido**), só para dar nome ao que as fat
 
 **[EM ABERTO]** O que encerra cada ato (boss derrotado, nº de runs, flag de história) e quantos atos há. Ordem de grandeza do Hades: 5 a 10 runs para abrir histórias vizinhas.
 
-### 10.3 Finais por personagem
-**Decidido:** são **4 finais no jogo, um por personagem jogável** (Virgil + 3), cada um com um objetivo diferente. Isso casa com a tabela de `personagens-futuros.md` (cura, destruir o castelo, fim da maldição, assumir o trono).
+### 10.3 Finais por personagem (brainstorm)
+**Ideia atual (brainstorm):** são **4 finais no jogo, um por personagem** (Virgil + 3), cada um com um objetivo diferente. Isso casa com a tabela de `personagens-futuros.md` (cura, destruir o castelo, fim da maldição, assumir o trono).
 
-**Decidido: o final encerra o save.** Quando o jogador completa um final, **a história acaba e não dá para continuar jogando naquele save** (ele "zerou o jogo"). Para ver o final de outro personagem, é preciso **começar um save novo do zero**.
+**Ideia atual (brainstorm): o final encerra o save.** Quando o jogador completa um final, **a história acaba e não dá para continuar jogando naquele save** (ele "zerou o jogo"). Para ver o final de outro personagem, é preciso **começar um save novo do zero**.
 
-Regras já definidas:
+Regras da ideia atual (brainstorm):
 - Cada personagem interage de forma diferente com as Heranças, os NPCs, os bosses e Armand.
 - O jogador precisa **escolher ativamente** qual final perseguir.
 - Cada rota exige **várias runs consecutivas** para ser concluída.
@@ -192,6 +194,8 @@ Regras já definidas:
 **[EM ABERTO]** Como o jogador escolhe a rota. Duas opções levantadas pelo Pedro: (a) o personagem que ele mais jogou; (b) uma side quest que, ao ser concluída, trava a história naquele personagem.
 
 ### 10.4 Minha opinião (sugestões para decidir)
+
+Escrita antes da ideia B (NPCs com romance): vale para a ideia A. Em B, "camadas por personagem" vira "camadas por NPC aliado".
 
 1. **Escolha ativa, não "o mais jogado".** O mais jogado é invisível para o jogador e pode surpreender. Prefiro a opção (b), como um **juramento** feito no hub, com aviso claro de que é definitivo. Combina com o tom sombrio: o jogador assume o pacto.
 2. **Como o final encerra o save é uma decisão forte**, então o jogador precisa de aviso claro antes do juramento ("isto é definitivo") e de uma tela final com o resumo da campanha (runs, mortes, bosses). Isso torna o fechamento satisfatório em vez de abrupto.
@@ -205,13 +209,13 @@ Regras já definidas:
 - Juramento no hub (b) ou personagem mais jogado (a)?
 - Quantas runs consecutivas por rota, e o que acontece se o jogador falha no meio?
 - Os personagens se encontram e se atrapalham no mesmo hub (como em `personagens-futuros.md`), ou cada rota é isolada?
-- Ordem e ganchos do desbloqueio de personagens (ver 10.6).
+- Personagens extras: jogáveis em sequência (A) ou NPCs com romance (B)? Ver 10.6.
 
-### 10.6 Desbloqueio de personagens (decidido)
+### 10.6 Desbloqueio de personagens (brainstorm, em aberto)
 
 Problema levantado pelo Pedro: se o jogador começa com o Virgil, ele presume que a história é do Virgil, e ter vários personagens ao mesmo tempo pode confundir.
 
-**Decisão:** o jogo começa **só com o Virgil**. Quando o jogador **encerra a história do Virgil** (mata o boss final e quebra a maldição), o jogo acaba naquele save e **desbloqueia outro personagem** para jogar. Isso se repete a cada final, até os **quatro personagens** estarem desbloqueados. Cada nova história é um **save novo** (o save do final fica encerrado).
+**Ideia A (sequencial):** o jogo começa **só com o Virgil**. Quando o jogador **encerra a história do Virgil** (mata o boss final e quebra a maldição), o jogo acaba naquele save e **desbloqueia outro personagem** para jogar. Isso se repete a cada final, até os **quatro personagens** estarem desbloqueados. Cada nova história é um **save novo** (o save do final fica encerrado).
 
 Consequências a tratar quando for implementar:
 - Precisa de um **registro fora do slot** (global, compartilhado entre os saves) para guardar "personagem X desbloqueado". Hoje o save é por slot (`save_slot_N.json`), então é um arquivo novo. Cuidado com as regras de versão do save no `perfil.md`.
@@ -222,11 +226,20 @@ Minha opinião: funciona bem, porque cada save vira uma história fechada e o jo
 1. **Tela de escolha no save novo** só com os personagens já liberados, e com o aviso "esta história termina quando você concluir o final".
 2. **Cada personagem precisa de um prólogo curto próprio** (cutscene e, se possível, reaproveitando o tutorial). Se todos começarem com a abertura do Virgil, a história deles perde sentido.
 
+**Ideia B (levantada depois, também brainstorm): só o Virgil é jogável.** Os personagens que seriam desbloqueáveis (Selina, Magdalena, Dominicus) viram **NPCs** do jogo e podem ser **par romântico** do Virgil, como no Hades.
+
+Minha leitura de B:
+- **Escopo muito menor:** um único personagem jogável, sem 3 conjuntos extras de animação, golpes, poder único e atributos. O esforço vai para roteiro e diálogos, que é onde o Pedro quer profundidade.
+- **Os 4 finais continuam possíveis:** em vez de "qual personagem você joga", viram "a quem Virgil se alia". Cada NPC tem um objetivo (destruir o castelo, acabar com a maldição, tomar o trono) e o final do Virgil (cura/vingança) é o quarto. Isso dá uma forma natural de **escolher o final**: vínculo e juramento com um NPC, no lugar de trocar de personagem.
+- **O sistema de diálogos já serve:** relacionamento vira flags e contadores (`flag`, `seen`), e falas por NPC ficam em arquivos separados, como o Odalric. Falta só o conceito de "afinidade" e presentes, se quiserem.
+- **O NPC do spoiler encaixa:** ele compete com os outros pelo trono, o que cria tensão entre as opções.
+- **Perde:** a variedade de jogar com outro personagem em mecânica. Mas as armas e a Bigorna já dão variedade de gameplay.
+- **Conflito com `personagens-futuros.md`:** esse documento descreve os três como jogáveis, mas guarda boa parte do que serve em B (motivações, ligação com os bosses, visual).
+
 **[EM ABERTO]**
-- Ordem de desbloqueio: fixa (por exemplo na ordem dos bosses: Selina, Magdalena, Dominicus) ou o jogador escolhe qual libertar?
-- O final de cada personagem deve apresentar o próximo (gancho narrativo)?
-- Depois de zerar com os quatro, algo mais (modo livre, final verdadeiro)?
-- Quanto o save novo herda (nada, ou só o desbloqueio de personagens e as entradas do compêndio).
+- A (jogáveis em sequência) ou B (NPCs com romance), ou outra ideia.
+- Em A: ordem de desbloqueio, ganchos entre finais, o que o save novo herda, e o registro de desbloqueio fora do slot.
+- Em B: quais NPCs são romanciáveis, como se escolhe o final (vínculo/juramento), e se o final continua encerrando o save.
 
 ## 11. Implementação (não planejada)
 
