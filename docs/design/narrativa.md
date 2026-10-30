@@ -257,6 +257,26 @@ Como encaixa no jogo, minha leitura:
 - **Persistência:** afinidade é permanente por save, como os contadores de `DialogueProgress`. Novas condições de diálogo (`affinity` com `min`/`max` por NPC) entram no sistema atual sem mudar o resto.
 - **Ligação com o final:** a afinidade pode ser o que decide qual dos 4 finais o jogador alcança (o NPC com maior vínculo no momento do juramento). Isso dá ao presente um peso narrativo, não só de recompensa.
 
+Direções novas do Pedro (brainstorm):
+- **Presente só para NPCs do hub**, e não para as vozes do sangue (diferente do Hades, onde se dá presente aos deuses). O hub é a base: o jogador volta a cada morte e interage com os NPCs antes de começar a próxima run.
+- **Item de presente = recurso novo.** Ideias do Pedro: uma **maçã de sangue** (fruta); **vinho** como item especial.
+- Sugestão minha: dois tipos, como o Hades (néctar e ambrosia): um presente **comum** (maçã de sangue, avança a afinidade pouco) e um **especial** (vinho, avança mais ou desbloqueia uma conversa). Cada NPC pode ter gosto próprio, o que dá personalidade ao sistema.
+
+Elenco que existiria no hub na ideia B (de `personagens-futuros.md` e `dialogos.md`):
+- **Odalric, o Cronista:** já existe (arquivista da corte de Armand, preso por um pacto de tinta).
+- **Selina, a Libertadora:** feiticeira lunar com gato; quer destruir o castelo. Ligada à Guardiã Invisível.
+- **Magdalena, a Penitente:** inquisidora com cruz e manopla; quer o fim da maldição. Ligada ao Guardião do Labirinto.
+- **Dominicus, o Herdeiro:** meio humano, filho de Armand; quer o trono. Ligado ao Dragonkin Prateado.
+- **O NPC do spoiler** (a definir; pode ser o Odalric).
+Armand é o vilão final, fora do hub.
+
+Armas por NPC (ideias, brainstorm): hoje `WeaponCatalog` tem a espada longa e o revólver duplo (`dual_revolvers`, em branch separada). As armas liberadas por NPC poderiam espelhar a fantasia de cada um, usando o que `personagens-futuros.md` já esboçou:
+- Selina: arma de magia lunar à distância.
+- Magdalena: corrente e manopla, com custo de vida em troca de dano.
+- Dominicus: garras de sangue, corpo a corpo.
+- Odalric: algo ligado a livro e tinta, se ele também liberar arma.
+Cada arma nova exige golpes, visual e encaixe com os grupos exclusivos das bênçãos, então vale começar com **uma arma por NPC**, não as 4 variantes de `personagens-futuros.md`.
+
 **[EM ABERTO]**
 - Que itens são presentes e de onde vêm.
 - Valores: quantos presentes até 60% e 100%, limite por run, se há decaimento.
