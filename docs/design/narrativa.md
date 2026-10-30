@@ -179,7 +179,9 @@ Rascunho de atos (**sugestão, não decidido**), só para dar nome ao que as fat
 **[EM ABERTO]** O que encerra cada ato (boss derrotado, nº de runs, flag de história) e quantos atos há. Ordem de grandeza do Hades: 5 a 10 runs para abrir histórias vizinhas.
 
 ### 10.3 Finais por personagem
-Leitura que fiz da sua mensagem: **4 finais, um para cada personagem jogável** (Virgil + 3), cada um com um objetivo diferente. Isso casa com a tabela de `personagens-futuros.md` (cura, destruir o castelo, fim da maldição, assumir o trono). Se a ideia era 4 finais **por personagem** (16 no total), avise: muda bastante o escopo.
+**Decidido:** são **4 finais no jogo, um por personagem jogável** (Virgil + 3), cada um com um objetivo diferente. Isso casa com a tabela de `personagens-futuros.md` (cura, destruir o castelo, fim da maldição, assumir o trono).
+
+**Decidido: o final encerra o save.** Quando o jogador completa um final, **a história acaba e não dá para continuar jogando naquele save** (ele "zerou o jogo"). Para ver o final de outro personagem, é preciso **começar um save novo do zero**.
 
 Regras já definidas:
 - Cada personagem interage de forma diferente com as Heranças, os NPCs, os bosses e Armand.
@@ -192,7 +194,7 @@ Regras já definidas:
 ### 10.4 Minha opinião (sugestões para decidir)
 
 1. **Escolha ativa, não "o mais jogado".** O mais jogado é invisível para o jogador e pode surpreender. Prefiro a opção (b), como um **juramento** feito no hub, com aviso claro de que é definitivo. Combina com o tom sombrio: o jogador assume o pacto.
-2. **Travar não precisa ser punição.** Depois do final, o personagem fecha a história, mas o jogo segue jogável (runs livres, ou "novo ciclo" com outro personagem). Senão o jogador sente que "acabou" cedo.
+2. **Como o final encerra o save é uma decisão forte**, então o jogador precisa de aviso claro antes do juramento ("isto é definitivo") e de uma tela final com o resumo da campanha (runs, mortes, bosses). Isso torna o fechamento satisfatório em vez de abrupto.
 3. **Camadas para não multiplicar o texto.** Escrever 4 histórias completas é caro. Sugiro: um **tronco comum** (atos 1 e 2, o mesmo para todos, com o spoiler do NPC) e **camadas por personagem** nos atos 3 e 4. O sistema de diálogos ganharia uma condição `character` para que a mesma situação (herança, boss, NPC) tenha falas diferentes por personagem, só onde importa.
 4. **Cada final responde à mesma pergunta**: "o que fazer com uma maldição herdada?" (curar, destruir, acabar com tudo, assumir). Isso dá coesão temática entre rotas e liga com as vozes do sangue como memória.
 5. **O NPC do spoiler cruza todos os finais.** A traição dele pode mudar de forma em cada rota (aliado, rival, vítima), o que dá rejogabilidade sem escrever mais um personagem.
@@ -201,9 +203,22 @@ Regras já definidas:
 ### 10.5 Perguntas para o Pedro
 - 4 finais no total ou 4 por personagem?
 - Juramento no hub (b) ou personagem mais jogado (a)?
-- O jogo continua depois do final de um personagem?
 - Quantas runs consecutivas por rota, e o que acontece se o jogador falha no meio?
 - Os personagens se encontram e se atrapalham no mesmo hub (como em `personagens-futuros.md`), ou cada rota é isolada?
+- Como desbloquear personagens (ver 10.6).
+
+### 10.6 Desbloqueio de personagens (revisão pedida pelo Pedro)
+
+Problema levantado pelo Pedro: se o jogador começa com o Virgil, ele presume que a história é do Virgil, e ter vários personagens disponíveis ao mesmo tempo pode confundir. Isso também **conflita com `personagens-futuros.md`**, que hoje prevê desbloquear os 3 extras por side quests nos bosses, com progressão compartilhada por slot e todos convivendo no hub. Esse documento precisa ser revisado depois de decidir.
+
+Opções:
+- **A. Virgil protagonista, os outros são "resgatados" (mantém o esboço atual).** O tutorial e o ato 1 são do Virgil. Os três extras surgem como outros presos de Armand, libertados nas side quests dos bosses. Vantagem: a história justifica ter vários personagens. Risco: o jogador ainda pode achar que o final é sempre o do Virgil.
+- **B. Escolha de personagem só no save novo.** Cada save é "a história de um personagem": o jogador escolhe quem é no começo, e o tutorial muda por personagem. Vantagem: zero confusão, combina com "final encerra o save". Custo: 4 aberturas e 4 tutoriais.
+- **C. Híbrido:** o primeiro save é obrigatoriamente do Virgil (a abertura canônica). Ao zerar o jogo, **novos saves** podem começar com um dos personagens já conhecidos (desbloqueio fora do save).
+
+**Minha recomendação: C.** A abertura é contada uma vez, com o Virgil, o que é barato e dá identidade ao jogo; o juramento só aparece quando o jogador já conhece o elenco; zerar abre uma segunda partida sem multiplicar a abertura.
+
+**[EM ABERTO]** Qual das três; e, em C, o que o desbloqueio fora do save guarda.
 
 ## 11. Implementação (não planejada)
 
