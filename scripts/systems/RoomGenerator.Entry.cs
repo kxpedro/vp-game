@@ -13,7 +13,7 @@ public partial class RoomGenerator
     private void PrepareEntryDoor(PixelRoomLayout layout, Vector2I? exitTile)
     {
         _entryEdge = null;
-        if (UsesGardenKit)
+        if (UsesGardenKit || UsesCastleKit)
             return;
 
         var entranceTile = CellToPixelTile(_entranceCell);

@@ -147,6 +147,12 @@ public partial class RoomGenerator : Node3D
 
         if (RunState.IsBossRoom)
             BuildBossMap();
+        else if (UsesCastleKit)
+        {
+            // Ala Superior do Castelo (2D): andar inteiro com salas e corredores (RoomGenerator.Castle.cs).
+            BuildCastleMap();
+            return;
+        }
         else if (UsesGardenKit)
         {
             // Jardim Sangrento (2D): planta própria em tiles, já alinhada (RoomGenerator.Garden.cs).
@@ -211,7 +217,9 @@ public partial class RoomGenerator : Node3D
             }
         }
 
-        var layout = UsesGardenKit
+        var layout = UsesCastleKit
+            ? BuildCastleLayout(exitTile, extraProps)
+            : UsesGardenKit
             ? BuildGardenLayout(exitTile, extraProps)
             : PixelArenaLayout.Build(tiles, exitTile, _exitWallDirection, extraProps, _rng.Seed);
         PrepareEntryDoor(layout, exitTile);

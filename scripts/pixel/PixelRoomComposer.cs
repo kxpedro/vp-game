@@ -149,7 +149,13 @@ public static class PixelRoomComposer
         // canteiro redondo com topiaria, topiaria pequena, lanterna e árvore seca. Roseiras são decoração.
         ("hedge_block", new Vector2(32, 32), Vector2.Zero), ("parterre", new Vector2(62, 62), new Vector2(32, 32)),
         ("topiary_center", new Vector2(36, 36), Vector2.Zero), ("topiary_ball", new Vector2(11, 11), Vector2.Zero),
-        ("lantern", new Vector2(5, 5), Vector2.Zero), ("dead_tree", new Vector2(7, 7), Vector2.Zero)
+        ("lantern", new Vector2(5, 5), Vector2.Zero), ("dead_tree", new Vector2(7, 7), Vector2.Zero),
+        // Ala Superior do Castelo: coluna, braseiro, armadura, candelabro, estantes, mesa de banquete e cama. Poça de
+        // prata, tapete e entulho são decoração.
+        ("column", new Vector2(14, 14), Vector2.Zero), ("brazier", new Vector2(11, 11), Vector2.Zero),
+        ("armor", new Vector2(13, 13), Vector2.Zero), ("candelabrum", new Vector2(10, 5), Vector2.Zero),
+        ("bookcase_x", new Vector2(28, 8), new Vector2(0, -18)), ("bookcase_y", new Vector2(8, 28), new Vector2(-18, 0)),
+        ("table", new Vector2(22, 12), Vector2.Zero), ("bed", new Vector2(19, 13), new Vector2(0, -20))
     };
 
     // Paleta AAP-64 em famílias (mesma ordem de tools/pixel_art/crypt_kit/iso.py).
@@ -166,6 +172,12 @@ public static class PixelRoomComposer
         ("flame", new[] { "fa6a0a", "f9a31b", "ffd541", "fffc40", "ffffff" }),
         // Sebe do Jardim: as cores comuns já caem na "moss"; aqui entra só o verde claro do topo (5daf8d).
         ("hedge", new[] { "060608", "141013", "122020", "24523b", "23674e", "328464", "5daf8d" }),
+        // Castelo (mesma ordem de castle_kit/castle.py): só as cores novas além das famílias acima.
+        ("violet", new[] { "242234", "403353", "793a80", "bc4a9b" }),
+        ("gold", new[] { "71413b", "bb7547", "dba463", "f4d29c", "fef3c0" }),
+        ("glass", new[] { "143464", "285cc4", "249fde", "849be4", "b9bffb" }),
+        ("glassv", new[] { "242234", "403353", "793a80", "bc4a9b", "e86a73" }),
+        ("silver", new[] { "6d758d", "8b93af", "b3b9d1", "dae0ea", "e3e6ff" }),
     };
 
     /// <summary>Deslocamento do centro e meia-extensão (unidades do kit) do obstáculo de uma peça; zero se ela não bloqueia.</summary>

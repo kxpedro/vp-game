@@ -16,7 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "pixel_art" / "monsters"))
 from recolor_monsters import AAP64, hex_to_rgb  # noqa: E402
 
-DEFAULT = ["assets/pixel_art/crypt", "assets/pixel_art/garden", "assets/pixel_art/tiles", "assets/pixel_art/effects",
+DEFAULT = ["assets/pixel_art/crypt", "assets/pixel_art/garden", "assets/pixel_art/castle", "assets/pixel_art/tiles", "assets/pixel_art/effects",
            "assets/pixel_art/monsters"]
 EXCEPTIONS = ["assets/pixel_art/monsters/mage_guardian"]
 
