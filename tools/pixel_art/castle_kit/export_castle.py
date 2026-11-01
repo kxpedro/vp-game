@@ -1,7 +1,7 @@
 """Exporta o kit da Ala Superior do Castelo (mapa 3) para uma pasta (PNG 224x208 alinhado ao tile 128x64, alturas,
 manifest.json e o chão em tiles/castle_floor). Mesmo formato dos kits da cripta e do Jardim.
 
-Uso: py tools/pixel_art/castle_kit/export_castle.py <pasta_de_saida>
+Uso: py tools/pixel_art/castle_kit/export_castle.py assets/pixel_art/castle   (o chão vai para assets/pixel_art/tiles/castle_floor)
 """
 import os, sys, json
 from PIL import Image
@@ -46,10 +46,10 @@ def pieces():
 
 
 def main(out):
-    floor_root = os.path.join(out, "tiles", "castle_floor", "castle_floor_128_")
+    floor_root = os.path.join(out, "..", "tiles", "castle_floor", "castle_floor_128_") if os.path.basename(os.path.abspath(out)) == "castle" else os.path.join(out, "tiles", "castle_floor", "castle_floor_128_")
     man = {"canvas": [EK.CW, EK.CH], "tile_top_vertex": [EK.TX, EK.TY], "tile_center": [EK.TX, EK.TY + 32], "tile_size": [128, 64],
            "godot_texture_origin": [0, EK.TY + 32 - EK.CH // 2], "palette": "AAP-64", "baked_ambient": EK.AMBIENT,
-           "floor": {"variants": list(FLOOR_VARIANTS), "weights": WEIGHTS}, "pieces": {}}
+           "floor": {"root": "res://assets/pixel_art/tiles/castle_floor/castle_floor_128_", "variants": list(FLOOR_VARIANTS), "weights": WEIGHTS}, "pieces": {}}
     for name, (kind, fn, *canvas) in pieces().items():
         canvas = canvas[0] if canvas else None
         img, L, height = EK.render(fn, canvas=canvas)

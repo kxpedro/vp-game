@@ -1,0 +1,211 @@
+{
+ "canvas": [
+  224,
+  208
+ ],
+ "tile_top_vertex": [
+  112,
+  116
+ ],
+ "tile_center": [
+  112,
+  148
+ ],
+ "tile_size": [
+  128,
+  64
+ ],
+ "godot_texture_origin": [
+  0,
+  44
+ ],
+ "palette": "AAP-64",
+ "baked_ambient": -0.6,
+ "floor": {
+  "root": "res://assets/pixel_art/tiles/castle_floor/castle_floor_128_",
+  "variants": [
+   "base",
+   "dark",
+   "cracked",
+   "ember",
+   "inlay"
+  ],
+  "weights": [
+   0.46,
+   0.2,
+   0.14,
+   0.12,
+   0.08
+  ]
+ },
+ "pieces": {
+  "walls/wall_ne_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_ne_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_a": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_b": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_plain_c": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_niche": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_arch": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_nw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_se_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/wall_sw_gap": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_n": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_s": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_e_low": {
+   "kind": "wall",
+   "lights": []
+  },
+  "walls/corner_w_tall": {
+   "kind": "wall",
+   "lights": []
+  },
+  "props/column": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/brazier": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 104,
+     "power": 2.0,
+     "radius": 90.0
+    }
+   ]
+  },
+  "props/armor": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/candelabrum": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 96,
+     "power": 1.5,
+     "radius": 70.0
+    }
+   ]
+  },
+  "props/rubble_a": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/rubble_b": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/bookcase_x": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/bookcase_y": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/table": {
+   "kind": "prop",
+   "lights": [
+    {
+     "x": 112,
+     "y": 116,
+     "power": 1.0,
+     "radius": 60.0
+    }
+   ]
+  },
+  "props/bed": {
+   "kind": "prop",
+   "lights": []
+  },
+  "props/silver_pool": {
+   "kind": "decal",
+   "lights": [
+    {
+     "x": 112,
+     "y": 144,
+     "power": 1.0,
+     "radius": 60.0
+    }
+   ]
+  },
+  "props/carpet_sw": {
+   "kind": "decal",
+   "lights": []
+  },
+  "props/carpet_se": {
+   "kind": "decal",
+   "lights": []
+  }
+ }
+}
