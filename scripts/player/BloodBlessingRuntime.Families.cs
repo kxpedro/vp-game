@@ -140,13 +140,13 @@ public partial class BloodBlessingRuntime
         Instinct = 0.0f;
         _wolfTimer = CompendiumTuning.GetFloat("family.varcolac.wolf_seconds", 6.0f) + RunState.GetEffectTotal("WolfFormDuration.Flat");
         var origin = PlayerBody.GlobalPosition;
-        FamilyFx.Pulse(this, origin, 3.5f, VarcolacColor, 0.5f);
+        FamilyFx.Pulse(this, origin, 3.5f, VarcolacColor, 0.5f, FamilyRing.Claws);
         GetTree().CallGroup("hud", "AppendGameLog", "Virgil assume a Forma de Lobo.");
         if (RunState.GetEffectTotal("WolfEntryBurst.Multiplier") > 0.0f)
         {
             _entryInvulnerability = 2.0f;
             DamageEnemiesNear(origin, 4.0f, BaseHitDamage() * RunState.GetEffectTotal("WolfEntryBurst.Multiplier"), null, "WolfEntryBurst");
-            FamilyFx.Pulse(this, origin, 4.0f, new Color(0.86f, 0.64f, 0.39f), 0.55f);
+            FamilyFx.Pulse(this, origin, 4.0f, new Color(0.86f, 0.64f, 0.39f), 0.55f, FamilyRing.Claws);
         }
         if (RunState.GetEffectTotal("WolfHowl.Flat") > 0.0f)
         {
@@ -156,7 +156,7 @@ public partial class BloodBlessingRuntime
                 enemy.ApplyKnockback(enemy.GlobalPosition - origin, 7.0f, 0.0f);
                 enemy.ApplyStatusLock(RunState.GetEffectParameter("WolfHowl", "stun", 1.2f));
             }
-            FamilyFx.Pulse(this, origin, 5.5f, new Color(0.96f, 0.82f, 0.61f), 0.6f);
+            FamilyFx.Pulse(this, origin, 5.5f, new Color(0.96f, 0.82f, 0.61f), 0.6f, FamilyRing.Claws);
         }
     }
 
@@ -178,7 +178,7 @@ public partial class BloodBlessingRuntime
         var radius = 0.0f;
         foreach (var zone in zones) radius = Mathf.Max(radius, zone.GlobalPosition.DistanceTo(center));
         radius += 1.2f;
-        FamilyFx.Pulse(this, center, radius, LiaozhaiColor, 0.5f);
+        FamilyFx.Pulse(this, center, radius, LiaozhaiColor, 0.5f, FamilyRing.Bagua);
         DamageEnemiesNear(center, radius, BaseHitDamage() * RunState.GetEffectTotal("BaguaPulse.Multiplier"), null, "BaguaPulse");
     }
 
@@ -212,7 +212,7 @@ public partial class BloodBlessingRuntime
             _witchingCooldown = RunState.GetEffectParameter("WitchingHour", "cooldown", 30.0f);
             foreach (var node in GetTree().GetNodesInGroup("enemies"))
                 if (node is EnemyBasic enemy) enemy.FallAsleep(RunState.GetEffectParameter("WitchingHour", "sleep", 3.0f));
-            FamilyFx.Pulse(this, PlayerBody.GlobalPosition, 14.0f, NachtalbColor, 0.9f);
+            FamilyFx.Pulse(this, PlayerBody.GlobalPosition, 14.0f, NachtalbColor, 0.9f, FamilyRing.Moon);
             GetTree().CallGroup("hud", "AppendGameLog", "Hora das Bruxas: a sala inteira adormece.");
         }
     }
@@ -373,11 +373,11 @@ public partial class BloodBlessingRuntime
                 var delay = RunState.GetEffectParameter("DashShadowClone", "delay", 1.0f);
                 var radius = RunState.GetEffectParameter("DashShadowClone", "radius", 2.6f);
                 var damage = BaseHitDamage() * RunState.GetEffectParameter("DashShadowClone", "damage", 1.0f) * RunState.GetEffectTotal("DashShadowClone.Flat");
-                FamilyFx.Pulse(this, origin, 0.9f, StrigoiColor, delay);
+                FamilyFx.Pulse(this, origin, 0.9f, StrigoiColor, delay, FamilyRing.Shadow);
                 GetTree().CreateTimer(delay).Timeout += () =>
                 {
                     if (!IsInstanceValid(this)) return;
-                    FamilyFx.Pulse(this, origin, radius, StrigoiColor, 0.4f);
+                    FamilyFx.Pulse(this, origin, radius, StrigoiColor, 0.4f, FamilyRing.Shadow);
                     DamageEnemiesNear(origin, radius, damage, null, "DashShadowClone");
                 };
             }
@@ -397,15 +397,15 @@ public partial class BloodBlessingRuntime
                     behind.Y = 0.0f;
                     behind = behind.LengthSquared() > 0.001f ? behind.Normalized() : Vector3.Back;
                     var destination = target.GlobalPosition + behind * 1.3f;
-                    FamilyFx.Pulse(this, origin, 1.2f, StrigoiColor, 0.35f);
+                    FamilyFx.Pulse(this, origin, 1.2f, StrigoiColor, 0.35f, FamilyRing.Shadow);
                     body.GlobalPosition = new Vector3(destination.X, origin.Y, destination.Z);
-                    FamilyFx.Pulse(this, body.GlobalPosition, 1.2f, StrigoiColor, 0.35f);
+                    FamilyFx.Pulse(this, body.GlobalPosition, 1.2f, StrigoiColor, 0.35f, FamilyRing.Shadow);
                 }
             }
         }
         if (IsWolfForm && RunState.GetEffectTotal("WolfDashShockwave.Multiplier") > 0.0f)
         {
-            FamilyFx.Pulse(this, origin, 3.4f, VarcolacColor, 0.4f);
+            FamilyFx.Pulse(this, origin, 3.4f, VarcolacColor, 0.4f, FamilyRing.Claws);
             DamageEnemiesNear(origin, 3.4f, BaseHitDamage() * RunState.GetEffectTotal("WolfDashShockwave.Multiplier"), null, "WolfDashShockwave");
         }
     }
@@ -443,7 +443,7 @@ public partial class BloodBlessingRuntime
         {
             _mistUsedThisRoom = true;
             _mistTimer = RunState.GetEffectParameter("MistFormAfterPerfectDodge", "duration", 2.0f);
-            FamilyFx.Pulse(this, PlayerBody.GlobalPosition, 2.0f, StrigoiColor, 0.5f);
+            FamilyFx.Pulse(this, PlayerBody.GlobalPosition, 2.0f, StrigoiColor, 0.5f, FamilyRing.Shadow);
         }
     }
 

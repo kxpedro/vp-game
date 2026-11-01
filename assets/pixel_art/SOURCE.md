@@ -110,3 +110,6 @@ Gerada por `tools/pixel_art/pestilence_cloud/generate_pestilence_cloud.py` e `ge
 
 ## effects/summoned_rat
 Gerada por `tools/pixel_art/summoned_rat/generate_summoned_rat.py` a partir de `tools/pixel_art/summoned_rat/source/Rats.png` (pacote de ratos de `F:\ASSETS\Rats`, do Pedro; **autor e licença NÃO REGISTRADOS**: confirmar a origem e registrar em `CREDITS.md` antes de distribuir). Perfil do rato marrom (3 quadros de corrida, esquerda e direita), reduzido de 48x48 para 30x30 e recolorido para verde-acinzentado na AAP-64. `summoned_rat_sheet.png`: 10x3 quadros de 30x30: corrida (0-2 esquerda, 3-5 direita), ataque (0-3 esquerda, 4-7 direita) e morte (0-4 esquerda, 5-9 direita); ataque e morte derivados da corrida por transformações no gerador. Rato invocado do Orlok (`SummonedRat`, só no 2D).
+
+## effects/family_rings
+Gerados por `tools/pixel_art/family_rings/generate_family_rings.py` (Pillow, AAP-64). `ring_claws.png` (Vârcolac), `ring_bagua.png` (Liaozhai, também a zona do talismã), `ring_moon.png` (Nachtalb), `ring_shadow.png` (Strigoi): 192x96 (2:1) cada. Pulsos das famílias (`FamilyFx.Pulse`, só no 2D). Arte própria.
