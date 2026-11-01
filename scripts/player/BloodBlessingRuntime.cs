@@ -526,46 +526,71 @@ public partial class BloodBlessingRuntime : Node
             RunState.GetEffectParameter("PestilenceCloudAtStacks", "radius", 3.2f));
     }
 
-    // Névoa em pixel art (tools/pixel_art/pestilence_cloud): 6 quadros de 192x96 em loop, deitada no chão como as poças.
-    // 192 px a PixelSize = 6,3 m de ponta a ponta: a folha escala para o raio da nuvem. Opacidade em PestilenceCloudAlpha.
-    private const float PestilenceCloudAlpha = 0.4f;
-    private const float PestilenceCloudGroundAlpha = 0.22f;
-    private const float PestilenceCloudChestHeight = 0.9f;
+    // Névoa em pixel art (tools/pixel_art/pestilence_cloud): uma camada rala deitada no chão (192x96, 6 quadros) e vários
+    // tufos em pé virados para a câmera (64x48, 6 quadros) na altura do peito, em loop e à deriva. Opacidades abaixo.
+    private const float PestilenceGroundAlpha = 0.2f;
+    private const float PestilencePuffAlpha = 0.38f;
     private static Texture2D _pestilenceCloudSheet;
+    private static Texture2D _pestilencePuffSheet;
+
+    private static Sprite3D NewCloudSprite(Texture2D texture, int hframes, float alpha) => new()
+    {
+        Texture = texture,
+        Hframes = hframes,
+        PixelSize = PlayerSpriteVisual.PixelSize,
+        TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+        AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+        Modulate = new Color(1.0f, 1.0f, 1.0f, alpha),
+        Shaded = false,
+        DoubleSided = false,
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+    };
+
+    private static void LoopFrames(Sprite3D sprite, int offset, float seconds)
+    {
+        var tween = sprite.CreateTween().SetLoops();
+        tween.TweenMethod(Callable.From<float>(t => sprite.Frame = (Mathf.Clamp((int)t, 0, 5) + offset) % 6), 0.0f, 6.0f, seconds);
+    }
 
     private Node3D BuildPestilenceCloudSprite(float radius)
     {
         _pestilenceCloudSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_cloud_sheet.png");
+        _pestilencePuffSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_puff_sheet.png");
         var camera = GetViewport()?.GetCamera3D();
         var yaw = camera?.GlobalRotation.Y ?? Mathf.DegToRad(IsoCamera.DefaultYawDegrees);
         var pitch = camera != null ? -camera.GlobalRotation.X : Mathf.DegToRad(PixelRoom.CameraPitchDegrees);
         var stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
-        var root = new Node3D { Name = "PestilenceCloud", Rotation = new Vector3(0.0f, yaw, 0.0f) };
+        var root = new Node3D { Name = "PestilenceCloud" };
+
+        // Camada rala no chão, esticada como as poças.
         var sizeScale = radius / (96.0f * PlayerSpriteVisual.PixelSize);
-        root.Scale = new Vector3(sizeScale, 1.0f, sizeScale * stretch);
-        // Duas camadas: uma rala rente ao chão e a principal na altura do peito, onde a névoa de verdade fica.
-        var sprites = new List<Sprite3D>();
-        foreach (var (height, alpha, frameOffset) in new[] { (0.04f, PestilenceCloudGroundAlpha, 3), (PestilenceCloudChestHeight, PestilenceCloudAlpha, 0) })
+        var ground = new Node3D { Name = "Ground", Rotation = new Vector3(0.0f, yaw, 0.0f), Scale = new Vector3(sizeScale, 1.0f, sizeScale * stretch) };
+        var groundSprite = NewCloudSprite(_pestilenceCloudSheet, 6, PestilenceGroundAlpha);
+        groundSprite.RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f);
+        groundSprite.Position = Vector3.Up * 0.04f;
+        ground.AddChild(groundSprite);
+        root.AddChild(ground);
+        LoopFrames(groundSprite, 0, 1.4f);
+
+        // Tufos em pé na altura do peito: cada um com quadro inicial e deriva própria.
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        var puffCount = Mathf.Clamp(Mathf.RoundToInt(radius * 3.0f), 6, 14);
+        for (var i = 0; i < puffCount; i++)
         {
-            var sprite = new Sprite3D
-            {
-                Texture = _pestilenceCloudSheet,
-                Hframes = 6,
-                PixelSize = PlayerSpriteVisual.PixelSize,
-                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
-                AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
-                Modulate = new Color(1.0f, 1.0f, 1.0f, alpha),
-                Shaded = false,
-                DoubleSided = false,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-                RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f),
-                Position = Vector3.Up * height
-            };
-            root.AddChild(sprite);
-            sprites.Add(sprite);
-            var offset = frameOffset;
-            var tween = sprite.CreateTween().SetLoops();
-            tween.TweenMethod(Callable.From<float>(t => sprite.Frame = (Mathf.Clamp((int)t, 0, 5) + offset) % 6), 0.0f, 6.0f, 6.0f / 5.0f);
+            var angle = random.RandfRange(0.0f, Mathf.Tau);
+            var distance = radius * 0.8f * Mathf.Sqrt(random.Randf());
+            var home = new Vector3(Mathf.Cos(angle) * distance, random.RandfRange(0.55f, 1.25f), Mathf.Sin(angle) * distance);
+            var puff = NewCloudSprite(_pestilencePuffSheet, 6, PestilencePuffAlpha);
+            puff.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            puff.FlipH = random.Randf() < 0.5f;
+            puff.Position = home;
+            root.AddChild(puff);
+            LoopFrames(puff, random.RandiRange(0, 5), random.RandfRange(1.6f, 2.4f));
+            var drift = new Vector3(random.RandfRange(-0.35f, 0.35f), random.RandfRange(-0.1f, 0.1f), random.RandfRange(-0.35f, 0.35f));
+            var sway = puff.CreateTween().SetLoops();
+            sway.TweenProperty(puff, "position", home + drift, random.RandfRange(1.4f, 2.2f)).SetTrans(Tween.TransitionType.Sine);
+            sway.TweenProperty(puff, "position", home, random.RandfRange(1.4f, 2.2f)).SetTrans(Tween.TransitionType.Sine);
         }
         return root;
     }
