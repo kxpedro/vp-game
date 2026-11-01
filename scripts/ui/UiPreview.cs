@@ -225,7 +225,8 @@ public partial class UiPreview : Node
 		}
 
 		_settleElapsed += delta;
-		if (_settleElapsed < BatchSettleSeconds)
+		// summoned_rat_2 espera mais, para pegar os ratos já correndo até o inimigo.
+		if (_settleElapsed < (job.Screen == "summoned_rat_2" ? 1.2f : BatchSettleSeconds))
 			return;
 		CaptureBatchShot(job);
 		NextBatchJob();

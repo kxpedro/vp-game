@@ -354,7 +354,8 @@ public partial class HUD
 		{
 			var rat = new SummonedRat { OwnerPlayer = player, LifetimeSeconds = 8.0f, AttackDamage = 0.0f };
 			GetTree().CurrentScene.AddChild(rat);
-			rat.GlobalPosition = player.GlobalPosition + new Vector3(0.8f + 0.5f * i, 0.08f, 0.5f * (i - 1));
+			// Distâncias diferentes do Virgil (0,8 / 2,2 / 3,6 m): os mais longe já estão a caminho do inimigo.
+			rat.GlobalPosition = player.GlobalPosition + new Vector3(0.8f + 1.4f * i, 0.08f, 0.5f * (i - 1));
 		}
 	}
 
