@@ -186,6 +186,7 @@ public partial class SummonedRat : CharacterBody3D
 
     private async void SpawnBitePulse()
     {
+        if (GameMode.IsPixelArt) return;
         var pulse = new MeshInstance3D
         {
             Mesh = new SphereMesh { Radius = 0.16f, Height = 0.32f },
