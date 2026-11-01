@@ -303,6 +303,15 @@ Como distinguir de artefato, para não virar a mesma coisa:
 
 Ideia opcional do Hades: o amuleto **sobe de nível com o uso**, com bônus crescente, o que recompensa usar o mesmo.
 
+Como o jogador adquire amuletos (ideias, brainstorm):
+1. **Afinidade com NPC (fonte principal).** Cada NPC do hub entrega um amuleto ao atingir um marco de afinidade (por exemplo a primeira conversa especial, ou ~25%), como no Hades. O amuleto carrega a personalidade do NPC. Liga os amuletos ao sistema de presentes e dá motivo para voltar a falar com todos.
+2. **Vozes do sangue.** Quando o jogador esgota o pool de diálogos de uma família de Herança (Dracul, Báthory, Orlok, Karnstein), a memória daquele sangue **se cristaliza** num amuleto. Dá uma recompensa para a progressão dos diálogos das Heranças.
+3. **Primeira vitória sobre um boss.** Cada um dos 4 bosses deixa um amuleto na primeira vez que cai (troféu). Simples e fácil de entender.
+4. **Slots e melhorias com Ícor.** Ícor (permanente, gasto na Fonte de Sangue) não compra amuletos novos, só **slots extras** ou níveis dos já obtidos. Mantém o Ícor com um propósito claro.
+5. **Evitar:** achar amuletos soltos em sala por sorteio. Já temos Bênçãos, Frutas e artefatos nas salas; o amuleto deve ser conquista de relacionamento ou de história, não de sorte.
+
+Minha recomendação: combinar **1 (principal), 2 e 3**, com **4** para slots. Os amuletos ficam num **estojo no hub**, e o jogador escolhe um na saída do hub, antes da primeira sala.
+
 **[EM ABERTO]**
 - Quantos amuletos e de onde vêm (todos de NPCs ou alguns da Fonte/loja do hub).
 - Quantos slots e se crescem por progressão.
