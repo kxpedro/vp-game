@@ -156,7 +156,7 @@ public static class BloodBlessingText
         if (effect.Type.Contains("Chance", StringComparison.OrdinalIgnoreCase))
             return Math.Clamp(value, 0.0f, 1.0f);
         // Consumidos com arredondamento no BloodBlessingRuntime.
-        if (effect.Type is "PestilenceSpreadTargets" or "PestilenceSpreadOnHostHit")
+        if (effect.Type is "PestilenceSpreadTargets" or "PestilenceSpreadOnHostHit" or "SealSpreadOnKill" or "PanicChain")
             return MathF.Round(value);
         return value;
     }

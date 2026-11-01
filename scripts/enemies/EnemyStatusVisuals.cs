@@ -11,6 +11,10 @@ public partial class EnemyStatusVisuals : Node3D
     public const string Pestilence = "pestilence";
     public const string Charm = "charm";
     public const string Fascination = "fascination";
+    public const string ShadowMark = "shadow_mark";
+    public const string Mauled = "mauled";
+    public const string Sealed = "sealed";
+    public const string Nightmare = "nightmare";
 
     private const float TintStrength = 0.55f;
     private const float TintCycleSeconds = 0.8f;
@@ -22,6 +26,10 @@ public partial class EnemyStatusVisuals : Node3D
         [Pestilence] = new Color(0.36f, 1.0f, 0.23f),
         [Charm] = new Color(1.0f, 0.31f, 0.75f),
         [Fascination] = new Color(1.0f, 0.31f, 0.75f),
+        [ShadowMark] = new Color(0.56f, 0.64f, 0.72f),
+        [Mauled] = new Color(0.73f, 0.46f, 0.28f),
+        [Sealed] = new Color(0.12f, 0.53f, 0.46f),
+        [Nightmare] = new Color(0.16f, 0.36f, 0.77f),
     };
 
     private readonly Dictionary<string, CpuParticles3D> _emitters = new();
@@ -41,7 +49,7 @@ public partial class EnemyStatusVisuals : Node3D
             emitter.Position = Vector3.Up * _bodyHeight;
     }
 
-    public void Refresh(bool bleeding, bool pestilent, bool charmed, bool fascinated)
+    public void Refresh(bool bleeding, bool pestilent, bool charmed, bool fascinated, bool marked = false, bool mauled = false, bool sealedState = false, bool nightmare = false)
     {
         _activeColors.Clear();
         SetEmitting(Bleeding, bleeding);
@@ -51,6 +59,14 @@ public partial class EnemyStatusVisuals : Node3D
         if (bleeding) _activeColors.Add(ColorOf(Bleeding));
         if (pestilent) _activeColors.Add(ColorOf(Pestilence));
         if (charmed || fascinated) _activeColors.Add(ColorOf(charmed ? Charm : Fascination));
+        SetEmitting(ShadowMark, marked);
+        SetEmitting(Mauled, mauled);
+        SetEmitting(Sealed, sealedState);
+        SetEmitting(Nightmare, nightmare);
+        if (marked) _activeColors.Add(ColorOf(ShadowMark));
+        if (mauled) _activeColors.Add(ColorOf(Mauled));
+        if (sealedState) _activeColors.Add(ColorOf(Sealed));
+        if (nightmare) _activeColors.Add(ColorOf(Nightmare));
     }
 
     public override void _Process(double delta)
