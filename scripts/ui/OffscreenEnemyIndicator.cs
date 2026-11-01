@@ -38,7 +38,8 @@ public partial class OffscreenEnemyIndicator : Control
 	public override void _Process(double delta)
 	{
 		_sources.Clear();
-		if (CompendiumTuning.GetInt("hud.offscreen.enabled", 1) != 0)
+		// Só durante uma run (o hub tem o boneco de treino, que não deve acionar o alerta).
+		if (RunState.IsRunActive && CompendiumTuning.GetInt("hud.offscreen.enabled", 1) != 0)
 			CollectSources();
 		UpdateGlows((float)delta);
 		if (_glows.Count > 0 || _wasDrawn)
