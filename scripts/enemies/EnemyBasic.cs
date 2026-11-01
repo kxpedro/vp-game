@@ -90,7 +90,8 @@ public partial class EnemyBasic : CharacterBody3D
     private float _damageTakenBonus;
     private float _damageTakenTimer;
     public float DamageTakenMultiplier => 1.0f + _damageTakenBonus
-        + (_pestilenceStacks + _bleedingStacks) * DamageTakenPerStatusStack;
+        + (_pestilenceStacks + _bleedingStacks) * DamageTakenPerStatusStack
+        + FamilyDamageTakenBonus();
     public float HitTargetRadius { get; private set; } = 0.35f;
     private float? _bodyBaseRadius;
     private Node3D _importedVisual;
@@ -550,6 +551,8 @@ public partial class EnemyBasic : CharacterBody3D
 
     public void SetSpawnActive(bool active)
     {
+        if (active && RunState.GetEffectTotal("RoomStartSeal.Flat") > 0.0f)
+            ApplySeal(RunState.GetEffectTotal("RoomStartSeal.Flat"));
         SetPhysicsProcess(active);
         ProcessMode = active ? ProcessModeEnum.Inherit : ProcessModeEnum.Disabled;
     }
@@ -586,9 +589,12 @@ public partial class EnemyBasic : CharacterBody3D
         _tacticalMoveTimer = Mathf.Max(_tacticalMoveTimer - (float)delta, 0.0f);
         _rangedFleeTimer = Mathf.Max(_rangedFleeTimer - (float)delta, 0.0f);
         TickBlessingStatuses((float)delta);
+        TickFamilyStatuses((float)delta);
         UpdateCharmLinkVisual();
         _bossActionAnimationTimer = Mathf.Max(_bossActionAnimationTimer - (float)delta, 0.0f);
         _attackAnimationTimer = Mathf.Max(_attackAnimationTimer - (float)delta, 0.0f);
+        if (FamilyStatusBlocksActing())
+            return;
         if (_knockbackVelocity.LengthSquared() > 0.01f)
         {
             Velocity = _knockbackVelocity;
@@ -605,6 +611,11 @@ public partial class EnemyBasic : CharacterBody3D
         if (IsCharmed)
         {
             RunCharmedBehavior((float)delta);
+            return;
+        }
+        if (IsPanicked)
+        {
+            RunPanicBehavior((float)delta);
             return;
         }
         if (_bossActionLocked)
@@ -1060,6 +1071,8 @@ public partial class EnemyBasic : CharacterBody3D
         direction.Y = 0.0f;
 
         if (direction.LengthSquared() <= 0.001f)
+            return;
+        if (IsSleeping && RunState.GetEffectTotal("SleepParalysis.Flat") > 0.0f)
             return;
 
         var bossResistance = Name.ToString().Contains("Boss") ? G("enemy.boss.knockback_factor", 0.05f) : 1.0f;
@@ -1645,12 +1658,16 @@ public partial class EnemyBasic : CharacterBody3D
         var charmedOrFascinated = IsCharmed || IsFascinated;
         if (_statusVisuals != null)
         {
-            _statusVisuals.Refresh(IsBleeding, IsPestilent, IsCharmed, IsFascinated);
+            _statusVisuals.Refresh(IsBleeding, IsPestilent, IsCharmed, IsFascinated, IsMarked, IsMauled, IsSealed, IsSleeping || IsDrowsy || IsPanicked);
             // O estado acabou de pegar: estouro na cor dele.
             if (IsBleeding && !_wasBleeding) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Bleeding));
             if (IsPestilent && !_wasPestilent) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Pestilence));
             if (charmedOrFascinated && !_wasCharmed) _statusVisuals.Burst(EnemyStatusVisuals.ColorOf(EnemyStatusVisuals.Charm));
         }
+        _wasMarked = IsMarked;
+        _wasMauled = IsMauled;
+        _wasSealed = IsSealed;
+        _wasNightmare = IsSleeping || IsDrowsy || IsPanicked;
         _wasBleeding = IsBleeding;
         _wasPestilent = IsPestilent;
         _wasCharmed = charmedOrFascinated;

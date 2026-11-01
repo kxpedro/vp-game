@@ -1130,8 +1130,12 @@ public partial class HUD
 		"dracul" => 1,
 		"karnstein" => 2,
 		"orlok" => 3,
+		"strigoi" => 4,
+		"varcolac" => 5,
+		"liaozhai" => 6,
+		"nachtalb" => 7,
 		"stirps" => 9,
-		_ => 5
+		_ => 8
 	};
 
 	private static string FormatCompendiumLineage(BloodBlessingDefinition blessing)

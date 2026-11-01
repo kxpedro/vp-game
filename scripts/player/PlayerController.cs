@@ -177,6 +177,7 @@ public partial class PlayerController : CharacterBody3D
 			if (Input.IsActionJustPressed("attack_light") && !(_combat?.IsPointerAttackBlocked() ?? false))
 				_combat?.QueueQuickAttack();
 			_dodgeTimeRemaining -= deltaF;
+			_blessings?.OnDashTick(GlobalPosition);
 			Velocity = _dodgeDirection * DodgeSpeed;
 			_animator?.SetMovementState(true, true, DodgeSpeed);
 			MoveAndSlide();
@@ -205,9 +206,13 @@ public partial class PlayerController : CharacterBody3D
 			_dashAttackGraceTimeRemaining = 0.0f;
 			_health?.SetInvincible(true);
 			_blessings?.OnDodged();
+			_blessings?.OnDashStarted(_dodgeDirection);
 			GetTree().CallGroup("audio_manager", "PlayEffect", "dodge");
 			if (perfectDodge)
+			{
 				_skillController?.OnPerfectDodge();
+				_blessings?.OnPerfectDodgeFamily();
+			}
 			Velocity = _dodgeDirection * DodgeSpeed;
 			_animator?.PlayDodge(DodgeDuration);
 			_animator?.SetMovementState(true, true, DodgeSpeed);
@@ -259,7 +264,8 @@ public partial class PlayerController : CharacterBody3D
 		WalkSpeed = CompendiumTuning.GetFloat("player.walk_speed", _defaultWalkSpeed) * moveMultiplier * GameTuning.GetWalkSpeedMultiplier();
 		SprintSpeed = CompendiumTuning.GetFloat("player.sprint_speed", _defaultSprintSpeed) * moveMultiplier * GameTuning.GetRunSpeedMultiplier();
 		DodgeSpeed = BaseDodgeSpeed * GameTuning.GetDashSpeedMultiplier() * (1.0f + RunState.GetEffectTotal("DashSpeed.Multiplier"));
-		DodgeDuration = CompendiumTuning.GetFloat("player.dodge.duration", _defaultDodgeDuration) * GameTuning.GetDashDistanceMultiplier();
+		DodgeDuration = CompendiumTuning.GetFloat("player.dodge.duration", _defaultDodgeDuration) * GameTuning.GetDashDistanceMultiplier()
+			+ RunState.GetEffectTotal("DashDurationBonus.Flat");
 		MaxStamina = CompendiumTuning.GetFloat("player.stamina.max", _defaultMaxStamina) + CharacterSheet.GetMaxStaminaBonus();
 		CurrentStamina = Mathf.Min(CurrentStamina, MaxStamina);
 
@@ -276,6 +282,12 @@ public partial class PlayerController : CharacterBody3D
 	{
 		if (key == null || key.StartsWith("player."))
 			ApplyRuntimeTuning();
+	}
+
+	// Strigoi (Sede de Sombra): devolve segundos da recarga do dash.
+	public void RefundDashCooldown(float seconds)
+	{
+		_dodgeCooldownTimeRemaining = Mathf.Max(_dodgeCooldownTimeRemaining - seconds, 0.0f);
 	}
 
 	public void ConsumeDashAttackGrace()

@@ -55,6 +55,7 @@ public partial class BloodBlessingRuntime : Node
         TickBarrierDecay(d);
         UpdateBloodPoolState(d);
         UpdateBloodPoolBleeding(d);
+        FamilyProcess(d);
     }
 
     public void ResetBarrier()
@@ -111,6 +112,7 @@ public partial class BloodBlessingRuntime : Node
         if (enemy?.IsFascinated == true) bonus += Bonus("FascinationDamageTaken", RunState.GetEffectTotal("FascinationDamageTaken.Multiplier"));
         var charmedCount = Mathf.Min(GetTree().GetNodeCountInGroup("charmed_enemies"), Mathf.RoundToInt(RunState.GetEffectParameter("DamagePerCharmedEnemy", "maxTargets", 5)));
         bonus += Bonus("DamagePerCharmedEnemy", charmedCount * RunState.GetEffectTotal("DamagePerCharmedEnemy.Multiplier"));
+        bonus += FamilyDamageBonus(enemy);
         var multiplier = Mathf.Max(1.0f + bonus, 0.0f);
         RunStats.SetHitBonus(_damageBonusParts, multiplier);
         return damage * multiplier;
@@ -124,6 +126,7 @@ public partial class BloodBlessingRuntime : Node
 
     public void OnSpecialAttack(Vector3 position, float range, WeaponAttackShape shape)
     {
+        SpawnSpecialTalisman(position, range, shape);
         if (RunState.GetEffectTotal("SpecialAttackBloodPool.Flat") <= 0.0f)
             return;
         var radius = shape == WeaponAttackShape.Radial ? range : Mathf.Max(range * 0.55f, 1.2f);
@@ -139,18 +142,21 @@ public partial class BloodBlessingRuntime : Node
         return bonus;
     }
 
-    public float BonusAttackSpeed() => _attackSpeedAfterHealTimer > 0 ? RunState.GetEffectTotal("AttackSpeedAfterHighHealthHeal.Multiplier") : 0.0f;
+    public float BonusAttackSpeed() => (_attackSpeedAfterHealTimer > 0 ? RunState.GetEffectTotal("AttackSpeedAfterHighHealthHeal.Multiplier") : 0.0f) + FamilyAttackSpeedBonus();
 
     public float MovementMultiplier()
     {
         var bonus = IsOnBlood ? RunState.GetEffectTotal("MoveSpeedOnBlood.Multiplier") : 0.0f;
         var maxTargets = Mathf.RoundToInt(RunState.GetEffectParameter("MoveSpeedPerCharmedEnemy", "maxTargets", 5));
         bonus += Mathf.Min(GetTree().GetNodeCountInGroup("charmed_enemies"), maxTargets) * RunState.GetEffectTotal("MoveSpeedPerCharmedEnemy.Multiplier");
+        bonus += FamilyMovementBonus();
         return 1.0f + bonus;
     }
 
     public float AbsorbBarrierAndReduceDamage(float amount)
     {
+        amount *= FamilyIncomingMultiplier();
+        if (amount <= 0.0f) return 0.0f;
         var reduction = 0.0f;
         if (_damageReductionAfterHealTimer > 0) reduction += RunState.GetEffectTotal("DamageReductionAfterHealing.Multiplier");
         if (IsOnBlood) reduction += RunState.GetEffectTotal("DamageReductionOnBlood.Multiplier");
@@ -244,6 +250,7 @@ public partial class BloodBlessingRuntime : Node
         var isQuickAttack = attackType == PlayerAttackType.Quick;
         var isSpecialAttack = attackType == PlayerAttackType.Special;
         enemy.RefreshPlayerHitStatuses();
+        FamilyOnPlayerHit(enemy, damage, critical, attackType);
         // Golpe de um slot com herança: o acerto pisca na cor da família (BloodlineVisuals).
         if (BloodlineVisuals.TryGetSlotColor(attackType, out var bloodlineColor))
             enemy.FlashBloodline(bloodlineColor);
@@ -316,6 +323,7 @@ public partial class BloodBlessingRuntime : Node
     public void OnEnemyKilled(EnemyBasic enemy)
     {
         if (enemy == null) return;
+        FamilyOnEnemyKilled(enemy);
         if (enemy.Rarity != EnemyRarity.Normal) RunState.AddRoomBlessingDamage(RunState.GetEffectTotal("DamageOnEliteKill.Multiplier"));
         if (GD.Randf() < Mathf.Clamp(RunState.GetEffectTotal("BloodOrbDropChance.Flat"), 0, 1)) SpawnBloodOrb(enemy.GlobalPosition);
         if (RunState.GetEffectTotal("BloodPoolOnKill.Flat") > 0) SpawnBloodPool(enemy.GlobalPosition);

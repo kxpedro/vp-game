@@ -398,7 +398,12 @@ public static class BloodBlessingCatalog
         return new BloodBlessingEffectDefinition(S(effect, "type"), S(effect, "operation"), numericValue, booleanValue, numbers, texts);
     }
 
-    public static string FamilyIconPath(string family) => $"res://images/bloodBoons/{family.ToLowerInvariant()}-icon.png";
+    // Ícone pixel art da família (assets/pixel_art/family_icons/<id>.png, AAP-64); o id é o nome sem acentos (Vârcolac -> varcolac).
+    public static string FamilyIconPath(string family)
+    {
+        var id = (family ?? "").Trim().ToLowerInvariant().Replace('â', 'a');
+        return $"res://assets/pixel_art/family_icons/{id}.png";
+    }
 
     private static void ReadRarities(JsonElement root)
     {
