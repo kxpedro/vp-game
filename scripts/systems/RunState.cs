@@ -866,6 +866,7 @@ public static class RunState
     public static float ContextMoveSpeed => _moveOnHitBonus + _temporaryMoveSpeed;
     public static float ContextCriticalChance => _temporaryCriticalChance;
     public static float ContextCriticalDamage => _temporaryCriticalDamage;
+    public static void GrantGuaranteedCritical() => _guaranteedCritical = true;
     public static bool ConsumeGuaranteedCritical() { var value = _guaranteedCritical; _guaranteedCritical = false; return value; }
     public static void AddPermanentBlessingDamage(float value) => BlessingPermanentDamage += MathfMax(value, 0);
     public static void AddRoomBlessingDamage(float value) => BlessingRoomDamage += MathfMax(value, 0);

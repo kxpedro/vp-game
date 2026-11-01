@@ -1539,6 +1539,1174 @@
           "value": 0.05
         }
       ]
+    },
+    {
+      "id": "strigoi_soundless_step",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "movement",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeed",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ]
+    },
+    {
+      "id": "strigoi_keen_shadow",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "damage",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "BackstabDamage",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "strigoi_night_veil",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "critical"
+      ],
+      "effects": [
+        {
+          "type": "CriticalChanceAfterDash",
+          "operation": "AddFlat",
+          "value": 0.12,
+          "duration": 2.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_dark_bite",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "tags": [
+        "strigoi",
+        "quick_attack",
+        "dash",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackShadowMarkChance",
+          "operation": "AddFlat",
+          "value": 0.2,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_restless_heart",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "DashDurationBonus",
+          "operation": "AddFlat",
+          "value": 0.03
+        }
+      ]
+    },
+    {
+      "id": "strigoi_owl_eyes",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "damage",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsMarked",
+          "operation": "AddMultiplier",
+          "value": 0.15
+        }
+      ]
+    },
+    {
+      "id": "strigoi_dash_echo",
+      "family": "Strigoi",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DashShadowClone",
+          "operation": "AddFlat",
+          "value": 0.8,
+          "delay": 1.0,
+          "radius": 2.6,
+          "damage": 1.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_perfect_evasion",
+      "family": "Strigoi",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "critical"
+      ],
+      "effects": [
+        {
+          "type": "PerfectDodgeGuaranteedCrit",
+          "operation": "SetBool",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "strigoi_stealthy_fang",
+      "family": "Strigoi",
+      "rarity": "Common",
+      "weight": 70,
+      "maxStacks": 1,
+      "exclusiveGroup": "special_attack_status",
+      "tags": [
+        "strigoi",
+        "special_attack",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "SpecialAttackShadowMarkChance",
+          "operation": "AddFlat",
+          "value": 0.3,
+          "duration": 6.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_creeping_mist",
+      "family": "Strigoi",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "shadow_mark",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DashPassDamage",
+          "operation": "AddMultiplier",
+          "value": 0.5,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_step_between_worlds",
+      "family": "Strigoi",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "DashTeleportBehindMarked",
+          "operation": "SetBool",
+          "value": 1,
+          "range": 12.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_thirst_for_shadow",
+      "family": "Strigoi",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "utility",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "HealOnMarkedKill",
+          "operation": "AddFlat",
+          "value": 0.03,
+          "dashRefund": 0.5
+        }
+      ]
+    },
+    {
+      "id": "strigoi_mist_form",
+      "family": "Strigoi",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "dash",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "MistFormAfterPerfectDodge",
+          "operation": "SetBool",
+          "value": 1,
+          "duration": 2.0
+        }
+      ]
+    },
+    {
+      "id": "strigoi_shadow_pack",
+      "family": "Strigoi",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "damage",
+        "shadow_mark"
+      ],
+      "effects": [
+        {
+          "type": "ShadowPackOnMarkedKill",
+          "operation": "SetBool",
+          "value": 1,
+          "duration": 8.0,
+          "echo": 0.35
+        }
+      ]
+    },
+    {
+      "id": "strigoi_eternal_night",
+      "family": "Strigoi",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "strigoi",
+        "shadow_mark",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "EternalNight",
+          "operation": "SetBool",
+          "value": 1,
+          "damageTaken": 0.2
+        }
+      ]
+    },
+    {
+      "id": "varcolac_pack_instinct",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "InstinctGain",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ]
+    },
+    {
+      "id": "varcolac_thick_fur",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "defense",
+        "health"
+      ],
+      "effects": [
+        {
+          "type": "MaxHealth",
+          "operation": "AddMultiplier",
+          "value": 0.06
+        }
+      ]
+    },
+    {
+      "id": "varcolac_scent",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "movement",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeed",
+          "operation": "AddMultiplier",
+          "value": 0.08
+        }
+      ]
+    },
+    {
+      "id": "varcolac_savage_claw",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "damage",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "varcolac_moon_breath",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "WolfFormDuration",
+          "operation": "AddFlat",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "id": "varcolac_wolf_bones",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "damage",
+        "offense"
+      ],
+      "effects": [
+        {
+          "type": "SpecialAttackDamage",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "varcolac_moon_fever",
+      "family": "Vârcolac",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "WolfFormDamage",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "varcolac_rend",
+      "family": "Vârcolac",
+      "rarity": "Common",
+      "weight": 70,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "tags": [
+        "varcolac",
+        "quick_attack",
+        "dash",
+        "mauled"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackMaulChance",
+          "operation": "AddFlat",
+          "value": 0.3,
+          "duration": 5.0
+        }
+      ]
+    },
+    {
+      "id": "varcolac_howl",
+      "family": "Vârcolac",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "WolfHowl",
+          "operation": "SetBool",
+          "value": 1,
+          "stun": 1.2
+        }
+      ]
+    },
+    {
+      "id": "varcolac_night_hunt",
+      "family": "Vârcolac",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "movement",
+        "mauled"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeedPerMauledEnemy",
+          "operation": "AddMultiplier",
+          "value": 0.03,
+          "maxTargets": 5
+        }
+      ]
+    },
+    {
+      "id": "varcolac_beast_leap",
+      "family": "Vârcolac",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "dash",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "WolfDashShockwave",
+          "operation": "AddMultiplier",
+          "value": 0.8
+        }
+      ]
+    },
+    {
+      "id": "varcolac_wolf_hunger",
+      "family": "Vârcolac",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "HealOnWolfKill",
+          "operation": "AddFlat",
+          "value": 0.04
+        }
+      ]
+    },
+    {
+      "id": "varcolac_blood_moon",
+      "family": "Vârcolac",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "WolfKillExtend",
+          "operation": "AddFlat",
+          "value": 0.8
+        }
+      ]
+    },
+    {
+      "id": "varcolac_primal_beast",
+      "family": "Vârcolac",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "WolfEntryBurst",
+          "operation": "AddMultiplier",
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "id": "varcolac_eclipse",
+      "family": "Vârcolac",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "varcolac",
+        "wolf_form",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "WolfEclipse",
+          "operation": "SetBool",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_yellow_paper",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "SealDuration",
+          "operation": "AddFlat",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_cinnabar_ink",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsSealed",
+          "operation": "AddMultiplier",
+          "value": 0.15
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_jade_pendant",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "defense",
+        "health"
+      ],
+      "effects": [
+        {
+          "type": "MaxHealth",
+          "operation": "AddMultiplier",
+          "value": 0.06
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_rigor_mortis",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "tags": [
+        "liaozhai",
+        "quick_attack",
+        "dash",
+        "seal"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackSealChance",
+          "operation": "AddFlat",
+          "value": 0.25,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_ritual_steps",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "movement",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "MoveSpeedInTalisman",
+          "operation": "AddMultiplier",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_held_breath",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "defense",
+        "seal"
+      ],
+      "effects": [
+        {
+          "type": "DamageReductionFromSealed",
+          "operation": "AddMultiplier",
+          "value": 0.1
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_containment_talisman",
+      "family": "Liaozhai",
+      "rarity": "Common",
+      "weight": 70,
+      "maxStacks": 1,
+      "exclusiveGroup": "special_attack_status",
+      "tags": [
+        "liaozhai",
+        "special_attack",
+        "seal"
+      ],
+      "effects": [
+        {
+          "type": "SpecialAttackTalisman",
+          "operation": "SetBool",
+          "value": 1,
+          "duration": 6.0
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_bronze_bell",
+      "family": "Liaozhai",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "SealBellStun",
+          "operation": "SetBool",
+          "value": 1,
+          "stacks": 3,
+          "duration": 1.5
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_glutinous_rice",
+      "family": "Liaozhai",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "SealedNoHeal",
+          "operation": "AddFlat",
+          "value": 0.015
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_taoist_rite",
+      "family": "Liaozhai",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "SealSpreadOnKill",
+          "operation": "AddFlat",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_bagua_square",
+      "family": "Liaozhai",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "BaguaPulse",
+          "operation": "AddMultiplier",
+          "value": 0.8
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_mirrorless",
+      "family": "Liaozhai",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "SealedNoRanged",
+          "operation": "SetBool",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_master_seal",
+      "family": "Liaozhai",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "SealedEliteBossDamage",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_mandarin_prison",
+      "family": "Liaozhai",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "SealPrison",
+          "operation": "SetBool",
+          "value": 1,
+          "duration": 3.0
+        }
+      ]
+    },
+    {
+      "id": "liaozhai_celestial_decree",
+      "family": "Liaozhai",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "liaozhai",
+        "seal",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "RoomStartSeal",
+          "operation": "AddFlat",
+          "value": 2.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_dark_lullaby",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "DrowsinessGain",
+          "operation": "AddMultiplier",
+          "value": 0.3
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_heavy_eyelids",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "SleepDuration",
+          "operation": "AddFlat",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_vulnerable_sleeper",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DamageVsSleeping",
+          "operation": "AddMultiplier",
+          "value": 0.25
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_tired_gaze",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "exclusiveGroup": "quick_attack_status",
+      "tags": [
+        "nachtalb",
+        "quick_attack",
+        "dash"
+      ],
+      "effects": [
+        {
+          "type": "QuickAttackDrowsyChance",
+          "operation": "AddFlat",
+          "value": 0.4,
+          "amount": 45.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_long_night",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "defense",
+        "health"
+      ],
+      "effects": [
+        {
+          "type": "MaxHealth",
+          "operation": "AddMultiplier",
+          "value": 0.06
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_feather_pillow",
+      "family": "Nachtalb",
+      "rarity": "Common",
+      "weight": 100,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "defense"
+      ],
+      "effects": [
+        {
+          "type": "DamageReductionFromDrowsy",
+          "operation": "AddMultiplier",
+          "value": 0.1
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_recurring_nightmare",
+      "family": "Nachtalb",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "panic",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "PanicWakeDamage",
+          "operation": "AddMultiplier",
+          "value": 0.1
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_alp_whisper",
+      "family": "Nachtalb",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "panic"
+      ],
+      "effects": [
+        {
+          "type": "PanicAttacksAllies",
+          "operation": "AddFlat",
+          "value": 2.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_weight_on_chest",
+      "family": "Nachtalb",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "dash",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "DashDamageSleeping",
+          "operation": "AddMultiplier",
+          "value": 0.6
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_alp_snore",
+      "family": "Nachtalb",
+      "rarity": "Uncommon",
+      "weight": 70,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "DrowsyAura",
+          "operation": "AddFlat",
+          "value": 12.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_sleep_paralysis",
+      "family": "Nachtalb",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "damage"
+      ],
+      "effects": [
+        {
+          "type": "SleepParalysis",
+          "operation": "SetBool",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_dream_harvest",
+      "family": "Nachtalb",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "HealOnSleepingKill",
+          "operation": "AddFlat",
+          "value": 0.04,
+          "coins": 3
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_night_terror",
+      "family": "Nachtalb",
+      "rarity": "Rare",
+      "weight": 50,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "panic"
+      ],
+      "effects": [
+        {
+          "type": "PanicChain",
+          "operation": "AddFlat",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_witching_hour",
+      "family": "Nachtalb",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "panic",
+        "utility"
+      ],
+      "effects": [
+        {
+          "type": "WitchingHour",
+          "operation": "SetBool",
+          "value": 1,
+          "cooldown": 30.0,
+          "sleep": 3.0
+        }
+      ]
+    },
+    {
+      "id": "nachtalb_nightmare_sovereign",
+      "family": "Nachtalb",
+      "rarity": "Epic",
+      "weight": 28,
+      "maxStacks": 1,
+      "tags": [
+        "nachtalb",
+        "damage",
+        "panic"
+      ],
+      "effects": [
+        {
+          "type": "NightmareSovereign",
+          "operation": "SetBool",
+          "value": 1,
+          "damageTaken": 0.2,
+          "extend": 2.0
+        }
+      ]
     }
   ],
   "familiesNotes": "color = cor da linhagem no jogo (brilho da lamina de Virgil nos golpes com essa heranca, arcos, rastro do dash, acerto e estados nos inimigos). statuses = estados de inimigo desenhados com essa cor (bleeding, blood_pool, pestilence, charm, fascination, life_steal). Familia nova: so adicionar a entrada com id, name, color e statuses.",
@@ -1570,6 +2738,34 @@
       "statusEffect": "Charm",
       "color": "#ff4fc0",
       "statuses": ["charm", "fascination"]
+    },
+    {
+      "id": "strigoi",
+      "name": "Strigoi",
+      "statusEffect": "Shadow Mark",
+      "color": "#8fa3b8",
+      "statuses": ["shadow_mark"]
+    },
+    {
+      "id": "varcolac",
+      "name": "Vârcolac",
+      "statusEffect": "Mauled",
+      "color": "#bb7547",
+      "statuses": ["mauled"]
+    },
+    {
+      "id": "liaozhai",
+      "name": "Liaozhai",
+      "statusEffect": "Seal",
+      "color": "#1e8875",
+      "statuses": ["sealed"]
+    },
+    {
+      "id": "nachtalb",
+      "name": "Nachtalb",
+      "statusEffect": "Nightmare",
+      "color": "#285cc4",
+      "statuses": ["nightmare"]
     },
     {
       "id": "stirps",

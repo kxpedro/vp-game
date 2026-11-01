@@ -130,7 +130,60 @@ public static class ArtifactEffectRegistry
         "PestilenceAlsoBleeds",
         "BleedingAlsoPestilence",
         "CharmedTargetBleed",
-        "LifeStealVsBleeding"
+        "LifeStealVsBleeding",
+        // Famílias novas (Strigoi, Vârcolac, Liaozhai, Nachtalb)
+        "BackstabDamage",
+        "QuickAttackShadowMarkChance",
+        "DashDurationBonus",
+        "DamageVsMarked",
+        "DashShadowClone",
+        "PerfectDodgeGuaranteedCrit",
+        "SpecialAttackShadowMarkChance",
+        "DashPassDamage",
+        "DashTeleportBehindMarked",
+        "HealOnMarkedKill",
+        "MistFormAfterPerfectDodge",
+        "ShadowPackOnMarkedKill",
+        "EternalNight",
+        "InstinctGain",
+        "WolfFormDuration",
+        "WolfFormDamage",
+        "QuickAttackMaulChance",
+        "WolfHowl",
+        "MoveSpeedPerMauledEnemy",
+        "WolfDashShockwave",
+        "HealOnWolfKill",
+        "WolfKillExtend",
+        "WolfEntryBurst",
+        "WolfEclipse",
+        "SealDuration",
+        "DamageVsSealed",
+        "QuickAttackSealChance",
+        "MoveSpeedInTalisman",
+        "DamageReductionFromSealed",
+        "SpecialAttackTalisman",
+        "SealBellStun",
+        "SealedNoHeal",
+        "SealSpreadOnKill",
+        "BaguaPulse",
+        "SealedNoRanged",
+        "SealedEliteBossDamage",
+        "SealPrison",
+        "RoomStartSeal",
+        "DrowsinessGain",
+        "SleepDuration",
+        "DamageVsSleeping",
+        "QuickAttackDrowsyChance",
+        "DamageReductionFromDrowsy",
+        "PanicWakeDamage",
+        "PanicAttacksAllies",
+        "DashDamageSleeping",
+        "DrowsyAura",
+        "SleepParalysis",
+        "HealOnSleepingKill",
+        "PanicChain",
+        "WitchingHour",
+        "NightmareSovereign"
     };
 
     // Tipos cujo valor "AddFlat"/"SetFlat"/"ApplyFlat" é uma fração (0.2 = 20%).
@@ -138,19 +191,21 @@ public static class ArtifactEffectRegistry
     {
         "CriticalChance", "ExecuteThreshold", "ExecuteThresholdOnCritical", "CriticalChanceAtFullHealth",
         "CriticalChanceAfterDash", "BloodOrbDropChance", "BloodOrbHealMaxHealth", "BloodPoolRefreshOnKillChance",
-        "HealOnBloodPoolKill", "SacrificeCharmedOnFatalDamage", "BloodPoolHealPerSecond", "HealOnPestilentKill"
+        "HealOnBloodPoolKill", "SacrificeCharmedOnFatalDamage", "BloodPoolHealPerSecond", "HealOnPestilentKill",
+        "HealOnMarkedKill", "HealOnWolfKill", "HealOnSleepingKill", "SealedNoHeal"
     };
 
     // Tipos cujo valor plano é uma duração em segundos.
     private static readonly HashSet<string> SecondsTypes = new()
     {
-        "Duration", "BloodPoolDuration", "InvulnerabilityOnFatal"
+        "Duration", "BloodPoolDuration", "InvulnerabilityOnFatal",
+        "DashDurationBonus", "WolfFormDuration", "WolfKillExtend", "SealDuration", "SleepDuration", "RoomStartSeal", "PanicAttacksAllies"
     };
 
     // Tipos cujo valor plano é "por segundo".
     private static readonly HashSet<string> PerSecondTypes = new()
     {
-        "BloodPoolHealPerSecond"
+        "BloodPoolHealPerSecond", "SealedNoHeal"
     };
 
     public static string FriendlyName(string type)

@@ -27,9 +27,30 @@ public static partial class DevParameterRegistry
         RegisterRunScale();
         RegisterBlessingTuning();
         RegisterAnvilTuning();
+        RegisterFamilyTuning();
 
         P("fountain.cost_step", "Fonte de Sangue: acréscimo de custo por rank", GEconomy, EconomyDefaults.FountainCostStep, 0, 5, 0.05, false, DevApplyMode.Live, "Custo = base x (1 + rank x este valor).");
         P("altar.sacrifice_fraction", "Altar: fração da vida máxima sacrificada", GEconomy, 0.05, 0, 0.9, 0.01, false, DevApplyMode.Live, "Lido ao abrir o altar e ao confirmar o sacrifício.");
+    }
+
+    // Famílias novas de herança (Strigoi, Vârcolac, Liaozhai, Nachtalb): números base dos estados e da Forma de Lobo.
+    private static void RegisterFamilyTuning()
+    {
+        P("family.strigoi.mark_damage_taken", "Strigoi: dano extra sofrido pelo marcado", GEconomy, 0.10, 0, 1, 0.01, false);
+        P("family.varcolac.maul_damage_taken", "Vârcolac: dano extra por acúmulo de Dilaceração", GEconomy, 0.04, 0, 0.5, 0.01, false);
+        P("family.varcolac.maul_stun_seconds", "Vârcolac: atordoamento no máximo de Dilaceração (s)", GEconomy, 1.0, 0, 5, 0.1, false);
+        P("family.varcolac.wolf_seconds", "Vârcolac: duração base da Forma de Lobo (s)", GEconomy, 6.0, 1, 30, 0.5, false);
+        P("family.varcolac.wolf_damage", "Vârcolac: bônus de dano na Forma de Lobo", GEconomy, 0.25, 0, 3, 0.05, false);
+        P("family.varcolac.wolf_attack_speed", "Vârcolac: bônus de velocidade de ataque na forma", GEconomy, 0.20, 0, 2, 0.05, false);
+        P("family.varcolac.wolf_move_speed", "Vârcolac: bônus de movimento na forma", GEconomy, 0.25, 0, 2, 0.05, false);
+        P("family.varcolac.wolf_damage_taken", "Vârcolac: dano extra sofrido na forma", GEconomy, 0.30, 0, 2, 0.05, false);
+        P("family.varcolac.instinct_per_hit", "Vârcolac: Instinto por golpe (de 100)", GEconomy, 7, 1, 50, 1, false);
+        P("family.liaozhai.seal_damage_taken", "Liaozhai: dano extra por acúmulo de Selo", GEconomy, 0.06, 0, 0.5, 0.01, false);
+        P("family.liaozhai.seal_slow", "Liaozhai: multiplicador de velocidade do selado", GEconomy, 0.5, 0.1, 1, 0.05, false);
+        P("family.nachtalb.drowsiness_per_hit", "Nachtalb: Sonolência por golpe (de 100)", GEconomy, 16, 1, 100, 1, false);
+        P("family.nachtalb.sleep_seconds", "Nachtalb: duração base do sono (s)", GEconomy, 3.0, 0.5, 15, 0.5, false);
+        P("family.nachtalb.panic_seconds", "Nachtalb: duração base do Pânico (s)", GEconomy, 3.0, 0.5, 15, 0.5, false);
+        P("family.nachtalb.panic_chain_radius", "Nachtalb: raio do Pânico em cadeia (m)", GEconomy, 5.0, 1, 15, 0.5, false);
     }
 
     private static void RegisterShopExtra()
