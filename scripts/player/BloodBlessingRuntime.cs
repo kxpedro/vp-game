@@ -560,7 +560,7 @@ public partial class BloodBlessingRuntime : Node
         return root;
     }
 
-    private async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
+    internal async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
     {
         var scene = GetTree().CurrentScene;
         if (scene == null) return;

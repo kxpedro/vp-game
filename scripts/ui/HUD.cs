@@ -442,6 +442,11 @@ public partial class HUD : CanvasLayer
 			case "boss_bar":
 				BindPreviewBoss(dataParent);
 				return true;
+			case "pestilence_cloud_1":
+			case "pestilence_cloud_2":
+			case "pestilence_cloud_3":
+				PreviewPestilenceCloud(screen);
+				return true;
 			case "hub":
 				// Só a cena do hub, sem nenhuma tela por cima (captura do cenário), com o jogador junto do arco de entrada.
 				if (GetTree().GetFirstNodeInGroup("player") is Node3D hubPlayer)

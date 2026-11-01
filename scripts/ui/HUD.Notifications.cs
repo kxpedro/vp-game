@@ -314,6 +314,19 @@ public partial class HUD
 		AppendGameLog("+5 moedas · 7/20 inimigos");
 	}
 
+	// Preview "pestilence_cloud_N" (debug): a névoa do Orlok (raio 3,2 m) ao lado do jogador, sem dano. O atraso de 0,7/0,4/0 s
+	// antes de nascer faz as 3 capturas do lote (0,8 s depois da abertura) pegarem quadros diferentes da animação.
+	internal async void PreviewPestilenceCloud(string screen)
+	{
+		var delay = screen switch { "pestilence_cloud_1" => 0.7f, "pestilence_cloud_2" => 0.4f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var runtime = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+		runtime?.SpawnPestilenceCloud(player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f), 0.0f, 5.0f, 3.2f);
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{
