@@ -50,6 +50,8 @@ public partial class HUD
 
 		// Vinheta de borda (§6): primeiro filho = abaixo de todos os painéis, acima do mundo. Miolo transparente.
 		_edgeVignette = UiComponents.EdgeVignette(root);
+		// Indicador de inimigos fora da tela: logo acima da vinheta, dentro do grupo de combate (some com pausa/game over).
+		root.AddChild(new OffscreenEnemyIndicator());
 
 		_bottomLeftHud = new HBoxContainer
 		{

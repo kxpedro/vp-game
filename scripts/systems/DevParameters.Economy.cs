@@ -27,6 +27,7 @@ public static partial class DevParameterRegistry
         RegisterRunScale();
         RegisterBlessingTuning();
         RegisterAnvilTuning();
+        RegisterOffscreenIndicator();
         RegisterFamilyTuning();
 
         P("fountain.cost_step", "Fonte de Sangue: acréscimo de custo por rank", GEconomy, EconomyDefaults.FountainCostStep, 0, 5, 0.05, false, DevApplyMode.Live, "Custo = base x (1 + rank x este valor).");
