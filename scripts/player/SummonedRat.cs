@@ -120,8 +120,46 @@ public partial class SummonedRat : CharacterBody3D
         MoveAndSlide();
     }
 
+    private Sprite3D _sprite;
+    private float _animTime;
+
+    // No 2D o rato é um sprite de 4 quadros (tools/pixel_art/summoned_rat) virado para a câmera; no 3D, o disco de antes.
+    private void CreateSpriteVisual()
+    {
+        _sprite = new Sprite3D
+        {
+            Name = "RatSprite",
+            Texture = GD.Load<Texture2D>("res://assets/pixel_art/effects/summoned_rat/summoned_rat_sheet.png"),
+            Hframes = 4,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            Shaded = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Position = Vector3.Up * 0.2f
+        };
+        AddChild(_sprite);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_sprite == null) return;
+        var moving = Velocity.LengthSquared() > 0.1f;
+        if (moving) _animTime += (float)delta * 12.0f;
+        _sprite.Frame = (int)_animTime % 4;
+        var camera = GetViewport()?.GetCamera3D();
+        if (moving && camera != null)
+            _sprite.FlipH = Velocity.Dot(camera.GlobalTransform.Basis.X) < 0.0f;
+    }
+
     private void CreateVisual()
     {
+        if (GameMode.IsPixelArt)
+        {
+            CreateSpriteVisual();
+            return;
+        }
         var lime = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.52f, 1.0f, 0.02f),

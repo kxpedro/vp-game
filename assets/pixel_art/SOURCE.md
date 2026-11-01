@@ -107,3 +107,6 @@ Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no
 
 ## effects/pestilence_cloud
 Gerada por `tools/pixel_art/pestilence_cloud/generate_pestilence_cloud.py` e `generate_pestilence_puff.py` (tufo em pé, 64x48) (Pillow, rampa verde-acinzentada da AAP-64). `pestilence_cloud_sheet.png`: 6 quadros de 192x96 (projeção 2:1) em loop, da nuvem de pestilência do Orlok (`BloodBlessingRuntime.SpawnPestilenceCloud`, só no 2D). Arte própria.
+
+## effects/summoned_rat
+Gerada por `tools/pixel_art/summoned_rat/generate_summoned_rat.py` (Pillow, AAP-64). `summoned_rat_sheet.png`: 4 quadros de corrida de 20x12, virado para a direita (o jogo espelha). Rato invocado do Orlok (`SummonedRat`, só no 2D). Arte própria.
