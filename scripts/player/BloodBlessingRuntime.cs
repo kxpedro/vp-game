@@ -401,8 +401,7 @@ public partial class BloodBlessingRuntime : Node
     {
         IsOnBlood = false;
         var player = GetParent<Node3D>();
-        foreach (var node in GetTree().GetNodesInGroup("blood_pools"))
-            if (node is Node3D pool && pool.GlobalPosition.DistanceTo(player.GlobalPosition) <= (float)pool.GetMeta("radius", 1.8f)) { IsOnBlood = true; break; }
+        IsOnBlood = BloodPool.IsOnAnyPool(GetTree(), player.GlobalPosition);
         if (!IsOnBlood || _health == null) return;
         _poolHealTimer -= delta;
         if (_poolHealTimer <= 0)
@@ -420,11 +419,10 @@ public partial class BloodBlessingRuntime : Node
         _bloodPoolBleedTimer = Mathf.Max(CompendiumTuning.GetFloat("blessing.pool.bleed_tick", 1.0f), 0.05f);
         foreach (var poolNode in GetTree().GetNodesInGroup("blood_pools"))
         {
-            if (poolNode is not Node3D pool || !(bool)pool.GetMeta("causes_bleeding", false)) continue;
-            var radius = (float)pool.GetMeta("radius", 1.8f);
+            if (poolNode is not BloodPool pool || !pool.CausesBleeding) continue;
             foreach (var enemyNode in GetTree().GetNodesInGroup("enemies"))
             {
-                if (enemyNode is not EnemyBasic enemy || enemy.GlobalPosition.DistanceTo(pool.GlobalPosition) > radius) continue;
+                if (enemyNode is not EnemyBasic enemy || !pool.Contains(enemy.GlobalPosition)) continue;
                 enemy.ApplyBleeding(
                     RunState.GetEffectParameter("PestilenceExplosionBloodPool", "bleedDuration", 3.0f),
                     RunState.GetEffectParameter("PestilenceExplosionBloodPool", "bleedDamagePerSecond", 6.0f),
@@ -441,9 +439,9 @@ public partial class BloodBlessingRuntime : Node
         var duration = (baseDuration + RunState.GetEffectTotal("BloodPoolDuration.Flat")) * TemporaryEffectDurationMultiplier();
         var expiresAt = Time.GetTicksMsec() / 1000.0 + duration;
         // Poça simples de inimigo (ou outra já ativa) no local: a bênção a ativa; senão cria uma poça sem dono.
-        var existing = BloodPool.FindForActivation(GetTree(), position, radius);
+        var existing = BloodPool.FindContaining(GetTree(), position);
         if (existing != null)
-            existing.Activate(radius, expiresAt, causesBleeding);
+            existing.Activate(position, radius, expiresAt, causesBleeding);
         else
             BloodPool.SpawnActive(GetTree().CurrentScene, position, radius, expiresAt, causesBleeding);
     }
@@ -791,8 +789,6 @@ public partial class BloodBlessingRuntime : Node
 
     private bool IsPositionOnBlood(Vector3 position)
     {
-        foreach (var node in GetTree().GetNodesInGroup("blood_pools"))
-            if (node is Node3D pool && pool.GlobalPosition.DistanceTo(position) <= (float)pool.GetMeta("radius", 1.8f)) return true;
-        return false;
+        return BloodPool.IsOnAnyPool(GetTree(), position);
     }
 }
