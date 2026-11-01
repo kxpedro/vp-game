@@ -110,6 +110,10 @@ public partial class HUD
 		"orlok" => new Color(0.47f, 0.85f, 0.34f),
 		"karnstein" => new Color(0.98f, 0.52f, 0.74f),
 		"dracul" => new Color(0.70f, 0.44f, 0.98f),
+		"strigoi" => new Color(0.56f, 0.64f, 0.72f),
+		"varcolac" => new Color(0.73f, 0.46f, 0.28f),
+		"liaozhai" => new Color(0.36f, 0.69f, 0.55f),
+		"nachtalb" => new Color(0.52f, 0.61f, 0.89f),
 		"stirps" => UiPalette.RarityStirps,
 		_ => UiPalette.LifeHighlight
 	};

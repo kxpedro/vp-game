@@ -97,3 +97,7 @@ Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no
   monstro surge. O jogo (`SpawnRitualCircle.cs`, chamado pelo `RoomGenerator`) o deita no chão girado para a câmera.
 - `ritual_circle_violet_sheet.png`: o mesmo círculo na rampa violeta da Guardiã Invisível (`242234 403353 793a80
   bc4a9b b9bffb e3e6ff`), usado na invocação dos lacaios dela (`BossMinionSummoner.cs`).
+
+## family_icons/
+
+Ícones das 8 famílias de herança de sangue (Dracul, Bathory, Orlok, Karnstein, Strigoi, Vârcolac, Liaozhai, Nachtalb), 32x32, paleta AAP-64, alfa binário. Arte própria, gerada por `tools/pixel_art/hud/draw_family_icons.py` (sem pacote de terceiros). Substituem os antigos `images/bloodBoons/<familia>-icon.png` nas portas, na oferta de bênçãos, na barra e no compêndio.

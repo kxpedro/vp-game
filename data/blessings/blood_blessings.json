@@ -1572,6 +1572,34 @@
       "statuses": ["charm", "fascination"]
     },
     {
+      "id": "strigoi",
+      "name": "Strigoi",
+      "statusEffect": "Shadow Mark",
+      "color": "#8fa3b8",
+      "statuses": ["shadow_mark"]
+    },
+    {
+      "id": "varcolac",
+      "name": "Vârcolac",
+      "statusEffect": "Mauled",
+      "color": "#bb7547",
+      "statuses": ["mauled"]
+    },
+    {
+      "id": "liaozhai",
+      "name": "Liaozhai",
+      "statusEffect": "Seal",
+      "color": "#1e8875",
+      "statuses": ["sealed"]
+    },
+    {
+      "id": "nachtalb",
+      "name": "Nachtalb",
+      "statusEffect": "Nightmare",
+      "color": "#285cc4",
+      "statuses": ["nightmare"]
+    },
+    {
       "id": "stirps",
       "name": "Stirps",
       "statusEffect": "Hybrid Bloodline",
