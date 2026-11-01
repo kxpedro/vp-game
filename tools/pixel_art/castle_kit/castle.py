@@ -314,3 +314,49 @@ def floor_tile(variant, seed=0):
             fam = np.where(ring | star, VIOLET, fam); v = np.where(ring | star, 1.6, v)
         cv.plot(X, Y, np.zeros_like(X), fam, v)
     return draw
+
+
+# ---------- mobília dos aposentos e da biblioteca ----------
+WOOD = FID["wood"]
+
+
+def wood_tex(face, wx, wy, wz, a, b, B):
+    return np.full(wx.shape, WOOD), {"top": 4.6, "py": 3.6, "px": 2.6}[face] + (pn(wx * .8, wy * .8 + wz * .8, 1 << 20, 9) - .5) * .8
+
+
+def bookcase(cv, lights, axis="x"):
+    """estante alta contra a parede; lombadas em carmim, violeta, dourado e prata"""
+    cols = [BLOOD, VIOLET, GOLD, SILVER]
+    def books(face, wx, wy, wz, a, b, B):
+        if face == "top": return wood_tex(face, wx, wy, wz, a, b, B)
+        p = wx if face == "py" else wy
+        shelf = (wz % 14) < 2.0
+        k = (np.floor(p / 2.4).astype(int) * 7 + np.floor(wz / 14).astype(int) * 3) % 4
+        fam = np.choose(k, cols); v = 2.4 + ((np.floor(p / 2.4).astype(int)) % 3) * .5
+        gap = (np.floor(wz / 14) * 5 + np.floor(p / 2.4)) % 7 == 0
+        fam = np.where(shelf | gap, WOOD, fam); v = np.where(shelf | gap, 2.2, v)
+        return fam, v
+    if axis == "x": cv.box(4, 60, 6, 22, 0, 56, books)
+    else: cv.box(6, 22, 4, 60, 0, 56, books)
+
+
+def table(cv, lights):
+    """mesa longa de banquete com dois castiçais"""
+    cv.box(10, 54, 20, 44, 20, 24, wood_tex)
+    for (x, y) in ((12, 22), (50, 22), (12, 40), (50, 40)):
+        cv.box(x, x + 3, y, y + 3, 0, 20, wood_tex, step=.4)
+    for x in (22, 42):
+        cv.box(x, x + 2, 31, 33, 24, 30, gold_tex, step=.3)
+        cv.sprite(FLAME, FLAME_C, x + 1, 32, 30, depth_bias=30)
+    lights.append((32, 32, 32, 1.0, 60))
+
+
+def bed(cv, lights):
+    """cama de dossel baixo com colcha carmim"""
+    cv.box(14, 50, 6, 30, 0, 8, wood_tex)
+    def quilt(face, wx, wy, wz, a, b, B):
+        stripe = (np.floor(wx / 6).astype(int) % 2 == 0)
+        return np.where(stripe, BLOOD, VIOLET), np.where(stripe, 3.0, 2.0) + (wz * 0)
+    cv.box(15, 49, 11, 29, 8, 12, quilt)
+    cv.box(15, 49, 7, 11, 8, 14, lambda f, wx, wy, wz, a, b, B: (np.full(wx.shape, SILVER), 3.6))
+    cv.box(12, 52, 4, 7, 0, 30, wood_tex)
