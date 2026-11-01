@@ -25,6 +25,7 @@ Os arquivos de licença e origem permanecem junto de cada pacote em `assets/`.
 - `assets/pixel_art/garden/` e `assets/pixel_art/tiles/garden_floor/`: kit do Jardim Sangrento, autoria própria, gerado por `tools/pixel_art/garden_kit/`.
 - `assets/pixel_art/effects/blood_pool/`: poça de sangue dos inimigos, autoria própria, geradas por `tools/pixel_art/blood_pool/`.
 - `assets/pixel_art/effects/ritual_circle/`: círculo de ritual do spawn dos monstros, autoria própria, gerado por `tools/pixel_art/ritual_circle/`.
+- `assets/pixel_art/effects/summoned_rat/`: rato invocado do Orlok, recortado e recolorido (AAP-64) do pacote `Rats.png` que o Pedro colocou em `F:\ASSETS\Rats` — autor e licença AINDA A CONFIRMAR (o pacote veio sem readme); fonte em `tools/pixel_art/summoned_rat/source/`. As demais folhas novas (`pestilence_cloud`, `family_rings`, `life_steal`) são de autoria própria, geradas por `tools/pixel_art/`.
 
 ## Efeitos visuais
 

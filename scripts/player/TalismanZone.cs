@@ -12,6 +12,7 @@ public partial class TalismanZone : Node3D
     private float _remaining = 6.0f;
     private float _tick;
     private MeshInstance3D _disc;
+    private Sprite3D _ringSprite;
 
     public static IReadOnlyList<TalismanZone> All => Active;
 
@@ -34,6 +35,14 @@ public partial class TalismanZone : Node3D
     public override void _Ready()
     {
         Active.Add(this);
+        if (GameMode.IsPixelArt)
+        {
+            // No 2D o talismã é o anel Bagua em pixel art (tools/pixel_art/family_rings).
+            var ring = FamilyFx.BuildRing(this, FamilyRing.Bagua, Radius, out _ringSprite);
+            ring.Position = new Vector3(0.0f, 0.07f, 0.0f);
+            AddChild(ring);
+            return;
+        }
         _disc = new MeshInstance3D
         {
             Mesh = new CylinderMesh { TopRadius = Radius, BottomRadius = Radius, Height = 0.03f, RadialSegments = 8 },
@@ -59,8 +68,13 @@ public partial class TalismanZone : Node3D
         var d = (float)delta;
         _remaining -= d;
         if (_remaining <= 0.0f) { QueueFree(); return; }
-        if (_remaining < 1.0f && _disc.MaterialOverride is StandardMaterial3D material)
-            material.AlbedoColor = new Color(Jade, 0.32f * _remaining);
+        if (_remaining < 1.0f)
+        {
+            if (_ringSprite != null)
+                _ringSprite.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.95f * _remaining);
+            else if (_disc?.MaterialOverride is StandardMaterial3D material)
+                material.AlbedoColor = new Color(Jade, 0.32f * _remaining);
+        }
         _tick -= d;
         if (_tick > 0.0f) return;
         _tick = 0.4f;

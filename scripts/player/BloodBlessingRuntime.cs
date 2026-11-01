@@ -526,11 +526,80 @@ public partial class BloodBlessingRuntime : Node
             RunState.GetEffectParameter("PestilenceCloudAtStacks", "radius", 3.2f));
     }
 
-    private async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
+    // Névoa em pixel art (tools/pixel_art/pestilence_cloud): uma camada rala deitada no chão (192x96, 6 quadros) e vários
+    // tufos em pé virados para a câmera (64x48, 6 quadros) na altura do peito, em loop e à deriva. Opacidades abaixo.
+    private const float PestilenceGroundAlpha = 0.2f;
+    private const float PestilencePuffAlpha = 0.38f;
+    private static Texture2D _pestilenceCloudSheet;
+    private static Texture2D _pestilencePuffSheet;
+
+    private static Sprite3D NewCloudSprite(Texture2D texture, int hframes, float alpha) => new()
+    {
+        Texture = texture,
+        Hframes = hframes,
+        PixelSize = PlayerSpriteVisual.PixelSize,
+        TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+        AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+        Modulate = new Color(1.0f, 1.0f, 1.0f, alpha),
+        Shaded = false,
+        DoubleSided = false,
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+    };
+
+    private static void LoopFrames(Sprite3D sprite, int offset, float seconds)
+    {
+        var tween = sprite.CreateTween().SetLoops();
+        tween.TweenMethod(Callable.From<float>(t => sprite.Frame = (Mathf.Clamp((int)t, 0, 5) + offset) % 6), 0.0f, 6.0f, seconds);
+    }
+
+    private Node3D BuildPestilenceCloudSprite(float radius)
+    {
+        _pestilenceCloudSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_cloud_sheet.png");
+        _pestilencePuffSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_puff_sheet.png");
+        var camera = GetViewport()?.GetCamera3D();
+        var yaw = camera?.GlobalRotation.Y ?? Mathf.DegToRad(IsoCamera.DefaultYawDegrees);
+        var pitch = camera != null ? -camera.GlobalRotation.X : Mathf.DegToRad(PixelRoom.CameraPitchDegrees);
+        var stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
+        var root = new Node3D { Name = "PestilenceCloud" };
+
+        // Camada rala no chão, esticada como as poças.
+        var sizeScale = radius / (96.0f * PlayerSpriteVisual.PixelSize);
+        var ground = new Node3D { Name = "Ground", Rotation = new Vector3(0.0f, yaw, 0.0f), Scale = new Vector3(sizeScale, 1.0f, sizeScale * stretch) };
+        var groundSprite = NewCloudSprite(_pestilenceCloudSheet, 6, PestilenceGroundAlpha);
+        groundSprite.RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f);
+        groundSprite.Position = Vector3.Up * 0.04f;
+        ground.AddChild(groundSprite);
+        root.AddChild(ground);
+        LoopFrames(groundSprite, 0, 1.4f);
+
+        // Tufos em pé na altura do peito: cada um com quadro inicial e deriva própria.
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        var puffCount = Mathf.Clamp(Mathf.RoundToInt(radius * 3.0f), 6, 14);
+        for (var i = 0; i < puffCount; i++)
+        {
+            var angle = random.RandfRange(0.0f, Mathf.Tau);
+            var distance = radius * 0.8f * Mathf.Sqrt(random.Randf());
+            var home = new Vector3(Mathf.Cos(angle) * distance, random.RandfRange(0.55f, 1.25f), Mathf.Sin(angle) * distance);
+            var puff = NewCloudSprite(_pestilencePuffSheet, 6, PestilencePuffAlpha);
+            puff.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            puff.FlipH = random.Randf() < 0.5f;
+            puff.Position = home;
+            root.AddChild(puff);
+            LoopFrames(puff, random.RandiRange(0, 5), random.RandfRange(1.6f, 2.4f));
+            var drift = new Vector3(random.RandfRange(-0.35f, 0.35f), random.RandfRange(-0.1f, 0.1f), random.RandfRange(-0.35f, 0.35f));
+            var sway = puff.CreateTween().SetLoops();
+            sway.TweenProperty(puff, "position", home + drift, random.RandfRange(1.4f, 2.2f)).SetTrans(Tween.TransitionType.Sine);
+            sway.TweenProperty(puff, "position", home, random.RandfRange(1.4f, 2.2f)).SetTrans(Tween.TransitionType.Sine);
+        }
+        return root;
+    }
+
+    internal async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
     {
         var scene = GetTree().CurrentScene;
         if (scene == null) return;
-        var cloud = new MeshInstance3D
+        Node3D cloud = GameMode.IsPixelArt ? BuildPestilenceCloudSprite(radius) : new MeshInstance3D
         {
             Name = "PestilenceCloud",
             Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.05f },
@@ -572,11 +641,57 @@ public partial class BloodBlessingRuntime : Node
         }
     }
 
-    private async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
+    // Explosão do inimigo encantado em pixel art (Karnstein): anel rosa com corações no chão e tufos rosados que estouram
+    // para fora na altura do corpo, em ~0,5 s (mesma lógica da explosão pestilenta, rampa rosa da AAP-64).
+    private static Texture2D _charmPuffSheet;
+
+    private void SpawnCharmBurstSprites(Node scene, Vector3 position, float radius)
+    {
+        _charmPuffSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/charm_puff_sheet.png");
+        var root = new Node3D { Name = "CharmedDeathExplosion" };
+        scene.AddChild(root);
+        root.GlobalPosition = position;
+        var ring = FamilyFx.BuildRing(this, FamilyRing.Charm, radius, out var ringSprite);
+        var full = ring.Scale;
+        ring.Position = Vector3.Up * 0.06f;
+        ring.Scale = new Vector3(full.X * 0.2f, 1.0f, full.Z * 0.2f);
+        root.AddChild(ring);
+        var grow = ring.CreateTween().SetParallel();
+        grow.TweenProperty(ring, "scale", full, 0.2f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        grow.TweenProperty(ringSprite, "modulate:a", 0.0f, 0.3f).SetDelay(0.2f);
+
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        var count = Mathf.Clamp(Mathf.RoundToInt(radius * 3.5f), 6, 10);
+        for (var i = 0; i < count; i++)
+        {
+            var angle = Mathf.Tau * i / count + random.RandfRange(-0.3f, 0.3f);
+            var puff = NewCloudSprite(_charmPuffSheet, 6, 0.7f);
+            puff.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            puff.FlipH = random.Randf() < 0.5f;
+            puff.Frame = random.RandiRange(0, 5);
+            puff.Position = Vector3.Up * 0.55f;
+            puff.Scale = Vector3.One * 0.3f;
+            root.AddChild(puff);
+            var end = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * random.RandfRange(radius * 0.4f, radius * 0.9f) + Vector3.Up * random.RandfRange(0.6f, 1.3f);
+            var move = puff.CreateTween().SetParallel();
+            move.TweenProperty(puff, "position", end, 0.35f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            move.TweenProperty(puff, "scale", Vector3.One * random.RandfRange(0.7f, 1.1f), 0.35f);
+            move.TweenProperty(puff, "modulate:a", 0.0f, 0.2f).SetDelay(0.2f);
+        }
+        GetTree().CreateTimer(0.6f).Timeout += () => { if (IsInstanceValid(root)) root.QueueFree(); };
+    }
+
+    internal async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
     {
         var scene = GetTree()?.CurrentScene;
         if (scene == null)
             return;
+        if (GameMode.IsPixelArt)
+        {
+            SpawnCharmBurstSprites(scene, position, radius);
+            return;
+        }
 
         var burst = new MeshInstance3D
         {
@@ -605,11 +720,66 @@ public partial class BloodBlessingRuntime : Node
             burst.QueueFree();
     }
 
-    private async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
+    // Explosão do cadáver pestilento em pixel art: mancha rala no chão que cresce e some, e tufos da névoa em pé que
+    // explodem para fora, sobem e se desfazem em ~0,6 s (mesma rampa e folhas da nuvem de pestilência).
+    private void SpawnPestilenceBurstSprites(Node scene, Vector3 position, float radius)
+    {
+        _pestilenceCloudSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_cloud_sheet.png");
+        _pestilencePuffSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_puff_sheet.png");
+        var camera = GetViewport()?.GetCamera3D();
+        var yaw = camera?.GlobalRotation.Y ?? Mathf.DegToRad(IsoCamera.DefaultYawDegrees);
+        var pitch = camera != null ? -camera.GlobalRotation.X : Mathf.DegToRad(PixelRoom.CameraPitchDegrees);
+        var stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
+        var root = new Node3D { Name = "PestilenceDeathBurst" };
+        scene.AddChild(root);
+        root.GlobalPosition = position;
+
+        var ground = new Node3D { Rotation = new Vector3(0.0f, yaw, 0.0f) };
+        var sizeScale = radius / (96.0f * PlayerSpriteVisual.PixelSize);
+        ground.Scale = new Vector3(sizeScale * 0.2f, 1.0f, sizeScale * 0.2f * stretch);
+        var stain = NewCloudSprite(_pestilenceCloudSheet, 6, 0.4f);
+        stain.RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f);
+        stain.Position = Vector3.Up * 0.04f;
+        stain.Frame = 2;
+        ground.AddChild(stain);
+        root.AddChild(ground);
+        var grow = ground.CreateTween().SetParallel();
+        grow.TweenProperty(ground, "scale", new Vector3(sizeScale, 1.0f, sizeScale * stretch), 0.25f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        grow.TweenProperty(stain, "modulate:a", 0.0f, 0.35f).SetDelay(0.25f);
+
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        var count = Mathf.Clamp(Mathf.RoundToInt(radius * 4.0f), 6, 12);
+        for (var i = 0; i < count; i++)
+        {
+            var angle = Mathf.Tau * i / count + random.RandfRange(-0.3f, 0.3f);
+            var puff = NewCloudSprite(_pestilencePuffSheet, 6, 0.55f);
+            puff.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            puff.FlipH = random.Randf() < 0.5f;
+            puff.Frame = random.RandiRange(0, 5);
+            puff.Position = Vector3.Up * 0.5f;
+            puff.Scale = Vector3.One * 0.35f;
+            root.AddChild(puff);
+            var end = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * random.RandfRange(radius * 0.4f, radius * 0.9f)
+                + Vector3.Up * random.RandfRange(0.8f, 1.5f);
+            var move = puff.CreateTween().SetParallel();
+            move.TweenProperty(puff, "position", end, 0.5f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            move.TweenProperty(puff, "scale", Vector3.One * random.RandfRange(0.8f, 1.2f), 0.5f);
+            move.TweenProperty(puff, "modulate:a", 0.0f, 0.3f).SetDelay(0.3f);
+        }
+        GetTree().CreateTimer(0.8f).Timeout += () => { if (IsInstanceValid(root)) root.QueueFree(); };
+    }
+
+    internal async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
     {
         var scene = GetTree()?.CurrentScene;
         if (scene == null)
             return;
+        if (GameMode.IsPixelArt)
+        {
+            SpawnPestilenceBurstSprites(scene, position, radius);
+            return;
+        }
 
         var random = new RandomNumberGenerator
         {
@@ -750,9 +920,50 @@ public partial class BloodBlessingRuntime : Node
         surface.AddVertex(d);
     }
 
-    // Roubo de vida = Dracul: o orbe sai na cor da família que declara "life_steal" (vermelho se nenhuma).
-    private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
+    // Roubo de vida em pixel art: gota-orbe roxa pulsando que voa do inimigo até o Virgil, com rastro de cópias que somem.
+    private static Texture2D _lifeStealOrbSheet;
+
+    private void SpawnLifeStealOrbSprite(Vector3 source, Vector3 destination)
     {
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null) return;
+        _lifeStealOrbSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/life_steal/life_steal_orb_sheet.png");
+        var start = source + Vector3.Up * 1.0f;
+        var end = destination + Vector3.Up * 1.0f;
+        for (var i = 0; i < 4; i++)
+        {
+            var orb = new Sprite3D
+            {
+                Name = "LifeStealOrb",
+                Texture = _lifeStealOrbSheet,
+                Hframes = 4,
+                Frame = i % 4,
+                PixelSize = PlayerSpriteVisual.PixelSize,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+                AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Shaded = false,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Modulate = new Color(1.0f, 1.0f, 1.0f, i == 0 ? 1.0f : 0.55f - i * 0.12f),
+                Scale = Vector3.One * (i == 0 ? 1.2f : 1.0f - i * 0.15f)
+            };
+            scene.AddChild(orb);
+            orb.GlobalPosition = start;
+            var tween = orb.CreateTween();
+            tween.TweenInterval(i * 0.03f);
+            tween.TweenProperty(orb, "global_position", end, 0.28f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+            tween.TweenCallback(Callable.From(orb.QueueFree));
+        }
+    }
+
+    // Roubo de vida = Dracul: o orbe sai na cor da família que declara "life_steal" (vermelho se nenhuma).
+    internal async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
+    {
+        if (GameMode.IsPixelArt)
+        {
+            SpawnLifeStealOrbSprite(source, destination);
+            return;
+        }
         var color = BloodlineVisuals.StatusColor("life_steal", new Color(1.0f, 0.0f, 0.08f));
         var orb = new MeshInstance3D
         {

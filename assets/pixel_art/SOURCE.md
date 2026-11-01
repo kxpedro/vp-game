@@ -104,3 +104,15 @@ Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no
 ## family_icons/
 
 Ícones das 8 famílias de herança de sangue (Dracul, Bathory, Orlok, Karnstein, Strigoi, Vârcolac, Liaozhai, Nachtalb), 32x32, paleta AAP-64, alfa binário. Arte própria, gerada por `tools/pixel_art/hud/draw_family_icons.py` (sem pacote de terceiros). Substituem os antigos `images/bloodBoons/<familia>-icon.png` nas portas, na oferta de bênçãos, na barra e no compêndio.
+
+## effects/pestilence_cloud
+Gerada por `tools/pixel_art/pestilence_cloud/generate_pestilence_cloud.py` e `generate_pestilence_puff.py` (tufo em pé, 64x48) (Pillow, rampa verde-acinzentada da AAP-64). `pestilence_cloud_sheet.png`: 6 quadros de 192x96 (projeção 2:1) em loop, da nuvem de pestilência do Orlok (`BloodBlessingRuntime.SpawnPestilenceCloud`, só no 2D). Arte própria.
+
+## effects/summoned_rat
+Gerada por `tools/pixel_art/summoned_rat/generate_summoned_rat.py` a partir de `tools/pixel_art/summoned_rat/source/Rats.png` (pacote de ratos de `F:\ASSETS\Rats`, do Pedro; **autor e licença NÃO REGISTRADOS**: confirmar a origem e registrar em `CREDITS.md` antes de distribuir). Perfil do rato marrom (3 quadros de corrida, esquerda e direita), reduzido de 48x48 para 30x30 e recolorido para verde-acinzentado na AAP-64. `summoned_rat_sheet.png`: 10x3 quadros de 30x30: corrida (0-2 esquerda, 3-5 direita), ataque (0-3 esquerda, 4-7 direita) e morte (0-4 esquerda, 5-9 direita); ataque e morte derivados da corrida por transformações no gerador. Rato invocado do Orlok (`SummonedRat`, só no 2D).
+
+## effects/family_rings
+Gerados por `tools/pixel_art/family_rings/generate_family_rings.py` (Pillow, AAP-64). `ring_claws.png` (Vârcolac), `ring_bagua.png` (Liaozhai, também a zona do talismã), `ring_moon.png` (Nachtalb), `ring_shadow.png` (Strigoi): 192x96 (2:1) cada. Pulsos das famílias (`FamilyFx.Pulse`, só no 2D). Arte própria.
+
+## effects/life_steal, family_rings/ring_charm, pestilence_cloud/charm_puff_sheet
+Gerados por `tools/pixel_art/life_steal/generate_life_steal_orb.py` (orbe do Dracul, 4 quadros 16x16), `tools/pixel_art/family_rings/generate_family_rings.py` (`ring_charm.png`, anel rosa com corações do Karnstein) e `tools/pixel_art/pestilence_cloud/generate_pestilence_puff.py` (`charm_puff_sheet.png`, tufos rosa da explosão do encanto). Pillow, AAP-64, arte própria. Só no 2D.

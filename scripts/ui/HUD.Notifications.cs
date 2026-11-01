@@ -314,6 +314,153 @@ public partial class HUD
 		AppendGameLog("+5 moedas · 7/20 inimigos");
 	}
 
+	// Preview "pestilence_cloud_N" (debug): a névoa do Orlok (raio 3,2 m) ao lado do jogador, sem dano. O atraso de 0,7/0,4/0 s
+	// antes de nascer faz as 3 capturas do lote (0,8 s depois da abertura) pegarem quadros diferentes da animação.
+	internal async void PreviewPestilenceCloud(string screen)
+	{
+		var delay = screen switch { "pestilence_cloud_1" => 0.7f, "pestilence_cloud_2" => 0.4f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var runtime = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+		var center = player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f);
+		// 3 inimigos dentro do raio da névoa, para conferir como ela os cobre.
+		if (GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
+			foreach (var offset in new[] { new Vector3(-1.0f, 0.0f, 0.6f), new Vector3(1.2f, 0.0f, 0.2f), new Vector3(0.1f, 0.0f, 1.4f) })
+				generator.DevSpawnEnemy(new Vector3(center.X + offset.X, 0.2f, center.Z + offset.Z), EnemyRarity.Normal, null);
+		runtime?.SpawnPestilenceCloud(center, 0.0f, 5.0f, 3.2f);
+	}
+
+	// Preview "pestilence_burst_N" / "summoned_rat_N" (debug): explosão do cadáver pestilento (raio 3 m) ou 3 ratos invocados
+	// perto do jogador e de 1 inimigo. O atraso antes do disparo faz as capturas do lote (0,8 s depois da abertura) pegarem
+	// instantes diferentes do efeito.
+	internal async void PreviewOrlokEffect(string screen)
+	{
+		var delay = screen switch { "pestilence_burst_1" => 0.65f, "pestilence_burst_2" => 0.4f, "summoned_rat_2" => 0.15f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not PlayerController player)
+			return;
+		var center = player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f);
+		if (screen.StartsWith("pestilence_burst"))
+		{
+			player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.SpawnPestilenceDeathBurst(center, 3.0f);
+			return;
+		}
+		// summoned_rat_N: ratos colados no inimigo, mordendo. summoned_rat_death_N: ratos de vida curta junto do Virgil, tombando
+		// (vida 0,55 / 0,7 s: a captura, 0,8 s depois da abertura, cai a 0,25 / 0,1 s do começo da animação de morte de 0,5 s).
+		var death = screen.StartsWith("summoned_rat_death");
+		if (!death && GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
+			generator.DevSpawnEnemy(new Vector3(center.X + 1.5f, 0.2f, center.Z), EnemyRarity.Normal, null);
+		var lifetime = screen switch { "summoned_rat_death_1" => 0.55f, "summoned_rat_death_2" => 0.7f, _ => 8.0f };
+		for (var i = 0; i < 3; i++)
+		{
+			var rat = new SummonedRat { OwnerPlayer = player, LifetimeSeconds = lifetime, AttackDamage = 0.0f };
+			GetTree().CurrentScene.AddChild(rat);
+			rat.GlobalPosition = death
+				? player.GlobalPosition + new Vector3(1.0f + 0.9f * i, 0.08f, 0.5f * (i - 1))
+				: center + new Vector3(1.0f + 0.4f * i, 0.08f, 0.5f * (i - 1));
+		}
+	}
+
+	// Preview "family_rings_N" / "talisman_zone_1" (debug): os 4 anéis de pulso das famílias (Claws, Bagua, Moon, Shadow, raio 3 m)
+	// espalhados em volta do jogador, ou o TalismanZone (raio 2,2 m). O atraso faz as capturas (0,8 s após a abertura) pegarem
+	// os pulsos a ~0,15 s e ~0,35 s do disparo.
+	internal async void PreviewFamilyRings(string screen)
+	{
+		var delay = screen switch { "family_rings_1" => 0.65f, "family_rings_2" => 0.45f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var origin = player.GlobalPosition;
+		if (screen == "talisman_zone_1")
+		{
+			TalismanZone.Spawn(player, origin + new Vector3(3.0f, 0.0f, 0.0f), 2.2f, 5.0f);
+			return;
+		}
+		var rings = new (FamilyRing Ring, Vector3 Offset, Color Color)[]
+		{
+			(FamilyRing.Claws, new Vector3(3.5f, 0.0f, 0.0f), new Color(0.93f, 0.4f, 0.3f)),
+			(FamilyRing.Bagua, new Vector3(0.0f, 0.0f, 3.5f), new Color(0.9f, 0.5f, 0.75f)),
+			(FamilyRing.Moon, new Vector3(3.5f, 0.0f, 7.0f), new Color(0.7f, 0.7f, 1.0f)),
+			(FamilyRing.Shadow, new Vector3(7.0f, 0.0f, 3.5f), new Color(0.6f, 0.3f, 0.9f))
+		};
+		foreach (var (ring, offset, color) in rings)
+			FamilyFx.Pulse(player, origin + offset, 3.0f, color, 0.6f, ring);
+	}
+
+	// Preview "charm_burst_N" / "life_steal_orb_1" / "enemy_states_N" (debug): explosão do encanto (Karnstein, raio 2,5 m),
+	// orbe de roubo de vida (Dracul) voando de 5 m até o Virgil, e 4 inimigos em fila com um estado novo cada (marca da sombra,
+	// mutilação, selo e pesadelo = dormindo). Os atrasos fazem as capturas (0,8 s após a abertura) pegarem instantes diferentes.
+	internal async void PreviewFamilyEffects(string screen)
+	{
+		var delay = screen switch
+		{
+			"charm_burst_1" => 0.5f, "charm_burst_2" => 0.65f, "life_steal_orb_1" => 0.65f, "enemy_states_1" => 0.5f, _ => 0.1f
+		};
+		await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not PlayerController player)
+			return;
+		var runtime = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+		var origin = player.GlobalPosition;
+		if (screen.StartsWith("charm_burst"))
+		{
+			runtime?.SpawnCharmedDeathExplosion(origin + new Vector3(3.0f, 0.0f, 0.0f), 2.5f);
+			return;
+		}
+		if (screen == "life_steal_orb_1")
+		{
+			runtime?.SpawnLifeStealTrail(origin + new Vector3(5.0f, 0.0f, 0.0f), origin);
+			return;
+		}
+		if (GetTree().GetFirstNodeInGroup("room_generator") is not RoomGenerator generator)
+			return;
+		for (var i = 0; i < 4; i++)
+		{
+			var enemy = generator.DevSpawnEnemy(origin + new Vector3(4.0f, 0.2f, -3.0f + 2.0f * i), EnemyRarity.Normal, null);
+			if (enemy == null)
+				continue;
+			switch (i)
+			{
+				case 0: enemy.ApplyShadowMark(10.0f); break;
+				case 1: enemy.ApplyMaul(3, 10.0f); break;
+				case 2: enemy.ApplySeal(10.0f); break;
+				default: enemy.FallAsleep(10.0f); break;
+			}
+		}
+	}
+
+	// Preview "attack_*" (debug): indicadores dos golpes do Virgil em pixel art (PixelAttackFx), com valores típicos da espada
+	// (leve: alcance 2,7 m e arco 100°; pesado: 3,5 m e 140°; círculo 3 m; linha 5 x 1,2 m) e o Virgil virado para direções
+	// diferentes. A captura (0,8 s após a abertura) cai a ~0,05 s do disparo; o efeito dura ~0,16 s. attack_arc_family_1 dá
+	// antes uma bênção de Orlok no slot básico (fica na RunState até o fim do lote), para ver a cor da família.
+	internal async void PreviewAttackFx(string screen)
+	{
+		await ToSignal(GetTree().CreateTimer(0.75f), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var attackType = PlayerAttackType.Basic;
+		if (screen == "attack_arc_family_1")
+		{
+			var definition = BloodBlessingCatalog.All.FirstOrDefault(b => b.Id == "orlok_rotten_bite");
+			if (definition != null)
+				RunState.AddBloodBlessing(new BloodBlessingOffer(definition, "Common", 1.0f));
+		}
+		var yaw = screen switch { "attack_arc_2" => 90.0f, "attack_radial_1" => 0.0f, "attack_line_1" => 180.0f, _ => 0.0f };
+		player.Rotation = new Vector3(0.0f, Mathf.DegToRad(yaw), 0.0f);
+		var heavy = screen == "attack_arc_2" || screen == "attack_radial_1";
+		var (fill, edge) = PixelAttackFx.Colors(attackType, heavy);
+		switch (screen)
+		{
+			case "attack_arc_2": PixelAttackFx.SpawnArc(player, 3.5f, 140.0f, fill, edge); break;
+			case "attack_radial_1": PixelAttackFx.SpawnArc(player, 3.0f, 360.0f, fill, edge, 0.2f); break;
+			case "attack_line_1": PixelAttackFx.SpawnLine(player, 5.0f, 1.2f, fill, edge); break;
+			default: PixelAttackFx.SpawnArc(player, 2.7f, 100.0f, fill, edge); break;
+		}
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{

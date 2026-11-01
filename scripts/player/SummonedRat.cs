@@ -9,6 +9,8 @@ public partial class SummonedRat : CharacterBody3D
     public float AttackDamage { get; set; } = 16.0f;
 
     private const float AttackRange = 0.72f;
+    private const float AttackAnimSeconds = 0.28f;
+    private const float DeathAnimSeconds = 0.5f;
     private EnemyBasic _target;
     private float _attackTimer;
     private float _lifetimeRemaining;
@@ -34,9 +36,14 @@ public partial class SummonedRat : CharacterBody3D
         var elapsed = (float)delta;
         _lifetimeRemaining -= elapsed;
         _attackTimer = Mathf.Max(_attackTimer - elapsed, 0.0f);
+        if (_dying)
+            return;
         if (_lifetimeRemaining <= 0.0f || !IsInstanceValid(OwnerPlayer))
         {
-            QueueFree();
+            if (_sprite != null && IsInstanceValid(OwnerPlayer))
+                StartDeath();
+            else
+                QueueFree();
             return;
         }
 
@@ -63,6 +70,8 @@ public partial class SummonedRat : CharacterBody3D
             return;
 
         _attackTimer = Mathf.Max(AttackInterval, 0.08f);
+        _attackAnim = AttackAnimSeconds;
+        FaceTowards(offset);
         RunStats.Attribute("RatSummonOnPestilentKill");
         _target.GetNodeOrNull<Health>("Health")?.ApplyDamage(AttackDamage, false, "Rato invocado");
         SpawnBitePulse();
@@ -120,8 +129,87 @@ public partial class SummonedRat : CharacterBody3D
         MoveAndSlide();
     }
 
+    private Sprite3D _sprite;
+    private float _animTime;
+    private bool _facingRight = true;
+
+    // No 2D o rato é um sprite de 4 quadros (tools/pixel_art/summoned_rat) virado para a câmera; no 3D, o disco de antes.
+    private void CreateSpriteVisual()
+    {
+        _sprite = new Sprite3D
+        {
+            Name = "RatSprite",
+            Texture = GD.Load<Texture2D>("res://assets/pixel_art/effects/summoned_rat/summoned_rat_sheet.png"),
+            Hframes = 10,
+            Vframes = 3,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            Shaded = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Position = Vector3.Up * 0.5f
+        };
+        AddChild(_sprite);
+    }
+
+    private float _attackAnim;
+    private bool _dying;
+    private float _deathTime;
+
+    private void FaceTowards(Vector3 direction)
+    {
+        var camera = GetViewport()?.GetCamera3D();
+        if (camera != null && direction.LengthSquared() > 0.0001f)
+            _facingRight = direction.Dot(camera.GlobalTransform.Basis.X) >= 0.0f;
+    }
+
+    // Fim do tempo de vida: o rato tomba (5 quadros) e some, em vez de sumir de uma vez.
+    private void StartDeath()
+    {
+        _dying = true;
+        _deathTime = 0.0f;
+        Velocity = Vector3.Zero;
+        RemoveFromGroup("summoned_rats");
+        CollisionLayer = 0;
+        CollisionMask = 0;
+    }
+
+    // Folha 10x3 de 30x30 (tools/pixel_art/summoned_rat): linha 0 corrida (0-2 esquerda, 3-5 direita), linha 1 ataque
+    // (0-3 esquerda, 4-7 direita), linha 2 morte (0-4 esquerda, 5-9 direita).
+    public override void _Process(double delta)
+    {
+        if (_sprite == null) return;
+        var dt = (float)delta;
+        if (_dying)
+        {
+            _deathTime += dt;
+            var frame = Mathf.Min((int)(_deathTime / DeathAnimSeconds * 5.0f), 4);
+            _sprite.Frame = 20 + (_facingRight ? 5 : 0) + frame;
+            if (_deathTime >= DeathAnimSeconds)
+                QueueFree();
+            return;
+        }
+        if (_attackAnim > 0.0f)
+        {
+            _attackAnim -= dt;
+            var frame = Mathf.Clamp((int)((1.0f - _attackAnim / AttackAnimSeconds) * 4.0f), 0, 3);
+            _sprite.Frame = 10 + (_facingRight ? 4 : 0) + frame;
+            return;
+        }
+        var moving = Velocity.LengthSquared() > 0.1f;
+        if (moving) _animTime += dt * 10.0f;
+        if (moving) FaceTowards(Velocity);
+        _sprite.Frame = (_facingRight ? 3 : 0) + (int)_animTime % 3;
+    }
+
     private void CreateVisual()
     {
+        if (GameMode.IsPixelArt)
+        {
+            CreateSpriteVisual();
+            return;
+        }
         var lime = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.52f, 1.0f, 0.02f),
@@ -148,6 +236,7 @@ public partial class SummonedRat : CharacterBody3D
 
     private async void SpawnBitePulse()
     {
+        if (GameMode.IsPixelArt) return;
         var pulse = new MeshInstance3D
         {
             Mesh = new SphereMesh { Radius = 0.16f, Height = 0.32f },

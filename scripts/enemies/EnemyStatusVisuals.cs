@@ -133,15 +133,17 @@ public partial class EnemyStatusVisuals : Node3D
             emitter.Emitting = on;
     }
 
-    // Sangue pinga, pestilência borbulha para cima, encanto sobe devagar e espalhado.
+    // Sangue pinga, pestilência borbulha para cima, encanto sobe devagar e espalhado. Estados das famílias novas:
+    // marca de sombra = pontos que giram em volta do corpo; mordida = pingos que saltam para o lado; selo = glifos que
+    // caem de cima; pesadelo = fumaça lenta, maior e mais comprida.
     private CpuParticles3D BuildEmitter(string status)
     {
         var emitter = new CpuParticles3D
         {
             Name = "Status_" + status,
-            Mesh = BuildMesh(status == Bleeding ? 0.08f : 0.1f),
-            Amount = status == Charm ? 6 : 8,
-            Lifetime = status == Bleeding ? 0.7f : 1.1f,
+            Mesh = BuildMesh(status == Bleeding ? 0.08f : status == Nightmare ? 0.17f : status == Sealed ? 0.12f : 0.1f),
+            Amount = status == Charm ? 6 : status == Nightmare ? 5 : 8,
+            Lifetime = status == Bleeding ? 0.7f : status == Nightmare ? 1.9f : status == Mauled ? 0.55f : status == Sealed ? 0.9f : 1.1f,
             EmissionShape = CpuParticles3D.EmissionShapeEnum.Sphere,
             EmissionSphereRadius = 0.38f,
             Direction = Vector3.Up,
@@ -156,6 +158,42 @@ public partial class EnemyStatusVisuals : Node3D
             Position = Vector3.Up * _bodyHeight,
             Emitting = false,
         };
+        switch (status)
+        {
+            case ShadowMark:
+                emitter.EmissionSphereRadius = 0.5f;
+                emitter.Gravity = Vector3.Zero;
+                emitter.Spread = 180.0f;
+                emitter.InitialVelocityMin = 0.05f;
+                emitter.InitialVelocityMax = 0.15f;
+                emitter.OrbitVelocityMin = 0.9f;
+                emitter.OrbitVelocityMax = 1.3f;
+                emitter.Lifetime = 1.4f;
+                break;
+            case Mauled:
+                emitter.Direction = new Vector3(1.0f, 0.4f, 0.0f);
+                emitter.Spread = 100.0f;
+                emitter.Gravity = new Vector3(0.0f, -6.0f, 0.0f);
+                emitter.InitialVelocityMin = 1.0f;
+                emitter.InitialVelocityMax = 1.9f;
+                break;
+            case Sealed:
+                emitter.Position = Vector3.Up * (_bodyHeight + 0.7f);
+                emitter.EmissionSphereRadius = 0.3f;
+                emitter.Direction = Vector3.Down;
+                emitter.Spread = 8.0f;
+                emitter.Gravity = new Vector3(0.0f, -1.5f, 0.0f);
+                emitter.InitialVelocityMin = 0.3f;
+                emitter.InitialVelocityMax = 0.6f;
+                break;
+            case Nightmare:
+                emitter.Gravity = new Vector3(0.0f, 0.35f, 0.0f);
+                emitter.InitialVelocityMin = 0.1f;
+                emitter.InitialVelocityMax = 0.3f;
+                emitter.ScaleAmountMin = 0.8f;
+                emitter.ScaleAmountMax = 1.6f;
+                break;
+        }
         return emitter;
     }
 

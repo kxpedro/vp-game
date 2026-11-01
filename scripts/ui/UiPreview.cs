@@ -98,6 +98,15 @@ public partial class UiPreview : Node
 		("blessing_offer", null, SceneArena),
 		("blessing_offer_replace", null, SceneArena), ("anvil_offer", null, SceneArena), ("anvil_offer_single", null, SceneArena), ("toast", null, SceneArena),
 		("boss_bar", null, SceneArena),
+		("pestilence_cloud_1", null, SceneArena), ("pestilence_cloud_2", null, SceneArena), ("pestilence_cloud_3", null, SceneArena),
+		("attack_arc_1", null, SceneArena), ("attack_arc_2", null, SceneArena), ("attack_radial_1", null, SceneArena),
+		("attack_line_1", null, SceneArena), ("attack_arc_family_1", null, SceneArena),
+		("charm_burst_1", null, SceneArena), ("charm_burst_2", null, SceneArena), ("life_steal_orb_1", null, SceneArena),
+		("enemy_states_1", null, SceneArena), ("enemy_states_2", null, SceneArena),
+		("family_rings_1", null, SceneArena), ("family_rings_2", null, SceneArena), ("talisman_zone_1", null, SceneArena),
+		("pestilence_burst_1", null, SceneArena), ("pestilence_burst_2", null, SceneArena),
+		("summoned_rat_1", null, SceneArena), ("summoned_rat_2", null, SceneArena),
+		("summoned_rat_death_1", null, SceneArena), ("summoned_rat_death_2", null, SceneArena),
 		("blood_fountain", null, SceneNest), ("skill_popup", null, SceneNest),
 		("weapon_bench", null, SceneNest), ("hub", null, SceneNest), ("hub_cast", null, SceneNest),
 		("dialogue", null, SceneNest), ("dialogue_choice", null, SceneNest), ("hub_npc", null, SceneNest),
@@ -222,7 +231,8 @@ public partial class UiPreview : Node
 		}
 
 		_settleElapsed += delta;
-		if (_settleElapsed < BatchSettleSeconds)
+		// summoned_rat_2 espera mais, para pegar os ratos já correndo até o inimigo.
+		if (_settleElapsed < (job.Screen == "summoned_rat_2" ? 1.2f : BatchSettleSeconds))
 			return;
 		CaptureBatchShot(job);
 		NextBatchJob();

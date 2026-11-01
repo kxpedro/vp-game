@@ -442,6 +442,38 @@ public partial class HUD : CanvasLayer
 			case "boss_bar":
 				BindPreviewBoss(dataParent);
 				return true;
+			case "pestilence_cloud_1":
+			case "pestilence_cloud_2":
+			case "pestilence_cloud_3":
+				PreviewPestilenceCloud(screen);
+				return true;
+			case "attack_arc_1":
+			case "attack_arc_2":
+			case "attack_radial_1":
+			case "attack_line_1":
+			case "attack_arc_family_1":
+				PreviewAttackFx(screen);
+				return true;
+			case "charm_burst_1":
+			case "charm_burst_2":
+			case "life_steal_orb_1":
+			case "enemy_states_1":
+			case "enemy_states_2":
+				PreviewFamilyEffects(screen);
+				return true;
+			case "family_rings_1":
+			case "family_rings_2":
+			case "talisman_zone_1":
+				PreviewFamilyRings(screen);
+				return true;
+			case "pestilence_burst_1":
+			case "pestilence_burst_2":
+			case "summoned_rat_1":
+			case "summoned_rat_2":
+			case "summoned_rat_death_1":
+			case "summoned_rat_death_2":
+				PreviewOrlokEffect(screen);
+				return true;
 			case "hub":
 				// Só a cena do hub, sem nenhuma tela por cima (captura do cenário), com o jogador junto do arco de entrada.
 				if (GetTree().GetFirstNodeInGroup("player") is Node3D hubPlayer)
