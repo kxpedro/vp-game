@@ -113,6 +113,8 @@ public partial class OffscreenEnemyIndicator : Control
 		{
 			if (node is not Node3D enemy || !enemy.IsInsideTree() || !enemy.Visible)
 				continue;
+			if (enemy is TrainingDummy)
+				continue; // boneco do hub: nao e ameaca
 			if (enemy.GetNodeOrNull<Health>("Health")?.IsDead == true)
 				continue;
 			var world = enemy.GlobalPosition;
