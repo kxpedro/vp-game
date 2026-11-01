@@ -104,3 +104,6 @@ Círculo de ritual (pentagrama) que marca no chão onde um monstro vai surgir no
 ## family_icons/
 
 Ícones das 8 famílias de herança de sangue (Dracul, Bathory, Orlok, Karnstein, Strigoi, Vârcolac, Liaozhai, Nachtalb), 32x32, paleta AAP-64, alfa binário. Arte própria, gerada por `tools/pixel_art/hud/draw_family_icons.py` (sem pacote de terceiros). Substituem os antigos `images/bloodBoons/<familia>-icon.png` nas portas, na oferta de bênçãos, na barra e no compêndio.
+
+## effects/pestilence_cloud
+Gerada por `tools/pixel_art/pestilence_cloud/generate_pestilence_cloud.py` (Pillow, rampa verde da AAP-64). `pestilence_cloud_sheet.png`: 6 quadros de 192x96 (projeção 2:1) em loop, da nuvem de pestilência do Orlok (`BloodBlessingRuntime.SpawnPestilenceCloud`, só no 2D). Arte própria.

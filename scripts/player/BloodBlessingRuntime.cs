@@ -526,11 +526,45 @@ public partial class BloodBlessingRuntime : Node
             RunState.GetEffectParameter("PestilenceCloudAtStacks", "radius", 3.2f));
     }
 
+    // Névoa em pixel art (tools/pixel_art/pestilence_cloud): 6 quadros de 192x96 em loop, deitada no chão como as poças.
+    // 192 px a PixelSize = 6,3 m de ponta a ponta: a folha escala para o raio da nuvem. Opacidade em PestilenceCloudAlpha.
+    private const float PestilenceCloudAlpha = 0.6f;
+    private static Texture2D _pestilenceCloudSheet;
+
+    private Node3D BuildPestilenceCloudSprite(float radius)
+    {
+        _pestilenceCloudSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/pestilence_cloud_sheet.png");
+        var camera = GetViewport()?.GetCamera3D();
+        var yaw = camera?.GlobalRotation.Y ?? Mathf.DegToRad(IsoCamera.DefaultYawDegrees);
+        var pitch = camera != null ? -camera.GlobalRotation.X : Mathf.DegToRad(PixelRoom.CameraPitchDegrees);
+        var stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
+        var root = new Node3D { Name = "PestilenceCloud", Rotation = new Vector3(0.0f, yaw, 0.0f) };
+        var sizeScale = radius / (96.0f * PlayerSpriteVisual.PixelSize);
+        root.Scale = new Vector3(sizeScale, 1.0f, sizeScale * stretch);
+        var sprite = new Sprite3D
+        {
+            Texture = _pestilenceCloudSheet,
+            Hframes = 6,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+            Modulate = new Color(1.0f, 1.0f, 1.0f, PestilenceCloudAlpha),
+            Shaded = false,
+            DoubleSided = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f)
+        };
+        root.AddChild(sprite);
+        var tween = sprite.CreateTween().SetLoops();
+        tween.TweenMethod(Callable.From<float>(t => sprite.Frame = Mathf.Clamp((int)t, 0, 5)), 0.0f, 6.0f, 6.0f / 5.0f);
+        return root;
+    }
+
     private async void SpawnPestilenceCloud(Vector3 position, float damagePerSecond, float duration, float radius)
     {
         var scene = GetTree().CurrentScene;
         if (scene == null) return;
-        var cloud = new MeshInstance3D
+        Node3D cloud = GameMode.IsPixelArt ? BuildPestilenceCloudSprite(radius) : new MeshInstance3D
         {
             Name = "PestilenceCloud",
             Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.05f },
