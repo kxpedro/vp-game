@@ -364,6 +364,33 @@ public partial class HUD
 		}
 	}
 
+	// Preview "family_rings_N" / "talisman_zone_1" (debug): os 4 anéis de pulso das famílias (Claws, Bagua, Moon, Shadow, raio 3 m)
+	// espalhados em volta do jogador, ou o TalismanZone (raio 2,2 m). O atraso faz as capturas (0,8 s após a abertura) pegarem
+	// os pulsos a ~0,15 s e ~0,35 s do disparo.
+	internal async void PreviewFamilyRings(string screen)
+	{
+		var delay = screen switch { "family_rings_1" => 0.65f, "family_rings_2" => 0.45f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var origin = player.GlobalPosition;
+		if (screen == "talisman_zone_1")
+		{
+			TalismanZone.Spawn(player, origin + new Vector3(3.0f, 0.0f, 0.0f), 2.2f, 5.0f);
+			return;
+		}
+		var rings = new (FamilyRing Ring, Vector3 Offset, Color Color)[]
+		{
+			(FamilyRing.Claws, new Vector3(4.0f, 0.0f, 0.0f), new Color(0.93f, 0.4f, 0.3f)),
+			(FamilyRing.Bagua, new Vector3(-4.0f, 0.0f, 0.0f), new Color(0.9f, 0.5f, 0.75f)),
+			(FamilyRing.Moon, new Vector3(0.0f, 0.0f, 4.0f), new Color(0.7f, 0.7f, 1.0f)),
+			(FamilyRing.Shadow, new Vector3(0.0f, 0.0f, -4.0f), new Color(0.6f, 0.3f, 0.9f))
+		};
+		foreach (var (ring, offset, color) in rings)
+			FamilyFx.Pulse(player, origin + offset, 3.0f, color, 0.6f, ring);
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{

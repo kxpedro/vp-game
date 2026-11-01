@@ -447,6 +447,11 @@ public partial class HUD : CanvasLayer
 			case "pestilence_cloud_3":
 				PreviewPestilenceCloud(screen);
 				return true;
+			case "family_rings_1":
+			case "family_rings_2":
+			case "talisman_zone_1":
+				PreviewFamilyRings(screen);
+				return true;
 			case "pestilence_burst_1":
 			case "pestilence_burst_2":
 			case "summoned_rat_1":

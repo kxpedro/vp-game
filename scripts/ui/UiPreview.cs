@@ -99,6 +99,7 @@ public partial class UiPreview : Node
 		("blessing_offer_replace", null, SceneArena), ("anvil_offer", null, SceneArena), ("anvil_offer_single", null, SceneArena), ("toast", null, SceneArena),
 		("boss_bar", null, SceneArena),
 		("pestilence_cloud_1", null, SceneArena), ("pestilence_cloud_2", null, SceneArena), ("pestilence_cloud_3", null, SceneArena),
+		("family_rings_1", null, SceneArena), ("family_rings_2", null, SceneArena), ("talisman_zone_1", null, SceneArena),
 		("pestilence_burst_1", null, SceneArena), ("pestilence_burst_2", null, SceneArena),
 		("summoned_rat_1", null, SceneArena), ("summoned_rat_2", null, SceneArena),
 		("summoned_rat_death_1", null, SceneArena), ("summoned_rat_death_2", null, SceneArena),
