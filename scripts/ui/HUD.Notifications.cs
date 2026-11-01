@@ -332,6 +332,32 @@ public partial class HUD
 		runtime?.SpawnPestilenceCloud(center, 0.0f, 5.0f, 3.2f);
 	}
 
+	// Preview "pestilence_burst_N" / "summoned_rat_N" (debug): explosão do cadáver pestilento (raio 3 m) ou 3 ratos invocados
+	// perto do jogador e de 1 inimigo. O atraso antes do disparo faz as capturas do lote (0,8 s depois da abertura) pegarem
+	// instantes diferentes do efeito.
+	internal async void PreviewOrlokEffect(string screen)
+	{
+		var delay = screen switch { "pestilence_burst_1" => 0.65f, "pestilence_burst_2" => 0.4f, "summoned_rat_1" => 0.5f, _ => 0.0f };
+		if (delay > 0.0f)
+			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not PlayerController player)
+			return;
+		var center = player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f);
+		if (screen.StartsWith("pestilence_burst"))
+		{
+			player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.SpawnPestilenceDeathBurst(center, 3.0f);
+			return;
+		}
+		if (GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
+			generator.DevSpawnEnemy(new Vector3(center.X + 1.5f, 0.2f, center.Z), EnemyRarity.Normal, null);
+		for (var i = 0; i < 3; i++)
+		{
+			var rat = new SummonedRat { OwnerPlayer = player, LifetimeSeconds = 8.0f, AttackDamage = 0.0f };
+			GetTree().CurrentScene.AddChild(rat);
+			rat.GlobalPosition = player.GlobalPosition + new Vector3(0.8f + 0.5f * i, 0.08f, 0.5f * (i - 1));
+		}
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{

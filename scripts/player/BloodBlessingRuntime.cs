@@ -724,7 +724,7 @@ public partial class BloodBlessingRuntime : Node
         GetTree().CreateTimer(0.8f).Timeout += () => { if (IsInstanceValid(root)) root.QueueFree(); };
     }
 
-    private async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
+    internal async void SpawnPestilenceDeathBurst(Vector3 position, float radius)
     {
         var scene = GetTree()?.CurrentScene;
         if (scene == null)
