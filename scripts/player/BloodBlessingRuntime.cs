@@ -528,7 +528,9 @@ public partial class BloodBlessingRuntime : Node
 
     // Névoa em pixel art (tools/pixel_art/pestilence_cloud): 6 quadros de 192x96 em loop, deitada no chão como as poças.
     // 192 px a PixelSize = 6,3 m de ponta a ponta: a folha escala para o raio da nuvem. Opacidade em PestilenceCloudAlpha.
-    private const float PestilenceCloudAlpha = 0.6f;
+    private const float PestilenceCloudAlpha = 0.4f;
+    private const float PestilenceCloudGroundAlpha = 0.22f;
+    private const float PestilenceCloudChestHeight = 0.9f;
     private static Texture2D _pestilenceCloudSheet;
 
     private Node3D BuildPestilenceCloudSprite(float radius)
@@ -541,22 +543,30 @@ public partial class BloodBlessingRuntime : Node
         var root = new Node3D { Name = "PestilenceCloud", Rotation = new Vector3(0.0f, yaw, 0.0f) };
         var sizeScale = radius / (96.0f * PlayerSpriteVisual.PixelSize);
         root.Scale = new Vector3(sizeScale, 1.0f, sizeScale * stretch);
-        var sprite = new Sprite3D
+        // Duas camadas: uma rala rente ao chão e a principal na altura do peito, onde a névoa de verdade fica.
+        var sprites = new List<Sprite3D>();
+        foreach (var (height, alpha, frameOffset) in new[] { (0.04f, PestilenceCloudGroundAlpha, 3), (PestilenceCloudChestHeight, PestilenceCloudAlpha, 0) })
         {
-            Texture = _pestilenceCloudSheet,
-            Hframes = 6,
-            PixelSize = PlayerSpriteVisual.PixelSize,
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
-            AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
-            Modulate = new Color(1.0f, 1.0f, 1.0f, PestilenceCloudAlpha),
-            Shaded = false,
-            DoubleSided = false,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f)
-        };
-        root.AddChild(sprite);
-        var tween = sprite.CreateTween().SetLoops();
-        tween.TweenMethod(Callable.From<float>(t => sprite.Frame = Mathf.Clamp((int)t, 0, 5)), 0.0f, 6.0f, 6.0f / 5.0f);
+            var sprite = new Sprite3D
+            {
+                Texture = _pestilenceCloudSheet,
+                Hframes = 6,
+                PixelSize = PlayerSpriteVisual.PixelSize,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+                AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+                Modulate = new Color(1.0f, 1.0f, 1.0f, alpha),
+                Shaded = false,
+                DoubleSided = false,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f),
+                Position = Vector3.Up * height
+            };
+            root.AddChild(sprite);
+            sprites.Add(sprite);
+            var offset = frameOffset;
+            var tween = sprite.CreateTween().SetLoops();
+            tween.TweenMethod(Callable.From<float>(t => sprite.Frame = (Mathf.Clamp((int)t, 0, 5) + offset) % 6), 0.0f, 6.0f, 6.0f / 5.0f);
+        }
         return root;
     }
 

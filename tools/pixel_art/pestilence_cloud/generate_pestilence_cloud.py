@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 OUT = Path(__file__).resolve().parents[3] / "assets/pixel_art/effects/pestilence_cloud/pestilence_cloud_sheet.png"
-RAMP = [tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) for h in ("24523b", "1a7a3e", "14a02e", "59c135", "9cdb43")]
+RAMP = [tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) for h in ("24523b", "1a7a3e", "23674e", "328464", "5daf8d")]
 W, H, FRAMES = 192, 96, 6
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 rnd = random.Random(7)
@@ -26,7 +26,7 @@ def frame(k):
             dens = min(dens, 1.6) / 1.6
             dens *= max(0.0, 1 - (((x - W / 2) / (W / 2 - 2)) ** 2 + ((y - H / 2) / (H / 2 - 2)) ** 2)) ** 0.5
             lvl = dens * 4.2 + (BAYER[y % 4][x % 4] / 16 - 0.5) * 1.4
-            if lvl < 0.9:
+            if lvl < 1.25:
                 continue
             img.putpixel((x, y), RAMP[min(4, int(lvl))] + (255,))
     return img
