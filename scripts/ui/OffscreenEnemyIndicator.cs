@@ -16,7 +16,17 @@ public partial class OffscreenEnemyIndicator : Control
 	private const float LogicalWidth = 480.0f; // resolução lógica do mockup: 1 "pixel" = Size.X / 480
 	private const int CellSize = 2;            // em pixels lógicos (dither mais grosso = menos retângulos)
 
+	// Brilhos persistentes: entram e saem com fade (alpha) e acompanham a direção/força de forma suave.
+	private sealed class Glow
+	{
+		public Vector2 Dir;
+		public float Strength;
+		public float Alpha;
+		public bool Matched;
+	}
+
 	private readonly List<(Vector2 dir, float strength)> _sources = new();
+	private readonly List<Glow> _glows = new();
 
 	public override void _Ready()
 	{
@@ -30,7 +40,59 @@ public partial class OffscreenEnemyIndicator : Control
 		_sources.Clear();
 		if (CompendiumTuning.GetInt("hud.offscreen.enabled", 1) != 0)
 			CollectSources();
-		QueueRedraw();
+		UpdateGlows((float)delta);
+		if (_glows.Count > 0 || _wasDrawn)
+			QueueRedraw();
+		_wasDrawn = _glows.Count > 0;
+	}
+
+	private bool _wasDrawn;
+
+	private void UpdateGlows(float delta)
+	{
+		var fade = Mathf.Max(0.02f, CompendiumTuning.GetFloat("hud.offscreen.fade_seconds", 0.4f));
+		var step = delta / fade;
+		var follow = 1.0f - Mathf.Exp(-delta * 10.0f);
+		foreach (var glow in _glows)
+			glow.Matched = false;
+		foreach (var (dir, strength) in _sources)
+		{
+			Glow best = null;
+			var bestDot = 0.7f; // ~45 graus
+			foreach (var glow in _glows)
+			{
+				if (glow.Matched)
+					continue;
+				var dot = glow.Dir.Dot(dir);
+				if (dot > bestDot)
+				{
+					bestDot = dot;
+					best = glow;
+				}
+			}
+			if (best == null)
+			{
+				best = new Glow { Dir = dir, Strength = strength, Alpha = 0.0f };
+				_glows.Add(best);
+			}
+			else
+			{
+				var blended = best.Dir.Lerp(dir, follow);
+				best.Dir = blended.LengthSquared() > 0.0001f ? blended.Normalized() : dir;
+				best.Strength = Mathf.Lerp(best.Strength, strength, follow);
+			}
+			best.Matched = true;
+			best.Alpha = Mathf.Min(1.0f, best.Alpha + step);
+		}
+		for (var i = _glows.Count - 1; i >= 0; i--)
+		{
+			var glow = _glows[i];
+			if (glow.Matched)
+				continue;
+			glow.Alpha -= step;
+			if (glow.Alpha <= 0.0f)
+				_glows.RemoveAt(i);
+		}
 	}
 
 	private void CollectSources()
@@ -74,7 +136,7 @@ public partial class OffscreenEnemyIndicator : Control
 
 	public override void _Draw()
 	{
-		if (_sources.Count == 0)
+		if (_glows.Count == 0)
 			return;
 		var size = Size;
 		var unit = size.X / LogicalWidth;
@@ -97,8 +159,10 @@ public partial class OffscreenEnemyIndicator : Control
 				if (len < 0.0001f)
 					continue;
 				var best = 0.0f;
-				foreach (var (dir, strength) in _sources)
+				foreach (var glow in _glows)
 				{
+					var dir = glow.Dir;
+					var strength = glow.Strength * Mathf.SmoothStep(0.0f, 1.0f, glow.Alpha);
 					var align = (nx * dir.X + ny * dir.Y) / len;
 					if (align <= 0.0f)
 						continue;
