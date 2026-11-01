@@ -433,104 +433,19 @@ public partial class BloodBlessingRuntime : Node
         }
     }
 
-    private async void SpawnBloodPool(Vector3 position, float radiusOverride = 0.0f, float durationOverride = 0.0f, bool causesBleeding = false)
+    private void SpawnBloodPool(Vector3 position, float radiusOverride = 0.0f, float durationOverride = 0.0f, bool causesBleeding = false)
     {
         var baseRadius = radiusOverride > 0.0f ? radiusOverride : CompendiumTuning.GetFloat("blessing.pool.base_radius", 1.8f);
         var radius = baseRadius * (1.0f + RunState.GetEffectTotal("BloodPoolArea.Multiplier"));
         var baseDuration = durationOverride > 0.0f ? durationOverride : RunState.GetEffectParameter("BloodPoolOnKill", "duration", 4);
         var duration = (baseDuration + RunState.GetEffectTotal("BloodPoolDuration.Flat")) * TemporaryEffectDurationMultiplier();
         var expiresAt = Time.GetTicksMsec() / 1000.0 + duration;
-        if (TryMergeBloodPool(position, radius, expiresAt, causesBleeding))
-            return;
-
-        var pool = new Node3D { Name = "BloodPool" };
-        GetTree().CurrentScene.AddChild(pool);
-        pool.GlobalPosition = position + Vector3.Up * 0.025f;
-        pool.AddToGroup("blood_pools");
-        pool.SetMeta("radius", radius);
-        pool.SetMeta("causes_bleeding", causesBleeding);
-        pool.SetMeta("expires_at", expiresAt);
-        var random = new RandomNumberGenerator
-        {
-            Seed = (ulong)Mathf.Abs(Mathf.RoundToInt(position.X * 73856093.0f)
-                ^ Mathf.RoundToInt(position.Z * 19349663.0f)
-                ^ (int)(Time.GetTicksMsec() & 0x7fffffff))
-        };
-        var bloodMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = causesBleeding
-                ? new Color(0.24f, 0.015f, 0.025f, 0.72f)
-                : new Color(0.31f, 0.008f, 0.018f, 0.68f),
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            CullMode = BaseMaterial3D.CullModeEnum.Disabled
-        };
-        var surface = new MeshInstance3D
-        {
-            Name = "OrganicSurface",
-            Mesh = CreateOrganicPoolMesh(radius, random, 24, 0.22f),
-            MaterialOverride = bloodMaterial,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-        };
-        pool.AddChild(surface);
-        var sheen = new MeshInstance3D
-        {
-            Name = "SubtleSheen",
-            Mesh = CreateOrganicPoolMesh(radius * 0.56f, random, 18, 0.24f),
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.58f, 0.025f, 0.035f, 0.18f),
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                CullMode = BaseMaterial3D.CullModeEnum.Disabled
-            },
-            Position = new Vector3(radius * 0.16f, 0.008f, -radius * 0.12f),
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off
-        };
-        pool.AddChild(sheen);
-
-        pool.Scale = new Vector3(0.86f, 1.0f, 0.86f);
-        pool.CreateTween().TweenProperty(pool, "scale", Vector3.One, 0.22f)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.Out);
-
-        while (IsInstanceValid(pool))
-        {
-            var remaining = (double)pool.GetMeta("expires_at", expiresAt) - Time.GetTicksMsec() / 1000.0;
-            if (remaining <= 0.0)
-                break;
-            await ToSignal(GetTree().CreateTimer(Mathf.Min((float)remaining, 0.25f)), SceneTreeTimer.SignalName.Timeout);
-        }
-        if (!IsInstanceValid(pool))
-            return;
-
-        var fade = pool.CreateTween().SetParallel();
-        fade.TweenProperty(surface, "transparency", 1.0f, 0.28f);
-        fade.TweenProperty(sheen, "transparency", 1.0f, 0.28f);
-        fade.TweenProperty(pool, "scale", new Vector3(0.94f, 1.0f, 0.94f), 0.28f);
-        await ToSignal(fade, Tween.SignalName.Finished);
-        if (IsInstanceValid(pool))
-            pool.QueueFree();
-    }
-
-    private bool TryMergeBloodPool(Vector3 position, float radius, double expiresAt, bool causesBleeding)
-    {
-        foreach (var node in GetTree().GetNodesInGroup("blood_pools"))
-        {
-            if (node is not Node3D existing)
-                continue;
-            var existingRadius = (float)existing.GetMeta("radius", 1.8f);
-            if (radius > existingRadius * 1.15f
-                || existing.GlobalPosition.DistanceTo(position) > Mathf.Min(radius, existingRadius) * 0.72f)
-                continue;
-
-            var currentExpiry = (double)existing.GetMeta("expires_at", expiresAt);
-            existing.SetMeta("expires_at", Mathf.Max(currentExpiry, expiresAt));
-            if (causesBleeding)
-                existing.SetMeta("causes_bleeding", true);
-            return true;
-        }
-        return false;
+        // Poça simples de inimigo (ou outra já ativa) no local: a bênção a ativa; senão cria uma poça sem dono.
+        var existing = BloodPool.FindForActivation(GetTree(), position, radius);
+        if (existing != null)
+            existing.Activate(radius, expiresAt, causesBleeding);
+        else
+            BloodPool.SpawnActive(GetTree().CurrentScene, position, radius, expiresAt, causesBleeding);
     }
 
     private static ArrayMesh CreateOrganicPoolMesh(
