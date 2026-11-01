@@ -45,6 +45,27 @@ public partial class BloodPool : Node3D
     private static readonly Color Rim = new(0x3b / 255.0f, 0x17 / 255.0f, 0x25 / 255.0f);
     private static readonly Color Body = new(0x73 / 255.0f, 0x17 / 255.0f, 0x2d / 255.0f);
 
+    // Bolhas: enquanto a poça está ativada por uma bênção ela borbulha (4 quadros de 8x8: surge, cresce, brilha, estoura).
+    private const int BubbleFrames = 4;
+    private const int BubbleSize = 8;
+    private const float BubbleFps = 9.0f;
+    private const float BubbleInterval = 0.09f;
+    private const float BubbleHeight = 0.003f;
+    private const int MaxBubbles = 40;
+    private static readonly Color BubbleEdge = new(0xb4 / 255.0f, 0x20 / 255.0f, 0x2a / 255.0f);
+    private static readonly Color BubbleSpec = new(0xe8 / 255.0f, 0x6a / 255.0f, 0x73 / 255.0f);
+    private static readonly Color BubbleGlint = new(0xf5 / 255.0f, 0xa0 / 255.0f, 0x97 / 255.0f);
+    private static Texture2D _bubbleSheet;
+
+    private sealed class Bubble
+    {
+        public Sprite3D Sprite;
+        public float Age;
+    }
+
+    private readonly List<Bubble> _bubbles = new();
+    private float _bubbleTimer;
+
     private static Texture2D _fillSheet;
     private static Texture2D _outlineSheet;
     private static int _nextLayer;
@@ -347,6 +368,79 @@ public partial class BloodPool : Node3D
             }
         if (_activeUntil > 0.0 && Now >= _activeUntil)
             EndActivation();
+        UpdateBubbles(step);
+    }
+
+    private void UpdateBubbles(float step)
+    {
+        for (var i = _bubbles.Count - 1; i >= 0; i--)
+        {
+            var bubble = _bubbles[i];
+            bubble.Age += step;
+            var frame = (int)(bubble.Age * BubbleFps);
+            if (frame >= BubbleFrames)
+            {
+                bubble.Sprite.QueueFree();
+                _bubbles.RemoveAt(i);
+                continue;
+            }
+            bubble.Sprite.Frame = frame;
+        }
+        if (_draining || _activeUntil <= 0.0 || _bubbles.Count >= MaxBubbles)
+            return;
+        _bubbleTimer -= step;
+        if (_bubbleTimer > 0.0f)
+            return;
+        _bubbleTimer = BubbleInterval * (float)GD.RandRange(0.6, 1.4);
+        // Borbulha sobre as manchas ativadas (as extras; se não houver, qualquer uma).
+        var candidates = _blobs.FindAll(b => b.Extra && !b.Dying && !b.Dead && b.Age > 0.3f);
+        if (candidates.Count == 0)
+            candidates = _blobs.FindAll(b => !b.Dying && !b.Dead && b.Age > 0.3f);
+        if (candidates.Count == 0 || !LoadBubbleSheet())
+            return;
+        var blob = candidates[(int)(GD.Randi() % (uint)candidates.Count)];
+        var angle = (float)GD.RandRange(0.0, Mathf.Tau);
+        var distance = (float)GD.RandRange(0.0, 0.5);
+        var position = blob.Fill.Position + new Vector3(Mathf.Cos(angle) * distance, 0.0f, Mathf.Sin(angle) * distance / _stretch);
+        position.Y = BubbleHeight;
+        var sprite = new Sprite3D
+        {
+            Name = "Bubble",
+            Texture = _bubbleSheet,
+            Hframes = BubbleFrames,
+            PixelSize = PlayerSpriteVisual.PixelSize,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            AlphaCut = SpriteBase3D.AlphaCutMode.Discard,
+            Shaded = !GameMode.IsPixelArt,
+            DoubleSided = false,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            RotationDegrees = new Vector3(-90.0f, 0.0f, 0.0f),
+            Position = position,
+        };
+        AddChild(sprite);
+        _bubbles.Add(new Bubble { Sprite = sprite });
+    }
+
+    // Folha das bolhas desenhada em código só com cores da AAP-64 (as mesmas da folha da poça).
+    private static bool LoadBubbleSheet()
+    {
+        if (_bubbleSheet != null)
+            return true;
+        var image = Image.CreateEmpty(BubbleSize * BubbleFrames, BubbleSize, false, Image.Format.Rgba8);
+        void Px(int frame, int x, int y, Color color) => image.SetPixel(frame * BubbleSize + x, y, color);
+        // Quadro 0: um ponto brilhante.
+        Px(0, 3, 4, BubbleSpec); Px(0, 4, 4, BubbleSpec);
+        // Quadro 1: bolha pequena (anel 4x4).
+        for (var i = 2; i <= 5; i++) { Px(1, i, 2, BubbleEdge); Px(1, i, 5, BubbleEdge); Px(1, 2, i, BubbleEdge); Px(1, 5, i, BubbleEdge); }
+        Px(1, 3, 3, BubbleSpec);
+        // Quadro 2: bolha cheia (anel 6x6) com brilho.
+        for (var i = 1; i <= 6; i++) { Px(2, i, 1, BubbleEdge); Px(2, i, 6, BubbleEdge); Px(2, 1, i, BubbleEdge); Px(2, 6, i, BubbleEdge); }
+        Px(2, 1, 1, new Color(0, 0, 0, 0)); Px(2, 6, 1, new Color(0, 0, 0, 0)); Px(2, 1, 6, new Color(0, 0, 0, 0)); Px(2, 6, 6, new Color(0, 0, 0, 0));
+        Px(2, 3, 3, BubbleGlint); Px(2, 4, 3, BubbleSpec); Px(2, 3, 4, BubbleSpec);
+        // Quadro 3: estouro (respingos soltos).
+        Px(3, 1, 3, BubbleSpec); Px(3, 6, 3, BubbleSpec); Px(3, 3, 1, BubbleSpec); Px(3, 4, 6, BubbleSpec); Px(3, 2, 6, BubbleEdge); Px(3, 5, 1, BubbleEdge);
+        _bubbleSheet = ImageTexture.CreateFromImage(image);
+        return true;
     }
 
     // Seca a poça de trás para frente (quadros do espalhar ao contrário). Roda mesmo com a árvore pausada.
