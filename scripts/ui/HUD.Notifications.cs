@@ -382,10 +382,10 @@ public partial class HUD
 		}
 		var rings = new (FamilyRing Ring, Vector3 Offset, Color Color)[]
 		{
-			(FamilyRing.Claws, new Vector3(4.0f, 0.0f, 0.0f), new Color(0.93f, 0.4f, 0.3f)),
-			(FamilyRing.Bagua, new Vector3(-4.0f, 0.0f, 0.0f), new Color(0.9f, 0.5f, 0.75f)),
-			(FamilyRing.Moon, new Vector3(0.0f, 0.0f, 4.0f), new Color(0.7f, 0.7f, 1.0f)),
-			(FamilyRing.Shadow, new Vector3(0.0f, 0.0f, -4.0f), new Color(0.6f, 0.3f, 0.9f))
+			(FamilyRing.Claws, new Vector3(3.5f, 0.0f, 0.0f), new Color(0.93f, 0.4f, 0.3f)),
+			(FamilyRing.Bagua, new Vector3(0.0f, 0.0f, 3.5f), new Color(0.9f, 0.5f, 0.75f)),
+			(FamilyRing.Moon, new Vector3(3.5f, 0.0f, 7.0f), new Color(0.7f, 0.7f, 1.0f)),
+			(FamilyRing.Shadow, new Vector3(7.0f, 0.0f, 3.5f), new Color(0.6f, 0.3f, 0.9f))
 		};
 		foreach (var (ring, offset, color) in rings)
 			FamilyFx.Pulse(player, origin + offset, 3.0f, color, 0.6f, ring);
