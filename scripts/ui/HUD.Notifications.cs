@@ -391,6 +391,47 @@ public partial class HUD
 			FamilyFx.Pulse(player, origin + offset, 3.0f, color, 0.6f, ring);
 	}
 
+	// Preview "charm_burst_N" / "life_steal_orb_1" / "enemy_states_N" (debug): explosão do encanto (Karnstein, raio 2,5 m),
+	// orbe de roubo de vida (Dracul) voando de 5 m até o Virgil, e 4 inimigos em fila com um estado novo cada (marca da sombra,
+	// mutilação, selo e pesadelo = dormindo). Os atrasos fazem as capturas (0,8 s após a abertura) pegarem instantes diferentes.
+	internal async void PreviewFamilyEffects(string screen)
+	{
+		var delay = screen switch
+		{
+			"charm_burst_1" => 0.5f, "charm_burst_2" => 0.65f, "life_steal_orb_1" => 0.65f, "enemy_states_1" => 0.5f, _ => 0.1f
+		};
+		await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not PlayerController player)
+			return;
+		var runtime = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
+		var origin = player.GlobalPosition;
+		if (screen.StartsWith("charm_burst"))
+		{
+			runtime?.SpawnCharmedDeathExplosion(origin + new Vector3(3.0f, 0.0f, 0.0f), 2.5f);
+			return;
+		}
+		if (screen == "life_steal_orb_1")
+		{
+			runtime?.SpawnLifeStealTrail(origin + new Vector3(5.0f, 0.0f, 0.0f), origin);
+			return;
+		}
+		if (GetTree().GetFirstNodeInGroup("room_generator") is not RoomGenerator generator)
+			return;
+		for (var i = 0; i < 4; i++)
+		{
+			var enemy = generator.DevSpawnEnemy(origin + new Vector3(4.0f, 0.2f, -3.0f + 2.0f * i), EnemyRarity.Normal, null);
+			if (enemy == null)
+				continue;
+			switch (i)
+			{
+				case 0: enemy.ApplyShadowMark(10.0f); break;
+				case 1: enemy.ApplyMaul(3, 10.0f); break;
+				case 2: enemy.ApplySeal(10.0f); break;
+				default: enemy.FallAsleep(10.0f); break;
+			}
+		}
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{

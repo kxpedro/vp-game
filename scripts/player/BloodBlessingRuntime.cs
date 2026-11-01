@@ -682,7 +682,7 @@ public partial class BloodBlessingRuntime : Node
         GetTree().CreateTimer(0.6f).Timeout += () => { if (IsInstanceValid(root)) root.QueueFree(); };
     }
 
-    private async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
+    internal async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
     {
         var scene = GetTree()?.CurrentScene;
         if (scene == null)
@@ -957,7 +957,7 @@ public partial class BloodBlessingRuntime : Node
     }
 
     // Roubo de vida = Dracul: o orbe sai na cor da família que declara "life_steal" (vermelho se nenhuma).
-    private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
+    internal async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
     {
         if (GameMode.IsPixelArt)
         {
