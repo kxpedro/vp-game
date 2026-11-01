@@ -324,7 +324,12 @@ public partial class HUD
 		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
 			return;
 		var runtime = player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime");
-		runtime?.SpawnPestilenceCloud(player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f), 0.0f, 5.0f, 3.2f);
+		var center = player.GlobalPosition + new Vector3(3.0f, 0.0f, 0.0f);
+		// 3 inimigos dentro do raio da névoa, para conferir como ela os cobre.
+		if (GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
+			foreach (var offset in new[] { new Vector3(-1.0f, 0.0f, 0.6f), new Vector3(1.2f, 0.0f, 0.2f), new Vector3(0.1f, 0.0f, 1.4f) })
+				generator.DevSpawnEnemy(new Vector3(center.X + offset.X, 0.2f, center.Z + offset.Z), EnemyRarity.Normal, null);
+		runtime?.SpawnPestilenceCloud(center, 0.0f, 5.0f, 3.2f);
 	}
 
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
