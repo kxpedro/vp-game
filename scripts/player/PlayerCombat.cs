@@ -756,6 +756,12 @@ public partial class PlayerCombat : Node
 	private async void SpawnAttackSlash(WeaponAttackDefinition attack, PlayerAttackType attackType, bool isHeavy)
 	{
 		var player = GetParent<Node3D>();
+		if (GameMode.IsPixelArt)
+		{
+			var (fillColor, edgeColor) = PixelAttackFx.Colors(attackType, isHeavy);
+			PixelAttackFx.SpawnArc(player, attack.Range + GetEdgeForgiveness(attackType), EquippedWeapon.TunedAttackArcDegrees, fillColor, edgeColor);
+			return;
+		}
 		// Indicador do JOGADOR: ciano (leve) / branco-dourado (pesado). Vermelho e reservado ao perigo dos inimigos.
 		var fillMaterial = new StandardMaterial3D
 		{
@@ -798,6 +804,12 @@ public partial class PlayerCombat : Node
 	private async void SpawnRadialAttackCircle(WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
+		if (GameMode.IsPixelArt)
+		{
+			var (fillColor, edgeColor) = PixelAttackFx.Colors(attackType, attackType == PlayerAttackType.Special);
+			PixelAttackFx.SpawnArc(player, attack.Range + GetEdgeForgiveness(attackType), 360.0f, fillColor, edgeColor, 0.2f);
+			return;
+		}
 		var fillMaterial = new StandardMaterial3D
 		{
 			AlbedoColor = new Color(0.45f, 0.85f, 1.0f, 0.22f),
@@ -880,6 +892,12 @@ public partial class PlayerCombat : Node
 	private async void SpawnThrustIndicator(WeaponAttackDefinition attack, PlayerAttackType attackType)
 	{
 		var player = GetParent<Node3D>();
+		if (GameMode.IsPixelArt)
+		{
+			var (fillColor, edgeColor) = PixelAttackFx.Colors(attackType, attackType == PlayerAttackType.Special);
+			PixelAttackFx.SpawnLine(player, attack.Range + GetEdgeForgiveness(attackType), attack.Width, fillColor, edgeColor);
+			return;
+		}
 		var material = new StandardMaterial3D
 		{
 			AlbedoColor = new Color(0.75f, 0.95f, 1.0f, 0.78f),
