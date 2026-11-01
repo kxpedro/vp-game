@@ -116,4 +116,43 @@ public static class PixelArenaLayout
             layout.Props.AddRange(extraProps);
         return layout;
     }
+
+    /// <summary>
+    /// Ala Superior do Castelo (mapa 3): mesma montagem com o kit "castle". Os tiles de <paramref name="blocked"/>
+    /// (colunas, estantes, mesas...) ficam no layout para o chão e a borda saírem certos, mas sem decoração. A mobília
+    /// vem em <paramref name="extraProps"/>; aqui entram só os vitrais nas paredes do fundo.
+    /// </summary>
+    public static PixelRoomLayout BuildCastle(HashSet<Vector2I> tiles, HashSet<Vector2I> blocked, Vector2I? exitTile, Vector2I exitOutward,
+        IEnumerable<PixelRoomProp> extraProps, ulong seed)
+    {
+        var layout = new PixelRoomLayout { Seed = (int)(seed % int.MaxValue), Kit = "castle" };
+        foreach (var tile in tiles)
+            layout.Tiles[tile] = 0.0f;
+
+        var rng = new RandomNumberGenerator { Seed = seed };
+        bool Has(int x, int y) => tiles.Contains(new Vector2I(x, y));
+        bool NearExit(Vector2I tile) => exitTile is { } exit && Mathf.Abs(tile.X - exit.X) + Mathf.Abs(tile.Y - exit.Y) <= 2;
+
+        if (exitTile is { } exitAt && EdgeForOutward(exitOutward) is { } exitSide)
+            layout.Edges[(exitAt.X, exitAt.Y, exitSide)] = exitSide is "ne" or "nw" ? "arch" : "gap";
+
+        foreach (var tile in tiles.OrderBy(t => t.X).ThenBy(t => t.Y))
+        {
+            if ((blocked != null && blocked.Contains(tile)) || NearExit(tile))
+                continue;
+            int x = tile.X, y = tile.Y;
+            bool ne = !Has(x, y - 1), nw = !Has(x - 1, y);
+
+            // Janela de vitral ("niche" no kit do castelo) de vez em quando nas paredes do fundo.
+            var roll = rng.Randf();
+            if (ne && !nw && roll < 0.25f)
+                layout.Edges[(x, y, "ne")] = "niche";
+            else if (nw && !ne && roll < 0.25f)
+                layout.Edges[(x, y, "nw")] = "niche";
+        }
+
+        if (extraProps != null)
+            layout.Props.AddRange(extraProps);
+        return layout;
+    }
 }

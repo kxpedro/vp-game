@@ -14,6 +14,7 @@ public static class EnemyVisualCatalog
 {
     // Indice do Jardim Sangrento em CampaignCatalog (plantas no 2D).
     public const int GardenMapIndex = 1;
+    public const int CastleMapIndex = 2;
 
     private static readonly System.Collections.Generic.Dictionary<string, Godot.PackedScene> SceneCache = new();
 

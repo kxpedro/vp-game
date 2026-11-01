@@ -34,6 +34,13 @@ public partial class RoomGenerator
     {
         // Sala ímpar = clareira, par = corredores (a 1ª sala do mapa é a clareira).
         var plan = RunState.CurrentRoom % 2 == 0 ? BuildGardenMaze() : BuildGardenClearing();
+        ApplyGridPlan(plan);
+    }
+
+    // Aplica uma planta em tiles (jardim ou castelo): células caminháveis, arena de combate e posições de entrada,
+    // foco, recompensa e saída.
+    private void ApplyGridPlan(GardenPlan plan)
+    {
         _gardenPlan = plan;
 
         foreach (var tile in plan.Tiles)
