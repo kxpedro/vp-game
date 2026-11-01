@@ -319,6 +319,31 @@ Minha recomendação: combinar **1 (principal), 2 e 3**, com **4** para slots. O
 - Onde o jogador escolhe: na saída do hub, antes da sala de bênção inicial.
 - Lista inicial de efeitos (sem repetir artefatos).
 
+### 10.9 Nome e estrutura do hub; vários hubs por ato (brainstorm)
+
+**Nome do hub.** "Ninho do Corvo" (en: Crow's Nest, es: Nido del Cuervo) foi escolhido antes, mas o mapa ficou com visual de **cripta/catacumba em ruínas**, então o nome pode não combinar. O Pedro quer reavaliar. O nome aparece só em textos de localização (por exemplo na fala `first_hub_arrival` e no compêndio); os IDs de cena e código (`CrowsNest`) não precisam mudar, só o nome exibido. **[EM ABERTO]** Manter ou trocar. Se trocar, ideias para escolher: algo ligado a cripta e sangue (por exemplo "A Cripta", "Ossuário", "Catacumbas do Sangue"), ou manter o corvo se ele tiver razão na história (o Cronista, tinta, penas).
+
+**Ideia de vários hubs por ato.** Hoje a campanha tem 4 níveis em `CampaignCatalog` (`armands_dungeons`, `blood_garden`, `upper_castle`, `armands_throne`) e um único hub. A proposta do Pedro: o que existe hoje vira o **ato 1**. Ao concluir, desbloqueia-se um **novo hub** com **4 níveis novos** (3 bosses normais mais um boss final), e depois um **terceiro ato**, também com hub e níveis próprios, que fecha a história. Referência levantada pelo Pedro: o Hades 1 tem 3 mapas e um quarto com o boss final, e o Hades 2 tem subida e descida com 4 níveis cada.
+
+Minha leitura:
+- **A favor:** dá sensação real de progresso e de mundo maior; combina com a divisão do pool de diálogos por atos; o hub novo é uma recompensa visual; permite novos NPCs e novas Heranças por ato.
+- **Custo:** é o item mais caro de todo o brainstorm. São 3 hubs, 12 níveis, até 9 bosses normais e 3 finais, mais inimigos, arte e diálogos. O jogo hoje tem 4 níveis e 4 bosses.
+- **Conflito com o roteiro:** na abertura, Virgil perde para Armand no trono, e Armand é o boss final do mapa 4 atual. Se cada ato tem um boss final, o **Armand seria o final do ato 1 ou só do último?** Isso precisa ser decidido, assim como o que Armand faz nos outros atos.
+- **Conflito com o final que encerra o save:** com 3 atos, cada final só aparece depois de percorrer o ato 3, ou os finais podem acontecer em atos diferentes.
+
+Alternativas mais baratas que capturam parte do benefício:
+- **Um hub que evolui por ato:** o mesmo lugar muda de aparência e ganha áreas novas conforme a história (no Hades a casa também evolui), sem 3 hubs separados.
+- **Ato 1 completo primeiro:** deixar a estrutura em dados (`CampaignCatalog` por ato), entregar o ato 1 e tratar os atos 2 e 3 como expansão posterior.
+- **2 atos em vez de 3.**
+
+Minha recomendação: manter **um hub que evolui** no começo, e preparar o código para **atos** como lista de níveis, para poder adicionar o ato 2 depois sem refazer. Antes de decidir, definir **o que é o ato 1 na história** e qual é o papel do Armand em cada ato.
+
+**[EM ABERTO]**
+- Nome do hub.
+- Um hub que evolui ou um hub por ato.
+- Quantos atos, e se o ato 1 atual já é um jogo completo.
+- O papel do Armand em cada ato e o fim da história no ato final.
+
 ## 11. Implementação (não planejada)
 
 Fica para depois da aprovação do roteiro. Pontos já identificados:
