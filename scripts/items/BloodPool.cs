@@ -19,7 +19,20 @@ using Godot;
 public partial class BloodPool : Node3D
 {
     public const string Group = "blood_pools";
-    private const string SheetPath = "res://assets/pixel_art/effects/blood_pool/blood_pool_sheet.png";
+    // Quatro tamanhos de poça (gerados por tools/pixel_art/blood_pool): P 64x32, M 128x64, G 192x96, GG 256x128 por quadro.
+    private static readonly string[] SheetPaths =
+    {
+        "res://assets/pixel_art/effects/blood_pool/blood_pool_sheet.png",
+        "res://assets/pixel_art/effects/blood_pool/blood_pool_m_sheet.png",
+        "res://assets/pixel_art/effects/blood_pool/blood_pool_g_sheet.png",
+        "res://assets/pixel_art/effects/blood_pool/blood_pool_gg_sheet.png",
+    };
+    // Alcance de jogo de cada tamanho (m); o P vem do tuning (enemy.blood_pool.radius).
+    private static readonly float[] TierReach = { 0.9f, 1.2f, 1.7f, 2.2f };
+    // Mortes (massa) que uma poça precisa para chegar a cada tamanho.
+    private static readonly int[] TierMass = { 1, 2, 4, 7 };
+    private const int TierCount = 4;
+    private const int Gg = TierCount - 1;
     private const int Columns = 12;
     private const int Variants = 3;
     private const int SpreadFrames = 8;
@@ -33,14 +46,9 @@ public partial class BloodPool : Node3D
     // Dentro da poça: contornos no chão da poça, preenchimentos um pouco acima (cada mancha um degrau).
     private const float FillBase = 0.001f;
     private const float FillStep = 0.00003f;
-    private const int MaxBlobs = 48;
-    // Nova morte a até esta distância de uma mancha entra na mesma poça (m).
-    private const float JoinDistance = 1.1f;
-    // Duas manchas de inimigos não ficam mais perto que isso (empurra a nova).
-    private const float MinSeparation = 0.45f;
-    private const float RingSpacing = 0.9f;
-    private const float RingArc = 1.1f;
-    private const float ExtraReach = 0.65f;
+    private const int MaxBlobs = 24;
+    // Nova morte a até esta distância da borda de uma poça entra nela (m).
+    private const float JoinDistance = 0.6f;
     private const float ShrinkDuration = 0.35f;
     private static readonly Color Rim = new(0x3b / 255.0f, 0x17 / 255.0f, 0x25 / 255.0f);
     private static readonly Color Body = new(0x73 / 255.0f, 0x17 / 255.0f, 0x2d / 255.0f);
@@ -66,8 +74,8 @@ public partial class BloodPool : Node3D
     private readonly List<Bubble> _bubbles = new();
     private float _bubbleTimer;
 
-    private static Texture2D _fillSheet;
-    private static Texture2D _outlineSheet;
+    private static readonly Texture2D[] _fillSheets = new Texture2D[TierCount];
+    private static readonly Texture2D[] _outlineSheets = new Texture2D[TierCount];
     private static int _nextLayer;
 
     // Uma mancha: duas camadas da mesma célula da folha. Age < 0 = esperando; Dying = secando (quadros de trás para frente).
@@ -76,6 +84,8 @@ public partial class BloodPool : Node3D
         public Sprite3D Outline;
         public Sprite3D Fill;
         public int Variant;
+        public int Tier;
+        public int Mass = 1;
         public float Age;
         public float ShimmerOffset;
         public float Reach;
@@ -104,36 +114,80 @@ public partial class BloodPool : Node3D
     private static float SimpleRadius => Mathf.Max(CompendiumTuning.GetFloat("enemy.blood_pool.radius", 0.9f), 0.3f);
     private static double Now => Time.GetTicksMsec() / 1000.0;
 
-    // Poça do inimigo morto: entra na poça simples mais próxima (se houver uma a até JoinDistance) ou cria outra.
-    // delay: espera o corpo cair antes de o sangue começar a escorrer.
+    // Poça do inimigo morto: soma sangue (massa) à poça simples próxima, que cresce para o tamanho seguinte quando a massa
+    // chega ao limite; sem poça por perto cria outra. delay: espera o corpo cair antes de o sangue começar a escorrer.
     public static BloodPool Spawn(Node parent, Vector3 position, float delay)
     {
-        if (parent == null || LoadSheets() == false)
+        if (parent == null || !LoadSheets())
             return null;
         var flat = new Vector3(position.X, 0.0f, position.Z);
         foreach (var node in parent.GetTree().GetNodesInGroup(Group))
         {
             if (node is not BloodPool pool || !pool.Persistent || pool._draining || pool.IsQueuedForDeletion())
                 continue;
-            var nearest = pool.NearestBlobDistance(flat, out var nearestPoint);
-            if (nearest > JoinDistance)
-                continue;
-            if (nearest < MinSeparation)
-            {
-                var away = flat - nearestPoint;
-                away = away.Length() > 0.01f ? away.Normalized() : Vector3.Right.Rotated(Vector3.Up, (float)GD.RandRange(0.0, Mathf.Tau));
-                flat = nearestPoint + away * MinSeparation;
-            }
-            pool.AddBlob(flat, delay, false);
-            return pool;
+            if (pool.AddBlood(flat, delay))
+                return pool;
         }
         return Create(parent, flat, delay, true);
     }
 
+    // Soma o sangue de uma morte à poça simples mais próxima do ponto (dentro do alcance + JoinDistance).
+    private bool AddBlood(Vector3 point, float delay)
+    {
+        Blob target = null;
+        var best = float.MaxValue;
+        foreach (var blob in _blobs)
+        {
+            if (blob.Extra || blob.Dead || blob.Dying)
+                continue;
+            var center = blob.Fill.GlobalPosition;
+            var gap = new Vector2(center.X - point.X, center.Z - point.Z).Length() - blob.Reach;
+            if (gap < best)
+            {
+                best = gap;
+                target = blob;
+            }
+        }
+        if (target == null || best > JoinDistance)
+            return false;
+        target.Mass++;
+        var wanted = TierForMass(target.Mass);
+        if (wanted > target.Tier)
+        {
+            // Cresce para o tamanho seguinte, voltando a se espalhar; o centro anda um pouco rumo ao novo sangue.
+            var center = target.Fill.GlobalPosition;
+            MoveBlob(target, center.Lerp(point, 0.35f));
+            SetTier(target, wanted, -0.2f);
+        }
+        else if (target.Tier == Gg && best > TierReach[Gg] * 0.3f && _blobs.Count < MaxBlobs)
+            // Já é o maior: uma morte longe do centro abre outra poça GG ao lado.
+            AddBlob(point, delay, false, Gg);
+        return true;
+    }
+
+    private static int TierForMass(int mass)
+    {
+        var tier = 0;
+        for (var i = 1; i < TierCount; i++)
+            if (mass >= TierMass[i])
+                tier = i;
+        return tier;
+    }
+
+    private static int TierForRadius(float radius)
+    {
+        for (var i = 0; i < TierCount; i++)
+            if (radius <= TierReach[i] + 0.2f)
+                return i;
+        return Gg;
+    }
+
+    private static float ReachOf(int tier) => tier == 0 ? SimpleRadius : TierReach[tier];
+
     // Poça criada por uma bênção em chão limpo: já nasce ativa e seca inteira quando o tempo acaba.
     public static BloodPool SpawnActive(Node parent, Vector3 position, float radius, double expiresAt, bool causesBleeding)
     {
-        if (parent == null || LoadSheets() == false)
+        if (parent == null || !LoadSheets())
             return null;
         var pool = Create(parent, new Vector3(position.X, 0.0f, position.Z), 0.0f, false);
         pool?.Activate(position, radius, expiresAt, causesBleeding);
@@ -187,7 +241,7 @@ public partial class BloodPool : Node3D
         _stretch = 1.0f / Mathf.Max(Mathf.Sin(Mathf.Clamp(pitch, 0.2f, Mathf.Pi / 2.0f)), 0.2f);
         Rotation = new Vector3(0.0f, yaw, 0.0f);
         Scale = new Vector3(1.0f, 1.0f, _stretch);
-        AddBlob(GlobalPosition, _firstDelay, _firstExtra);
+        AddBlob(GlobalPosition, _firstDelay, _firstExtra, 0);
         SyncMeta();
     }
 
@@ -218,7 +272,7 @@ public partial class BloodPool : Node3D
         return best;
     }
 
-    private void AddBlob(Vector3 worldPoint, float delay, bool extra)
+    private void AddBlob(Vector3 worldPoint, float delay, bool extra, int tier)
     {
         if (_blobs.Count >= MaxBlobs)
             return;
@@ -227,8 +281,8 @@ public partial class BloodPool : Node3D
         var variant = (int)(GD.Randi() % Variants);
         var flip = GD.Randf() < 0.5f;
         var index = _blobs.Count;
-        var outline = MakeSprite(_outlineSheet, variant, flip, new Vector3(local.X, 0.0f, local.Z));
-        var fill = MakeSprite(_fillSheet, variant, flip, new Vector3(local.X, FillBase + index * FillStep, local.Z));
+        var outline = MakeSprite(_outlineSheets[tier], variant, flip, new Vector3(local.X, 0.0f, local.Z));
+        var fill = MakeSprite(_fillSheets[tier], variant, flip, new Vector3(local.X, FillBase + index * FillStep, local.Z));
         AddChild(outline);
         AddChild(fill);
         _blobs.Add(new Blob
@@ -236,11 +290,29 @@ public partial class BloodPool : Node3D
             Outline = outline,
             Fill = fill,
             Variant = variant,
+            Tier = tier,
             Age = -delay,
             ShimmerOffset = (float)GD.RandRange(0.0, ShimmerFrames / ShimmerFps),
-            Reach = extra ? ExtraReach : SimpleRadius,
+            Reach = ReachOf(tier),
             Extra = extra,
         });
+    }
+
+    // Troca a mancha pelo tamanho dado (mesma variante) e a faz se espalhar de novo (delay negativo = já começa espalhada).
+    private void SetTier(Blob blob, int tier, float delay)
+    {
+        blob.Tier = tier;
+        blob.Reach = ReachOf(tier);
+        blob.Outline.Texture = _outlineSheets[tier];
+        blob.Fill.Texture = _fillSheets[tier];
+        blob.Age = -delay;
+    }
+
+    private void MoveBlob(Blob blob, Vector3 world)
+    {
+        var local = ToLocal(new Vector3(world.X, GlobalPosition.Y, world.Z));
+        blob.Outline.Position = new Vector3(local.X, 0.0f, local.Z);
+        blob.Fill.Position = new Vector3(local.X, blob.Fill.Position.Y, local.Z);
     }
 
     private static Sprite3D MakeSprite(Texture2D texture, int variant, bool flip, Vector3 position)
@@ -266,37 +338,47 @@ public partial class BloodPool : Node3D
         };
     }
 
-    // Ativa a poça que contém o ponto até expiresAt (segundos do relógio do jogo): acrescenta manchas ao redor do ponto
-    // até o raio pedido (onde ainda não há mancha) e estende o tempo.
+    // Ativa a poça que contém o ponto até expiresAt (segundos do relógio do jogo): põe sobre ela uma poça do tamanho do
+    // raio da bênção (raios grandes: várias poças GG em anel) e estende o tempo. As poças extras secam no fim.
     public void Activate(Vector3 center, float radius, double expiresAt, bool causesBleeding)
     {
         if (_draining)
             return;
         var flat = new Vector3(center.X, 0.0f, center.Z);
-        var spots = new List<Vector3> { flat };
-        for (var ring = 1; ; ring++)
+        var tier = TierForRadius(radius);
+        EnsureExtra(flat, tier);
+        if (radius > TierReach[Gg] + 0.2f)
         {
-            var distance = ring * RingSpacing;
-            if (distance > radius - 0.3f)
-                break;
-            var count = Mathf.Max(Mathf.RoundToInt(Mathf.Tau * distance / RingArc), 4);
-            var phase = ring * 0.9f + (float)(center.X * 1.7 + center.Z * 2.3);
-            for (var i = 0; i < count; i++)
+            var ringDistance = TierReach[Gg] * 0.9f;
+            for (var ring = 1; ringDistance * ring <= radius - TierReach[Gg] * 0.4f; ring++)
             {
-                var angle = phase + Mathf.Tau * i / count;
-                spots.Add(flat + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * distance);
+                var distance = ringDistance * ring;
+                var count = Mathf.Max(Mathf.RoundToInt(Mathf.Tau * distance / (TierReach[Gg] * 1.1f)), 4);
+                var phase = ring * 0.9f + (float)(center.X * 1.7 + center.Z * 2.3);
+                for (var i = 0; i < count; i++)
+                {
+                    var angle = phase + Mathf.Tau * i / count;
+                    EnsureExtra(flat + new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * distance, Gg);
+                }
             }
-        }
-        var n = 0;
-        foreach (var spot in spots)
-        {
-            if (NearestBlobDistance(spot, out _) < 0.5f)
-                continue;
-            AddBlob(spot, 0.04f * (n++ % 6) + (float)GD.RandRange(0.0, 0.06), true);
         }
         _activeUntil = Math.Max(_activeUntil, expiresAt);
         CausesBleeding |= causesBleeding;
         SyncMeta();
+    }
+
+    // Garante uma poça extra de pelo menos este tamanho perto do ponto (não duplica uma já ativa ali).
+    private void EnsureExtra(Vector3 point, int tier)
+    {
+        foreach (var blob in _blobs)
+        {
+            if (!blob.Extra || blob.Dying || blob.Dead || blob.Tier < tier)
+                continue;
+            var center = blob.Fill.GlobalPosition;
+            if (new Vector2(center.X - point.X, center.Z - point.Z).Length() < Mathf.Max(blob.Reach * 0.5f, 0.4f))
+                return;
+        }
+        AddBlob(point, (float)GD.RandRange(0.0, 0.08), true, tier);
     }
 
     private void SyncMeta()
@@ -401,7 +483,7 @@ public partial class BloodPool : Node3D
             return;
         var blob = candidates[(int)(GD.Randi() % (uint)candidates.Count)];
         var angle = (float)GD.RandRange(0.0, Mathf.Tau);
-        var distance = (float)GD.RandRange(0.0, 0.5);
+        var distance = (float)GD.RandRange(0.0, blob.Reach * 0.55);
         var position = blob.Fill.Position + new Vector3(Mathf.Cos(angle) * distance, 0.0f, Mathf.Sin(angle) * distance / _stretch);
         position.Y = BubbleHeight;
         var sprite = new Sprite3D
@@ -486,15 +568,31 @@ public partial class BloodPool : Node3D
         blob.Fill.Frame = frame;
     }
 
-    // Da folha original (contorno + corpo) saem duas folhas: o preenchimento (o contorno interno vira corpo) e só o
+    // De cada folha original (contorno + corpo) saem duas: o preenchimento (o contorno interno vira corpo) e só o
     // contorno (a silhueta engordada em 1 pixel). Só usa cores que já estão na folha (paleta AAP-64).
     private static bool LoadSheets()
     {
-        if (_fillSheet != null && _outlineSheet != null)
+        if (_fillSheets[0] != null)
             return true;
-        var image = PixelRoomComposer.LoadImage(SheetPath);
-        if (image == null)
-            return false;
+        for (var tier = 0; tier < TierCount; tier++)
+        {
+            var image = PixelRoomComposer.LoadImage(SheetPaths[tier]);
+            if (image == null)
+            {
+                // Falta um tamanho: usa o P no lugar, para a poça aparecer de qualquer jeito.
+                if (tier == 0)
+                    return false;
+                _fillSheets[tier] = _fillSheets[0];
+                _outlineSheets[tier] = _outlineSheets[0];
+                continue;
+            }
+            SplitSheet(image, out _fillSheets[tier], out _outlineSheets[tier]);
+        }
+        return true;
+    }
+
+    private static void SplitSheet(Image image, out Texture2D fillTexture, out Texture2D outlineTexture)
+    {
         var width = image.GetWidth();
         var height = image.GetHeight();
         var fill = Image.CreateEmpty(width, height, false, Image.Format.Rgba8);
@@ -520,8 +618,7 @@ public partial class BloodPool : Node3D
                         outline.SetPixel(x + dx, y + dy, Rim);
             }
         }
-        _fillSheet = ImageTexture.CreateFromImage(fill);
-        _outlineSheet = ImageTexture.CreateFromImage(outline);
-        return true;
+        fillTexture = ImageTexture.CreateFromImage(fill);
+        outlineTexture = ImageTexture.CreateFromImage(outline);
     }
 }

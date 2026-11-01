@@ -32,6 +32,7 @@ SPEC = C("e86a73")
 TWINKLE = C("f5a097")
 
 CELL_W, CELL_H = 64, 32
+K = 1  # fator de tamanho da folha em geração (reflexos e brilhos acompanham)
 SPREAD_FRAMES = 8
 SHIMMER_FRAMES = 4
 VARIANTS = 3
@@ -105,7 +106,7 @@ def render(lobes, splats, t, shimmer=None):
 
     # Reflexo especular perto do centro, só quando a poça já tem corpo.
     if t >= 0.5:
-        sx, sy = int(round(cx - 4)), int(round(cy - 2))
+        sx, sy = int(round(cx - 4 * K)), int(round(cy - 2 * K))
         if shimmer is not None:
             sx += (0, 1, 1, 0)[shimmer]
         for dx, dy in ((0, 0), (1, 0), (2, 0), (-1, 1)):
@@ -118,7 +119,7 @@ def render(lobes, splats, t, shimmer=None):
                 img[y, x] = TWINKLE
         # Segundo reflexo menor, que pisca no loop.
         if shimmer in (1, 2):
-            x, y = int(round(cx + 6)), int(round(cy + 2))
+            x, y = int(round(cx + 6 * K)), int(round(cy + 2 * K))
             if inside[y, x] and not edge[y, x]:
                 img[y, x] = SPEC
 
@@ -134,21 +135,59 @@ def render(lobes, splats, t, shimmer=None):
     return img
 
 
+def make_big_variant(seed, k, nlobes):
+    """Poça maior (M/G/GG): silhueta própria, mais lóbulos e respingos, em vez de várias P coladas."""
+    rng = np.random.default_rng(seed)
+    lobes = [(0.0, 0.0, 9.5 * k, 0.0)]
+    for _ in range(2 + k):
+        lobes.append((rng.uniform(-5, 5) * k, rng.uniform(-3, 3) * k, rng.uniform(6, 8) * k * 0.85, 0.05))
+    base = rng.uniform(0, 2 * np.pi)
+    for i in range(nlobes):
+        ang = base + i * 2 * np.pi / nlobes + rng.uniform(-0.4, 0.4)
+        dist = rng.uniform(8, 13) * k
+        r = rng.uniform(3.6, 6.2) * (0.9 + 0.35 * k)
+        lobes.append((np.cos(ang) * dist, np.sin(ang) * dist, r, rng.uniform(0.1, 0.45)))
+        if rng.random() < 0.55:
+            d2 = dist + rng.uniform(4, 7) * k
+            lobes.append((np.cos(ang) * d2, np.sin(ang) * d2, r * 0.55, 0.4))
+    splats = []
+    for _ in range(3 + 2 * k):
+        ang = rng.uniform(0, 2 * np.pi)
+        dist = rng.uniform(17, 22) * (0.8 + 0.7 * k)
+        splats.append((np.cos(ang) * dist, np.sin(ang) * dist * 0.5, int(rng.integers(1, 3)), 0))
+    return lobes, splats
+
+
+# (arquivo, fator de tamanho, lóbulos de borda) — P é a folha original (blood_pool_sheet.png).
+TIERS = [
+    ("blood_pool_sheet.png", 1, None),
+    ("blood_pool_m_sheet.png", 2, 11),
+    ("blood_pool_g_sheet.png", 3, 15),
+    ("blood_pool_gg_sheet.png", 4, 19),
+]
+
+
 def main():
+    global CELL_W, CELL_H, K
     root = Path(__file__).resolve().parents[3]
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "assets/pixel_art/effects/blood_pool"
     out.mkdir(parents=True, exist_ok=True)
     cols = SPREAD_FRAMES + SHIMMER_FRAMES
-    sheet = np.zeros((CELL_H * VARIANTS, CELL_W * cols, 4), np.uint8)
-    for v in range(VARIANTS):
-        lobes, splats = make_variant(1701 + v * 37)
-        for k in range(SPREAD_FRAMES):
-            t = (k + 1) / SPREAD_FRAMES
-            sheet[v * CELL_H:(v + 1) * CELL_H, k * CELL_W:(k + 1) * CELL_W] = render(lobes, splats, t)
-        for s in range(SHIMMER_FRAMES):
-            c = SPREAD_FRAMES + s
-            sheet[v * CELL_H:(v + 1) * CELL_H, c * CELL_W:(c + 1) * CELL_W] = render(lobes, splats, 1.0, s)
-    Image.fromarray(sheet, "RGBA").save(out / "blood_pool_sheet.png")
+    for name, k, nlobes in TIERS:
+        CELL_W, CELL_H, K = 64 * k, 32 * k, k
+        sheet = np.zeros((CELL_H * VARIANTS, CELL_W * cols, 4), np.uint8)
+        for v in range(VARIANTS):
+            if nlobes is None:
+                lobes, splats = make_variant(1701 + v * 37)
+            else:
+                lobes, splats = make_big_variant(2200 + k * 100 + v * 37, k, nlobes)
+            for f in range(SPREAD_FRAMES):
+                t = (f + 1) / SPREAD_FRAMES
+                sheet[v * CELL_H:(v + 1) * CELL_H, f * CELL_W:(f + 1) * CELL_W] = render(lobes, splats, t)
+            for sh in range(SHIMMER_FRAMES):
+                c = SPREAD_FRAMES + sh
+                sheet[v * CELL_H:(v + 1) * CELL_H, c * CELL_W:(c + 1) * CELL_W] = render(lobes, splats, 1.0, sh)
+        Image.fromarray(sheet, "RGBA").save(out / name)
     print("ok:", out)
 
 
