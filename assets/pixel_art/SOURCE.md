@@ -72,6 +72,9 @@ Poça de sangue dos inimigos, desenhadas por código em
 
 - `blood_pool_sheet.png`: 3 variantes (linhas) x 12 quadros de 64x32, já na projeção 2:1 da tela. Quadros 0-7 = a
   poça escorrendo; 8-11 = brilho em loop. O jogo (`BloodPool.cs`) a deita no chão girada para a câmera.
+- `blood_pool_m_sheet.png` (128x64), `blood_pool_g_sheet.png` (192x96), `blood_pool_gg_sheet.png` (256x128): mesmas
+  3 variantes x 12 quadros em poças maiores, com silhueta própria (mais lóbulos e respingos). O jogo escolhe o tamanho
+  pelo sangue acumulado (mortes juntas) ou pelo raio da bênção de poça (`BloodPool.TierForMass`/`TierForRadius`).
 
 ## effects/blood_drop
 

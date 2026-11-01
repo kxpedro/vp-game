@@ -133,6 +133,7 @@ public static partial class DevParameterRegistry
         P("blessing.recoverable.step", "Vida recuperável: intervalo de cada passo (s)", GBlessings, 0.25, 0.05, 2, 0.05, false);
         P("blessing.pool.heal_tick", "Poça de sangue: intervalo da cura (s)", GBlessings, 0.25, 0.05, 2, 0.05, false);
         P("blessing.pool.bleed_tick", "Poça sangrenta: intervalo do sangramento (s)", GBlessings, 1.0, 0.1, 5, 0.1, false);
+        P("enemy.blood_pool.radius", "Poça simples do inimigo: raio de jogo (ativa as bênçãos de poça)", GBlessings, 0.9, 0.3, 3, 0.05, false);
         P("blessing.pool.base_radius", "Poça de sangue: raio base", GBlessings, 1.8, 0.2, 10, 0.1, false);
         P("blessing.corpse_explosion.radius", "Explosão de cadáver infectado: raio", GBlessings, 2.5, 0.2, 15, 0.1, false);
         P("blessing.corpse_explosion.base_damage", "Explosão de cadáver infectado: dano base", GBlessings, 32, 0, 1000, 1, false);
