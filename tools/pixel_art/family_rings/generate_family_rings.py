@@ -50,7 +50,17 @@ for i in range(12):
 ring(d,H("b3b9d1"),26,1,4)
 
 OUT.mkdir(parents=True, exist_ok=True)
+from PIL import ImageFilter
+FILL = {"claws": H("71413b"), "bagua": H("23674e"), "moon": H("143464"), "shadow": H("4a5462")}
+BRIGHT = {"claws": H("f4d29c"), "bagua": H("cdf7e2"), "moon": None, "shadow": H("dae0ea")}
 for name, im in (("claws", v), ("bagua", l), ("moon", n), ("shadow", s)):
     flat = im.resize((N, N // 2), Image.NEAREST).resize((N * 2, N), Image.NEAREST)
-    flat.save(OUT / f"ring_{name}.png")
+    if BRIGHT[name]:  # engrossa 1 px e põe um realce claro por baixo do traço, para ler no piso
+        alpha = flat.getchannel("A").filter(ImageFilter.MaxFilter(3))
+        halo = Image.new("RGBA", flat.size, FILL[name] + (255,)); halo.putalpha(alpha)
+        halo.alpha_composite(flat); flat = halo
+    base = Image.new("RGBA", flat.size, (0, 0, 0, 0))
+    ImageDraw.Draw(base).ellipse([6, 3, flat.width - 7, flat.height - 4], fill=FILL[name] + (70,))
+    base.alpha_composite(flat)
+    base.save(OUT / f"ring_{name}.png")
 print("ok")
