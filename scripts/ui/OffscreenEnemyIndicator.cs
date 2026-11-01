@@ -38,8 +38,8 @@ public partial class OffscreenEnemyIndicator : Control
 	public override void _Process(double delta)
 	{
 		_sources.Clear();
-		// Só durante uma run (o hub tem o boneco de treino, que não deve acionar o alerta).
-		if (RunState.IsRunActive && CompendiumTuning.GetInt("hud.offscreen.enabled", 1) != 0)
+		// Só em salas de combate (com RoomGenerator) durante a run: hub, bênção inicial e câmara nunca spawnam inimigos.
+		if (RunState.IsRunActive && GetTree().GetFirstNodeInGroup("room_generator") != null && CompendiumTuning.GetInt("hud.offscreen.enabled", 1) != 0)
 			CollectSources();
 		UpdateGlows((float)delta);
 		if (_glows.Count > 0 || _wasDrawn)
