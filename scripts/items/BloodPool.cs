@@ -352,7 +352,7 @@ public partial class BloodPool : Node3D
         if (radius > TierReach[Gg] + 0.2f)
         {
             var ringDistance = TierReach[Gg] * 0.9f;
-            for (var ring = 1; ringDistance * ring <= radius - TierReach[Gg] * 0.4f; ring++)
+            for (var ring = 1; ringDistance * ring <= radius - TierReach[Gg] * 0.8f; ring++)
             {
                 var distance = ringDistance * ring;
                 var count = Mathf.Max(Mathf.RoundToInt(Mathf.Tau * distance / (TierReach[Gg] * 1.1f)), 4);
@@ -377,7 +377,7 @@ public partial class BloodPool : Node3D
             if (!blob.Extra || blob.Dying || blob.Dead || blob.Tier < tier)
                 continue;
             var center = blob.Fill.GlobalPosition;
-            if (new Vector2(center.X - point.X, center.Z - point.Z).Length() < Mathf.Max(blob.Reach * 0.5f, 0.4f))
+            if (new Vector2(center.X - point.X, center.Z - point.Z).Length() < Mathf.Max(blob.Reach * 0.8f, 0.5f))
                 return;
         }
         AddBlob(point, (float)GD.RandRange(0.0, 0.08), true, tier);
@@ -610,10 +610,14 @@ public partial class BloodPool : Node3D
                 var color = image.GetPixel(x, y);
                 var neighbors = Neighbors(x, y);
                 var isRim = Mathf.Abs(color.R - Rim.R) < 0.02f && Mathf.Abs(color.G - Rim.G) < 0.02f && Mathf.Abs(color.B - Rim.B) < 0.02f;
-                fill.SetPixel(x, y, isRim && neighbors >= 3 ? Body : color);
-                // Respingos soltos (poucos vizinhos) ficam como estão, sem contorno extra.
+                // Respingos soltos (poucos vizinhos) vão para a camada de baixo: outra poça por cima os cobre, sem pontos
+                // escuros no meio do sangue.
                 if (neighbors < 2)
+                {
+                    outline.SetPixel(x, y, color);
                     continue;
+                }
+                fill.SetPixel(x, y, isRim && neighbors >= 3 ? Body : color);
                 outline.SetPixel(x, y, Rim);
                 foreach (var (dx, dy) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
                     if (!Opaque(x + dx, y + dy) && x + dx >= 0 && y + dy >= 0 && x + dx < width && y + dy < height)
