@@ -80,8 +80,8 @@ public partial class OffscreenEnemyIndicator : Control
 		var unit = size.X / LogicalWidth;
 		var w = Mathf.RoundToInt(LogicalWidth / CellSize);
 		var h = Mathf.RoundToInt(size.Y / unit / CellSize);
-		var depthCells = Mathf.Max(1, Mathf.RoundToInt(CompendiumTuning.GetFloat("hud.offscreen.depth", 22.0f) / CellSize));
-		var sharp = CompendiumTuning.GetFloat("hud.offscreen.sharpness", 9.0f);
+		var depthCells = Mathf.Max(1, Mathf.RoundToInt(CompendiumTuning.GetFloat("hud.offscreen.depth", 12.0f) / CellSize));
+		var sharp = CompendiumTuning.GetFloat("hud.offscreen.sharpness", 18.0f);
 		var gain = CompendiumTuning.GetFloat("hud.offscreen.intensity", 1.0f);
 		var cell = unit * CellSize;
 		for (var y = 0; y < h; y++)
