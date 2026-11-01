@@ -337,7 +337,7 @@ public partial class HUD
 	// instantes diferentes do efeito.
 	internal async void PreviewOrlokEffect(string screen)
 	{
-		var delay = screen switch { "pestilence_burst_1" => 0.65f, "pestilence_burst_2" => 0.4f, "summoned_rat_1" => 0.5f, _ => 0.0f };
+		var delay = screen switch { "pestilence_burst_1" => 0.65f, "pestilence_burst_2" => 0.4f, "summoned_rat_2" => 0.15f, _ => 0.0f };
 		if (delay > 0.0f)
 			await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
 		if (GetTree().GetFirstNodeInGroup("player") is not PlayerController player)
@@ -348,14 +348,19 @@ public partial class HUD
 			player.GetNodeOrNull<BloodBlessingRuntime>("BloodBlessingRuntime")?.SpawnPestilenceDeathBurst(center, 3.0f);
 			return;
 		}
-		if (GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
+		// summoned_rat_N: ratos colados no inimigo, mordendo. summoned_rat_death_N: ratos de vida curta junto do Virgil, tombando
+		// (vida 0,55 / 0,7 s: a captura, 0,8 s depois da abertura, cai a 0,25 / 0,1 s do começo da animação de morte de 0,5 s).
+		var death = screen.StartsWith("summoned_rat_death");
+		if (!death && GetTree().GetFirstNodeInGroup("room_generator") is RoomGenerator generator)
 			generator.DevSpawnEnemy(new Vector3(center.X + 1.5f, 0.2f, center.Z), EnemyRarity.Normal, null);
+		var lifetime = screen switch { "summoned_rat_death_1" => 0.55f, "summoned_rat_death_2" => 0.7f, _ => 8.0f };
 		for (var i = 0; i < 3; i++)
 		{
-			var rat = new SummonedRat { OwnerPlayer = player, LifetimeSeconds = 8.0f, AttackDamage = 0.0f };
+			var rat = new SummonedRat { OwnerPlayer = player, LifetimeSeconds = lifetime, AttackDamage = 0.0f };
 			GetTree().CurrentScene.AddChild(rat);
-			// Distâncias diferentes do Virgil (0,8 / 2,2 / 3,6 m): os mais longe já estão a caminho do inimigo.
-			rat.GlobalPosition = player.GlobalPosition + new Vector3(0.8f + 1.4f * i, 0.08f, 0.5f * (i - 1));
+			rat.GlobalPosition = death
+				? player.GlobalPosition + new Vector3(1.0f + 0.9f * i, 0.08f, 0.5f * (i - 1))
+				: center + new Vector3(1.0f + 0.4f * i, 0.08f, 0.5f * (i - 1));
 		}
 	}
 

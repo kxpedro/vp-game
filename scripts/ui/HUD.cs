@@ -451,6 +451,8 @@ public partial class HUD : CanvasLayer
 			case "pestilence_burst_2":
 			case "summoned_rat_1":
 			case "summoned_rat_2":
+			case "summoned_rat_death_1":
+			case "summoned_rat_death_2":
 				PreviewOrlokEffect(screen);
 				return true;
 			case "hub":
