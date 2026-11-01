@@ -137,7 +137,8 @@ public partial class SummonedRat : CharacterBody3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             Shaded = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            Position = Vector3.Up * 0.2f
+            Scale = Vector3.One * 1.6f,
+            Position = Vector3.Up * 0.32f
         };
         AddChild(_sprite);
     }
