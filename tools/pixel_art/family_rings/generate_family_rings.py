@@ -40,6 +40,13 @@ ring(d,H("143464"),42,2); ring(d,H("285cc4"),40,1,3)
 d.ellipse([N/2-16,N/2-16,N/2+16,N/2+16],fill=H("849be4")); d.ellipse([N/2-8,N/2-20,N/2+24,N/2+12],fill=(0,0,0,0))
 for a in range(0,360,18):
     t=math.radians(a); d.point((round(N/2+math.cos(t)*30),round(N/2+math.sin(t)*30)),fill=H("b9bffb"))
+# Karnstein (encanto): aro rosa com corações
+ch=canvas(); d=ImageDraw.Draw(ch)
+ring(d,H("793a80"),42,2); ring(d,H("bc4a9b"),40,1,5)
+for i in range(6):
+    t=math.tau*i/6; x=N/2+math.cos(t)*28; y=N/2+math.sin(t)*28
+    for dx,dy in ((-2,-1),(-1,-2),(1,-2),(2,-1),(-2,0),(-1,0),(0,0),(1,0),(2,0),(-1,1),(0,1),(1,1),(0,2)):
+        d.point((round(x+dx),round(y+dy)),fill=H("e86a73") if dy<1 else H("f5a097"))
 # Strigoi: aro de laminas de sombra
 s=canvas(); d=ImageDraw.Draw(s)
 ring(d,H("4a5462"),40,1)
@@ -51,9 +58,9 @@ ring(d,H("b3b9d1"),26,1,4)
 
 OUT.mkdir(parents=True, exist_ok=True)
 from PIL import ImageFilter
-FILL = {"claws": H("71413b"), "bagua": H("23674e"), "moon": H("143464"), "shadow": H("4a5462")}
-BRIGHT = {"claws": H("f4d29c"), "bagua": H("cdf7e2"), "moon": None, "shadow": H("dae0ea")}
-for name, im in (("claws", v), ("bagua", l), ("moon", n), ("shadow", s)):
+FILL = {"claws": H("71413b"), "bagua": H("23674e"), "moon": H("143464"), "shadow": H("4a5462"), "charm": H("5b3138")}
+BRIGHT = {"claws": H("f4d29c"), "bagua": H("cdf7e2"), "moon": None, "shadow": H("dae0ea"), "charm": H("f5a097")}
+for name, im in (("claws", v), ("bagua", l), ("moon", n), ("shadow", s), ("charm", ch)):
     flat = im.resize((N, N // 2), Image.NEAREST).resize((N * 2, N), Image.NEAREST)
     if BRIGHT[name]:  # engrossa 1 px e põe um realce claro por baixo do traço, para ler no piso
         alpha = flat.getchannel("A").filter(ImageFilter.MaxFilter(3))

@@ -4,8 +4,12 @@ import math, random
 from pathlib import Path
 from PIL import Image
 
-OUT = Path(__file__).resolve().parents[3] / "assets/pixel_art/effects/pestilence_cloud/pestilence_puff_sheet.png"
-RAMP = [tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) for h in ("24523b", "1a7a3e", "23674e", "328464", "5daf8d")]
+DIR = Path(__file__).resolve().parents[3] / "assets/pixel_art/effects/pestilence_cloud"
+RAMPS = {  # nome do arquivo -> rampa AAP-64
+    "pestilence_puff_sheet.png": ("24523b", "1a7a3e", "23674e", "328464", "5daf8d"),
+    "charm_puff_sheet.png": ("5b3138", "793a80", "bc4a9b", "e86a73", "f5a097"),  # explosão do encanto (Karnstein)
+}
+RAMP = []
 W, H, FRAMES = 64, 48, 6
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 rnd = random.Random(11)
@@ -32,9 +36,11 @@ def frame(k):
     return img
 
 
-sheet = Image.new("RGBA", (W * FRAMES, H), (0, 0, 0, 0))
-for k in range(FRAMES):
-    sheet.paste(frame(k), (k * W, 0))
-OUT.parent.mkdir(parents=True, exist_ok=True)
-sheet.save(OUT)
-print("ok", OUT)
+for name, hexes in RAMPS.items():
+    RAMP[:] = [tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) for h in hexes]
+    sheet = Image.new("RGBA", (W * FRAMES, H), (0, 0, 0, 0))
+    for k in range(FRAMES):
+        sheet.paste(frame(k), (k * W, 0))
+    DIR.mkdir(parents=True, exist_ok=True)
+    sheet.save(DIR / name)
+    print("ok", name)

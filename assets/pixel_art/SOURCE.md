@@ -113,3 +113,6 @@ Gerada por `tools/pixel_art/summoned_rat/generate_summoned_rat.py` a partir de `
 
 ## effects/family_rings
 Gerados por `tools/pixel_art/family_rings/generate_family_rings.py` (Pillow, AAP-64). `ring_claws.png` (Vârcolac), `ring_bagua.png` (Liaozhai, também a zona do talismã), `ring_moon.png` (Nachtalb), `ring_shadow.png` (Strigoi): 192x96 (2:1) cada. Pulsos das famílias (`FamilyFx.Pulse`, só no 2D). Arte própria.
+
+## effects/life_steal, family_rings/ring_charm, pestilence_cloud/charm_puff_sheet
+Gerados por `tools/pixel_art/life_steal/generate_life_steal_orb.py` (orbe do Dracul, 4 quadros 16x16), `tools/pixel_art/family_rings/generate_family_rings.py` (`ring_charm.png`, anel rosa com corações do Karnstein) e `tools/pixel_art/pestilence_cloud/generate_pestilence_puff.py` (`charm_puff_sheet.png`, tufos rosa da explosão do encanto). Pillow, AAP-64, arte própria. Só no 2D.

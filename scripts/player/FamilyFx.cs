@@ -2,7 +2,7 @@ using Godot;
 
 // Efeitos visuais simples (disco/pulso achatado, sem luz) das famílias novas. Cores da AAP-64.
 // Anel de cada família no 2D (tools/pixel_art/family_rings); Disc = o disco liso de antes (3D e famílias sem anel).
-public enum FamilyRing { Disc, Claws, Bagua, Moon, Shadow }
+public enum FamilyRing { Disc, Claws, Bagua, Moon, Shadow, Charm }
 
 public static class FamilyFx
 {

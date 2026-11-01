@@ -641,11 +641,57 @@ public partial class BloodBlessingRuntime : Node
         }
     }
 
+    // Explosão do inimigo encantado em pixel art (Karnstein): anel rosa com corações no chão e tufos rosados que estouram
+    // para fora na altura do corpo, em ~0,5 s (mesma lógica da explosão pestilenta, rampa rosa da AAP-64).
+    private static Texture2D _charmPuffSheet;
+
+    private void SpawnCharmBurstSprites(Node scene, Vector3 position, float radius)
+    {
+        _charmPuffSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/pestilence_cloud/charm_puff_sheet.png");
+        var root = new Node3D { Name = "CharmedDeathExplosion" };
+        scene.AddChild(root);
+        root.GlobalPosition = position;
+        var ring = FamilyFx.BuildRing(this, FamilyRing.Charm, radius, out var ringSprite);
+        var full = ring.Scale;
+        ring.Position = Vector3.Up * 0.06f;
+        ring.Scale = new Vector3(full.X * 0.2f, 1.0f, full.Z * 0.2f);
+        root.AddChild(ring);
+        var grow = ring.CreateTween().SetParallel();
+        grow.TweenProperty(ring, "scale", full, 0.2f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        grow.TweenProperty(ringSprite, "modulate:a", 0.0f, 0.3f).SetDelay(0.2f);
+
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        var count = Mathf.Clamp(Mathf.RoundToInt(radius * 3.5f), 6, 10);
+        for (var i = 0; i < count; i++)
+        {
+            var angle = Mathf.Tau * i / count + random.RandfRange(-0.3f, 0.3f);
+            var puff = NewCloudSprite(_charmPuffSheet, 6, 0.7f);
+            puff.Billboard = BaseMaterial3D.BillboardModeEnum.Enabled;
+            puff.FlipH = random.Randf() < 0.5f;
+            puff.Frame = random.RandiRange(0, 5);
+            puff.Position = Vector3.Up * 0.55f;
+            puff.Scale = Vector3.One * 0.3f;
+            root.AddChild(puff);
+            var end = new Vector3(Mathf.Cos(angle), 0.0f, Mathf.Sin(angle)) * random.RandfRange(radius * 0.4f, radius * 0.9f) + Vector3.Up * random.RandfRange(0.6f, 1.3f);
+            var move = puff.CreateTween().SetParallel();
+            move.TweenProperty(puff, "position", end, 0.35f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+            move.TweenProperty(puff, "scale", Vector3.One * random.RandfRange(0.7f, 1.1f), 0.35f);
+            move.TweenProperty(puff, "modulate:a", 0.0f, 0.2f).SetDelay(0.2f);
+        }
+        GetTree().CreateTimer(0.6f).Timeout += () => { if (IsInstanceValid(root)) root.QueueFree(); };
+    }
+
     private async void SpawnCharmedDeathExplosion(Vector3 position, float radius)
     {
         var scene = GetTree()?.CurrentScene;
         if (scene == null)
             return;
+        if (GameMode.IsPixelArt)
+        {
+            SpawnCharmBurstSprites(scene, position, radius);
+            return;
+        }
 
         var burst = new MeshInstance3D
         {
@@ -874,9 +920,50 @@ public partial class BloodBlessingRuntime : Node
         surface.AddVertex(d);
     }
 
+    // Roubo de vida em pixel art: gota-orbe roxa pulsando que voa do inimigo até o Virgil, com rastro de cópias que somem.
+    private static Texture2D _lifeStealOrbSheet;
+
+    private void SpawnLifeStealOrbSprite(Vector3 source, Vector3 destination)
+    {
+        var scene = GetTree()?.CurrentScene;
+        if (scene == null) return;
+        _lifeStealOrbSheet ??= GD.Load<Texture2D>("res://assets/pixel_art/effects/life_steal/life_steal_orb_sheet.png");
+        var start = source + Vector3.Up * 1.0f;
+        var end = destination + Vector3.Up * 1.0f;
+        for (var i = 0; i < 4; i++)
+        {
+            var orb = new Sprite3D
+            {
+                Name = "LifeStealOrb",
+                Texture = _lifeStealOrbSheet,
+                Hframes = 4,
+                Frame = i % 4,
+                PixelSize = PlayerSpriteVisual.PixelSize,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+                AlphaCut = SpriteBase3D.AlphaCutMode.Disabled,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Shaded = false,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Modulate = new Color(1.0f, 1.0f, 1.0f, i == 0 ? 1.0f : 0.55f - i * 0.12f),
+                Scale = Vector3.One * (i == 0 ? 1.2f : 1.0f - i * 0.15f)
+            };
+            scene.AddChild(orb);
+            orb.GlobalPosition = start;
+            var tween = orb.CreateTween();
+            tween.TweenInterval(i * 0.03f);
+            tween.TweenProperty(orb, "global_position", end, 0.28f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
+            tween.TweenCallback(Callable.From(orb.QueueFree));
+        }
+    }
+
     // Roubo de vida = Dracul: o orbe sai na cor da família que declara "life_steal" (vermelho se nenhuma).
     private async void SpawnLifeStealTrail(Vector3 source, Vector3 destination)
     {
+        if (GameMode.IsPixelArt)
+        {
+            SpawnLifeStealOrbSprite(source, destination);
+            return;
+        }
         var color = BloodlineVisuals.StatusColor("life_steal", new Color(1.0f, 0.0f, 0.08f));
         var orb = new MeshInstance3D
         {
