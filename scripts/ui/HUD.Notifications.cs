@@ -432,6 +432,35 @@ public partial class HUD
 		}
 	}
 
+	// Preview "attack_*" (debug): indicadores dos golpes do Virgil em pixel art (PixelAttackFx), com valores típicos da espada
+	// (leve: alcance 2,7 m e arco 100°; pesado: 3,5 m e 140°; círculo 3 m; linha 5 x 1,2 m) e o Virgil virado para direções
+	// diferentes. A captura (0,8 s após a abertura) cai a ~0,05 s do disparo; o efeito dura ~0,16 s. attack_arc_family_1 dá
+	// antes uma bênção de Orlok no slot básico (fica na RunState até o fim do lote), para ver a cor da família.
+	internal async void PreviewAttackFx(string screen)
+	{
+		await ToSignal(GetTree().CreateTimer(0.75f), SceneTreeTimer.SignalName.Timeout);
+		if (GetTree().GetFirstNodeInGroup("player") is not Node3D player)
+			return;
+		var attackType = PlayerAttackType.Basic;
+		if (screen == "attack_arc_family_1")
+		{
+			var definition = BloodBlessingCatalog.All.FirstOrDefault(b => b.Id == "orlok_rotten_bite");
+			if (definition != null)
+				RunState.AddBloodBlessing(new BloodBlessingOffer(definition, "Common", 1.0f));
+		}
+		var yaw = screen switch { "attack_arc_2" => 90.0f, "attack_radial_1" => 0.0f, "attack_line_1" => 180.0f, _ => 0.0f };
+		player.Rotation = new Vector3(0.0f, Mathf.DegToRad(yaw), 0.0f);
+		var heavy = screen == "attack_arc_2" || screen == "attack_radial_1";
+		var (fill, edge) = PixelAttackFx.Colors(attackType, heavy);
+		switch (screen)
+		{
+			case "attack_arc_2": PixelAttackFx.SpawnArc(player, 3.5f, 140.0f, fill, edge); break;
+			case "attack_radial_1": PixelAttackFx.SpawnArc(player, 3.0f, 360.0f, fill, edge, 0.2f); break;
+			case "attack_line_1": PixelAttackFx.SpawnLine(player, 5.0f, 1.2f, fill, edge); break;
+			default: PixelAttackFx.SpawnArc(player, 2.7f, 100.0f, fill, edge); break;
+		}
+	}
+
 	// Preview "toast" completo (§8.5): três recompensas em fila + "+N" ao lado das moedas.
 	internal void PreviewToasts()
 	{

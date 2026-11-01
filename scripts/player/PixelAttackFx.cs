@@ -19,7 +19,7 @@ public static class PixelAttackFx
     private const float Padding = 0.25f;
     private const float EdgeMeters = 0.09f;
 
-    private static Color[] Palette => _palette ??= Array.ConvertAll(Aap64, Color.FromHtml);
+    private static Color[] Palette => _palette ??= Array.ConvertAll(Aap64, hex => Color.FromHtml(hex));
 
     // Cor da AAP-64 mais próxima (distância no RGB).
     public static Color Nearest(Color color)

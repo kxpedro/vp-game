@@ -447,6 +447,13 @@ public partial class HUD : CanvasLayer
 			case "pestilence_cloud_3":
 				PreviewPestilenceCloud(screen);
 				return true;
+			case "attack_arc_1":
+			case "attack_arc_2":
+			case "attack_radial_1":
+			case "attack_line_1":
+			case "attack_arc_family_1":
+				PreviewAttackFx(screen);
+				return true;
 			case "charm_burst_1":
 			case "charm_burst_2":
 			case "life_steal_orb_1":
