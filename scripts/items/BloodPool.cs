@@ -200,7 +200,7 @@ public partial class BloodPool : Node3D
         if (tree == null)
             return null;
         foreach (var node in tree.GetNodesInGroup(Group))
-            if (node is BloodPool pool && !pool._draining && !pool.IsQueuedForDeletion() && pool.Contains(position))
+            if (node is BloodPool pool && !pool._draining && !pool.IsQueuedForDeletion() && pool.Contains(position, true))
                 return pool;
         return null;
     }
@@ -246,20 +246,22 @@ public partial class BloodPool : Node3D
     }
 
     // O ponto (plano do chão, coordenadas do mundo) está sobre alguma mancha?
-    public bool Contains(Vector3 point)
+    // includePending: conta também a mancha ainda esperando o corpo cair (para a bênção ativar a poça do inimigo que acabou
+    // de morrer em vez de criar outra por cima).
+    public bool Contains(Vector3 point, bool includePending = false)
     {
-        return NearestBlobDistance(point, out _, true) <= 0.0f;
+        return NearestBlobDistance(point, out _, true, includePending) <= 0.0f;
     }
 
     // Distância do ponto à mancha mais próxima, descontando o alcance da mancha quando insideTest (então <= 0 = dentro).
-    private float NearestBlobDistance(Vector3 point, out Vector3 nearestPoint, bool insideTest = false)
+    private float NearestBlobDistance(Vector3 point, out Vector3 nearestPoint, bool insideTest = false, bool includePending = false)
     {
         var best = float.MaxValue;
         nearestPoint = GlobalPosition;
         foreach (var blob in _blobs)
         {
             // Mancha ainda esperando o corpo cair (Age < 0) já conta para fundir poças (mortes quase simultâneas), só não para "estar em cima".
-            if (blob.Dead || blob.Dying || (insideTest && blob.Age < 0.0f))
+            if (blob.Dead || blob.Dying || (insideTest && !includePending && blob.Age < 0.0f))
                 continue;
             var center = blob.Fill.GlobalPosition;
             var distance = new Vector2(center.X - point.X, center.Z - point.Z).Length() - (insideTest ? blob.Reach : 0.0f);
