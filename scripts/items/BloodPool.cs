@@ -204,7 +204,8 @@ public partial class BloodPool : Node3D
         nearestPoint = GlobalPosition;
         foreach (var blob in _blobs)
         {
-            if (blob.Dead || blob.Dying || blob.Age < 0.0f)
+            // Mancha ainda esperando o corpo cair (Age < 0) já conta para fundir poças (mortes quase simultâneas), só não para "estar em cima".
+            if (blob.Dead || blob.Dying || (insideTest && blob.Age < 0.0f))
                 continue;
             var center = blob.Fill.GlobalPosition;
             var distance = new Vector2(center.X - point.X, center.Z - point.Z).Length() - (insideTest ? blob.Reach : 0.0f);
