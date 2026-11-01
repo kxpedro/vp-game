@@ -27,6 +27,7 @@ public static partial class DevParameterRegistry
         RegisterRunScale();
         RegisterBlessingTuning();
         RegisterAnvilTuning();
+        RegisterOffscreenIndicator();
 
         P("fountain.cost_step", "Fonte de Sangue: acréscimo de custo por rank", GEconomy, EconomyDefaults.FountainCostStep, 0, 5, 0.05, false, DevApplyMode.Live, "Custo = base x (1 + rank x este valor).");
         P("altar.sacrifice_fraction", "Altar: fração da vida máxima sacrificada", GEconomy, 0.05, 0, 0.9, 0.01, false, DevApplyMode.Live, "Lido ao abrir o altar e ao confirmar o sacrifício.");
