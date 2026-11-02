@@ -371,6 +371,16 @@ public partial class RunManager : Node3D
     // Ponto de recompensa da sala (RoomGenerator.GetArtifactSpawnPosition), ao nível do chão, como a fruta do boss.
     private Vector3 RewardPickupPosition()
     {
+        // Perto do jogador (a frente dele, celula caminhavel com margem); sem jogador, cai no ponto fixo da sala.
+        if (GetTree().GetFirstNodeInGroup("player") is Node3D player)
+        {
+            var near = player.GlobalPosition + new Vector3(0.0f, 0.0f, 1.8f);
+            if (_roomGenerator != null)
+                near = _roomGenerator.ClampToWalkableArea(near, 1);
+            near.Y = 0.15f;
+            return near;
+        }
+
         var position = _roomGenerator != null
             ? _roomGenerator.GetArtifactSpawnPosition()
             : (_exitPortal?.Position ?? Vector3.Zero);
