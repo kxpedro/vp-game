@@ -95,7 +95,7 @@ public sealed class PixelRoomPicture
     // Segmentos de parede (pontas e lado de fora; a parede cresce para fora da borda) e obstáculos (centro e
     // meia-extensão), em unidades do kit.
     public List<(Vector2 A, Vector2 B, Vector2 Outward)> Walls { get; init; }
-    public List<(Vector2 Center, Vector2 Half)> Blockers { get; init; }
+    public List<(Vector2 Center, Vector2 Half, bool Round)> Blockers { get; init; }
     public Rect2 TileBounds { get; init; }
     // Peças animadas do layout (manifest "frames"): todos os quadros já com a luz da sala, para o PixelRoom trocar.
     public List<PixelRoomAnimation> Animations { get; init; } = new();
@@ -179,6 +179,15 @@ public static class PixelRoomComposer
         ("glassv", new[] { "242234", "403353", "793a80", "bc4a9b", "e86a73" }),
         ("silver", new[] { "6d758d", "8b93af", "b3b9d1", "dae0ea", "e3e6ff" }),
     };
+
+    // Peças de base circular: o obstáculo vira cilindro (raio = meia-extensão) em vez de caixa, senão o personagem
+    // esbarra nos cantos invisíveis de um quadrado.
+    private static readonly string[] RoundBlockers =
+    {
+        "blood_fountain", "blood_basin", "topiary_center", "topiary_ball", "lantern", "dead_tree", "column", "brazier", "armor"
+    };
+
+    private static bool IsRoundBlocker(string prefix) => System.Array.IndexOf(RoundBlockers, prefix) >= 0;
 
     /// <summary>Deslocamento do centro e meia-extensão (unidades do kit) do obstáculo de uma peça; zero se ela não bloqueia.</summary>
     public static (Vector2 Offset, Vector2 Half) BlockerOf(string piece)
@@ -452,7 +461,7 @@ public static class PixelRoomComposer
     }
 
     // Paredes = bordas de tile sem vizinho ou fechadas no layout.
-    private static (List<(Vector2, Vector2, Vector2)>, List<(Vector2, Vector2)>) Collision(PixelRoomLayout layout)
+    private static (List<(Vector2, Vector2, Vector2)>, List<(Vector2, Vector2, bool)>) Collision(PixelRoomLayout layout)
     {
         var walls = new List<(Vector2, Vector2, Vector2)>();
         foreach (var tile in layout.Tiles.Keys.OrderBy(t => t.X).ThenBy(t => t.Y))
@@ -478,13 +487,13 @@ public static class PixelRoomComposer
             }
         }
 
-        var blockers = new List<(Vector2, Vector2)>();
+        var blockers = new List<(Vector2, Vector2, bool)>();
         foreach (var prop in layout.Props)
         {
             var size = BlockerSizes.FirstOrDefault(b => prop.Name.StartsWith(b.Prefix));
             if (size.Prefix == null) continue;
             var half = prop.Name.EndsWith("_se") ? new Vector2(size.Half.Y, size.Half.X) : size.Half;
-            blockers.Add((new Vector2(prop.Gx * 64 + prop.Dx + 32, prop.Gy * 64 + prop.Dy + 32) + size.Offset, half));
+            blockers.Add((new Vector2(prop.Gx * 64 + prop.Dx + 32, prop.Gy * 64 + prop.Dy + 32) + size.Offset, half, IsRoundBlocker(size.Prefix)));
         }
 
         return (walls, blockers);

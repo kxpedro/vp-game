@@ -370,13 +370,16 @@ public partial class PixelRoom : Node3D
         }
 
         index = 0;
-        foreach (var (center, half) in Picture.Blockers)
+        foreach (var (center, half, round) in Picture.Blockers)
         {
+            Shape3D shape = round
+                ? new CylinderShape3D { Radius = Mathf.Min(half.X, half.Y) * UnitMeters, Height = 1.6f }
+                : new BoxShape3D { Size = new Vector3(half.X * 2.0f * UnitMeters, 1.6f, half.Y * 2.0f * UnitMeters) };
             body.AddChild(new CollisionShape3D
             {
                 Name = $"Blocker{index++}",
                 Position = KitToWorld(center.X, center.Y, 0.8f),
-                Shape = new BoxShape3D { Size = new Vector3(half.X * 2.0f * UnitMeters, 1.6f, half.Y * 2.0f * UnitMeters) }
+                Shape = shape
             });
         }
     }
