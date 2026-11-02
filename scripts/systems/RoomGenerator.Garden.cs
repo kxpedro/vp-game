@@ -34,12 +34,38 @@ public partial class RoomGenerator
     {
         // Sala ímpar = clareira, par = corredores (a 1ª sala do mapa é a clareira).
         var plan = RunState.CurrentRoom % 2 == 0 ? BuildGardenMaze() : BuildGardenClearing();
-        ApplyGridPlan(plan);
+        // A saída varia entre as duas sebes do fundo com arco no kit (ne = Up, nw = Left): metade das salas gira a planta
+        // (troca X por Y), o que leva a saída da sebe ne para a nw e mantém tudo alcançável.
+        var exitDirection = Vector2I.Up;
+        if (_layoutMirror)
+        {
+            plan = Transposed(plan);
+            exitDirection = Vector2I.Left;
+        }
+        ApplyGridPlan(plan, exitDirection);
+    }
+
+    private static GardenPlan Transposed(GardenPlan source)
+    {
+        static Vector2I T(Vector2I v) => new(v.Y, v.X);
+        var plan = new GardenPlan
+        {
+            Entrance = T(source.Entrance),
+            Focus = T(source.Focus),
+            Reward = T(source.Reward),
+            Exit = T(source.Exit)
+        };
+        foreach (var tile in source.Tiles) plan.Tiles.Add(T(tile));
+        foreach (var tile in source.Blocked) plan.Blocked.Add(T(tile));
+        foreach (var tile in source.Arena) plan.Arena.Add(T(tile));
+        foreach (var prop in source.Props)
+            plan.Props.Add(prop with { Gx = prop.Gy, Gy = prop.Gx, Dx = prop.Dy, Dy = prop.Dx });
+        return plan;
     }
 
     // Aplica uma planta em tiles (jardim ou castelo): células caminháveis, arena de combate e posições de entrada,
     // foco, recompensa e saída.
-    private void ApplyGridPlan(GardenPlan plan)
+    private void ApplyGridPlan(GardenPlan plan, Vector2I? exitDirection = null)
     {
         _gardenPlan = plan;
 
@@ -61,9 +87,9 @@ public partial class RoomGenerator
         _entranceCell = TileCell(plan.Entrance);
         _focusCell = TileCell(plan.Focus);
         _rewardCell = TileCell(plan.Reward);
-        // Saída na sebe do fundo (ne), na fileira de células encostada nela.
+        // Saída na sebe do fundo (ne ou nw), na fileira de células encostada nela.
         _exitCell = new Vector2I(plan.Exit.X * 2, plan.Exit.Y * 2);
-        _exitWallDirection = Vector2I.Up;
+        _exitWallDirection = exitDirection ?? Vector2I.Up;
         _exitHasDoors = RoomRewardCatalog.HasRoomRewardSet(RunState.CurrentMapIndex, RunState.CurrentRoom);
     }
 
