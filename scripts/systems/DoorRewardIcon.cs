@@ -23,6 +23,8 @@ public static class DoorRewardIcon
     private const float EmblemSize = 0.78f;
     // O emblema fica um pouco à frente do disco (+Z local, lado da sala), para não brigar no mesmo plano.
     private const float EmblemDepth = 0.03f;
+    // Billboards no mesmo plano: sem prioridade o disco opaco cobre o emblema (a profundidade é igual). Disco 1, emblema 2 (ambos sem teste de profundidade).
+    private const int EmblemPriority = 2;
     private const int DiamondTextureSize = 64;
 
     private const string BlessingHex = "FFD541";
@@ -98,6 +100,8 @@ public static class DoorRewardIcon
             Texture = MedallionTexture(),
             PixelSize = MedallionSize / MedallionTextureSize,
             Shaded = false,
+            RenderPriority = EmblemPriority - 1,
+            NoDepthTest = true,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
         });
     }
@@ -115,6 +119,8 @@ public static class DoorRewardIcon
                 Texture = texture,
                 PixelSize = EmblemSize / Mathf.Max(Mathf.Max(texture.GetWidth(), texture.GetHeight()), 1),
                 Shaded = false,
+                RenderPriority = EmblemPriority,
+                NoDepthTest = true,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
             });
             return;
@@ -126,6 +132,8 @@ public static class DoorRewardIcon
             Texture = DiamondTexture(),
             PixelSize = EmblemSize / DiamondTextureSize,
             Shaded = false,
+            RenderPriority = EmblemPriority,
+            NoDepthTest = true,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
         });
     }
@@ -145,6 +153,8 @@ public static class DoorRewardIcon
             Texture = texture,
             PixelSize = EmblemSize / Mathf.Max(Mathf.Max(texture.GetWidth(), texture.GetHeight()), 1),
             Shaded = false,
+            RenderPriority = EmblemPriority,
+            NoDepthTest = true,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
         });
