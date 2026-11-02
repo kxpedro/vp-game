@@ -3,7 +3,7 @@ using Godot;
 /// <summary>
 /// Fruta do Diabo: fruto de sangue coagulado. Coletada por interação (tecla "interact") com o jogador na área, com o
 /// prompt "Pegar: Fruta" (InteractPrompt). Soma vida maxima so na run (RunState.AddDevilsFruit) e cura o jogador.
-/// Visual provisorio em geometria. Reutilizavel via DevilsFruit.Spawn (boss, portas de recompensa, loja).
+/// Visual: sprite pixel art em billboard. Reutilizavel via DevilsFruit.Spawn (boss, portas de recompensa, loja).
 /// </summary>
 public partial class DevilsFruit : Area3D
 {
@@ -11,6 +11,7 @@ public partial class DevilsFruit : Area3D
     [Signal]
     public delegate void CollectedEventHandler();
 
+    private const string IconPath = "res://assets/pixel_art/rewards/devils_fruit.png";
     private const float PickupRadius = 0.9f;
     private const float HoverHeight = 0.9f;
     private const float PromptHeight = 1.9f;
@@ -71,7 +72,6 @@ public partial class DevilsFruit : Area3D
 
         _time += (float)delta;
         _visual.Position = new Vector3(0.0f, HoverHeight + Mathf.Sin(_time * 2.2f) * 0.1f, 0.0f);
-        _visual.RotateY((float)delta * 1.1f);
 
         if (!_collected && _playerBody != null && IsInstanceValid(_playerBody) && InteractPrompt.ConsumeInteract(this))
             TryCollect();
@@ -90,36 +90,20 @@ public partial class DevilsFruit : Area3D
         _visual = new Node3D { Name = "Visual", Position = new Vector3(0.0f, HoverHeight, 0.0f) };
         AddChild(_visual);
 
-        var fleshMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.32f, 0.02f, 0.05f),
-            Roughness = 0.25f,
-            Metallic = 0.15f,
-            EmissionEnabled = true,
-            Emission = new Color(0.85f, 0.04f, 0.08f),
-            EmissionEnergyMultiplier = 1.4f
-        };
-        _visual.AddChild(new MeshInstance3D
-        {
-            Name = "Body",
-            Mesh = new SphereMesh { Radius = 0.26f, Height = 0.52f, RadialSegments = 24, Rings = 12 },
-            MaterialOverride = fleshMaterial,
-            Scale = new Vector3(1.0f, 1.18f, 1.0f)
-        });
-
-        var stemMaterial = new StandardMaterial3D
-        {
-            AlbedoColor = new Color(0.12f, 0.05f, 0.04f),
-            Roughness = 0.8f
-        };
-        _visual.AddChild(new MeshInstance3D
-        {
-            Name = "Stem",
-            Mesh = new CylinderMesh { TopRadius = 0.025f, BottomRadius = 0.04f, Height = 0.16f, RadialSegments = 8 },
-            MaterialOverride = stemMaterial,
-            Position = new Vector3(0.0f, 0.34f, 0.0f),
-            RotationDegrees = new Vector3(0.0f, 0.0f, 12.0f)
-        });
+        // Pixel art 32x32 (AAP-64), de frente para a câmera; mesmo emblema da porta de Fruta.
+        var texture = ResourceLoader.Exists(IconPath) ? ResourceLoader.Load<Texture2D>(IconPath) : null;
+        if (texture == null)
+            GD.PushWarning($"DevilsFruit: ícone ausente ({IconPath}).");
+        else
+            _visual.AddChild(new Sprite3D
+            {
+                Name = "Body",
+                Texture = texture,
+                PixelSize = 0.8f / 32.0f,
+                Shaded = false,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled
+            });
 
         _visual.AddChild(new OmniLight3D
         {

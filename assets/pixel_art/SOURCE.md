@@ -116,3 +116,6 @@ Gerados por `tools/pixel_art/family_rings/generate_family_rings.py` (Pillow, AAP
 
 ## effects/life_steal, family_rings/ring_charm, pestilence_cloud/charm_puff_sheet
 Gerados por `tools/pixel_art/life_steal/generate_life_steal_orb.py` (orbe do Dracul, 4 quadros 16x16), `tools/pixel_art/family_rings/generate_family_rings.py` (`ring_charm.png`, anel rosa com corações do Karnstein) e `tools/pixel_art/pestilence_cloud/generate_pestilence_puff.py` (`charm_puff_sheet.png`, tufos rosa da explosão do encanto). Pillow, AAP-64, arte própria. Só no 2D.
+
+## rewards/
+Emblemas 32x32 (Fruta do Diabo, Bigorna, Moedas de Sangue), paleta AAP-64, alfa binário. Arte própria, gerada por `tools/pixel_art/rewards/draw_reward_icons.py`. Substituem os modelos 3D nas portas de recompensa e no chão.

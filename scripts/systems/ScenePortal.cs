@@ -558,7 +558,7 @@ public partial class ScenePortal : Area3D
     // Centro a 3,5 m: o lintel do modelo vai até ~2,87 m; o disco visível tem raio ~0,54 m, então a borda inferior fica ~3,0 m (acima do lintel).
     private static void AddRewardIcon(Node3D root, RoomRewardDoor door)
     {
-        var icon = new Node3D { Name = "RewardIcon", Position = new Vector3(0.0f, 3.5f, 0.0f) };
+        var icon = new Node3D { Name = "RewardIcon", Position = new Vector3(0.0f, 3.5f, 0.0f), Scale = Vector3.One * 1.5f };
         root.AddChild(icon);
         DoorRewardIcon.PopulateDoor(icon, door);
     }

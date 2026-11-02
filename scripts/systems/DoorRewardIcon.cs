@@ -4,6 +4,8 @@ using System;
 // Medalhão de recompensa (portas de sala e item no chão; docs/design/portas-recompensas.md, seção 8). Provisório, sem arte nova.
 // Estilo: disco escuro com aro dourado brilhante e emblema no centro (~0,7 m). Sem rótulo de texto: o prompt de
 // interação (ao se aproximar) diz o que é a recompensa.
+// Realce: disco ameixa (não preto), aro dourado largo, brilho forte; na porta o medalhão é ampliado (ScenePortal.AddRewardIcon).
+// Emblemas em pixel art 32x32 (assets/pixel_art/rewards/, tools/pixel_art/rewards/draw_reward_icons.py).
 // Emblema por tipo (forma e luminância primeiro, cor só reforça):
 //   Bênção de Sangue: ícone da família sorteada (ou losango dourado claro, se faltar arte);
 //   Fruta do Diabo: esfera vermelho-escuro com haste (emissiva, para não sumir no disco escuro);
@@ -18,26 +20,21 @@ public static class DoorRewardIcon
     public const float MedallionSize = 1.2f;
     private const int MedallionTextureSize = 128;
     // Emblema de Bênção (ícone da família ou losango): lado de 0,7 m, dentro do fundo escuro do disco.
-    private const float EmblemSize = 0.70f;
-    private const int DiamondTextureSize = 64;
-    // Emblemas em geometria (Fruta e Moedas): o desenho original tinha ~0,36 m; a escala leva para ~0,7 m.
-    private const float GeometryEmblemScale = 1.7f;
-    private const float GeometryEmblemOffsetY = -0.06f;
+    private const float EmblemSize = 0.78f;
     // O emblema fica um pouco à frente do disco (+Z local, lado da sala), para não brigar no mesmo plano.
     private const float EmblemDepth = 0.03f;
+    private const int DiamondTextureSize = 64;
 
-    private const string BlessingHex = "E2B94A";
-    private const string FruitHex = "8E0F1A";
-    private const string StemHex = "1F0D0A";
-    private const string AnvilHex = "8795A8";
-    private const string AnvilTopHex = "C4CEDA";
-    private const string CoinHex = "B9733B";
-    private const string CoinRimHex = "D9A066";
-    private const string FillHex = "2A1B12";
-    private const string RingDarkHex = "B8862E";
-    private const string RingHex = "F3D27A";
-    private const string GlowHex = "F0C860";
+    private const string BlessingHex = "FFD541";
+    // Disco claro o bastante para o emblema escuro ler (ameixa do AAP-64), aro dourado vivo e brilho externo forte.
+    private const string FillHex = "5B3138";
+    private const string RingDarkHex = "F9A31B";
+    private const string RingHex = "FEF3C0";
+    private const string GlowHex = "FFD541";
 
+    private const string FruitIconPath = "res://assets/pixel_art/rewards/devils_fruit.png";
+    private const string AnvilIconPath = "res://assets/pixel_art/rewards/anvil.png";
+    private const string CoinsIconPath = "res://assets/pixel_art/rewards/blood_coins.png";
     private const string CursedBloodIconPath = "res://assets/pixel_art/hud/cursed_blood.png";
 
     // Texturas geradas por código, uma vez (medalhão e losango de fallback).
@@ -78,31 +75,18 @@ public static class DoorRewardIcon
                 AddBlessingEmblem(emblem, door.BlessingPlan);
                 break;
             case RoomRewardType.DevilsFruit:
-                AddDevilsFruit(GeometryShape(emblem));
+                AddPixelEmblem(emblem, "FruitIcon", FruitIconPath);
                 break;
             case RoomRewardType.Anvil:
-                AddAnvil(GeometryShape(emblem));
+                AddPixelEmblem(emblem, "AnvilIcon", AnvilIconPath);
                 break;
             case RoomRewardType.CursedBlood:
-                AddCursedBloodEmblem(emblem);
+                AddPixelEmblem(emblem, "CursedBloodIcon", CursedBloodIconPath);
                 break;
             default:
-                AddCoins(GeometryShape(emblem));
+                AddPixelEmblem(emblem, "CoinsIcon", CoinsIconPath);
                 break;
         }
-    }
-
-    // Subnó com a escala e o deslocamento dos emblemas em geometria (Fruta e Moedas), para caber no disco.
-    private static Node3D GeometryShape(Node3D emblem)
-    {
-        var shape = new Node3D
-        {
-            Name = "Shape",
-            Scale = Vector3.One * GeometryEmblemScale,
-            Position = Vector3.Up * GeometryEmblemOffsetY
-        };
-        emblem.AddChild(shape);
-        return shape;
     }
 
     // Disco do medalhão: quadro com textura gerada (fundo escuro, aro dourado e brilho externo que se apaga).
@@ -146,18 +130,18 @@ public static class DoorRewardIcon
         });
     }
 
-    // Ícor: o frasco do HUD em pixel art, sem filtro (pixels nítidos). Sem o arquivo, fica só o disco.
-    private static void AddCursedBloodEmblem(Node3D emblem)
+    // Emblema em pixel art (32x32, AAP-64), sem filtro (pixels nítidos). Sem o arquivo, fica só o disco.
+    private static void AddPixelEmblem(Node3D emblem, string name, string path)
     {
-        var texture = LoadTexture(CursedBloodIconPath);
+        var texture = LoadTexture(path);
         if (texture == null)
         {
-            GD.PushWarning($"DoorRewardIcon: ícone do Ícor ausente ({CursedBloodIconPath}).");
+            GD.PushWarning($"DoorRewardIcon: ícone ausente ({path}).");
             return;
         }
         emblem.AddChild(new Sprite3D
         {
-            Name = "CursedBloodIcon",
+            Name = name,
             Texture = texture,
             PixelSize = EmblemSize / Mathf.Max(Mathf.Max(texture.GetWidth(), texture.GetHeight()), 1),
             Shaded = false,
@@ -198,91 +182,6 @@ public static class DoorRewardIcon
         return ResourceLoader.Load<Texture2D>(path);
     }
 
-    // Esfera com haste curta no topo. Material brilhante (roughness baixo) e emissivo: sem isso some no disco escuro.
-    private static void AddDevilsFruit(Node3D parent)
-    {
-        parent.AddChild(new MeshInstance3D
-        {
-            Name = "Fruit",
-            Mesh = new SphereMesh { Radius = 0.17f, Height = 0.34f, RadialSegments = 24, Rings = 12 },
-            MaterialOverride = FruitMaterial()
-        });
-        parent.AddChild(new MeshInstance3D
-        {
-            Name = "Stem",
-            Mesh = new CylinderMesh { TopRadius = 0.02f, BottomRadius = 0.035f, Height = 0.12f, RadialSegments = 8 },
-            MaterialOverride = Material(StemHex, 0.0f, 0.8f),
-            Position = new Vector3(0.0f, 0.22f, 0.0f)
-        });
-    }
-
-    // Bigorna: silhueta em T assimétrica (base larga, cintura estreita, tampo largo e chifre cônico à direita). Aço claro com
-    // brilho leve, para ler no disco escuro; a forma (não a cor) a distingue da esfera, da pilha de discos e do losango.
-    private static void AddAnvil(Node3D parent)
-    {
-        var steel = AnvilMaterial(AnvilHex, 0.25f);
-        var top = AnvilMaterial(AnvilTopHex, 0.35f);
-        AddBox(parent, "AnvilBase", new Vector3(0.34f, 0.07f, 0.16f), new Vector3(0.0f, -0.16f, 0.0f), steel);
-        AddBox(parent, "AnvilWaist", new Vector3(0.16f, 0.14f, 0.12f), new Vector3(0.0f, -0.055f, 0.0f), steel);
-        AddBox(parent, "AnvilTop", new Vector3(0.40f, 0.09f, 0.16f), new Vector3(0.0f, 0.055f, 0.0f), top);
-        parent.AddChild(new MeshInstance3D
-        {
-            Name = "AnvilHorn",
-            Mesh = new CylinderMesh { TopRadius = 0.01f, BottomRadius = 0.075f, Height = 0.20f, RadialSegments = 12 },
-            MaterialOverride = top,
-            Position = new Vector3(0.30f, 0.055f, 0.0f),
-            RotationDegrees = new Vector3(0.0f, 0.0f, -90.0f)
-        });
-    }
-
-    private static void AddBox(Node3D parent, string name, Vector3 size, Vector3 position, Material material)
-    {
-        parent.AddChild(new MeshInstance3D
-        {
-            Name = name,
-            Mesh = new BoxMesh { Size = size },
-            MaterialOverride = material,
-            Position = position
-        });
-    }
-
-    private static StandardMaterial3D AnvilMaterial(string hex, float emission)
-    {
-        var color = Color.FromHtml("#" + hex);
-        return new StandardMaterial3D
-        {
-            AlbedoColor = color,
-            Roughness = 0.4f,
-            Metallic = 0.5f,
-            EmissionEnabled = true,
-            Emission = color,
-            EmissionEnergyMultiplier = emission
-        };
-    }
-
-    // Três discos achatados empilhados. Cada disco é um cilindro bronze com um anel externo mais claro por cima.
-    private static void AddCoins(Node3D parent)
-    {
-        for (var i = 0; i < 3; i++)
-        {
-            var y = (i - 1) * 0.075f;
-            parent.AddChild(new MeshInstance3D
-            {
-                Name = $"Coin_{i}",
-                Mesh = new CylinderMesh { TopRadius = 0.2f, BottomRadius = 0.2f, Height = 0.07f, RadialSegments = 24 },
-                MaterialOverride = Material(CoinRimHex, 0.0f, 0.4f),
-                Position = new Vector3(0.0f, y, 0.0f)
-            });
-            parent.AddChild(new MeshInstance3D
-            {
-                Name = $"CoinFace_{i}",
-                Mesh = new CylinderMesh { TopRadius = 0.165f, BottomRadius = 0.165f, Height = 0.075f, RadialSegments = 24 },
-                MaterialOverride = Material(CoinHex, 0.0f, 0.5f),
-                Position = new Vector3(0.0f, y, 0.0f)
-            });
-        }
-    }
-
     private static ImageTexture MedallionTexture() => _medallionTexture ??= Generate(MedallionTextureSize, MedallionPixel);
 
     private static ImageTexture DiamondTexture() => _diamondTexture ??= Generate(DiamondTextureSize, DiamondPixel);
@@ -292,17 +191,17 @@ public static class DoorRewardIcon
     private static Color MedallionPixel(float dx, float dy)
     {
         var r = Mathf.Sqrt(dx * dx + dy * dy);
-        if (r <= 0.80f)
-            return new Color(Color.FromHtml("#" + FillHex), 0.94f);
-        if (r <= 0.90f)
+        if (r <= 0.76f)
+            return new Color(Color.FromHtml("#" + FillHex), 1.0f);
+        if (r <= 0.88f)
         {
-            var t = Mathf.Sin((r - 0.80f) / 0.10f * Mathf.Pi);
+            var t = Mathf.Sin((r - 0.76f) / 0.12f * Mathf.Pi);
             return Color.FromHtml("#" + RingDarkHex).Lerp(Color.FromHtml("#" + RingHex), t);
         }
         if (r <= 1.0f)
         {
-            var fade = 1.0f - (r - 0.90f) / 0.10f;
-            return new Color(Color.FromHtml("#" + GlowHex), 0.5f * fade * fade);
+            var fade = 1.0f - (r - 0.88f) / 0.12f;
+            return new Color(Color.FromHtml("#" + GlowHex), 0.85f * fade);
         }
         return new Color(0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -326,33 +225,5 @@ public static class DoorRewardIcon
                 image.SetPixel(x, y, pixel(dx, dy));
             }
         return ImageTexture.CreateFromImage(image);
-    }
-
-    private static StandardMaterial3D FruitMaterial()
-    {
-        var color = Color.FromHtml("#" + FruitHex);
-        return new StandardMaterial3D
-        {
-            AlbedoColor = color,
-            Roughness = 0.25f,
-            Metallic = 0.15f,
-            EmissionEnabled = true,
-            Emission = new Color(0.85f, 0.04f, 0.08f),
-            EmissionEnergyMultiplier = 0.5f
-        };
-    }
-
-    // Material fosco simples. emission > 0 só é usado na Fruta.
-    private static StandardMaterial3D Material(string hex, float emission, float roughness = 0.45f)
-    {
-        var color = Color.FromHtml("#" + hex);
-        var material = new StandardMaterial3D { AlbedoColor = color, Roughness = roughness };
-        if (emission > 0.0f)
-        {
-            material.EmissionEnabled = true;
-            material.Emission = color;
-            material.EmissionEnergyMultiplier = emission;
-        }
-        return material;
     }
 }
